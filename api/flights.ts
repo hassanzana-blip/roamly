@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { bookings, supportMessages } from "../db/schema";
+import { bookings, bookingEvents, bookingSegments, customers, supportCases, supportMessages } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import {
   duffelConfig,
@@ -13,6 +13,7 @@ import {
 import { demoFlightStatus, demoGetOffer, demoPaxFactor, demoPriceHint, demoSearch } from "./lib/demo";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { sendBookingConfirmation, sendSupportAck } from "./lib/mailer";
+import { enqueueJob } from "./lib/jobs";
 import { searchAirports } from "../contracts/airports";
 import { desc } from "drizzle-orm";
 import type { Order, PriceHint, ServiceStatus, SupportCase } from "../contracts/types";
@@ -60,15 +61,9 @@ const createOrderSchema = z.object({
   contactEmail: z.string().email(),
   contactPhone: z.string().min(6).max(24),
   passengers: z.array(passengerDetailsSchema).min(1).max(9),
-  card: z
-    .object({
-      number: z.string().min(12).max(19),
-      expiryMonth: z.string().length(2),
-      expiryYear: z.string().length(2),
-      cvc: z.string().min(3).max(4),
-      holderName: z.string().min(1),
-    })
-    .optional(),
+  // Idempotensnøkkel genereres av klienten per checkout-forsøk — forhindrer
+  // dobbeltbooking ved dobbeltklikk/nettverksfeil. Aldri rå kortdata her.
+  idempotencyKey: z.string().uuid(),
   services: z
     .object({
       extraBags: z.number().int().min(0).max(3),
@@ -126,6 +121,25 @@ export const flightsRouter = createRouter({
 
   createOrder: publicQuery.input(createOrderSchema).mutation(async ({ input, ctx }) => {
     assertRateLimit("createOrder", clientIp(ctx.req), 10, 60_000);
+
+    // Produksjonssikring: offentlig direktebooking kan slås av frem til
+    // betalingsleverandør er på plass (se DEPLOYMENT.md).
+    if (process.env.PUBLIC_INSTANT_BOOKING === "false") {
+      throw new Error(
+        "Direktebooking er midlertidig stengt. Kontakt oss på WhatsApp eller telefon, så hjelper vi deg med bestillingen.",
+      );
+    }
+
+    // Idempotens: samme nøkkel returnerer eksisterende ordre uten ny booking
+    const existing = await getDb()
+      .select()
+      .from(bookings)
+      .where(eq(bookings.idempotencyKey, input.idempotencyKey))
+      .limit(1);
+    if (existing[0]) {
+      return JSON.parse(existing[0].payload) as Order;
+    }
+
     const offer = await resolveOffer(input.offerId);
 
     // Validate and price the requested extras against the offer
@@ -193,24 +207,101 @@ export const flightsRouter = createRouter({
       }
     }
 
-    // Booking confirmation email (non-blocking; logged when SMTP is absent)
-    const mail = await sendBookingConfirmation(order).catch(() => null);
-    if (mail && !mail.sent && mail.reason === "failed") {
-      console.error(`E-post til ${order.contactEmail} kunne ikke sendes for ${order.bookingReference}`);
-    }
-
-    // Persist (never store card details)
+    // Persist med komplett driftsspor: kunde, tilstand, segmenter, events.
+    // Ordren er opprettet hos leverandøren — lagring MÅ lykkes (ellers
+    // legges den i AWAITING_RECONCILIATION og sweeperen plukker den opp).
+    let bookingId: number | null = null;
     try {
-      await getDb().insert(bookings).values({
+      const db = getDb();
+      const normalizedEmail = order.contactEmail.toLowerCase().trim();
+      const existingCustomer = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, normalizedEmail))
+        .limit(1);
+      let customerId = existingCustomer[0]?.id;
+      if (!customerId) {
+        const firstPax = input.passengers[0];
+        const result = await db.insert(customers).values({
+          email: normalizedEmail,
+          name: firstPax ? `${firstPax.givenName} ${firstPax.familyName}` : null,
+          phone: input.contactPhone,
+        });
+        customerId = Number(result[0].insertId);
+      }
+
+      const bookingResult = await db.insert(bookings).values({
         orderId: order.id,
         bookingReference: order.bookingReference,
-        contactEmail: order.contactEmail,
+        contactEmail: normalizedEmail,
         contactPhone: order.contactPhone,
         liveMode: order.liveMode,
         payload: JSON.stringify(order),
+        state: "CONFIRMED",
+        customerId,
+        totalAmount: order.totalAmount,
+        totalCurrency: order.totalCurrency,
+        source: "web",
+        idempotencyKey: input.idempotencyKey,
       });
+      bookingId = Number(bookingResult[0].insertId);
+
+      await db.insert(bookingEvents).values({
+        bookingId,
+        fromState: "BOOKING_PROCESSING",
+        toState: "CONFIRMED",
+        actorType: "customer",
+        actorId: normalizedEmail,
+        reason: "Ordre opprettet og bekreftet hos leverandør",
+        correlationId: input.idempotencyKey,
+      });
+
+      let segIdx = 0;
+      for (let si = 0; si < order.slices.length; si++) {
+        for (const seg of order.slices[si].segments) {
+          await db.insert(bookingSegments).values({
+            bookingId,
+            sliceIndex: si,
+            segmentIndex: segIdx++,
+            originIata: seg.origin.iata,
+            destinationIata: seg.destination.iata,
+            carrierIata: seg.carrier.iata,
+            flightNumber: seg.flightNumber,
+            departingAt: seg.departingAt,
+            arrivingAt: seg.arrivingAt,
+            cabinClass: seg.cabinClass,
+          });
+        }
+      }
     } catch (dbErr) {
-      console.error("Kunne ikke lagre bestilling i databasen:", dbErr);
+      // Kritisk: ordren finnes hos Duffel, men ble ikke lagret lokalt.
+      console.error("KRITISK: Kunne ikke lagre bestilling i databasen:", dbErr);
+      await enqueueJob("send_email", {
+        kind: "ops_alert",
+        subject: `Ordre ikke lagret lokalt: ${order.bookingReference}`,
+        body: `Ordre ${order.id} (${order.bookingReference}) ble opprettet hos leverandøren, men databasen svarte ikke. Legg inn manuelt eller kjør avstemming.\n\nFeil: ${String(dbErr)}`,
+      }).catch(() => {});
+    }
+
+    // Bekreftelses-e-post via outbox (retry hos worker) — aldri inline-lås
+    if (bookingId !== null) {
+      await enqueueJob(
+        "send_email",
+        { kind: "booking_confirmation", bookingId },
+        { dedupeKey: `booking-confirmation:${bookingId}` },
+      ).catch(() => {});
+      // Driftsvarsel til teamet: ny booking registrert
+      await enqueueJob(
+        "send_email",
+        {
+          kind: "ops_alert",
+          subject: `Ny booking: ${order.bookingReference}`,
+          body: `Ny bestilling er registrert.\n\nReferanse: ${order.bookingReference}\nKunde: ${order.contactEmail}\nBeløp: ${order.totalAmount} ${order.totalCurrency}\nModus: ${order.liveMode ? "LIVE" : "test/demo"}\n\nÅpne admin → Bestillinger for detaljer.`,
+        },
+        { dedupeKey: `new-booking-alert:${bookingId}` },
+      ).catch(() => {});
+    } else {
+      await sendBookingConfirmation(order).catch(() => null);
     }
 
     return order;
@@ -324,13 +415,28 @@ export const flightsRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       assertRateLimit("support", clientIp(ctx.req), 5, 60_000);
       const caseReference = `RM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-      const result = await getDb().insert(supportMessages).values({
+      const db = getDb();
+
+      // Opprett en reell sak i admin-portalen samtidig
+      const caseResult = await db.insert(supportCases).values({
+        reference: caseReference,
+        subject: `${input.topic === "booking" ? "Booking" : input.topic === "change" ? "Endring" : input.topic === "refund" ? "Refusjon" : input.topic === "baggage" ? "Bagasje" : "Annet"}: ${input.message.slice(0, 80)}`,
+        customerEmail: input.email.toLowerCase().trim(),
+        customerName: input.name,
+        priority: input.topic === "refund" ? "high" : "normal",
+        status: "open",
+      });
+      const caseId = Number(caseResult[0].insertId);
+
+      const result = await db.insert(supportMessages).values({
         caseReference,
+        caseId,
         name: input.name,
         email: input.email.toLowerCase().trim(),
         bookingReference: input.bookingReference?.toUpperCase() || null,
         topic: input.topic,
         message: input.message,
+        authorType: "customer",
       });
       await sendSupportAck({
         email: input.email,

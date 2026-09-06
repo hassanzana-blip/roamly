@@ -34,19 +34,24 @@ type Props = {
   onToggleFavourite: (id: string) => void;
 };
 
+/**
+ * Portrett-kort i app-stil: bildet fyller hele kortet, teksten ligger på
+ * en mørk gradient nederst, hjertet øverst til høyre. Ingen oppdiktede
+ * priser eller ratings — kun «Se flyreiser» som ærlig handling.
+ */
 export default function DestinationCard({ destination: d, isFavourite, onToggleFavourite }: Props) {
   const [imgFailed, setImgFailed] = useState(false);
   const showPhoto = d.image !== undefined && !imgFailed;
 
   return (
-    <div className="group relative w-[248px] shrink-0 sm:w-[284px]">
+    <div className="group relative w-[216px] shrink-0 sm:w-[252px]">
       {/* Card navigation — a single, clean link target */}
       <Link
         to={searchHref(d.iata)}
-        className="block rounded-2xl outline-none transition-transform duration-300 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="block rounded-3xl outline-none transition-transform duration-300 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label={`Søk flyreiser til ${d.city}, ${d.country}`}
       >
-        <div className="relative aspect-[3/2] overflow-hidden rounded-2xl bg-secondary">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-secondary shadow-md shadow-night/10 transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-night/20">
           {showPhoto ? (
             <img
               src={d.image}
@@ -55,30 +60,38 @@ export default function DestinationCard({ destination: d, isFavourite, onToggleF
               decoding="async"
               width={1200}
               height={800}
-              sizes="(max-width: 640px) 248px, 284px"
+              sizes="(max-width: 640px) 216px, 252px"
               onError={() => setImgFailed(true)}
-              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
             />
           ) : (
             <RouteIllustration iata={d.iata} />
           )}
-          <span className="absolute left-3 top-3 rounded-lg bg-night/70 px-2 py-1 text-[11px] font-bold tracking-[0.14em] text-white backdrop-blur-sm">
+
+          {/* Lesbarhets-gradient nederst */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-night/85 via-night/20 to-transparent" />
+
+          <span className="absolute left-3 top-3 rounded-lg bg-white/20 px-2 py-1 text-[11px] font-bold tracking-[0.14em] text-white backdrop-blur-md">
             {d.iata}
           </span>
-        </div>
 
-        {/* Content height is intrinsic — long translated titles clamp instead of clipping */}
-        <div className="px-1 pt-3">
-          <div className="flex items-baseline justify-between gap-2">
-            <h3 className="line-clamp-1 text-lg font-extrabold tracking-tight text-foreground">
-              {d.city}
-            </h3>
-            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+          {/* Tekst på bildet — lange oversatte titler klammes uten å brekke layout */}
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <div className="flex items-end justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="line-clamp-1 text-xl font-extrabold tracking-tight text-white">
+                  {d.city}
+                </h3>
+                <p className="mt-0.5 line-clamp-1 text-xs font-medium text-white/75">
+                  {d.country} · {d.tagline}
+                </p>
+              </div>
+              <ArrowUpRight className="mb-1 h-4 w-4 shrink-0 text-white/70 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
+            </div>
+            <span className="mt-3 inline-flex items-center rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-night transition-colors group-hover:bg-primary group-hover:text-white">
+              Se flyreiser
+            </span>
           </div>
-          <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-            {d.country} · {d.tagline}
-          </p>
-          <p className="mt-1.5 text-sm font-semibold text-primary">Se flyreiser</p>
         </div>
       </Link>
 
@@ -99,10 +112,10 @@ export default function DestinationCard({ destination: d, isFavourite, onToggleF
             ? `Fjern ${d.city} fra favoritter`
             : `Lagre ${d.city} som favoritt`
         }
-        className={`absolute right-2.5 top-2.5 grid h-11 w-11 place-items-center rounded-full backdrop-blur-md transition-colors duration-200 ${
+        className={`absolute right-3 top-3 grid h-11 w-11 place-items-center rounded-full backdrop-blur-md transition-colors duration-200 ${
           isFavourite
             ? "bg-primary text-white shadow-lg shadow-primary/30"
-            : "bg-white/85 text-night hover:bg-white"
+            : "bg-white/25 text-white hover:bg-white/40"
         }`}
       >
         <motion.span

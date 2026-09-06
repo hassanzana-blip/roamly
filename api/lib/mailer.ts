@@ -67,11 +67,11 @@ export async function sendBookingConfirmation(order: Order): Promise<MailResult>
 
   const html = `
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#0f1f3d">
-    <div style="background:#0a1730;padding:24px 28px;border-radius:16px 16px 0 0">
-      <span style="color:#f0c040;font-size:22px;font-family:Georgia,serif">Roamly</span>
+    <div style="background:#102640;padding:24px 28px;border-radius:16px 16px 0 0">
+      <span style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px">Roamly</span>
     </div>
     <div style="border:1px solid #dbe2f0;border-top:0;padding:28px;border-radius:0 0 16px 16px">
-      <h1 style="font-family:Georgia,serif;font-size:24px;margin:0 0 6px">Billetten din er bekreftet!</h1>
+      <h1 style="font-size:24px;font-weight:800;color:#102640;margin:0 0 6px">Billetten din er bekreftet!</h1>
       <p style="margin:0 0 18px;color:#4a5878">Bookingreferanse:
         <strong style="font-size:20px;letter-spacing:2px;color:#0f1f3d">${order.bookingReference}</strong></p>
       ${lines.map((l) => `<p style="margin:0 0 8px">${l}</p>`).join("")}
@@ -120,6 +120,99 @@ export async function sendSupportAck(input: {
     return { sent: true };
   } catch (err) {
     console.error("[mailer] Sending feilet:", err);
+    return { sent: false, reason: "failed" };
+  }
+}
+
+const baseUrl = () => (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
+/** Tilbuds-lenke til kunde (assisted booking). */
+export async function sendQuoteCheckout(quoteId: number, token: string): Promise<MailResult> {
+  const { getDb } = await import("../queries/connection");
+  const { quotes } = await import("../../db/schema");
+  const { eq } = await import("drizzle-orm");
+  const [quote] = await getDb().select().from(quotes).where(eq(quotes.id, quoteId)).limit(1);
+  if (!quote) throw new Error(`Tilbud ${quoteId} ikke funnet`);
+  const offer = JSON.parse(quote.offerSnapshot);
+  const slice = offer.slices?.[0];
+  const route = slice ? `${slice.origin.city} → ${slice.destination.city}` : "";
+  const url = `${baseUrl()}/tilbud/${token}`;
+  const expires = quote.expiresAt.toLocaleString("nb-NO", { dateStyle: "long", timeStyle: "short" });
+
+  const text = [
+    `Hei ${quote.customerName}!`,
+    ``,
+    `Vi har laget et tilbud til deg: ${route}`,
+    `Totalt ${quote.totalAmount} ${quote.currency} (inkluderer vår serviceavgift på ${quote.serviceFeeAmount} ${quote.currency}).`,
+    ``,
+    `Se tilbudet og fullfør bestillingen her:`,
+    url,
+    ``,
+    `Tilbudet er gyldig til ${expires}.`,
+    ``,
+    `Vennlig hilsen`,
+    `Roamly`,
+  ].join("\n");
+
+  const transport = buildTransport();
+  if (!transport) {
+    console.log(`[mailer] SMTP ikke konfigurert — tilbuds-lenke til ${quote.customerEmail}: ${url}`);
+    return { sent: false, reason: "not_configured" };
+  }
+  try {
+    await transport.sendMail({
+      from: from(),
+      to: quote.customerEmail,
+      subject: `Ditt reisetilbud ${quote.reference} — ${route} | Roamly`,
+      text,
+    });
+    return { sent: true };
+  } catch (err) {
+    console.error("[mailer] Sending feilet:", err);
+    return { sent: false, reason: "failed" };
+  }
+}
+
+/** Svar på kundesak. */
+export async function sendCaseReply(caseId: number, message: string): Promise<MailResult> {
+  const { getDb } = await import("../queries/connection");
+  const { supportCases } = await import("../../db/schema");
+  const { eq } = await import("drizzle-orm");
+  const [supportCase] = await getDb().select().from(supportCases).where(eq(supportCases.id, caseId)).limit(1);
+  if (!supportCase) throw new Error(`Sak ${caseId} ikke funnet`);
+
+  const transport = buildTransport();
+  if (!transport) {
+    console.log(`[mailer] SMTP ikke konfigurert — sakssvar til ${supportCase.customerEmail} (${supportCase.reference})`);
+    return { sent: false, reason: "not_configured" };
+  }
+  try {
+    await transport.sendMail({
+      from: from(),
+      to: supportCase.customerEmail,
+      subject: `Svar på din henvendelse — ${supportCase.reference} | Roamly`,
+      text: `Hei ${supportCase.customerName ?? ""}!\n\n${message}\n\nSaksreferanse: ${supportCase.reference}\n\nVennlig hilsen\nRoamly kundeservice`,
+    });
+    return { sent: true };
+  } catch (err) {
+    console.error("[mailer] Sending feilet:", err);
+    return { sent: false, reason: "failed" };
+  }
+}
+
+/** Driftsvarsel til teamet (OPS_ALERT_EMAIL eller fallback til MAIL_FROM). */
+export async function sendOpsAlert(subject: string, body: string): Promise<MailResult> {
+  const to = process.env.OPS_ALERT_EMAIL ?? process.env.MAIL_FROM?.match(/<(.+)>/)?.[1] ?? null;
+  const transport = buildTransport();
+  if (!transport || !to) {
+    console.warn(`[ops-alert] ${subject}\n${body}`);
+    return { sent: false, reason: "not_configured" };
+  }
+  try {
+    await transport.sendMail({ from: from(), to, subject: `[Roamly drift] ${subject}`, text: body });
+    return { sent: true };
+  } catch (err) {
+    console.error("[mailer] Driftsvarsel feilet:", err);
     return { sent: false, reason: "failed" };
   }
 }

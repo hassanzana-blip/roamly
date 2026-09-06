@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { motion } from "motion/react";
 import { ArrowRight, CalendarDays, Clock3, HeartHandshake, Radar } from "lucide-react";
 import GlobeSafe from "@/components/globe/GlobeSafe";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import SearchWidget from "@/components/search/SearchWidget";
 import DestinationCarousel from "@/components/travel/DestinationCarousel";
+import VideoHero from "@/components/travel/VideoHero";
 import { FAMILY_DESTINATIONS, POPULAR_DESTINATIONS } from "@/content/discover";
 import { loadRecentSearches, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
 import { airportByIata } from "@contracts/airports";
@@ -49,57 +51,41 @@ export default function Home() {
     <div className="relative min-h-screen bg-background">
       <SiteHeader />
 
-      {/* ── 1–3. Hero: promise + immediately usable search ─────────── */}
-      <section className="relative overflow-hidden">
-        {/* Cinematic photo — decorative; the booking UI loads independently */}
-        <div className="absolute inset-0" aria-hidden="true">
-          <img
-            src="/destinations/hero.jpg"
-            alt=""
-            fetchPriority="high"
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/40 to-background" />
-        </div>
+      {/* ── 1–3. Hero: levende hav + løfte + umiddelbart søk ───────── */}
+      <VideoHero>
+        <motion.div
+          initial={{ opacity: 0, y: 34 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.26, ease: "easeOut" }}
+          className="relative"
+        >
+          <SearchWidget initial={{ from: airportByIata("OSL") ?? null }} />
+        </motion.div>
+      </VideoHero>
 
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col px-4 pb-12 pt-24 sm:px-6 sm:pt-28">
-          <div className="mb-7 max-w-2xl sm:mb-9">
-            <p className="fade-up fade-up-1 mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-white/80 px-4 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground backdrop-blur-md">
-              <span className="h-2 w-2 rounded-full bg-primary pulse-soft" />
-              Personlig reisehjelp · alle dager 06–24
-            </p>
-            <h1 className="fade-up fade-up-2 font-display text-[11.5vw] leading-[0.98] text-balance text-night sm:text-6xl md:text-7xl">
-              Hele verden.
-              <br />
-              <span className="text-primary">Nærmere.</span>
-            </h1>
-            <p className="fade-up fade-up-3 mt-4 max-w-lg text-base leading-relaxed text-night/70 sm:text-lg">
-              Sammenlign priser fra hundrevis av flyselskaper, book trygt på
-              under to minutter — og få hjelp av ekte mennesker hele veien.
-            </p>
-          </div>
-
-          <div className="fade-up fade-up-4 relative">
-            <SearchWidget initial={{ from: airportByIata("OSL") ?? null }} />
-          </div>
-
-          {/* stat strip */}
-          <div className="mt-8 grid grid-cols-3 gap-3 border-t hairline pt-6 text-center sm:text-left">
-            {[
-              { n: "300+", l: "flyselskaper" },
-              { n: "< 2 min", l: "fra søk til billett" },
-              { n: "06–24", l: "norsk kundeservice" },
-            ].map((s) => (
-              <div key={s.l}>
-                <p className="font-display text-2xl text-primary sm:text-3xl">{s.n}</p>
-                <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">
-                  {s.l}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* stat strip — plasseres under det svevende søkeskjemaet */}
+      <div className="mx-auto w-full max-w-6xl px-4 pt-36 sm:px-6 sm:pt-40">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-3 gap-3 border-t hairline pt-6 text-center sm:text-left"
+        >
+          {[
+            { n: "300+", l: "flyselskaper" },
+            { n: "< 2 min", l: "fra søk til billett" },
+            { n: "06–24", l: "norsk kundeservice" },
+          ].map((s) => (
+            <div key={s.l}>
+              <p className="font-display text-2xl text-primary sm:text-3xl">{s.n}</p>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">
+                {s.l}
+              </p>
+            </div>
+          ))}
+        </motion.div>
+      </div>
 
       {/* ── 4. Recent searches ─────────────────────────────────────── */}
       <RecentSearches />

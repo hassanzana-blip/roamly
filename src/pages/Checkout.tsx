@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft,
   CalendarClock,
-  CreditCard,
   Info,
   Lock,
   Luggage,
@@ -94,13 +93,6 @@ export default function Checkout() {
   const [contactPhone, setContactPhone] = useState("+47 ");
   const [pax, setPax] = useState<Record<string, Partial<PassengerDetails>>>({});
   const [guardian, setGuardian] = useState<Record<string, string>>({});
-  const [card, setCard] = useState({
-    number: "",
-    expiryMonth: "",
-    expiryYear: "",
-    cvc: "",
-    holderName: "",
-  });
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [extraBags, setExtraBags] = useState(0);
@@ -109,6 +101,12 @@ export default function Checkout() {
   const order = trpc.flights.createOrder.useMutation({
     onSuccess: (o) => navigate(`/bekreftelse/${o.id}`),
   });
+
+  // Idempotensnøkkel: én per checkout-økt — dobbeltklikk booker aldri to ganger
+  const idempotencyKeyRef = useRef<string | null>(null);
+  if (idempotencyKeyRef.current === null) {
+    idempotencyKeyRef.current = crypto.randomUUID();
+  }
 
   if (!offerId) {
     return (
@@ -144,12 +142,6 @@ export default function Checkout() {
       if (!d.title) e[`${p.id}.title`] = "Velg";
       if (p.type === "infant_without_seat" && !guardian[p.id]) e[`${p.id}.guardian`] = "Velg ansvarlig voksen";
     }
-    if (card.number.replace(/\s/g, "").length < 15) e.cardNumber = "Ugyldig kortnummer";
-    if (!/^\d{2}$/.test(card.expiryMonth) || Number(card.expiryMonth) > 12 || Number(card.expiryMonth) < 1)
-      e.expiry = "MM";
-    if (!/^\d{2}$/.test(card.expiryYear)) e.expiry = e.expiry ? "MM/ÅÅ" : "ÅÅ";
-    if (card.cvc.length < 3) e.cvc = "CVC";
-    if (!card.holderName.trim()) e.holderName = "Obligatorisk";
     if (!acceptTerms) e.terms = "Du må godta vilkårene for å fullføre";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -178,7 +170,7 @@ export default function Checkout() {
       contactPhone,
       passengers,
       services: extraBags > 0 || Object.keys(seats).length > 0 ? { extraBags, seats } : undefined,
-      card: { ...card, number: card.number.replace(/\s/g, "") },
+      idempotencyKey: idempotencyKeyRef.current!,
     });
   };
 
@@ -429,7 +421,7 @@ export default function Checkout() {
                 onSeats={setSeats}
               />
 
-              {/* payment */}
+              {/* payment — kortdata håndteres aldri av Roamly */}
               <section className={stepCls}>
                 <h2 className="mb-1 flex items-center gap-2.5 font-display text-2xl">
                   <span className="grid h-7 w-7 place-items-center rounded-full bg-gold text-sm font-bold text-white">
@@ -437,68 +429,17 @@ export default function Checkout() {
                   </span>
                   Betaling
                 </h2>
-                <p className="mb-5 flex items-center gap-2 text-sm text-muted-foreground">
-                  <ShieldCheck className="h-4 w-4 text-gold" />
-                  Visa, Mastercard og American Express · 3D Secure-verifisering
-                </p>
-                <div className="grid gap-4">
-                  <Field label="Kortnummer" error={errors.cardNumber}>
-                    <div className="relative">
-                      <CreditCard className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        inputMode="numeric"
-                        autoComplete="cc-number"
-                        placeholder="1234 5678 9012 3456"
-                        value={card.number}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
-                          setCard((c) => ({ ...c, number: digits.replace(/(\d{4})(?=\d)/g, "$1 ") }));
-                        }}
-                        className={inputCls + " pl-11 tracking-wider"}
-                      />
-                    </div>
-                  </Field>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                    <Field label="Utløper (MM/ÅÅ)" error={errors.expiry}>
-                      <div className="flex gap-2">
-                        <input
-                          inputMode="numeric"
-                          placeholder="MM"
-                          maxLength={2}
-                          value={card.expiryMonth}
-                          onChange={(e) => setCard((c) => ({ ...c, expiryMonth: e.target.value.replace(/\D/g, "") }))}
-                          className={inputCls + " text-center"}
-                        />
-                        <input
-                          inputMode="numeric"
-                          placeholder="ÅÅ"
-                          maxLength={2}
-                          value={card.expiryYear}
-                          onChange={(e) => setCard((c) => ({ ...c, expiryYear: e.target.value.replace(/\D/g, "") }))}
-                          className={inputCls + " text-center"}
-                        />
-                      </div>
-                    </Field>
-                    <Field label="CVC" error={errors.cvc}>
-                      <input
-                        inputMode="numeric"
-                        autoComplete="cc-csc"
-                        placeholder="123"
-                        maxLength={4}
-                        value={card.cvc}
-                        onChange={(e) => setCard((c) => ({ ...c, cvc: e.target.value.replace(/\D/g, "") }))}
-                        className={inputCls + " text-center"}
-                      />
-                    </Field>
-                    <Field label="Kortholders navn" error={errors.holderName}>
-                      <input
-                        autoComplete="cc-name"
-                        placeholder="Ola Nordmann"
-                        value={card.holderName}
-                        onChange={(e) => setCard((c) => ({ ...c, holderName: e.target.value }))}
-                        className={inputCls}
-                      />
-                    </Field>
+                <div className="flex items-start gap-3 rounded-2xl bg-secondary/60 p-4">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <div className="text-sm leading-relaxed">
+                    <p className="font-semibold text-foreground">
+                      Trygt fullført kjøp — hentet direkte fra flyselskapet
+                    </p>
+                    <p className="mt-1 text-muted-foreground">
+                      Roamly ber aldri om kortinformasjon på denne siden. Når du
+                      bekrefter, reserveres billetten hos flyselskapet umiddelbart,
+                      og du mottar bekreftelse og betalingsinformasjon på e-post.
+                    </p>
                   </div>
                 </div>
               </section>

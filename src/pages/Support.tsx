@@ -128,6 +128,53 @@ export default function Support() {
           </div>
         </div>
 
+        {/* Møt menneskene bak Roamly */}
+        <section className="mt-16" aria-label="Menneskene bak Roamly">
+          <h2 className="font-display text-3xl">Menneskene bak Roamly</h2>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            Når du ringer eller skriver til oss, er det oss du får tak i.
+            Vi kjenner rutene, sesongene — og hva som betyr noe når du reiser hjem.
+          </p>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2">
+            {[
+              {
+                img: "/team/team-1.jpg",
+                name: "Zyar",
+                role: "Eier og daglig leder",
+                quote: "Jeg startet Roamly fordi å reise hjem til familien aldri skulle vært så komplisert.",
+              },
+              {
+                img: "/team/team-2.jpg",
+                name: "Zana",
+                role: "Kundeservice og drift",
+                quote: "Ingen henvendelse er for liten. Vi svarer alltid — også på kveldstid.",
+              },
+            ].map((p) => (
+              <article
+                key={p.name}
+                className="card-lift overflow-hidden rounded-3xl border hairline bg-card"
+              >
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img
+                    src={p.img}
+                    alt={`${p.name} — ${p.role} i Roamly`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover object-top"
+                  />
+                </div>
+                <div className="p-5">
+                  <p className="font-display text-xl">{p.name}</p>
+                  <p className="text-sm font-medium text-primary">{p.role}</p>
+                  <p className="mt-2 text-sm italic leading-relaxed text-muted-foreground">
+                    «{p.quote}»
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <div className="grid items-start gap-10 lg:grid-cols-[1fr_1fr]">
           {/* contact form */}
           <section>
