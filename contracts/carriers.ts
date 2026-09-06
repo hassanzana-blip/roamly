@@ -1,0 +1,20 @@
+// Airlines available in the flight tracker (matches the data engine).
+export const TRACKABLE_CARRIERS = [
+  { iata: "DY", name: "Norwegian" },
+  { iata: "SK", name: "SAS" },
+  { iata: "WF", name: "Widerøe" },
+  { iata: "KL", name: "KLM" },
+  { iata: "LH", name: "Lufthansa" },
+  { iata: "BA", name: "British Airways" },
+  { iata: "AF", name: "Air France" },
+  { iata: "AY", name: "Finnair" },
+  { iata: "FI", name: "Icelandair" },
+  { iata: "TK", name: "Turkish Airlines" },
+  { iata: "EK", name: "Emirates" },
+  { iata: "QR", name: "Qatar Airways" },
+  { iata: "SQ", name: "Singapore Airlines" },
+  { iata: "FR", name: "Ryanair" },
+  { iata: "U2", name: "easyJet" },
+  { iata: "DL", name: "Delta Air Lines" },
+  { iata: "UA", name: "United Airlines" },
+];

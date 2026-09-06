@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Roamly identity (visual identity board) ─────────────────────────
+       Deep navy  #102640  → typography & brand structure
+       Royal blue #2457F5  → primary actions & selected states
+       Soft ivory #F7F5EF  → gentle background variation
+       White      #FFFFFF  → content & booking surfaces                  */
+    --background: 45 33% 95%;          /* ivory */
+    --foreground: 212 60% 16%;         /* navy */
+    --card: 0 0% 100%;                 /* white */
+    --card-foreground: 212 60% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 212 60% 16%;
+    --primary: 225 91% 55%;            /* electric royal blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 221 46% 93%;          /* pale blue tint */
+    --secondary-foreground: 215 55% 30%;
+    --muted: 43 24% 91%;
+    --muted-foreground: 214 22% 42%;
+    --accent: 224 100% 97%;            /* barely-blue surface */
+    --accent-foreground: 225 91% 45%;
+    --destructive: 4 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 56% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 92% 44%;
+    --warning-foreground: 0 0% 100%;
+    --border: 214 28% 87%;
+    --input: 214 28% 82%;
+    --ring: 225 91% 55%;
+    --radius: 0.75rem;
+
+    /* Brand tokens — slot names kept stable, values from the identity board */
+    --gold: 225 91% 55%;               /* accent slot = royal blue */
+    --skyline: 218 45% 45%;            /* readable mid-blue on light */
+    --night: 212 60% 16%;              /* deep navy (footer, panels) */
+    --cream: 45 33% 95%;               /* ivory */
+    --coral: 4 72% 51%;                /* destructive red */
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 212 60% 16%;
+    --sidebar-primary: 225 91% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 43 24% 91%;
+    --sidebar-accent-foreground: 212 60% 16%;
+    --sidebar-border: 214 28% 87%;
+    --sidebar-ring: 225 91% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    overscroll-behavior-y: none;
+    /* Safety net: nothing may ever create horizontal page scroll */
+    overflow-x: clip;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.92);
+    color: hsl(var(--primary-foreground));
+  }
+}
+
+@layer utilities {
+  /* Display type: tight modern sans echoing the roamly wordmark */
+  .font-display {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* thin hairline — dark navy at low opacity on light surfaces */
+  .hairline {
+    border-color: hsl(var(--night) / 0.09);
+  }
+  .hairline-light {
+    border-color: hsl(0 0% 100% / 0.14);
+  }
+  /* frosted surface — white glass on light theme */
+  .glass {
+    background: hsl(0 0% 100% / 0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .glass-dark {
+    background: hsl(var(--night) / 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+}
+
+/* ─── Ambience: soft blue wash (light) ─────────────────────────────────── */
+.aurora-band {
+  background:
+    radial-gradient(60% 45% at 18% 0%, hsl(225 91% 55% / 0.10) 0%, transparent 70%),
+    radial-gradient(50% 40% at 82% 5%, hsl(212 60% 30% / 0.08) 0%, transparent 70%),
+    radial-gradient(70% 55% at 55% 20%, hsl(45 60% 92% / 0.6) 0%, transparent 75%);
+}
+
+.hero-vignette {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background) / 0) 0%,
+    hsl(var(--background) / 0.55) 62%,
+    hsl(var(--background)) 100%
+  );
+}
+
+/* photo treatment for hero/media */
+.hero-photo-fade {
+  background: linear-gradient(
+    180deg,
+    hsl(212 60% 16% / 0.30) 0%,
+    hsl(212 60% 16% / 0.05) 40%,
+    hsl(var(--background) / 0.92) 88%,
+    hsl(var(--background)) 100%
+  );
+}
+
+/* ─── Motion system ────────────────────────────────────────────────────── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  animation: fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.fade-up-1 { animation-delay: 0.12s; }
+.fade-up-2 { animation-delay: 0.26s; }
+.fade-up-3 { animation-delay: 0.42s; }
+.fade-up-4 { animation-delay: 0.6s; }
+
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-x 26s linear infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.pulse-soft {
+  animation: pulse-soft 2.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(214 28% 88% / 0.6) 25%,
+    hsl(214 30% 94% / 0.9) 50%,
+    hsl(214 28% 88% / 0.6) 75%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s linear infinite;
+}
+
+@keyframes plane-dash {
+  to { stroke-dashoffset: -24; }
+}
+.route-dash {
+  stroke-dasharray: 4 8;
+  animation: plane-dash 1.2s linear infinite;
+}
+
+.card-lift {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease,
+    background-color 0.35s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px -18px hsl(var(--night) / 0.25);
+}
+
+/* keyboard focus — always visible, never ambiguous */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* hide scrollbars on horizontal strips */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* native date input indicator */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+/* carousel scroll snap */
+.snap-row {
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-row > * {
+  scroll-snap-align: start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .fade-up, .marquee-track, .pulse-soft, .route-dash, .shimmer {
+    animation: none !important;
+  }
+  .snap-row {
+    scroll-behavior: auto;
+  }
+}
