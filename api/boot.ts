@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { HttpBindings } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { appRouter } from "./router";
 import { createContext } from "./context";
 import { env } from "./lib/env";
+import { verifyDuffelSignature } from "./lib/duffelWebhook";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -30,27 +30,14 @@ app.post("/api/webhooks/duffel", async (c) => {
   if (!secret) return c.json({ error: "Webhook ikke konfigurert" }, 503);
 
   const rawBody = await c.req.text();
-  const signatureHeader = c.req.header("x-duffel-signature") ?? "";
-  const parts = Object.fromEntries(
-    signatureHeader.split(",").map((p) => p.split("=") as [string, string]),
-  );
-  const timestamp = parts.t;
-  const received = parts.v1;
-  if (!timestamp || !received) return c.json({ error: "Mangler signatur" }, 401);
-
-  // Replay-beskyttelse: maks 5 minutter gammel
-  const ageSec = Math.abs(Date.now() / 1000 - Number(timestamp));
-  if (!Number.isFinite(ageSec) || ageSec > 300) {
-    return c.json({ error: "Utløpt hendelse" }, 401);
+  const check = verifyDuffelSignature(secret, c.req.header("x-duffel-signature") ?? "", rawBody);
+  if (!check.ok) {
+    const message =
+      check.reason === "missing" ? "Mangler signatur"
+      : check.reason === "expired" ? "Utløpt hendelse"
+      : "Ugyldig signatur";
+    return c.json({ error: message }, 401);
   }
-
-  const expected = createHmac("sha256", secret)
-    .update(`${timestamp}.${rawBody}`, "utf8")
-    .digest("hex");
-  const valid =
-    expected.length === received.length &&
-    timingSafeEqual(Buffer.from(expected), Buffer.from(received));
-  if (!valid) return c.json({ error: "Ugyldig signatur" }, 401);
 
   let event: { id?: string; type?: string };
   try {

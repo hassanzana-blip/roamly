@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { createHmac } from "node:crypto";
 import { hasPermission, ROLE_PERMISSIONS, VALID_ROLES } from "./rbac";
+import { hashPassword, verifyPassword, passwordIssues } from "./passwords";
+import {
+  parseSignatureHeader,
+  signPayload,
+  verifyDuffelSignature,
+  REPLAY_WINDOW_SEC,
+} from "./duffelWebhook";
 import { assertTransition, canTransition, ACTIVE_STATES, TRANSITIONS, BOOKING_STATES } from "./statemachine";
 import { toMinor, fromMinor, addAmounts } from "./money";
 import { randomToken, sha256Hex, humanReference } from "./tokens";
@@ -138,5 +146,89 @@ describe("Jobbkø: backoff", () => {
     for (let attempt = 1; attempt <= 10; attempt++) {
       expect(backoffDelayMs(attempt)).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("Passordhashing (Argon2id)", () => {
+  it("hash verifiseres mot riktig passord, avvises mot feil", async () => {
+    const hash = await hashPassword("Sterkt-Passord-123");
+    expect(hash.startsWith("$argon2id$")).toBe(true);
+    expect(await verifyPassword(hash, "Sterkt-Passord-123")).toBe(true);
+    expect(await verifyPassword(hash, "Feil-Passord-123")).toBe(false);
+  });
+
+  it("to hasher av samme passord er ulike (salt)", async () => {
+    const a = await hashPassword("Samme-Passord-1");
+    const b = await hashPassword("Samme-Passord-1");
+    expect(a).not.toBe(b);
+  });
+
+  it("passordregler: minst 12 tegn, store/små bokstaver og tall", () => {
+    expect(passwordIssues("Kort1")).not.toHaveLength(0);
+    expect(passwordIssues("uten-tall-og-stor")).not.toHaveLength(0);
+    expect(passwordIssues("UTEN-SMA-123")).not.toHaveLength(0);
+    expect(passwordIssues("Sterkt-Passord-123")).toHaveLength(0);
+  });
+});
+
+describe("Duffel webhook-signatur", () => {
+  const secret = "test-webhook-secret";
+  const body = JSON.stringify({ id: "evt_123", type: "order.created", data: {} });
+
+  const headerFor = (ts: string, sig: string) => `t=${ts},v1=${sig}`;
+
+  it("gyldig signatur godkjennes", () => {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const sig = signPayload(secret, ts, body);
+    const result = verifyDuffelSignature(secret, headerFor(ts, sig), body);
+    expect(result.ok).toBe(true);
+  });
+
+  it("feil hemmelighet avvises", () => {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const sig = signPayload("annen-hemmelighet", ts, body);
+    const result = verifyDuffelSignature(secret, headerFor(ts, sig), body);
+    expect(result).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("endret body avvises (signaturen passer ikke lenger)", () => {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const sig = signPayload(secret, ts, body);
+    const tampered = body.replace("evt_123", "evt_999");
+    const result = verifyDuffelSignature(secret, headerFor(ts, sig), tampered);
+    expect(result.ok).toBe(false);
+  });
+
+  it("gammel tidsstempel avvises (replay-beskyttelse)", () => {
+    const now = Date.now();
+    const oldTs = String(Math.floor(now / 1000) - REPLAY_WINDOW_SEC - 10);
+    const sig = signPayload(secret, oldTs, body);
+    const result = verifyDuffelSignature(secret, headerFor(oldTs, sig), body, now);
+    expect(result).toEqual({ ok: false, reason: "expired" });
+  });
+
+  it("manglende eller feilformatert header avvises", () => {
+    expect(verifyDuffelSignature(secret, "", body)).toEqual({ ok: false, reason: "missing" });
+    expect(verifyDuffelSignature(secret, "v1=abc", body)).toEqual({ ok: false, reason: "missing" });
+    expect(verifyDuffelSignature(secret, "t=123", body)).toEqual({ ok: false, reason: "missing" });
+  });
+
+  it("signatur med feil lengde krasjer ikke timingSafeEqual", () => {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const result = verifyDuffelSignature(secret, headerFor(ts, "kort"), body);
+    expect(result).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("parser header-formatet korrekt", () => {
+    expect(parseSignatureHeader("t=1700000000,v1=abc123")).toEqual({
+      t: "1700000000",
+      v1: "abc123",
+    });
+  });
+
+  it("signaturen følger Duffel-formatet: HMAC-SHA256 over '{t}.{body}'", () => {
+    const ts = "1700000000";
+    const manual = createHmac("sha256", secret).update(`${ts}.${body}`, "utf8").digest("hex");
+    expect(signPayload(secret, ts, body)).toBe(manual);
   });
 });

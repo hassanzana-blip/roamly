@@ -7,6 +7,7 @@ import MyTrip from './pages/MyTrip'
 import FlightStatus from './pages/FlightStatus'
 import Support from './pages/Support'
 import Destinations from './pages/Destinations'
+import QuotePage from './pages/QuotePage'
 import NotFound from './pages/NotFound'
 import WhatsAppFab from './components/WhatsAppFab'
 import AdminLogin from './pages/admin/AdminLogin'
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/flystatus" element={<FlightStatus />} />
         <Route path="/hjelp" element={<Support />} />
         <Route path="/reisemal" element={<Destinations />} />
+        <Route path="/tilbud/:token" element={<QuotePage />} />
 
         <Route path="/admin/logg-inn" element={<AdminLogin />} />
         <Route path="/admin/aktiver" element={<AdminActivate />} />
