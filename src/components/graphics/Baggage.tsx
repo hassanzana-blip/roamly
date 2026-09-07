@@ -1,93 +1,44 @@
 import type { ReactElement } from "react";
-import { Accessibility } from "lucide-react";
-import { Glyph, type GlyphProps } from "./Glyph";
+import { Glyph, LIME, type GlyphProps } from "./Glyph";
+import { HsBagCabin, HsBagChecked, HsBagHeavy, HsBagMultiple, HsBagPersonal, HsSports, HsStroller, HsWheelchair } from "./pack";
 import { cn } from "@/lib/utils";
 
 /**
- * Baggage family. Sizes are drawn to scale against each other so the
- * personal item, cabin bag and checked bag read as three distinct objects.
- * Counts and weights come from supplier data only.
+ * Baggage family. Shapes come from the official HelloSky SVG pack
+ * (personal < cabin < checked < heavy, drawn to scale against each other).
+ * Counts and weights are rendered from supplier data only.
  */
+export const PersonalItemGlyph = HsBagPersonal;
+export const CabinBagGlyph = HsBagCabin;
+export const CheckedBagGlyph = HsBagChecked;
+export const HeavyBagGlyph = HsBagHeavy;
+export const MultipleBagsGlyph = HsBagMultiple;
+export const StrollerGlyph = HsStroller;
+export const SportsEquipmentGlyph = HsSports;
+export const WheelchairGlyph = HsWheelchair;
 
-/** Small under-seat bag (personal item). */
-export function PersonalItemGlyph(p: GlyphProps) {
-  return (
-    <Glyph {...p}>
-      <path d="M8 9V7a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <rect x="5" y="9" width="14" height="10" rx="2.5" />
-      <path d="M5 13h14" />
-    </Glyph>
-  );
-}
-
-/** Overhead cabin bag: upright trolley with a short handle. */
-export function CabinBagGlyph(p: GlyphProps) {
-  return (
-    <Glyph {...p}>
-      <path d="M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6" />
-      <rect x="6" y="6" width="12" height="13" rx="2.5" />
-      <path d="M9 19v2M15 19v2M10 10v5M14 10v5" />
-    </Glyph>
-  );
-}
-
-/** Checked suitcase: wider body, pull handle up, wheels. */
-export function CheckedBagGlyph(p: GlyphProps) {
-  return (
-    <Glyph {...p}>
-      <path d="M9 5V3h6v2" />
-      <rect x="4.5" y="5" width="15" height="14" rx="2.5" />
-      <path d="M8 19v2M16 19v2M4.5 10h15M4.5 14h15" />
-    </Glyph>
-  );
-}
-
-/** Large heavy suitcase (30 kg+): tallest body, double straps. */
-export function HeavyBagGlyph(p: GlyphProps) {
-  return (
-    <Glyph {...p}>
-      <path d="M9 4V2.5h6V4" />
-      <rect x="3.5" y="4" width="17" height="16" rx="2.5" />
-      <path d="M7 20v2M17 20v2M3.5 9.5h17M3.5 14.5h17M9 4v16M15 4v16" />
-    </Glyph>
-  );
-}
-
-export function StrollerGlyph(p: GlyphProps) {
-  return (
-    <Glyph {...p}>
-      <path d="M4 4h2l1.5 8" />
-      <path d="M7.5 12h10l2-6H8.5" />
-      <path d="M7.5 12 6.5 16.5" />
-      <circle cx="8" cy="19" r="2" />
-      <circle cx="17" cy="19" r="2" />
-      <path d="M10 17h5" />
-    </Glyph>
-  );
-}
-
-export function SportsEquipmentGlyph(p: GlyphProps) {
-  return (
-    <Glyph {...p}>
-      <path d="M4 20 20 4" />
-      <path d="M13 4h7v7" />
-      <path d="M4 14v6h6" />
-      <path d="M7.5 16.5 16.5 7.5" />
-    </Glyph>
-  );
-}
-
+/** Guitar case (no pack shape yet): same 1.8 outline language. */
 export function InstrumentGlyph(p: GlyphProps) {
   return (
     <Glyph {...p}>
-      <path d="M14.5 3.5 20.5 9.5" />
-      <path d="M14.5 3.5c-1 1-2 2.5-1.5 4l-1 1c-2.5-.5-5 .5-6.5 2.5A5 5 0 0 0 12.5 18c2-1.5 3-4 2.5-6.5l1-1c1.5.5 3-.5 4-1.5" />
-      <path d="M8 16l-4 4" />
+      <path d="M12 3.5c1.7 0 2.6 1 2.6 2.6v3.2c2.4 1 3.9 3.1 3.9 5.7a6.5 6.5 0 0 1-13 0c0-2.6 1.5-4.7 3.9-5.7V6.1c0-1.6.9-2.6 2.6-2.6Z" />
+      <path d="M10.5 6.5h3" />
+      <path d="M12 12.5v5" stroke={LIME} />
     </Glyph>
   );
 }
 
-export const WheelchairGlyph = Accessibility;
+/** Pet carrier (no pack shape yet). */
+export function PetCarrierGlyph(p: GlyphProps) {
+  return (
+    <Glyph {...p}>
+      <path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5" />
+      <rect x="3.5" y="7.5" width="17" height="12" rx="2.6" />
+      <path d="M7.5 11v5M12 11v5M16.5 11v5" opacity=".35" />
+      <path d="M9.5 19.5h5" stroke={LIME} />
+    </Glyph>
+  );
+}
 
 export type BagKind = "personal" | "cabin" | "checked" | "heavy";
 
@@ -103,19 +54,7 @@ const BAG: Record<BagKind, (p: GlyphProps) => ReactElement> = {
  * or draws it struck through when nothing is included. The accessible name is
  * the full sentence passed in `label`; the glyphs are decorative.
  */
-export function BaggageVisual({
-  kind,
-  count,
-  label,
-  size = 20,
-  className,
-}: {
-  kind: BagKind;
-  count: number;
-  label: string;
-  size?: number;
-  className?: string;
-}) {
+export function BaggageVisual({ kind, count, label, size = 20, className }: { kind: BagKind; count: number; label: string; size?: number; className?: string }) {
   const Bag = BAG[kind];
   const shown = Math.min(count, 3);
   return (

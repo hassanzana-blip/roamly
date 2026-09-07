@@ -1,0 +1,494 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1340 1220">
+  <defs><symbol id="bag-personal" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="6" y="8" width="12" height="11" rx="2.4"/>
+    <path d="M9 8V6.8A3 3 0 0 1 12 4a3 3 0 0 1 3 2.8V8"/>
+    <path d="M9 13h6"/>
+    <path d="M8.5 16.5h7" stroke="#C4F71D"/>
+</g></symbol><symbol id="bag-cabin" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="6.5" y="5.5" width="11" height="15" rx="2.5"/>
+    <path d="M9.5 5.5V4.2h5v1.3"/>
+    <path d="M15 9h2.5"/>
+    <circle cx="9" cy="21" r=".8" fill="currentColor" stroke="none"/>
+    <circle cx="15" cy="21" r=".8" fill="currentColor" stroke="none"/>
+    <path d="M9 10v6M12 10v6M15 10v6" opacity=".35"/>
+</g></symbol><symbol id="bag-checked" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="5.7" y="5.2" width="12.6" height="15.2" rx="2.7"/>
+    <path d="M9 5.2V3.8h6v1.4"/>
+    <path d="M15.8 9h2.5"/>
+    <path d="M9 9.5v7M12 9.5v7M15 9.5v7" opacity=".32"/>
+    <path d="M8.5 18h7" stroke="#C4F71D"/>
+</g></symbol><symbol id="bag-heavy" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="5.3" y="4.8" width="13.4" height="15.8" rx="2.8"/>
+    <path d="M9 4.8V3.4h6v1.4"/>
+    <path d="M8.5 10.5h7"/>
+    <path d="M8.5 14h7"/>
+    <path d="M9 18h6" stroke="#C4F71D" stroke-width="2.2"/>
+</g></symbol><symbol id="bag-multiple" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="3.5" y="9" width="7.5" height="10.5" rx="2"/>
+    <rect x="9" y="6" width="8" height="13.5" rx="2.2"/>
+    <rect x="15.5" y="10" width="5" height="9.5" rx="1.7"/>
+    <path d="M11.5 6V4.6h3V6"/>
+    <path d="M6 9V7.8h2.5V9"/>
+    <path d="M17 10V9h2V10"/>
+    <path d="M10.5 16h5" stroke="#C4F71D"/>
+</g></symbol><symbol id="stroller" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M6 7h6.2c2.8 0 5.1 2.2 5.3 5H9.5L6 7Z"/>
+    <path d="M6 7 4.5 5.5H3"/>
+    <path d="M9.5 12 7.8 16"/>
+    <path d="M17.5 12 15.5 16"/>
+    <circle cx="7.2" cy="18" r="1.8"/>
+    <circle cx="16.2" cy="18" r="1.8"/>
+    <path d="M11 7.2c.8-1.4 2-2.2 3.4-2.2" stroke="#C4F71D"/>
+</g></symbol><symbol id="sports" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="5" y="7" width="7" height="13" rx="2.3"/>
+    <path d="M7.5 7V5.5h2V7"/>
+    <path d="M15 4v16M18 4v16"/>
+    <path d="M14 7h5M14 16h5" stroke="#C4F71D"/>
+</g></symbol><symbol id="wheelchair" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="10" cy="5" r="2"/>
+    <path d="M10 8v5h5l2.5 4"/>
+    <path d="M8 10a6 6 0 1 0 6 8"/>
+    <path d="M10 13h-3" stroke="#C4F71D"/>
+</g></symbol><symbol id="plane-departure" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M3 18h18"/>
+    <path d="m4 13 6.3 1.6 7.4-5.1c.9-.6 2.1-.3 2.6.6.4.8.2 1.7-.5 2.2l-7.3 5.1L5.2 16 4 13Z"/>
+    <path d="m10.3 14.6-2.1-4.2"/>
+</g></symbol><symbol id="plane-arrival" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M3 18h18"/>
+    <path d="m4 11 6.3 4.6 8.5-1.2c1.1-.2 2.1.6 2.2 1.7.1.9-.6 1.8-1.5 1.9l-8.4 1.1L5.2 14 4 11Z" transform="translate(0 -2)"/>
+</g></symbol><symbol id="flight-direct" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="4.5" cy="16" r="1.5" fill="#C4F71D" stroke="none"/>
+    <circle cx="19.5" cy="8" r="1.5" fill="#C4F71D" stroke="none"/>
+    <path d="M6 15.5c4-1 8-3.2 12-6.5" stroke-dasharray="2.5 2.5"/>
+    <path d="m10.5 8.5 3 1.2 3-2.2-2.4 3 1.2 3-2.2-2.1-3.1 1.2 1.5-2.7-1-2.4Z"/>
+</g></symbol><symbol id="flight-connection" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="4" cy="16" r="1.4" fill="#C4F71D" stroke="none"/>
+    <circle cx="12" cy="12" r="1.4" fill="#C4F71D" stroke="none"/>
+    <circle cx="20" cy="7" r="1.4" fill="#C4F71D" stroke="none"/>
+    <path d="M5.4 15.4 10.8 12.6M13.2 11.3 18.6 7.7" stroke-dasharray="2 2"/>
+    <path d="m9.2 7.2 2.2.9 2.4-1.7-1.8 2.2.9 2.2-1.7-1.4-2.4.9 1-2.1-.6-1.6Z"/>
+</g></symbol><symbol id="night-flight" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M8 4.5a6.5 6.5 0 0 0 7.7 8.8A6.5 6.5 0 1 1 8 4.5Z"/>
+    <path d="m4 18 4.8 1.2 5.8-3.6c.8-.5 1.8-.2 2.3.6.4.8.1 1.7-.6 2.1l-5.7 3.5-5.8-1.4L4 18Z"/>
+    <path d="M17.5 5.5h2M18.5 4.5v2" stroke="#C4F71D"/>
+</g></symbol><symbol id="airport-change" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="3" y="7" width="6" height="10" rx="1.2"/>
+    <rect x="15" y="5" width="6" height="12" rx="1.2"/>
+    <path d="M5.5 10h1M5.5 13h1M17.5 8h1M17.5 11h1"/>
+    <path d="M9.5 12h5" stroke="#C4F71D"/>
+    <path d="m12.5 9.8 2.2 2.2-2.2 2.2" stroke="#C4F71D"/>
+</g></symbol><symbol id="route" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="5" cy="17" r="2"/>
+    <circle cx="19" cy="7" r="2"/>
+    <path d="M6.8 16c3.2-3.4 6.2-4.5 10.4-7.8" stroke-dasharray="2.2 2.2"/>
+    <path d="M5 19v1.5M19 9v1.5" stroke="#C4F71D"/>
+</g></symbol><symbol id="seat-available" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M8 4v8.5c0 1.4 1.1 2.5 2.5 2.5H17"/>
+    <path d="M8 9h5c1.1 0 2 .9 2 2v4"/>
+    <path d="M7 15v4M16 15v4"/>
+    <path d="M6 19h2M15 19h2"/>
+</g></symbol><symbol id="seat-selected" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M8 4v8.5c0 1.4 1.1 2.5 2.5 2.5H17"/>
+    <path d="M8 9h5c1.1 0 2 .9 2 2v4"/>
+    <path d="M7 15v4M16 15v4"/>
+    <path d="M6 19h2M15 19h2"/>
+    <path d="m11 12 1.4 1.4L15.5 10" stroke="#C4F71D" stroke-width="2.1"/>
+</g></symbol><symbol id="seat-unavailable" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M8 4v8.5c0 1.4 1.1 2.5 2.5 2.5H17" opacity=".45"/>
+    <path d="M8 9h5c1.1 0 2 .9 2 2v4" opacity=".45"/>
+    <path d="M7 15v4M16 15v4" opacity=".45"/>
+    <path d="M18 5l3 3M21 5l-3 3" stroke="#9CA3AF"/>
+</g></symbol><symbol id="seat-extra-legroom" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M7 4v8c0 1.7 1.3 3 3 3h4"/>
+    <path d="M7 9h4c1.1 0 2 .9 2 2v4"/>
+    <path d="M6 15v4M13 15v4"/>
+    <path d="M15.5 12h5" stroke="#C4F71D"/>
+    <path d="m18.5 9.5 2.5 2.5-2.5 2.5" stroke="#C4F71D"/>
+</g></symbol><symbol id="seat-window" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M6 4v8.5c0 1.4 1.1 2.5 2.5 2.5H14"/>
+    <path d="M6 9h4c1.1 0 2 .9 2 2v4"/>
+    <rect x="16" y="5" width="4.5" height="7" rx="2"/>
+    <path d="M7 15v4M12 15v4"/>
+</g></symbol><symbol id="seat-aisle" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M5 4v8.5C5 14 6 15 7.5 15H12"/>
+    <path d="M5 9h4c1.1 0 2 .9 2 2v4"/>
+    <path d="M6 15v4M11 15v4"/>
+    <path d="M16 6v12M19 6v12" stroke="#C4F71D"/>
+</g></symbol><symbol id="family-seats" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M4 6v7c0 1.1.9 2 2 2h4M4 10h3.2c1 0 1.8.8 1.8 1.8V15"/>
+    <path d="M14 6v7c0 1.1.9 2 2 2h4M14 10h3.2c1 0 1.8.8 1.8 1.8V15"/>
+    <path d="M5 15v4M9 15v4M15 15v4M19 15v4"/>
+    <path d="M10.5 9.5h3" stroke="#C4F71D"/>
+</g></symbol><symbol id="adult" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="12" cy="5" r="2.4"/>
+    <path d="M8.5 20v-7.5c0-2 1.6-3.5 3.5-3.5s3.5 1.5 3.5 3.5V20"/>
+    <path d="M8.5 13 6.5 17M15.5 13l2 4"/>
+</g></symbol><symbol id="child" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="12" cy="7" r="2"/>
+    <path d="M9.5 19v-5.5c0-1.6 1.1-2.8 2.5-2.8s2.5 1.2 2.5 2.8V19"/>
+    <path d="M9.5 14 8 16.5M14.5 14l1.5 2.5"/>
+</g></symbol><symbol id="infant" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="12" cy="7" r="1.8"/>
+    <path d="M8.5 14.5c1.5-2 5.5-2 7 0"/>
+    <path d="M8 14.5c0 3 1.7 5 4 5s4-2 4-5"/>
+    <path d="M10 12.8 8.2 11M14 12.8l1.8-1.8" stroke="#C4F71D"/>
+</g></symbol><symbol id="family" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="8" cy="6" r="2"/>
+    <circle cx="16" cy="7" r="1.8"/>
+    <circle cx="12" cy="11" r="1.6"/>
+    <path d="M5.5 20v-7c0-1.8 1.1-3 2.5-3s2.5 1.2 2.5 3v7"/>
+    <path d="M13.7 20v-6c0-1.5 1-2.5 2.3-2.5s2.3 1 2.3 2.5v6"/>
+    <path d="M10 20v-4.5c0-1.2.8-2 2-2s2 .8 2 2V20" stroke="#C4F71D"/>
+</g></symbol><symbol id="wifi" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M4 9.5a12 12 0 0 1 16 0"/>
+    <path d="M7 12.5a8 8 0 0 1 10 0"/>
+    <path d="M9.8 15.5a3.5 3.5 0 0 1 4.4 0"/>
+    <circle cx="12" cy="19" r="1.2" fill="#C4F71D" stroke="none"/>
+</g></symbol><symbol id="meal" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M7 4v7M4 4v4c0 1.7 1.3 3 3 3s3-1.3 3-3V4M7 11v9"/>
+    <path d="M16 4v16M16 4c2.6 1.4 3.5 3.8 2.8 7H16"/>
+</g></symbol><symbol id="power" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M9 4v5M15 4v5"/>
+    <path d="M7 9h10v2a5 5 0 0 1-5 5v4"/>
+    <path d="M10 20h4" stroke="#C4F71D"/>
+</g></symbol><symbol id="entertainment" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="4" y="5" width="16" height="11" rx="2"/>
+    <path d="m10 8 5 2.5-5 2.5V8Z" fill="#C4F71D" stroke="none"/>
+    <path d="M9 20h6M12 16v4"/>
+</g></symbol><symbol id="car" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="m5 10 1.4-3.2C6.8 5.7 7.7 5 8.8 5h6.4c1.1 0 2 .7 2.4 1.8L19 10"/>
+    <rect x="3.5" y="10" width="17" height="7" rx="2"/>
+    <circle cx="7" cy="17.5" r="1.5"/>
+    <circle cx="17" cy="17.5" r="1.5"/>
+    <path d="M7 13h1M16 13h1" stroke="#C4F71D"/>
+</g></symbol><symbol id="taxi" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="m5 10 1.4-3.2C6.8 5.7 7.7 5 8.8 5h6.4c1.1 0 2 .7 2.4 1.8L19 10"/>
+    <rect x="3.5" y="10" width="17" height="7" rx="2"/>
+    <path d="M10 5V3.8h4V5"/>
+    <circle cx="7" cy="17.5" r="1.5"/>
+    <circle cx="17" cy="17.5" r="1.5"/>
+    <path d="M9.8 3.8h4.4" stroke="#C4F71D"/>
+</g></symbol><symbol id="bus" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="5" y="3.5" width="14" height="16" rx="2.5"/>
+    <path d="M7.5 7h9M7.5 10h9"/>
+    <circle cx="8" cy="17" r="1.3"/>
+    <circle cx="16" cy="17" r="1.3"/>
+    <path d="M7.5 13h9" stroke="#C4F71D"/>
+</g></symbol><symbol id="train" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="6" y="3.5" width="12" height="14" rx="3"/>
+    <path d="M8.5 7h7M8.5 10.5h7"/>
+    <circle cx="9" cy="14.5" r="1"/>
+    <circle cx="15" cy="14.5" r="1"/>
+    <path d="M8 20h8M10 17.5 8 20M14 17.5l2 2.5" stroke="#C4F71D"/>
+</g></symbol><symbol id="secure-payment" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M12 3.5 19 6v5.5c0 4.2-2.7 7.4-7 9-4.3-1.6-7-4.8-7-9V6l7-2.5Z"/>
+    <path d="m9.2 12 2 2 3.7-4" stroke="#C4F71D" stroke-width="2.2"/>
+</g></symbol><symbol id="confirmation" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="4" y="5" width="16" height="14" rx="2.2"/>
+    <path d="m5.5 7 6.5 5 6.5-5"/>
+    <path d="m9.5 15 1.5 1.5 3.5-3.5" stroke="#C4F71D"/>
+</g></symbol><symbol id="support" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M5 12a7 7 0 0 1 14 0"/>
+    <path d="M5 12v4a2 2 0 0 0 2 2h1v-6H7a2 2 0 0 0-2 2"/>
+    <path d="M19 12v4a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2"/>
+    <path d="M16 20h-4" stroke="#C4F71D"/>
+</g></symbol><symbol id="passport" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="6" y="3.5" width="12" height="17" rx="1.8"/>
+    <circle cx="12" cy="11" r="3"/>
+    <path d="M9 11h6M12 8v6"/>
+    <path d="M9 17h6" stroke="#C4F71D"/>
+</g></symbol><symbol id="status-booked" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="12" cy="12" r="8"/>
+    <path d="m8.5 12 2.2 2.2 4.8-5" stroke="#C4F71D" stroke-width="2.2"/>
+</g></symbol><symbol id="status-ticketed" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M6 5h12v4a2 2 0 0 0 0 6v4H6v-4a2 2 0 0 0 0-6V5Z"/>
+    <path d="M10 9h4M10 13h4" stroke="#C4F71D"/>
+</g></symbol><symbol id="status-pending" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="12" cy="12" r="8"/>
+    <path d="M12 7v5l3 2"/>
+    <path d="M12 4v1" stroke="#C4F71D"/>
+</g></symbol><symbol id="status-changed" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M7 7h8a4 4 0 0 1 4 4v1"/>
+    <path d="m17 9 2 3 2-3"/>
+    <path d="M17 17H9a4 4 0 0 1-4-4v-1"/>
+    <path d="m7 15-2-3-2 3" stroke="#C4F71D"/>
+</g></symbol><symbol id="status-cancelled" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="12" cy="12" r="8"/>
+    <path d="m9 9 6 6M15 9l-6 6" stroke="#C4F71D" stroke-width="2.2"/>
+</g></symbol><symbol id="status-refund" viewBox="0 0 24 24"><g stroke="#161618" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M7 8a7 7 0 1 1-1.2 7"/>
+    <path d="M7 4v4H3"/>
+    <path d="M12 8v8M14.5 10c0-1.1-1.1-2-2.5-2s-2.5.9-2.5 2 1.1 2 2.5 2 2.5.9 2.5 2-1.1 2-2.5 2-2.5-.9-2.5-2" stroke="#C4F71D"/>
+</g></symbol></defs>
+  <rect width="100%" height="100%" fill="#F7F7F5"/>
+  <g transform="translate(40,35)">
+    <path d="M0 31c16-3 27-10 39-26-10 5-20 8-35 11 10 0 18 1 28 3-7 4-18 8-32 12Z" fill="#C4F71D"/>
+    <text x="54" y="26" font-size="34" font-weight="800" fill="#161618" font-family="Arial, Helvetica, sans-serif">hellosky</text>
+    <text x="55" y="48" font-size="14" fill="#656565" font-family="Arial, Helvetica, sans-serif">Travel UI vector system · true SVG · infinitely scalable</text>
+  </g>
+  
+    <g transform="translate(40,120)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#bag-personal" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Personlig veske</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">bag-personal</text>
+    </g>
+    <g transform="translate(220,120)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#bag-cabin" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Håndbagasje</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">bag-cabin</text>
+    </g>
+    <g transform="translate(400,120)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#bag-checked" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Innsjekket bagasje</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">bag-checked</text>
+    </g>
+    <g transform="translate(580,120)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#bag-heavy" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Stor bagasje</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">bag-heavy</text>
+    </g>
+    <g transform="translate(760,120)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#bag-multiple" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Flere kolli</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">bag-multiple</text>
+    </g>
+    <g transform="translate(940,120)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#stroller" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Barnevogn</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">stroller</text>
+    </g>
+    <g transform="translate(1120,120)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#sports" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Sportsutstyr</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">sports</text>
+    </g>
+    <g transform="translate(40,270)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#wheelchair" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Rullestol</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">wheelchair</text>
+    </g>
+    <g transform="translate(220,270)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#plane-departure" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Avreise</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">plane-departure</text>
+    </g>
+    <g transform="translate(400,270)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#plane-arrival" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Ankomst</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">plane-arrival</text>
+    </g>
+    <g transform="translate(580,270)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#flight-direct" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Direktefly</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">flight-direct</text>
+    </g>
+    <g transform="translate(760,270)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#flight-connection" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Mellomlanding</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">flight-connection</text>
+    </g>
+    <g transform="translate(940,270)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#night-flight" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Nattfly</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">night-flight</text>
+    </g>
+    <g transform="translate(1120,270)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#airport-change" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Flyplassbytte</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">airport-change</text>
+    </g>
+    <g transform="translate(40,420)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#route" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Rute</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">route</text>
+    </g>
+    <g transform="translate(220,420)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#seat-available" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Ledig sete</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">seat-available</text>
+    </g>
+    <g transform="translate(400,420)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#seat-selected" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Valgt sete</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">seat-selected</text>
+    </g>
+    <g transform="translate(580,420)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#seat-unavailable" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Opptatt sete</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">seat-unavailable</text>
+    </g>
+    <g transform="translate(760,420)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#seat-extra-legroom" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Ekstra benplass</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">seat-extra-legroom</text>
+    </g>
+    <g transform="translate(940,420)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#seat-window" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Vindussete</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">seat-window</text>
+    </g>
+    <g transform="translate(1120,420)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#seat-aisle" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Midtgangssete</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">seat-aisle</text>
+    </g>
+    <g transform="translate(40,570)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#family-seats" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Seter sammen</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">family-seats</text>
+    </g>
+    <g transform="translate(220,570)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#adult" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Voksen</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">adult</text>
+    </g>
+    <g transform="translate(400,570)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#child" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Barn</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">child</text>
+    </g>
+    <g transform="translate(580,570)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#infant" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Spedbarn</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">infant</text>
+    </g>
+    <g transform="translate(760,570)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#family" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Familie</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">family</text>
+    </g>
+    <g transform="translate(940,570)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#wifi" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Wi‑Fi</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">wifi</text>
+    </g>
+    <g transform="translate(1120,570)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#meal" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Måltid</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">meal</text>
+    </g>
+    <g transform="translate(40,720)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#power" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Strømuttak</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">power</text>
+    </g>
+    <g transform="translate(220,720)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#entertainment" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Underholdning</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">entertainment</text>
+    </g>
+    <g transform="translate(400,720)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#car" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Leiebil</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">car</text>
+    </g>
+    <g transform="translate(580,720)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#taxi" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Taxi</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">taxi</text>
+    </g>
+    <g transform="translate(760,720)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#bus" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Buss</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">bus</text>
+    </g>
+    <g transform="translate(940,720)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#train" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Tog</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">train</text>
+    </g>
+    <g transform="translate(1120,720)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#secure-payment" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Sikker betaling</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">secure-payment</text>
+    </g>
+    <g transform="translate(40,870)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#confirmation" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Bekreftelse</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">confirmation</text>
+    </g>
+    <g transform="translate(220,870)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#support" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Kundeservice</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">support</text>
+    </g>
+    <g transform="translate(400,870)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#passport" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Pass / ID</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">passport</text>
+    </g>
+    <g transform="translate(580,870)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#status-booked" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Booket</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">status-booked</text>
+    </g>
+    <g transform="translate(760,870)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#status-ticketed" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Billett utstedt</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">status-ticketed</text>
+    </g>
+    <g transform="translate(940,870)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#status-pending" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Under behandling</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">status-pending</text>
+    </g>
+    <g transform="translate(1120,870)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#status-changed" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Endring</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">status-changed</text>
+    </g>
+    <g transform="translate(40,1020)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#status-cancelled" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Kansellert</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">status-cancelled</text>
+    </g>
+    <g transform="translate(220,1020)">
+      <rect x="0" y="0" width="164" height="134" rx="18" fill="#FFFFFF" stroke="#E8E8E8"/>
+      <use href="#status-refund" x="52" y="18" width="60" height="60"/>
+      <text x="82.0" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#161618" font-family="Arial, Helvetica, sans-serif">Refusjon</text>
+      <text x="82.0" y="118" text-anchor="middle" font-size="11" fill="#7A7A7A" font-family="Arial, Helvetica, sans-serif">status-refund</text>
+    </g>
+</svg>

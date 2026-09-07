@@ -1,0 +1,222 @@
+[
+  {
+    "name": "HsAdult",
+    "file": "adult.svg",
+    "title": "Voksen"
+  },
+  {
+    "name": "HsAirportChange",
+    "file": "airport-change.svg",
+    "title": "Flyplassbytte"
+  },
+  {
+    "name": "HsBagCabin",
+    "file": "bag-cabin.svg",
+    "title": "Håndbagasje"
+  },
+  {
+    "name": "HsBagChecked",
+    "file": "bag-checked.svg",
+    "title": "Innsjekket bagasje"
+  },
+  {
+    "name": "HsBagHeavy",
+    "file": "bag-heavy.svg",
+    "title": "Stor bagasje"
+  },
+  {
+    "name": "HsBagMultiple",
+    "file": "bag-multiple.svg",
+    "title": "Flere kolli"
+  },
+  {
+    "name": "HsBagPersonal",
+    "file": "bag-personal.svg",
+    "title": "Personlig veske"
+  },
+  {
+    "name": "HsBus",
+    "file": "bus.svg",
+    "title": "Buss"
+  },
+  {
+    "name": "HsCar",
+    "file": "car.svg",
+    "title": "Leiebil"
+  },
+  {
+    "name": "HsChild",
+    "file": "child.svg",
+    "title": "Barn"
+  },
+  {
+    "name": "HsConfirmation",
+    "file": "confirmation.svg",
+    "title": "Bekreftelse"
+  },
+  {
+    "name": "HsEntertainment",
+    "file": "entertainment.svg",
+    "title": "Underholdning"
+  },
+  {
+    "name": "HsFamilySeats",
+    "file": "family-seats.svg",
+    "title": "Seter sammen"
+  },
+  {
+    "name": "HsFamily",
+    "file": "family.svg",
+    "title": "Familie"
+  },
+  {
+    "name": "HsFlightConnection",
+    "file": "flight-connection.svg",
+    "title": "Mellomlanding"
+  },
+  {
+    "name": "HsFlightDirect",
+    "file": "flight-direct.svg",
+    "title": "Direktefly"
+  },
+  {
+    "name": "HsInfant",
+    "file": "infant.svg",
+    "title": "Spedbarn"
+  },
+  {
+    "name": "HsMeal",
+    "file": "meal.svg",
+    "title": "Måltid"
+  },
+  {
+    "name": "HsNightFlight",
+    "file": "night-flight.svg",
+    "title": "Nattfly"
+  },
+  {
+    "name": "HsPassport",
+    "file": "passport.svg",
+    "title": "Pass / ID"
+  },
+  {
+    "name": "HsPlaneArrival",
+    "file": "plane-arrival.svg",
+    "title": "Ankomst"
+  },
+  {
+    "name": "HsPlaneDeparture",
+    "file": "plane-departure.svg",
+    "title": "Avreise"
+  },
+  {
+    "name": "HsPower",
+    "file": "power.svg",
+    "title": "Strømuttak"
+  },
+  {
+    "name": "HsRoute",
+    "file": "route.svg",
+    "title": "Rute"
+  },
+  {
+    "name": "HsSeatAisle",
+    "file": "seat-aisle.svg",
+    "title": "Midtgangssete"
+  },
+  {
+    "name": "HsSeatAvailable",
+    "file": "seat-available.svg",
+    "title": "Ledig sete"
+  },
+  {
+    "name": "HsSeatExtraLegroom",
+    "file": "seat-extra-legroom.svg",
+    "title": "Ekstra benplass"
+  },
+  {
+    "name": "HsSeatSelected",
+    "file": "seat-selected.svg",
+    "title": "Valgt sete"
+  },
+  {
+    "name": "HsSeatUnavailable",
+    "file": "seat-unavailable.svg",
+    "title": "Opptatt sete"
+  },
+  {
+    "name": "HsSeatWindow",
+    "file": "seat-window.svg",
+    "title": "Vindussete"
+  },
+  {
+    "name": "HsSecurePayment",
+    "file": "secure-payment.svg",
+    "title": "Sikker betaling"
+  },
+  {
+    "name": "HsSports",
+    "file": "sports.svg",
+    "title": "Sportsutstyr"
+  },
+  {
+    "name": "HsStatusBooked",
+    "file": "status-booked.svg",
+    "title": "Booket"
+  },
+  {
+    "name": "HsStatusCancelled",
+    "file": "status-cancelled.svg",
+    "title": "Kansellert"
+  },
+  {
+    "name": "HsStatusChanged",
+    "file": "status-changed.svg",
+    "title": "Endring"
+  },
+  {
+    "name": "HsStatusPending",
+    "file": "status-pending.svg",
+    "title": "Under behandling"
+  },
+  {
+    "name": "HsStatusRefund",
+    "file": "status-refund.svg",
+    "title": "Refusjon"
+  },
+  {
+    "name": "HsStatusTicketed",
+    "file": "status-ticketed.svg",
+    "title": "Billett utstedt"
+  },
+  {
+    "name": "HsStroller",
+    "file": "stroller.svg",
+    "title": "Barnevogn"
+  },
+  {
+    "name": "HsSupport",
+    "file": "support.svg",
+    "title": "Kundeservice"
+  },
+  {
+    "name": "HsTaxi",
+    "file": "taxi.svg",
+    "title": "Taxi"
+  },
+  {
+    "name": "HsTrain",
+    "file": "train.svg",
+    "title": "Tog"
+  },
+  {
+    "name": "HsWheelchair",
+    "file": "wheelchair.svg",
+    "title": "Rullestol"
+  },
+  {
+    "name": "HsWifi",
+    "file": "wifi.svg",
+    "title": "Wi‑Fi"
+  }
+]

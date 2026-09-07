@@ -1,27 +1,27 @@
 import type { ReactElement } from "react";
 import {
-  ArrowLeftRight, Ban, BedDouble, Briefcase, Bus, BusFront, Car, CarTaxiFront, ChevronsUp, Clock3, Coffee, Cookie, Footprints, Hash, Headset, IdCard, Lock, Luggage, MailCheck, MapPin,
-  Plug, QrCode, RotateCcw, ShieldCheck, Sofa, Star, Ticket, TrainFront, TramFront, Tv, Usb, Users, Utensils, Waves, Wifi, CircleParking, Armchair, type LucideIcon,
+  ArrowLeftRight, Ban, BedDouble, Briefcase, BusFront, ChevronsUp, Clock3, Coffee, Cookie, Footprints, Hash, IdCard, Luggage, MapPin,
+  QrCode, RotateCcw, ShieldCheck, Sofa, Star, Ticket, TramFront, Usb, Users, Waves, CircleParking, Armchair, type LucideIcon,
 } from "lucide-react";
 import { CabinBagGlyph, CheckedBagGlyph } from "./Baggage";
 import { SeatGlyph } from "./Seats";
 import { BoardingPassGlyph, PassportGlyph, VisaStampGlyph, LuggageTagGlyph } from "./Documents";
 import type { GlyphProps } from "./Glyph";
+import { HsBus, HsCar, HsConfirmation, HsEntertainment, HsMeal, HsPower, HsSecurePayment, HsSupport, HsTaxi, HsTrain, HsWifi } from "./pack";
 
 /**
- * Named icon maps. Lucide first; custom glyphs only where Lucide has no
- * travel-specific shape (bags, seats, documents). Render only keys that
+ * Named icon maps. Official HelloSky pack first, Lucide for the rest. Render only keys that
  * real supplier or product data supports.
  */
 type IconLike = LucideIcon | ((p: GlyphProps) => ReactElement);
 
 export const AMENITY_ICONS = {
-  wifi: Wifi,
+  wifi: HsWifi,
   usb: Usb,
-  power: Plug,
-  meal: Utensils,
+  power: HsPower,
+  meal: HsMeal,
   snack: Cookie,
-  entertainment: Tv,
+  entertainment: HsEntertainment,
   lie_flat: Sofa,
   extra_legroom: Armchair,
   lounge: Coffee,
@@ -37,22 +37,22 @@ export const AMENITY_ICONS = {
 export type AmenityKey = keyof typeof AMENITY_ICONS;
 
 export const TRANSPORT_ICONS = {
-  rental_car: Car,
-  taxi: CarTaxiFront,
-  private_transfer: CarTaxiFront,
-  train: TrainFront,
-  bus: Bus,
+  rental_car: HsCar,
+  taxi: HsTaxi,
+  private_transfer: HsTaxi,
+  train: HsTrain,
+  bus: HsBus,
   metro: TramFront,
   shuttle: BusFront,
   walk: Footprints,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, IconLike>;
 export type TransportKey = keyof typeof TRANSPORT_ICONS;
 
 export const HOTEL_ICONS = {
   bed: BedDouble,
   guests: Users,
   breakfast: Coffee,
-  wifi: Wifi,
+  wifi: HsWifi,
   pool: Waves,
   parking: CircleParking,
   shuttle: BusFront,
@@ -60,15 +60,15 @@ export const HOTEL_ICONS = {
   score: Star,
   refundable: RotateCcw,
   pay_later: Clock3,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, IconLike>;
 
 export const TRUST_ICONS = {
-  secure_payment: Lock,
-  confirmation_sent: MailCheck,
-  support: Headset,
+  secure_payment: HsSecurePayment,
+  confirmation_sent: HsConfirmation,
+  support: HsSupport,
   booking_reference: Hash,
   protected_checkout: ShieldCheck,
-} satisfies Record<string, LucideIcon>;
+} satisfies Record<string, IconLike>;
 
 export const DOCUMENT_ICONS = {
   passport: PassportGlyph,

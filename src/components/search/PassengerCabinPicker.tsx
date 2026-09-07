@@ -154,7 +154,7 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
           <p className="eyebrow mb-2">{t("sw.cabin")}</p>
           <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("sw.cabin")}>
             {(Object.keys(CABIN_LABELS) as CabinClass[]).map((c) => (
-              <Chip key={c} selected={cabin === c} onClick={() => onCabinChange(c)} className="h-11 justify-start" icon={<CabinClassGlyph cabin={c} size={20} />}>
+              <Chip key={c} selected={cabin === c} onClick={() => onCabinChange(c)} className="h-auto min-h-11 justify-start whitespace-normal py-2 text-left leading-tight" icon={<CabinClassGlyph cabin={c} size={20} />}>
                 {cabinLabel(c)}
               </Chip>
             ))}

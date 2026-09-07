@@ -40,6 +40,7 @@ const Baggage = lazy(() => import('./pages/content/Baggage'))
 const Visa = lazy(() => import('./pages/content/Visa'))
 const About = lazy(() => import('./pages/content/About'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const GlyphSheet = lazy(() => import('./pages/GlyphSheet'))
 const WhatsAppFab = lazy(() => import('./components/WhatsAppFab'))
 
 // ── Admin: én felles chunk ──────────────────────────────────────────────────
@@ -141,7 +142,8 @@ export default function App() {
               <Route path="innstillinger" element={<AdminSettings />} />
             </Route>
 
-            <Route path="*" element={<NotFound />} />
+            <Route path="/utvikler/ikoner" element={<GlyphSheet />} />
+          <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </ErrorBoundary>

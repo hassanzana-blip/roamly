@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Seter sammen</title>
+  <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+    <path d="M4 6v7c0 1.1.9 2 2 2h4M4 10h3.2c1 0 1.8.8 1.8 1.8V15"/>
+    <path d="M14 6v7c0 1.1.9 2 2 2h4M14 10h3.2c1 0 1.8.8 1.8 1.8V15"/>
+    <path d="M5 15v4M9 15v4M15 15v4M19 15v4"/>
+    <path d="M10.5 9.5h3" stroke="#C4F71D"/>
+
+  </g>
+</svg>

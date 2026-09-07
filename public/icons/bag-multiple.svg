@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Flere kolli</title>
+  <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+    <rect x="3.5" y="9" width="7.5" height="10.5" rx="2"/>
+    <rect x="9" y="6" width="8" height="13.5" rx="2.2"/>
+    <rect x="15.5" y="10" width="5" height="9.5" rx="1.7"/>
+    <path d="M11.5 6V4.6h3V6"/>
+    <path d="M6 9V7.8h2.5V9"/>
+    <path d="M17 10V9h2V10"/>
+    <path d="M10.5 16h5" stroke="#C4F71D"/>
+
+  </g>
+</svg>

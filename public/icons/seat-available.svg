@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Ledig sete</title>
+  <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+    <path d="M8 4v8.5c0 1.4 1.1 2.5 2.5 2.5H17"/>
+    <path d="M8 9h5c1.1 0 2 .9 2 2v4"/>
+    <path d="M7 15v4M16 15v4"/>
+    <path d="M6 19h2M15 19h2"/>
+
+  </g>
+</svg>

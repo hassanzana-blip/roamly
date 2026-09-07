@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Mellomlanding</title>
+  <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+    <circle cx="4" cy="16" r="1.4" fill="#C4F71D" stroke="none"/>
+    <circle cx="12" cy="12" r="1.4" fill="#C4F71D" stroke="none"/>
+    <circle cx="20" cy="7" r="1.4" fill="#C4F71D" stroke="none"/>
+    <path d="M5.4 15.4 10.8 12.6M13.2 11.3 18.6 7.7" stroke-dasharray="2 2"/>
+    <path d="m9.2 7.2 2.2.9 2.4-1.7-1.8 2.2.9 2.2-1.7-1.4-2.4.9 1-2.1-.6-1.6Z"/>
+
+  </g>
+</svg>

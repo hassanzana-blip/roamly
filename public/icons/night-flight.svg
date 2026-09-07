@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Nattfly</title>
+  <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+    <path d="M8 4.5a6.5 6.5 0 0 0 7.7 8.8A6.5 6.5 0 1 1 8 4.5Z"/>
+    <path d="m4 18 4.8 1.2 5.8-3.6c.8-.5 1.8-.2 2.3.6.4.8.1 1.7-.6 2.1l-5.7 3.5-5.8-1.4L4 18Z"/>
+    <path d="M17.5 5.5h2M18.5 4.5v2" stroke="#C4F71D"/>
+
+  </g>
+</svg>

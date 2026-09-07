@@ -1,58 +1,69 @@
-import { Glyph, type GlyphProps } from "./Glyph";
+import { Glyph, LIME, type GlyphProps } from "./Glyph";
+import { HsAirportChange, HsFlightConnection, HsFlightDirect, HsNightFlight, HsPlaneArrival, HsPlaneDeparture, HsRoute, HsStatusChanged } from "./pack";
 
-/** Side-view aircraft, nose right. Used in routes and status. */
+/** Flight and route glyphs. Pack shapes first; custom outlines only where the pack has none. */
+export const TakeoffGlyph = HsPlaneDeparture;
+export const LandingGlyph = HsPlaneArrival;
+export const DirectRouteGlyph = HsFlightDirect;
+export const ConnectingRouteGlyph = HsFlightConnection;
+export const OvernightGlyph = HsNightFlight;
+export const RoutePinsGlyph = HsRoute;
+export const AirportChangeGlyph = HsAirportChange;
+/** Change of aircraft / self-transfer: the pack's swap arrows. */
+export const AircraftChangeGlyph = HsStatusChanged;
+
+/** Side-view aircraft, nose right (no pack shape). */
 export function AircraftSideGlyph(p: GlyphProps) {
   return (
     <Glyph {...p}>
-      <path d="M2.5 13.5h11l5-4.5h3l-1.5 4.5 1.5 1H5l-2.5-1Z" />
-      <path d="M9 13.5 7.5 9.5h2l3.5 4" />
-      <path d="M7 14.5 6 17h2.5l2-2.5" />
+      <path d="m3.5 14 6.3 1.6 7.4-5.1c.9-.6 2.1-.3 2.6.6.4.8.2 1.7-.5 2.2l-7.3 5.1-7.3-1.4L3.5 14Z" transform="rotate(-18 12 12)" />
+      <path d="m9.8 15.6-2.1-4.2" transform="rotate(-18 12 12)" />
     </Glyph>
   );
 }
 
-/** Two aircraft stacked with a swap arrow: change of aircraft / self-transfer. */
-export function AircraftChangeGlyph(p: GlyphProps) {
+/** Transfer road between airports. */
+export function TransferRoadGlyph(p: GlyphProps) {
   return (
     <Glyph {...p}>
-      <path d="M3 8h7l3-3h2l-1 3 1 1H4L3 8Z" />
-      <path d="M21 16h-7l-3 3H9l1-3-1-1h11l1 1Z" />
-      <path d="M18 3v4l-2-2M6 21v-4l2 2" />
+      <path d="M9 4 4.5 20h15L15 4H9Z" />
+      <path d="M12 7v2.5M12 12.5v2.5M12 18v1.5" stroke={LIME} />
     </Glyph>
   );
 }
 
-/** Overnight: crescent moon over a short route line. */
-export function OvernightGlyph(p: GlyphProps) {
+/** Airport: control tower. */
+export function AirportGlyph(p: GlyphProps) {
   return (
     <Glyph {...p}>
-      <path d="M15.5 3.5a6 6 0 1 0 5 8.5 5 5 0 0 1-5-8.5Z" />
-      <path d="M3 19h18" />
-      <circle cx="5" cy="19" r="1" fill="currentColor" />
-      <circle cx="19" cy="19" r="1" fill="currentColor" />
+      <path d="M10 20.5V11h4v9.5" />
+      <path d="M7 8.5h10l-1.5 2.5h-7L7 8.5Z" />
+      <path d="M12 8.5V4.5M11 4.5h2" />
+      <path d="M3.5 20.5h17" />
+      <path d="M5.5 16.5h1.5M17 16.5h1.5" stroke={LIME} />
     </Glyph>
   );
 }
 
-/** Direct route: two points, one line. */
-export function DirectRouteGlyph(p: GlyphProps) {
+/** Terminal building. */
+export function TerminalGlyph(p: GlyphProps) {
   return (
     <Glyph {...p}>
-      <circle cx="4" cy="12" r="1.75" />
-      <circle cx="20" cy="12" r="1.75" fill="currentColor" />
-      <path d="M5.75 12h12.5" />
+      <path d="M3 20V9.5l9-4.5 9 4.5V20" />
+      <path d="M3 20h18" />
+      <path d="M6.5 12.5h11M6.5 15.5h11" opacity=".35" />
+      <path d="M10.5 20v-3.5h3V20" stroke={LIME} />
     </Glyph>
   );
 }
 
-/** Connecting route: a stop in the middle. */
-export function ConnectingRouteGlyph(p: GlyphProps) {
+/** Whole world: globe with lime equator. */
+export function GlobeGlyph(p: GlyphProps) {
   return (
     <Glyph {...p}>
-      <circle cx="4" cy="12" r="1.75" />
-      <circle cx="12" cy="12" r="1.75" />
-      <circle cx="20" cy="12" r="1.75" fill="currentColor" />
-      <path d="M5.75 12h4.5M13.75 12h4.5" />
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 3.5c2.8 2.8 2.8 14.2 0 17M12 3.5c-2.8 2.8-2.8 14.2 0 17" />
+      <path d="M4 12h16" stroke={LIME} />
     </Glyph>
   );
 }

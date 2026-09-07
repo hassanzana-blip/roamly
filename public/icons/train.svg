@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Tog</title>
+  <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+    <rect x="6" y="3.5" width="12" height="14" rx="3"/>
+    <path d="M8.5 7h7M8.5 10.5h7"/>
+    <circle cx="9" cy="14.5" r="1"/>
+    <circle cx="15" cy="14.5" r="1"/>
+    <path d="M8 20h8M10 17.5 8 20M14 17.5l2 2.5" stroke="#C4F71D"/>
+
+  </g>
+</svg>

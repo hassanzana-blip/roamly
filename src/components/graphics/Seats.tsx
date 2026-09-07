@@ -1,40 +1,62 @@
 import type { CabinClass } from "@contracts/types";
-import { Glyph, type GlyphProps } from "./Glyph";
+import { Glyph, LIME, type GlyphProps } from "./Glyph";
+import { HsFamilySeats, HsSeatAisle, HsSeatAvailable, HsSeatExtraLegroom, HsSeatSelected, HsSeatUnavailable, HsSeatWindow } from "./pack";
 import { cn } from "@/lib/utils";
 
 /**
- * Seat family. One seat glyph with visual states, plus cabin-class
- * silhouettes that make the differences understandable without renders.
- * Ready for a live seat map (render seats from API data, never from a bitmap).
+ * Seat family from the official pack. One seat silhouette with states,
+ * window/aisle positions and family seating. Ready for a live seat map:
+ * render seats from API data, never from a bitmap.
  */
-
 export type SeatState = "available" | "selected" | "unavailable" | "extra-legroom" | "preferred";
 
-/** Top-down seat: backrest bar + cushion + armrests. */
 export function SeatGlyph({ state = "available", className, ...p }: GlyphProps & { state?: SeatState }) {
-  const fill = state === "selected" ? "hsl(var(--primary))" : state === "unavailable" ? "hsl(var(--muted))" : "none";
+  switch (state) {
+    case "selected":
+      return <HsSeatSelected className={className} {...p} />;
+    case "unavailable":
+      return <HsSeatUnavailable className={cn("text-muted-foreground", className)} {...p} />;
+    case "extra-legroom":
+      return <HsSeatExtraLegroom className={className} {...p} />;
+    case "preferred":
+      return (
+        <Glyph className={className} {...p}>
+          <path d="M8 4v8.5c0 1.4 1.1 2.5 2.5 2.5H17" />
+          <path d="M8 9h5c1.1 0 2 .9 2 2v4" />
+          <path d="M7 15v4M16 15v4" />
+          <path d="M6 19h2M15 19h2" />
+          <path d="m18.5 3.5.9 1.9 2.1.3-1.5 1.4.4 2.1-1.9-1-1.9 1 .4-2.1-1.5-1.4 2.1-.3.9-1.9Z" fill={LIME} stroke="none" />
+        </Glyph>
+      );
+    default:
+      return <HsSeatAvailable className={className} {...p} />;
+  }
+}
+
+/** Window / middle / aisle position. */
+export function SeatPositionGlyph({ position, ...p }: GlyphProps & { position: "window" | "aisle" | "middle" }) {
+  if (position === "window") return <HsSeatWindow {...p} />;
+  if (position === "aisle") return <HsSeatAisle {...p} />;
   return (
-    <Glyph {...p} className={cn(state === "unavailable" && "text-muted-foreground/60", className)}>
-      <rect x="6" y="4" width="12" height="13" rx="3" fill={fill} />
-      <path d="M4 10v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
-      {state === "extra-legroom" && <path d="M9 21h6" strokeDasharray="1.5 2" />}
-      {state === "preferred" && <path d="m12 7 .9 1.8 2 .3-1.45 1.4.35 2L12 11.6l-1.8.9.35-2-1.45-1.4 2-.3L12 7Z" fill="currentColor" stroke="none" />}
-      {state === "unavailable" && <path d="m9.5 7.5 5 5M14.5 7.5l-5 5" />}
+    <Glyph {...p}>
+      <path d="M7 4v8.5c0 1.4 1.1 2.5 2.5 2.5H16" />
+      <path d="M7 9h5c1.1 0 2 .9 2 2v4" />
+      <path d="M6 15v4M15 15v4" />
+      <path d="M3 6v12M21 6v12" opacity=".35" />
     </Glyph>
   );
 }
 
-/** Row miniature: window / aisle position. */
-export function SeatPositionGlyph({ position, ...p }: GlyphProps & { position: "window" | "aisle" | "middle" }) {
-  const cols = [5, 12, 19];
-  const active = position === "window" ? 0 : position === "middle" ? 1 : 2;
+export const SeatsTogetherGlyph = HsFamilySeats;
+
+/** Bassinet for infants (no pack shape). */
+export function BassinetGlyph(p: GlyphProps) {
   return (
     <Glyph {...p}>
-      <path d="M2 4v16" />
-      {cols.map((x, i) => (
-        <rect key={x} x={x - 2.5} y="8" width="5" height="8" rx="1.5" fill={i === active ? "currentColor" : "none"} opacity={i === active ? 1 : 0.6} />
-      ))}
-      <path d="M22 4v16" strokeDasharray="2 2" />
+      <path d="M3.5 11.5h17v1.5a5.5 5.5 0 0 1-5.5 5.5H9a5.5 5.5 0 0 1-5.5-5.5v-1.5Z" />
+      <path d="M6.5 11.5V8.5a5.5 5.5 0 0 1 11 0v3" />
+      <path d="M9.5 21h5" />
+      <path d="M10.5 7.5h3" stroke={LIME} />
     </Glyph>
   );
 }
@@ -45,37 +67,32 @@ export function CabinClassGlyph({ cabin, ...p }: GlyphProps & { cabin: CabinClas
     case "first":
       return (
         <Glyph {...p}>
-          <path d="M3 18V8a3 3 0 0 1 3-3h1" />
-          <path d="M6 12h9a3 3 0 0 1 3 3v3" />
-          <path d="M3 18h16" />
-          <path d="M14 12 12 5h6l-1 7" />
+          <path d="M4 5v9c0 1.7 1.3 3 3 3h9" />
+          <path d="M4 10h7c1.7 0 3 1.3 3 3v4" />
+          <path d="M5 17v3M14 17v3" />
+          <path d="M17 12h4" stroke={LIME} />
+          <path d="m19.5 9.5 2.5 2.5-2.5 2.5" stroke={LIME} />
         </Glyph>
       );
     case "business":
       return (
         <Glyph {...p}>
-          <path d="M4 18V9a2 2 0 0 1 2-2" />
-          <path d="M6 13h8a2.5 2.5 0 0 1 2.5 2.5V18" />
-          <path d="M4 18h14" />
-          <path d="M13 13 11 6h5l-1 7" />
+          <path d="M5 5v8.5c0 1.4 1.1 2.5 2.5 2.5H15" />
+          <path d="M5 10h6c1.1 0 2 .9 2 2v4" />
+          <path d="M6 16v3M14 16v3" />
+          <path d="M17.5 12h3.5" stroke={LIME} />
         </Glyph>
       );
     case "premium_economy":
       return (
         <Glyph {...p}>
-          <path d="M6 18v-5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v5" />
-          <path d="M8 11V6.5A1.5 1.5 0 0 1 9.5 5h4A1.5 1.5 0 0 1 15 6.5V11" />
-          <path d="M5 18h14" />
-          <path d="M9 11h6" strokeDasharray="1.5 2" />
+          <path d="M7 4v8.5c0 1.4 1.1 2.5 2.5 2.5H16" />
+          <path d="M7 9h5c1.1 0 2 .9 2 2v4" />
+          <path d="M6 15v4M15 15v4" />
+          <path d="M17.5 12h2" stroke={LIME} />
         </Glyph>
       );
     default:
-      return (
-        <Glyph {...p}>
-          <path d="M7 18v-4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v4" />
-          <path d="M9 12V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5" />
-          <path d="M6 18h12" />
-        </Glyph>
-      );
+      return <HsSeatAvailable {...p} />;
   }
 }
