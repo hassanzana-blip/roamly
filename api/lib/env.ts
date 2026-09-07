@@ -25,6 +25,7 @@ const schema = z.object({
   TRAVELPORT_AUTH_URL: z.string().url().optional(),
   TRAVELPORT_BASE_URL: z.string().url().optional(),
   TRAVELPORT_SEARCH_ENABLED: z.string().optional(),
+  TRAVELPORT_CONTENT_SOURCE: z.string().optional(),
 
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),

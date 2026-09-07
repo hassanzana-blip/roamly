@@ -25,16 +25,18 @@ export const TRAVELPORT_OFFER_PREFIX = "tp_";
 
 export const travelportConfig = {
   get authUrl(): string {
-    // DevKit-en (v11 GDS) autentiserer mot .net med form-encoding. Hurtigstart-
-    // siden i MyTravelport peker på .com med JSON; den gir også en token, men
-    // søke-gatewayen avviste den som «Invalid token».
-    return (env.TRAVELPORT_AUTH_URL ?? "https://auth.pp.travelport.net/oauth/token").replace(/\/$/, "");
+    // Slik kontoens egen hurtigstart gjør det: .com med JSON-kropp.
+    return (env.TRAVELPORT_AUTH_URL ?? "https://auth.pp.travelport.com/oauth/token").replace(/\/$/, "");
   },
   get baseUrl(): string {
     return (env.TRAVELPORT_BASE_URL ?? "https://api.pp.travelport.net").replace(/\/$/, "");
   },
   get pcc(): string {
     return env.TRAVELPORT_PCC ?? "";
+  },
+  /** Kontoen avgjør hvilket innhold den har rett på — denne trialen er NDC. */
+  get contentSource(): string {
+    return env.TRAVELPORT_CONTENT_SOURCE ?? "NDC";
   },
   /** Alle feltene må være satt før adapteret kan brukes. */
   get configured(): boolean {
@@ -94,18 +96,16 @@ export async function travelportToken(now: number = Date.now()): Promise<string>
     throw new TravelportError(authFailure.message, { status: authFailure.status, retryable: true });
   }
 
-  // Form-encoding, ikke JSON — slik DevKit-en gjør det.
-  const form = new URLSearchParams({
-    grant_type: "password",
-    username: env.TRAVELPORT_USERNAME ?? "",
-    password: env.TRAVELPORT_PASSWORD ?? "",
-    client_id: env.TRAVELPORT_CLIENT_ID ?? "",
-    client_secret: env.TRAVELPORT_CLIENT_SECRET ?? "",
-  });
   const res = await fetch(travelportConfig.authUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", "Cache-Control": "no-cache", Accept: "application/json" },
-    body: form.toString(),
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      client_id: env.TRAVELPORT_CLIENT_ID,
+      client_secret: env.TRAVELPORT_CLIENT_SECRET,
+      username: env.TRAVELPORT_USERNAME,
+      password: env.TRAVELPORT_PASSWORD,
+      grant_type: "password",
+    }),
   });
 
   if (!res.ok) {
@@ -209,7 +209,7 @@ export function buildSearchRequest(input: TravelportSearchInput): Record<string,
     CatalogProductOfferingsRequest: {
       "@type": "CatalogProductOfferingsRequestAir",
       maxNumberOfUpsellsToReturn: 4,
-      contentSourceList: ["GDS"],
+      contentSourceList: [travelportConfig.contentSource],
       PassengerCriteria: [...counts.values()].map((p) => ({
         "@type": "PassengerCriteria",
         number: p.number,
@@ -447,16 +447,15 @@ export async function travelportSearch(input: TravelportSearchInput): Promise<Se
   if (!travelportConfig.searchEnabled) throw new TravelportError("Travelport-søk er ikke slått på.");
   const token = await travelportToken();
 
-  // Headerne følger DevKit-en (v11 GDS): tilgangsgruppe + Accept/Content-Version.
+  // Headerne følger hurtigstarten for denne kontoen: PCC-en sendes som
+  // TVP-PCC-Core, og det er ingen tilgangsgruppe-header i det hele tatt.
   const res = await fetch(`${travelportConfig.baseUrl}/11/air/catalog/search/catalogproductofferings`, {
     method: "POST",
     headers: {
+      "Accept-Encoding": "gzip, deflate",
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      Accept: "application/json",
-      XAUTH_TRAVELPORT_ACCESSGROUP: travelportConfig.pcc,
-      "Accept-Version": "11",
-      "Content-Version": "11",
+      "TVP-PCC-Core": travelportConfig.pcc,
       TraceId: `hellosky-${Date.now().toString(36)}`,
     },
     body: JSON.stringify(buildSearchRequest(input)),
@@ -519,43 +518,38 @@ export function isTravelportOffer(offerId: string): boolean {
  * uten å gjette én om gangen. Fjernes når integrasjonen virker.
  */
 export async function travelportProbeVariants(): Promise<void> {
-  const token = await travelportToken();
   const departureDate = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-  const body = JSON.stringify(
-    buildSearchRequest({ slices: [{ origin: "OSL", destination: "LHR", departureDate }], passengers: [{ type: "adult" }], cabinClass: "economy" }),
-  );
-
+  const search = { slices: [{ origin: "OSL", destination: "LHR", departureDate }], passengers: [{ type: "adult" as const }], cabinClass: "economy" as const };
+  const token = await travelportToken();
   const url = `${travelportConfig.baseUrl}/11/air/catalog/search/catalogproductofferings`;
-  const pcc = travelportConfig.pcc;
-  const common: Record<string, string> = {
+  const headers: Record<string, string> = {
+    "Accept-Encoding": "gzip, deflate",
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
-    Accept: "application/json",
-    "Accept-Version": "11",
-    "Content-Version": "11",
+    "TVP-PCC-Core": travelportConfig.pcc,
+    TraceId: "hellosky-probe",
   };
 
-  // Verten godtar nå tokenet; det som står igjen er hvilken verdi
-  // tilgangsgruppa skal ha. PCC-en er «7K99_1G» — prøv hele, uten suffiks,
-  // og helt uten headeren.
-  const variants: Array<{ name: string; headers: Record<string, string> }> = [
-    { name: "accessgroup=pcc", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc } },
-    { name: "accessgroup=pcc-uten-suffiks", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc.split("_")[0] } },
-    { name: "uten-accessgroup", headers: { ...common } },
-    { name: "accessgroup+pcc-core", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, "TVP-PCC-Core": pcc } },
-  ];
-
-  for (const v of variants) {
+  // Kontoen har rett på ett bestemt innhold. Hurtigstarten bruker NDC.
+  for (const sources of [["NDC"], ["GDS"], ["NDC", "GDS"]]) {
+    const request = buildSearchRequest(search) as Record<string, Record<string, unknown>>;
+    request.CatalogProductOfferingsRequest.contentSourceList = sources;
     try {
-      const res = await fetch(url, { method: "POST", headers: v.headers, body });
-      const detail = (await res.text()).slice(0, 300);
-      log.info({ variant: v.name, status: res.status, detail }, "Travelport-variant");
-      if (res.ok) return;
+      const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(request) });
+      const text = await res.text();
+      log.info({ sources: sources.join("+"), status: res.status, detail: text.slice(0, 220) }, "Travelport-innhold");
+      if (res.ok) {
+        const offers = mapSearchResponse(JSON.parse(text) as TpResponse, search);
+        log.info({ sources: sources.join("+"), offers: offers.length }, "Travelport: SØK VIRKER");
+        return;
+      }
     } catch (err) {
-      log.info({ variant: v.name, err: String(err).slice(0, 160) }, "Travelport-variant kastet");
+      log.info({ sources: sources.join("+"), err: String(err).slice(0, 160) }, "Travelport-innhold kastet");
     }
   }
 }
+
+
 
 
 

@@ -118,7 +118,8 @@ describe("Travelport: forespørsel", () => {
     expect(req["@type"]).toBe("CatalogProductOfferingsQueryRequest");
     const air = req.CatalogProductOfferingsRequest as Record<string, unknown>;
     expect(air["@type"]).toBe("CatalogProductOfferingsRequestAir");
-    expect(air.contentSourceList).toEqual(["GDS"]);
+    // Kontoen er provisjonert for NDC; hurtigstarten bruker samme verdi.
+    expect(air.contentSourceList).toEqual(["NDC"]);
   });
 
   it("teller passasjerer per type og bruker Travelports typekoder", () => {
