@@ -360,6 +360,25 @@ export async function travelportSearch(input: TravelportSearchInput): Promise<Se
   const body = (await res.json()) as TpResponse;
   const offers = mapSearchResponse(body, input);
 
+  // Diagnostikk mens kartleggingen er uverifisert: tell hva vi fikk, og hvis
+  // ingenting ble kartlagt, logg strukturen (kun nøkkelnavn og antall — aldri
+  // priser, navn eller legitimasjon) slik at feltnavnene kan rettes.
+  const offerings = body.CatalogProductOfferingsResponse?.CatalogProductOfferings?.CatalogProductOffering ?? [];
+  const flightCount = flightIndex(body).size;
+  log.info({ offerings: offerings.length, flights: flightCount, mapped: offers.length }, "Travelport: søkesvar kartlagt");
+  if (offers.length === 0) {
+    log.warn(
+      {
+        topLevelKeys: Object.keys(body ?? {}),
+        responseKeys: Object.keys(body.CatalogProductOfferingsResponse ?? {}),
+        offeringKeys: offerings[0] ? Object.keys(offerings[0]) : [],
+        brandOptionKeys: offerings[0]?.ProductBrandOptions?.[0] ? Object.keys(offerings[0].ProductBrandOptions[0]) : [],
+        referenceListTypes: (body.CatalogProductOfferingsResponse?.ReferenceList ?? []).map((r) => r["@type"] ?? "?"),
+      },
+      "Travelport: ingen tilbud kartlagt — struktur avviker fra forventet skjema",
+    );
+  }
+
   return {
     offerRequestId: body.CatalogProductOfferingsResponse?.CatalogProductOfferings?.Identifier?.value ?? `${TRAVELPORT_OFFER_PREFIX}${Date.now()}`,
     liveMode: travelportConfig.liveMode,
