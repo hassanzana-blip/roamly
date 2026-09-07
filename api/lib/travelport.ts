@@ -375,21 +375,31 @@ export async function travelportSearch(input: TravelportSearchInput): Promise<Se
   if (!travelportConfig.searchEnabled) throw new TravelportError("Travelport-søk er ikke slått på.");
   const token = await travelportToken();
 
+  // Headerne følger Travelports egen curl-oppskrift nøyaktig. Ekstra headere
+  // (Accept-Version, XAUTH_TRAVELPORT_ACCESSGROUP) ga 401 fra gatewayen.
   const res = await fetch(`${travelportConfig.baseUrl}/11/air/catalog/search/catalogproductofferings`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-      accept: "application/json",
-      "Accept-Version": "11",
-      "XAUTH_TRAVELPORT_ACCESSGROUP": travelportConfig.pcc,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "Accept-Encoding": "gzip, deflate",
       "TVP-PCC-Core": travelportConfig.pcc,
+      TraceId: `hellosky-${Date.now().toString(36)}`,
     },
     body: JSON.stringify(buildSearchRequest(input)),
   });
 
   if (!res.ok) {
-    log.error({ status: res.status }, "Travelport: søk feilet");
+    // Travelports feilkropp forklarer hva som mangler. Den inneholder ikke
+    // legitimasjon — vi kutter den likevel og logger aldri det vi sendte.
+    let detail = "";
+    try {
+      detail = (await res.text()).slice(0, 400);
+    } catch {
+      /* ingen kropp */
+    }
+    log.error({ status: res.status, detail }, "Travelport: søk feilet");
     throw new TravelportError("Søket mot Travelport feilet.", { status: res.status, retryable: res.status >= 500 });
   }
 
