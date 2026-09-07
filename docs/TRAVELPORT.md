@@ -1,74 +1,69 @@
-# Travelport (Flights API v11, GDS) — status og funn
+# Travelport (Flights API v11, NDC) — status og funn
 
 Sist oppdatert: 2026-09-07.
 
 ## Kort status
 
-Adapteret er skrevet, enhetstestet og **avslått**. Det står klart til å slås på
-den dagen kontoen faktisk får tilgang. Ingenting i appen bruker det nå.
+Søk mot Travelport **virker** i pre-production. Verifisert ende til ende:
+JFK–LAX ga 1 «offering» som ble kartlagt til 122 tilbud, første pris
+180.10 GBP. Adapteret er likevel **avslått på nettstedet** — se hvorfor under.
 
 | Ting | Status |
 | --- | --- |
-| OAuth-innlogging | ✅ virker (`auth.pp.travelport.net`, form-encoded) |
-| Riktig API-vert | ✅ `api.pp.travelport.net` — `.com` avviser tokenet i gatewayen |
-| Tokenet godtas av API-et | ✅ |
-| Søk (`catalogproductofferings`) | ❌ `401 · AUTHORIZATION ERROR (2500)` — tilgangsgruppa |
-| Kartlegging av svar | ✅ rettet mot DevKit-en og testet mot et ekte 200-svar |
-| Booking | ❌ ikke bygget (Duffel gjør fortsatt alle bestillinger) |
+| OAuth-innlogging (`auth.pp.travelport.com`, JSON) | ✅ |
+| API-vert `api.pp.travelport.net` | ✅ (`.com` avviser tokenet i gatewayen) |
+| Innholdstype `NDC` | ✅ (kontoen har ikke rett på `GDS`) |
+| Søk og kartlegging | ✅ testet mot ekte svar, både GDS- og NDC-form |
+| Booking | ❌ ikke bygget — Duffel gjør fortsatt alle bestillinger |
 
-## Hva vi vet sikkert
+## Hvorfor det ikke er slått på for besøkende
 
-Innlogging mot `https://auth.pp.travelport.net/oauth/token` med
-`grant_type=password` og **form-encoding** virker. Vi får en `Bearer`-token med
-24 timers levetid. Claims: `iss = https://auth.pp.travelport.net/`,
-`aud = https://traefik-pp.edge-dev.tvptcloud.io/`, ingen `scope`.
+Testinnholdet dekker bare noen få selskaper og ruter. JFK–LAX og LHR–JFK gir
+treff; OSL–LHR gir null. HelloSkys faktiske ruter finnes ikke i testdataene, så
+et påslått Travelport-søk ville vist «ingen fly» for nesten alle ekte søk.
+Duffel dekker søket inntil produksjonstilgang er på plass.
 
-**Verten er avgjørende.** Hurtigstartsiden i MyTravelport oppgir
-`api.pp.travelport.com`. Den verten kaster tokenet i gatewayen med
-`1012116 - Invalid token`, uansett headere. `api.pp.travelport.net` — samme
-domene som innloggingen — godtar tokenet, leser forespørselen og svarer med en
-ekte `CatalogProductOfferingsResponse`.
+## Fem feil vi gikk gjennom for å komme hit
 
-Dette førte meg først på villspor: fordi alle header-varianter feilet likt mot
-`.com`, konkluderte jeg feilaktig med at kontoen ikke var provisjonert. Den
-konklusjonen var basert på feil vert.
+Hver av dem ga samme symptom — et søk som ikke virket — men helt ulike årsaker:
 
-På riktig vert står det igjen én ting — tilgangsgruppa:
+1. **Feil vert.** Hurtigstarten oppgir `api.pp.travelport.com`. Den kaster
+   tokenet i gatewayen med `1012116 - Invalid token`. Riktig vert er
+   `api.pp.travelport.net`, samme domene som innloggingen.
+2. **Feil nøsting.** Kroppen skal ha `@type` på toppnivå og forespørselen under
+   `CatalogProductOfferingsRequest`, ikke `CatalogProductOfferingsRequestAir`.
+3. **Feil headere.** Kontoen bruker `TVP-PCC-Core` med PCC-en. Ingen
+   `XAUTH_TRAVELPORT_ACCESSGROUP` (den hører til GDS-DevKit-en).
+4. **Feil innhold.** `contentSourceList` må være `["NDC"]`. Med `["GDS"]` svarer
+   API-et `AUTHORIZATION ERROR (2500)` — kontoen har ikke rett på GDS-innhold.
+   Dette var årsaken til at alle header-varianter feilet likt.
+5. **Feil kartlegging.** NDC-tilbud har ingen `flightRefs`. Flygningene finnes
+   bare via produktets `FlightSegment`, sortert på `sequence`.
 
-| Variant | Svar fra API-et |
+## Slik står oppsettet nå
+
+| Variabel | Verdi |
 | --- | --- |
-| `XAUTH_TRAVELPORT_ACCESSGROUP: 7K99_1G` | `AUTHORIZATION ERROR` (2500) |
-| `XAUTH_TRAVELPORT_ACCESSGROUP: 7K99` | `AUTHORIZATION ERROR` (2500) |
-| **uten** headeren | `AUTHORIZATION IS NOT CONFIGURED` |
-| med `TVP-PCC-Core` i tillegg | `AUTHORIZATION ERROR` (2500) |
+| `TRAVELPORT_AUTH_URL` | `https://auth.pp.travelport.com/oauth/token` |
+| `TRAVELPORT_BASE_URL` | `https://api.pp.travelport.net` |
+| `TRAVELPORT_CONTENT_SOURCE` | `NDC` |
+| `TRAVELPORT_SEARCH_ENABLED` | `false` |
+| `TRAVELPORT_PROBE_ON_BOOT` | `false` |
 
-At svaret endrer seg når headeren fjernes beviser at den leses og kreves.
-Verdien vi sender er altså ikke en tilgangsgruppe kontoen har rett på.
+## Neste steg
 
-## Konklusjon
-
-Tilgangsgruppa er ikke det samme som PCC-en. Vi mangler den verdien.
-
-**Neste steg:** spør Travelport (eller finn i MyTravelport) hvilken verdi
-`XAUTH_TRAVELPORT_ACCESSGROUP` skal ha for PCC `7K99_1G`, bruker `TP52731717`,
-Flights API v11 GDS i pre-production. Oppgi at tokenet godtas av
-`api.pp.travelport.net`, og at API-et svarer `AUTHORIZATION ERROR` kode 2500
-med PCC-en som tilgangsgruppe, og `AUTHORIZATION IS NOT CONFIGURED` uten
-headeren.
-
-## Når tilgangen er på plass
-
-1. Sett `TRAVELPORT_ACCESS_GROUP` (eller `TRAVELPORT_PCC`) til tilgangsgruppa
-   Travelport oppgir, og `TRAVELPORT_SEARCH_ENABLED=true` i Railway.
-2. Sett `TRAVELPORT_PROBE_ON_BOOT=true` — da kjører ett testsøk ved oppstart og
-   logger resultatet, uten at noen må søke manuelt.
-3. Les loggen. `Travelport: søkesvar kartlagt` viser hvor mange tilbud som ble
-   kartlagt. Er tallet 0, logges strukturen på svaret slik at feltnavnene i
-   `mapSearchResponse` kan rettes.
-4. Når søk virker: bygg booking (Travelport har ingen bookingkode ennå), og
-   først deretter kan Duffel fjernes.
-5. Rydd bort `travelportProbeVariants` og oppstartssonden i `api/boot.ts` — de
-   er midlertidig feilsøking.
+1. **Booking.** Travelport har ingen bookingkode ennå. Uten den kan et
+   Travelport-tilbud ikke selges; `resolveOffer` avviser `tp_`-tilbud med vilje.
+2. **Produksjonstilgang.** Er bedt om via MyTravelport. Krever IATA-lisens for
+   billettering, alternativt en IATA-akkreditert konsolidator.
+3. **Når produksjon er på plass:** bytt vertene til produksjonsverdiene, sett
+   `TRAVELPORT_SEARCH_ENABLED=true`, og sett `TRAVELPORT_PROBE_ON_BOOT=true` for
+   ett testsøk ved oppstart.
+4. **Rydd bort** `travelportProbeVariants` og oppstartssonden i `api/boot.ts`
+   når integrasjonen er ferdig — de er midlertidig feilsøking.
+5. **Merkevarenivåer.** Ett NDC-«offering» ble til 122 tilbud (ett per
+   merkenivå per produkt). Vurder å slå sammen merkenivåer per reise i
+   resultatlista før dette vises for kunder.
 
 ## Sikkerhetsvalg som står
 
@@ -77,5 +72,4 @@ headeren.
   en annen.
 * Kartleggingen hopper over tilbud uten pris, valuta eller segmenter i stedet
   for å gjette. Bagasje rapporteres som «ikke oppgitt», aldri antatt.
-* Ingen legitimasjon logges. Ved avvist innlogging logges kun statuskode og
-  OAuth-feilkode, aldri kroppen vi sendte.
+* Ingen legitimasjon logges — kun statuskoder og feilkoder fra API-et.
