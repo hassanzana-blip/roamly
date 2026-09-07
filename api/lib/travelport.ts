@@ -31,7 +31,7 @@ export const travelportConfig = {
     return (env.TRAVELPORT_AUTH_URL ?? "https://auth.pp.travelport.net/oauth/token").replace(/\/$/, "");
   },
   get baseUrl(): string {
-    return (env.TRAVELPORT_BASE_URL ?? "https://api.pp.travelport.com").replace(/\/$/, "");
+    return (env.TRAVELPORT_BASE_URL ?? "https://api.pp.travelport.net").replace(/\/$/, "");
   },
   get pcc(): string {
     return env.TRAVELPORT_PCC ?? "";
@@ -525,36 +525,37 @@ export async function travelportProbeVariants(): Promise<void> {
     buildSearchRequest({ slices: [{ origin: "OSL", destination: "LHR", departureDate }], passengers: [{ type: "adult" }], cabinClass: "economy" }),
   );
 
+  const url = `${travelportConfig.baseUrl}/11/air/catalog/search/catalogproductofferings`;
   const pcc = travelportConfig.pcc;
-  const headers: Record<string, string> = {
+  const common: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
     Accept: "application/json",
-    XAUTH_TRAVELPORT_ACCESSGROUP: pcc,
     "Accept-Version": "11",
     "Content-Version": "11",
   };
 
-  // Tokenet er utstedt for en annen vert (aud) enn den hurtigstartsiden oppgir.
-  // Prøv vertene DevKit-en og tokenet peker på, og se hvem som godtar det.
-  const hosts = [
-    travelportConfig.baseUrl,
-    "https://api.apim-a.zu2.pp.travelport.io",
-    "https://traefik-pp.edge-dev.tvptcloud.io",
-    "https://api.pp.travelport.net",
+  // Verten godtar nå tokenet; det som står igjen er hvilken verdi
+  // tilgangsgruppa skal ha. PCC-en er «7K99_1G» — prøv hele, uten suffiks,
+  // og helt uten headeren.
+  const variants: Array<{ name: string; headers: Record<string, string> }> = [
+    { name: "accessgroup=pcc", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc } },
+    { name: "accessgroup=pcc-uten-suffiks", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc.split("_")[0] } },
+    { name: "uten-accessgroup", headers: { ...common } },
+    { name: "accessgroup+pcc-core", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, "TVP-PCC-Core": pcc } },
   ];
 
-  for (const host of hosts) {
-    const url = `${host}/11/air/catalog/search/catalogproductofferings`;
+  for (const v of variants) {
     try {
-      const res = await fetch(url, { method: "POST", headers, body });
+      const res = await fetch(url, { method: "POST", headers: v.headers, body });
       const detail = (await res.text()).slice(0, 300);
-      log.info({ host, status: res.status, detail }, "Travelport-vert");
+      log.info({ variant: v.name, status: res.status, detail }, "Travelport-variant");
       if (res.ok) return;
     } catch (err) {
-      log.info({ host, err: String(err).slice(0, 160) }, "Travelport-vert kastet");
+      log.info({ variant: v.name, err: String(err).slice(0, 160) }, "Travelport-variant kastet");
     }
   }
 }
+
 
 
