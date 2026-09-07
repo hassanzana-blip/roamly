@@ -145,6 +145,13 @@
     overflow-x: hidden;
     overflow-x: clip;
   }
+  /*
+   * Når et ark eller en dialog er åpen låser Radix rullingen på body. Da skal
+   * ikke WhatsApp-boblen ligge og flyte oppå innholdet i arket.
+   */
+  body[data-scroll-locked] .whatsapp-fab {
+    display: none;
+  }
   /* Room for the floating bottom navigation (all widths below lg) */
   @media (max-width: 1023px) {
     body.has-tabbar {

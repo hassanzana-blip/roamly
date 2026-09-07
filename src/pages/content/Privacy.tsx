@@ -81,7 +81,7 @@ export default function Privacy() {
           <li>Konto, lagrede reisende og prisvarsler: så lenge kontoen er aktiv. Slettes når du sletter kontoen.</li>
           <li>Tekniske logger: inntil 90 dager.</li>
         </ul>
-        <p><LegalNote>bekreft lagringstidene mot interne rutiner</LegalNote></p>
+        <LegalNote>bekreft lagringstidene mot interne rutiner</LegalNote>
       </Section>
 
       <Section title="6. Informasjonskapsler og lokal lagring" id="cookies">

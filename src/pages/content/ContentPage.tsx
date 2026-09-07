@@ -52,8 +52,15 @@ export function Section({ title, id, children }: { title: string; id?: string; c
   );
 }
 
-/** Markert plassholder for juridisk gjennomgang. */
+/**
+ * Notat til juridisk gjennomgang. Dette er en beskjed til advokaten, ikke til
+ * kunden — derfor vises den kun utenfor produksjon. I produksjon forsvinner
+ * den helt, i stedet for å møte kunder med «[JURIST: …]» midt i vilkårene.
+ * Punktene forsvinner ikke fra jobben: de står i `data-legal-review` i koden
+ * og finnes ved å søke etter LegalNote.
+ */
 export function LegalNote({ children }: { children: ReactNode }) {
+  if (import.meta.env.PROD) return null;
   return (
     <span className="rounded bg-warning/10 px-1 py-0.5 text-[13px] font-medium text-warning" data-legal-review>
       [JURIST: {children}]

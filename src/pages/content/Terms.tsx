@@ -26,9 +26,7 @@ export default function Terms() {
           utføres av flyselskapet, og flyselskapets befordringsvilkår gjelder for gjennomføringen av reisen.
           Flyinnhold og utstedelse leveres teknisk via vår leverandør Duffel.
         </p>
-        <p>
-          <LegalNote>bekreft at HelloSky opptrer som formidler/agent, ikke som pakkereisearrangør etter pakkereiseloven</LegalNote>
-        </p>
+        <LegalNote>bekreft at HelloSky opptrer som formidler/agent, ikke som pakkereisearrangør etter pakkereiseloven</LegalNote>
       </Section>
 
       <Section title="2. Priser og servicegebyr" id="priser">
@@ -90,9 +88,7 @@ export default function Terms() {
           Vi tilbyr ikke egen avbestillingsforsikring eller reiseforsikring. Vi anbefaler at du sjekker
           dekningen i din egen reiseforsikring eller kortforsikring før du bestiller.
         </p>
-        <p>
-          <LegalNote>bekreft ordlyden om at servicegebyret beholdes ved kundekansellering, og angreretts-unntaket</LegalNote>
-        </p>
+        <LegalNote>bekreft ordlyden om at servicegebyret beholdes ved kundekansellering, og angreretts-unntaket</LegalNote>
       </Section>
 
       <Section title="6. Forsinkelser, kanselleringer og ruteendringer" id="forsinkelser">
@@ -120,9 +116,7 @@ export default function Terms() {
           gitt. Vi er ikke ansvarlige for flyselskapets gjennomføring av reisen, for tap som skyldes feil i
           opplysninger du selv har oppgitt, eller for forhold utenfor vår kontroll.
         </p>
-        <p>
-          <LegalNote>ansvarsbegrensning — vurder mot forbrukerkjøpsloven og markedsføringsloven</LegalNote>
-        </p>
+        <LegalNote>ansvarsbegrensning — vurder mot forbrukerkjøpsloven og markedsføringsloven</LegalNote>
       </Section>
 
       <Section title="9. Tvister" id="tvister">

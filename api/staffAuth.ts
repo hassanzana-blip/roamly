@@ -128,7 +128,7 @@ export const staffAuthRouter = createRouter({
   // `npm run bootstrap:admins` med BOOTSTRAP_*-variabler (OTA-080).
 
   setupStatus: publicQuery.query(async () => {
-    if (env.isProdEnv) return { needsSetup: false };
+    if (env.isProdEnv || env.STAFF_BOOTSTRAP_ENABLED !== "true") return { needsSetup: false };
     assertRateLimit("staff-setup-status", "global", 30, 60_000);
     const rows = await getDb().select({ id: staffUsers.id }).from(staffUsers)
       .where(ne(staffUsers.status, "invited")).limit(1);
@@ -141,8 +141,11 @@ export const staffAuthRouter = createRouter({
       name: z.string().trim().min(1).max(100),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (env.isProdEnv) {
-        throw new AppError("FORBIDDEN", { message: "Førstegangsoppsett via nett er avslått i produksjon. Bruk bootstrap-skriptet." });
+      // To låser: aldri i produksjon, og ellers kun når oppsettet er slått på
+      // bevisst. Uten den andre låsen står skjemaet åpent for hvem som helst
+      // hver gang det ikke finnes en aktiv ansattkonto.
+      if (env.isProdEnv || env.STAFF_BOOTSTRAP_ENABLED !== "true") {
+        throw new AppError("FORBIDDEN", { message: "Førstegangsoppsett via nett er avslått. Bruk bootstrap-skriptet." });
       }
       assertRateLimit("staff-claim-owner", clientIp(ctx.req), 5, 60 * 60_000);
       const db = getDb();

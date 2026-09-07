@@ -29,6 +29,11 @@ const schema = z.object({
 
   // Sanntids flystatus (AviationStack). Uten nøkkel svarer flystatus-siden
   // ærlig at sanntidsdata ikke er tilgjengelig.
+  // Førstegangsoppsett av eierkonto via nett. Av som standard: må slås på
+  // bevisst, og slås av igjen etterpå. Uten dette ville skjemaet stå åpent for
+  // hvem som helst hver gang det ikke finnes en aktiv ansattkonto.
+  STAFF_BOOTSTRAP_ENABLED: z.string().optional(),
+
   AVIATIONSTACK_API_KEY: z.string().optional(),
   AVIATIONSTACK_BASE_URL: z.string().url().optional(),
 
