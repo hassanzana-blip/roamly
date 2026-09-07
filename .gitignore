@@ -42,3 +42,4 @@ coverage/
 test-results/
 playwright-report/
 .migrations-check/
+travelport-response.json

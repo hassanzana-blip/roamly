@@ -22,6 +22,7 @@
     "test:all": "npm test && npm run test:it",
     "test:e2e": "playwright test",
     "migrate:check": "node scripts/migrate-check.mjs",
+    "travelport:probe": "node scripts/travelport-probe.mjs",
     "db:migrate:prod": "node scripts/migrate.mjs"
   },
   "dependencies": {

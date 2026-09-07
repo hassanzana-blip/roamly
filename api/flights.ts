@@ -12,6 +12,7 @@ import { enqueueJob } from "./lib/jobs";
 import { issueBookingAccessToken } from "./lib/bookingAccess";
 import { FLAT_FEE_BY_CURRENCY, instantBookingEnabled, loadPricingOverrides, SERVICE_FEE_PERCENT } from "./lib/pricing";
 import { searchAirports } from "../contracts/airports";
+import { travelportConfig, travelportSearch, isTravelportOffer } from "./lib/travelport";
 import type { FlightStatus, Offer, Order, PriceHint, SearchResult, ServiceStatus } from "../contracts/types";
 
 // ─── Søk, tilbud og offentlige oppslag ─────────────────────────────────────
@@ -81,6 +82,13 @@ async function serviceStatus(): Promise<ServiceStatusWithFees> {
 }
 
 export async function resolveOffer(offerId: string): Promise<Offer> {
+  // Et Travelport-tilbud kan ikke bookes gjennom Duffel — id-ene tilhører
+  // ulike leverandører. Stopp her framfor å sende den videre.
+  if (isTravelportOffer(offerId)) {
+    throw new AppError("OFFER_EXPIRED", {
+      message: "Dette tilbudet kan ikke bookes ennå. Søk på nytt og velg et annet.",
+    });
+  }
   if (duffelConfig.configured) return duffelGetOffer(offerId);
   const offer = demoGetOffer(offerId);
   if (!offer) throw new AppError("OFFER_EXPIRED");
@@ -102,11 +110,11 @@ export const flightsRouter = createRouter({
           throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass." });
         }
       }
-      if (duffelConfig.configured) {
+      if (travelportConfig.searchEnabled || duffelConfig.configured) {
         const key = searchCacheKey(input);
         const hit = searchCache.get(key);
         if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) return hit.result;
-        const result = await duffelSearch(input);
+        const result = travelportConfig.searchEnabled ? await travelportSearch(input) : await duffelSearch(input);
         searchCache.set(key, { at: Date.now(), result });
         return result;
       }

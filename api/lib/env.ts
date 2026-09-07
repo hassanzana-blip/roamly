@@ -15,6 +15,17 @@ const schema = z.object({
   DUFFEL_API_KEY: z.string().default(""),
   DUFFEL_WEBHOOK_SECRET: z.string().optional(),
 
+  // Travelport JSON API (v11) — kun søk foreløpig, avslått med mindre
+  // TRAVELPORT_SEARCH_ENABLED=true. Booking går fortsatt via Duffel.
+  TRAVELPORT_CLIENT_ID: z.string().optional(),
+  TRAVELPORT_CLIENT_SECRET: z.string().optional(),
+  TRAVELPORT_USERNAME: z.string().optional(),
+  TRAVELPORT_PASSWORD: z.string().optional(),
+  TRAVELPORT_PCC: z.string().optional(),
+  TRAVELPORT_AUTH_URL: z.string().url().optional(),
+  TRAVELPORT_BASE_URL: z.string().url().optional(),
+  TRAVELPORT_SEARCH_ENABLED: z.string().optional(),
+
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
