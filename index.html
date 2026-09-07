@@ -6,6 +6,23 @@
     <meta name="theme-color" content="#CDF527" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <!-- Personvernvennlig analyse (Plausible): ingen informasjonskapsler, ingen
+         persondata, ingen sporing på tvers av nettsteder. CSP åpner kun for
+         plausible.io i script-src og connect-src (api/boot.ts). -->
+    <script async src="https://plausible.io/js/pa--KAx43tEw4caqzQ7AsePa.js"></script>
+    <script>
+      window.plausible =
+        window.plausible ||
+        function () {
+          (plausible.q = plausible.q || []).push(arguments);
+        };
+      plausible.init =
+        plausible.init ||
+        function (i) {
+          plausible.o = i || {};
+        };
+      plausible.init();
+    </script>
     <script>
       // Tidlig tema- og språkinit — unngår blinking ved last
       try {
