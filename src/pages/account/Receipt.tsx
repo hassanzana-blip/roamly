@@ -37,7 +37,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   stripe: "Kort via Stripe",
 };
 
-/** /kvittering/:orderId?t= — salgsdokument, utskriftsvennlig. */
+/** /kvittering/:orderId?t= – salgsdokument, utskriftsvennlig. */
 export default function Receipt() {
   usePageMeta(PAGE_META.receipt);
   const t = useT();
@@ -70,7 +70,7 @@ export default function Receipt() {
   const lines = o
     ? [
         {
-          label: `Flybilletter — ${o.slices.map(s => `${s.origin.iata}–${s.destination.iata}`).join(", ")} (${cabinLabel(o.cabinClass)})`,
+          label: `Flybilletter – ${o.slices.map(s => `${s.origin.iata}–${s.destination.iata}`).join(", ")} (${cabinLabel(o.cabinClass)})`,
           qty: o.passengers.length,
           net: supplierMinor,
           vat: 0,
@@ -260,7 +260,7 @@ export default function Receipt() {
                   </ul>
                 </section>
 
-                {/* Linjer — serverens kvittering (OTA-172) når den finnes, ellers klientens spesifikasjon */}
+                {/* Linjer – serverens kvittering (OTA-172) når den finnes, ellers klientens spesifikasjon */}
                 {invoice ? (
                   <section>
                     <InvoiceSummaryBlock
@@ -428,7 +428,7 @@ export default function Receipt() {
                   av {SELLER.name}. Spørsmål? Ring {SELLER.phone} eller skriv
                   til {SELLER.email}.
                   {o.demoMode
-                    ? " Demobestilling — ingen betaling er gjennomført."
+                    ? " Demobestilling – ingen betaling er gjennomført."
                     : ""}
                 </p>
               </div>

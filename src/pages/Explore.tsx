@@ -17,7 +17,7 @@ import { ALL_DESTINATIONS, type DiscoverDestination } from "@/content/discover";
 import { FLIGHT_HINT, FLIGHT_LABELS, matches, MOODS, REGION_LABELS, REGION_ORDER, type FlightBucket, type Region } from "@/content/explore";
 
 /**
- * Utforsk — hele katalogen med tre ærlige filtre: stemning, region og
+ * Utforsk – hele katalogen med tre ærlige filtre: stemning, region og
  * reisetid som kategori. Alt lever i URL-en, så et utvalg kan deles.
  */
 

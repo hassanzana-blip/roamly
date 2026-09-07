@@ -12,7 +12,7 @@ import { formatDateShort } from "@/lib/format";
 import { trpc } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 
-/** Bonus — kortet, saldoen, nivået og hver eneste krone forklart. */
+/** Bonus – kortet, saldoen, nivået og hver eneste krone forklart. */
 export default function Rewards() {
   usePageMeta(PAGE_META.rewards);
   const t = useT();

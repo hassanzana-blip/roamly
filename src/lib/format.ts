@@ -103,7 +103,7 @@ export function formatPrice(amount: string | number, currency = "NOK", locale = 
   }
 }
 
-// ─── Servicegebyr — KUN FORHÅNDSVISNING ─────────────────────────────────────
+// ─── Servicegebyr – KUN FORHÅNDSVISNING ─────────────────────────────────────
 // Serveren (api/lib/pricing.ts) er eneste kilde til sannhet; admin kan
 // overstyre satsene. Klienten henter gjeldende satser via
 // `flights.status().feeConfig` (se useFeeConfig.ts) og faller tilbake til
@@ -154,7 +154,7 @@ export function formatDateShort(iso: string, locale = currentLocale()): string {
   }).format(new Date(iso));
 }
 
-/** «10. nov» — uten ukedag (titler, kompakte etiketter). */
+/** «10. nov» – uten ukedag (titler, kompakte etiketter). */
 export function formatDayMonth(iso: string, locale = currentLocale()): string {
   return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(iso));
 }
@@ -205,7 +205,7 @@ export function crossesMidnight(a: string, b: string): number {
 }
 
 /**
- * Mellomlanding: varighet og om den krysser lokal midnatt — beregnet i
+ * Mellomlanding: varighet og om den krysser lokal midnatt – beregnet i
  * flyplassens tidssone når den er kjent (Duffel `time_zone`).
  */
 export function layoverInfo(

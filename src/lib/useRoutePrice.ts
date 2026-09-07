@@ -4,9 +4,9 @@ import { departDate } from "@/content/discover";
 const fmtNok = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
 
 /**
- * Veiledende «fra»-pris for én rute — hentet fra pris-API-et
+ * Veiledende «fra»-pris for én rute – hentet fra pris-API-et
  * (flights.priceHints). Returnerer null når ingen pris finnes
- * (live-modus gir per i dag ingen dagpriser) — kortet viser da
+ * (live-modus gir per i dag ingen dagpriser) – kortet viser da
  * rett og slett ingen prislinje i stedet for å finne på noe.
  */
 export function useRoutePrice(originIata: string, destIata: string, daysAhead = 35) {

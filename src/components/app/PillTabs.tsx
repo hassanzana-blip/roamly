@@ -4,7 +4,7 @@ import Icon from "./Icon";
 import { cn } from "@/lib/utils";
 
 /**
- * PillTabs — compact segmented tabs (Fly / Hotell / Leiebil).
+ * PillTabs – compact segmented tabs (Fly / Hotell / Leiebil).
  * The active thumb is lime; layoutId animates it.
  */
 

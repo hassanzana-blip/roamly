@@ -16,7 +16,7 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { humanMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
 
-/** Reiseprofil — hver del lagres for seg, med en gang. Ingen «Lagre»-knapp å glemme. */
+/** Reiseprofil – hver del lagres for seg, med en gang. Ingen «Lagre»-knapp å glemme. */
 
 function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (

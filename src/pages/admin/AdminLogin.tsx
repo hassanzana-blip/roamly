@@ -70,7 +70,7 @@ export default function AdminLogin() {
                 <Rocket className="h-5 w-5 text-primary" aria-hidden="true" /> Førstegangsoppsett
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Det finnes ingen ansattkontoer i dette miljøet ennå. Opprett den første eierkontoen — du får en engangslenke for å sette passord.
+                Det finnes ingen ansattkontoer i dette miljøet ennå. Opprett den første eierkontoen – du får en engangslenke for å sette passord.
               </p>
               <form className="mt-6 space-y-4" onSubmit={(e) => { e.preventDefault(); claimOwner.mutate({ email, name: setupName }); }}>
                 <div>

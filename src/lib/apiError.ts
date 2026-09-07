@@ -78,7 +78,7 @@ function dataOf(err: unknown): { appCode?: unknown; retryable?: unknown; details
   return null;
 }
 
-/** Stabil feilkode fra tRPC-feil (error.data.appCode) — null når ukjent. */
+/** Stabil feilkode fra tRPC-feil (error.data.appCode) – null når ukjent. */
 export function appCodeOf(err: unknown): AppCode | null {
   const code = dataOf(err)?.appCode;
   return typeof code === "string" && KNOWN.has(code) ? (code as AppCode) : null;

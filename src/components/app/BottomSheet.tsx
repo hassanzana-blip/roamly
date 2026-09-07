@@ -8,7 +8,7 @@ import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useT } from "@/lib/i18n";
 
 /**
- * BottomSheet — native-app sheet that slides up from the bottom.
+ * BottomSheet – native-app sheet that slides up from the bottom.
  * Spring physics, drag-to-dismiss, backdrop tap to close, ESC support,
  * body scroll lock, safe-area aware. Respects prefers-reduced-motion.
  * A11y (OTA-187): focus trap, initial focus on the close button, focus
@@ -27,7 +27,7 @@ type Props = {
   title?: string;
   /** Taller sheets (search) vs compact pickers */
   size?: "md" | "lg";
-  /** Magnetiske stopp — brøkdel av visningshøyden, stigende. */
+  /** Magnetiske stopp – brøkdel av visningshøyden, stigende. */
   snapPoints?: number[];
   children: ReactNode;
 };

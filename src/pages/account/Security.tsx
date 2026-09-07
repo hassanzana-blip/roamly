@@ -11,7 +11,7 @@ import { formatDateShort } from "@/lib/format";
 import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
 
-/** Sikkerhet — hvilke enheter som er logget inn, og én knapp for å kaste ut alle andre. */
+/** Sikkerhet – hvilke enheter som er logget inn, og én knapp for å kaste ut alle andre. */
 export default function Security() {
   usePageMeta(PAGE_META.security);
   const t = useT();

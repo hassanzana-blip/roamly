@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-/** Mørk modus — lagres i localStorage, init-script i index.html unngår blinking. */
+/** Mørk modus – lagres i localStorage, init-script i index.html unngår blinking. */
 export function useTheme() {
   const [dark, setDark] = useState<boolean>(() =>
     typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false,

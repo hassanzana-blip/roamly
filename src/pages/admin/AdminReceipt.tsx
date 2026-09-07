@@ -41,7 +41,7 @@ export function AdminReceipt() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-5 flex items-center justify-between print:hidden">
-        <p className="text-sm text-muted-foreground">Forhåndsvisning — klar for utskrift eller lagring som PDF.</p>
+        <p className="text-sm text-muted-foreground">Forhåndsvisning – klar for utskrift eller lagring som PDF.</p>
         <Btn onClick={() => window.print()}>
           <Printer className="h-4 w-4" /> Skriv ut
         </Btn>

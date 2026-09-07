@@ -19,7 +19,7 @@ import { trpc } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 
 /**
- * Velkommen — 30–60 sekunder etter kontoopprettelse. Fem spørsmål, alle
+ * Velkommen – 30–60 sekunder etter kontoopprettelse. Fem spørsmål, alle
  * valgfrie, hopp over når som helst. Svarene går rett i reiseprofilen.
  */
 
@@ -55,7 +55,7 @@ function OnboardingFlow({ customer, profile }: { customer: { firstName: string }
   const utils = trpc.useUtils();
   const finish = trpc.account.finishOnboarding.useMutation({ onSuccess: () => utils.account.invalidate() });
 
-  // Startverdier fra det som eventuelt er lagret fra før — ingen effekter som skriver state.
+  // Startverdier fra det som eventuelt er lagret fra før – ingen effekter som skriver state.
   const [step, setStep] = useState<Step>("welcome");
   const [airports, setAirports] = useState<string[]>(() => profile.homeAirports);
   const [dests, setDests] = useState<string[]>(() => profile.favouriteDestinations);
@@ -114,8 +114,17 @@ function OnboardingFlow({ customer, profile }: { customer: { firstName: string }
             <motion.section key={step} {...slide} transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }} className="mx-auto w-full max-w-2xl">
               {step === "welcome" && (
                 <div className="py-8">
-                  <h1 className="font-display text-[40px] leading-[1.02] sm:text-[52px]">{t("ob.welcome", { name: customer.firstName })}</h1>
-                  <p className="mt-4 max-w-md text-[16px] leading-relaxed text-muted-foreground">{t("ob.welcomesub")}</p>
+                  <h1 className="t-display">{t("ob.welcome", { name: customer.firstName })}</h1>
+                  <p className="t-lead mt-4 max-w-md text-muted-foreground">{t("ob.welcomesub")}</p>
+                  {/* The five questions up front, so the first screen shows the whole ask instead of a blank page. */}
+                  <ol className="mt-10 max-w-md divide-y divide-border border-y border-border">
+                    {(["ob.airport", "ob.dest", "ob.taste", "ob.bags", "ob.company"] as const).map((k, i) => (
+                      <li key={k} className="flex items-center gap-4 py-3.5">
+                        <span className="t-code w-6 shrink-0 text-muted-foreground">0{i + 1}</span>
+                        <span className="text-[15px] font-medium">{t(k)}</span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               )}
               {step === "airport" && (

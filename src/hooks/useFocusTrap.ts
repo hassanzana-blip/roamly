@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
 /**
- * useFocusTrap — liten fokusfelle for dialoger/ark (OTA-187).
+ * useFocusTrap – liten fokusfelle for dialoger/ark (OTA-187).
  *  - Flytter fokus inn i containeren når `active` blir true (første fokusérbare
  *    element, eller containeren selv).
  *  - Tab/Shift+Tab sirkulerer innenfor containeren.
@@ -25,7 +25,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     if (!root) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
-    // Initialt fokus — vent til animasjon har montert innholdet.
+    // Initialt fokus – vent til animasjon har montert innholdet.
     const raf = requestAnimationFrame(() => {
       const target = initialRef?.current ?? getFocusable(root)[0] ?? root;
       if (target === root && !root.hasAttribute("tabindex")) root.setAttribute("tabindex", "-1");

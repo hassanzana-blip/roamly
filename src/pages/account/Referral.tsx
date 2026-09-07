@@ -11,7 +11,7 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { trpc } from "@/providers/trpc";
 
 /**
- * Inviter venner — lenke, deling og et dashbord som bare teller ekte kontoer
+ * Inviter venner – lenke, deling og et dashbord som bare teller ekte kontoer
  * og ekte reiser. Ingen mottakere lagres; vi teller kun at det ble delt.
  */
 export default function Referral() {

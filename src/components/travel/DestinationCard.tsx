@@ -2,7 +2,7 @@ import { useState } from "react";
 import { imageSrcSet, type DiscoverDestination } from "@/content/discover";
 import { FavoriteButton } from "@/components/app/primitives";
 
-/** Branded route illustration — honest fallback when no verified photo exists. */
+/** Branded route illustration – honest fallback when no verified photo exists. */
 function RouteIllustration({ iata }: { iata: string }) {
   return (
     <div className="flex h-full w-full flex-col justify-between bg-night p-5">
@@ -31,7 +31,7 @@ type Props = {
   onToggleFavourite: (id: string) => void;
   /** Tap opens the quick-view sheet (native app behaviour) */
   onOpen?: (d: DiscoverDestination) => void;
-  /** Optional honest price line, e.g. "fra 1 890 kr" — only ever real API data */
+  /** Optional honest price line, e.g. "fra 1 890 kr" – only ever real API data */
   price?: string | null;
   /** Fill a grid cell instead of fixed strip width */
   fluid?: boolean;
@@ -40,7 +40,7 @@ type Props = {
 /**
  * Image-led app card (reference grammar): large rounded photo with a
  * floating rating chip and favourite heart; the info surface sits BENEATH
- * the photo — destination name, geographic descriptor, price. Minimal copy.
+ * the photo – destination name, geographic descriptor, price. Minimal copy.
  */
 export default function DestinationCard({ destination: d, isFavourite, onToggleFavourite, onOpen, price, fluid }: Props) {
   const [imgFailed, setImgFailed] = useState(false);

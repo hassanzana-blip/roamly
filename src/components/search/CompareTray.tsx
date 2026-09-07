@@ -9,7 +9,7 @@ import { useFeeConfig } from "@/lib/useFeeConfig";
 import type { FeeConfig } from "@contracts/types";
 
 /**
- * CompareTray — velg opptil 3 tilbud og sammenlign dem side ved side.
+ * CompareTray – velg opptil 3 tilbud og sammenlign dem side ved side.
  * Festet bunnlinje + full visning i Radix Dialog (fokusfelle, Esc, aria).
  */
 

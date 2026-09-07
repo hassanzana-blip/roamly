@@ -38,10 +38,10 @@ export default function Destinations() {
             Reisemål fra Norge
           </p>
           <h1 className="max-w-3xl font-display text-5xl leading-[1.02] text-balance sm:text-6xl md:text-7xl">
-            Dit hjertet hører hjemme — <span className="text-primary">og resten av verden.</span>
+            Dit hjertet hører hjemme – <span className="text-primary">og resten av verden.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Vi flyr deg overalt. Men vi kjenner særlig godt rutene hjem — til
+            Vi flyr deg overalt. Men vi kjenner særlig godt rutene hjem – til
             familien i Istanbul og Erbil, Beirut og Casablanca, Asmara og Kabul,
             Islamabad og Delhi, Dhaka, Colombo og Warszawa. Her er alt vi vet om
             reisen dit, samlet på én side.
@@ -75,7 +75,7 @@ export default function Destinations() {
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Millioner av reiser mellom Norge og verden hvert år handler om det
             samme: familie. Disse landene er hjem for Norges største
-            innvandrergrupper — og rutene vi hjelper flest kunder med, året rundt.
+            innvandrergrupper – og rutene vi hjelper flest kunder med, året rundt.
           </p>
         </div>
 
@@ -216,7 +216,7 @@ export default function Destinations() {
             Fant du ikke byen din? <span className="text-primary">Vi flyr dit alikevel.</span>
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Søk i hele markedet — eller spør oss direkte på WhatsApp, så finner
+            Søk i hele markedet – eller spør oss direkte på WhatsApp, så finner
             vi den beste veien sammen.
           </p>
           <Link

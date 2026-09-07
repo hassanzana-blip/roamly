@@ -48,7 +48,7 @@ export const SecondaryButton = forwardRef<HTMLButtonElement, BtnProps>(function 
   );
 });
 
-/** Round outline icon button — 44px touch target. */
+/** Round outline icon button – 44px touch target. */
 export const IconButton = forwardRef<HTMLButtonElement, BtnProps & { label: string }>(function IconButton({ icon, label, className, ...rest }, ref) {
   return (
     <motion.button

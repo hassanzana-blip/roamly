@@ -90,7 +90,7 @@ export default function ScratchReveal({
     ctx.arc(x, y, 30 * dpr, 0, Math.PI * 2);
     ctx.fill();
 
-    // Sjekk andel fjernet — uthult hvert 8. strøk, stikkprøve hvert 16. piksel
+    // Sjekk andel fjernet – uthult hvert 8. strøk, stikkprøve hvert 16. piksel
     moves.current += 1;
     if (moves.current % 8 === 0) {
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;

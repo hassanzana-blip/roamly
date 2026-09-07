@@ -12,7 +12,7 @@ import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 
 /**
- * Innlogging og registrering for kunder — bevisst enkelt:
+ * Innlogging og registrering for kunder – bevisst enkelt:
  * e-post ELLER telefon + passord + for-/etternavn. Ingen adresse.
  */
 

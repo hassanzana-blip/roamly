@@ -1,5 +1,5 @@
 /**
- * Recent flight searches — kept in localStorage so the homepage can offer
+ * Recent flight searches – kept in localStorage so the homepage can offer
  * “Fortsett planleggingen” without any account or backend state.
  */
 
@@ -28,7 +28,7 @@ export function saveRecentSearch(entry: Omit<RecentSearch, "at">): void {
     list.unshift({ ...entry, at: Date.now() });
     localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX)));
   } catch {
-    /* storage unavailable — ignore */
+    /* storage unavailable – ignore */
   }
 }
 

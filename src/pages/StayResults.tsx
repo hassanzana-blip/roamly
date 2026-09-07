@@ -43,7 +43,7 @@ const SORTS: { id: Sort; label: string }[] = [
   { id: "class", label: "Stjerner / klasse" },
 ];
 
-const PARTNER_NOTE = "Vi sender forespørselen til partner og svarer med pris — ingen betaling nå";
+const PARTNER_NOTE = "Vi sender forespørselen til partner og svarer med pris – ingen betaling nå";
 
 function fmtDate(iso: string) {
   return new Date(iso + "T12:00:00").toLocaleDateString("nb-NO", {
@@ -421,7 +421,7 @@ export default function StayResults() {
 
         <p className="mt-6 flex items-start gap-2 text-[12px] leading-relaxed text-muted-foreground">
           <Icon icon={type === "hotell" ? BedDouble : Moon} size={16} className="mt-0.5 shrink-0" />
-          Prisene er veiledende. Du betaler ingenting nå — vi bekrefter pris og vilkår hos partneren og
+          Prisene er veiledende. Du betaler ingenting nå – vi bekrefter pris og vilkår hos partneren og
           sender deg et tilbud du kan takke ja eller nei til.
         </p>
       </main>

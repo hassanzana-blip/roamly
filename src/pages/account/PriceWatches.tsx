@@ -125,7 +125,7 @@ type CreateInput = Parameters<ReturnType<typeof trpc.watch.create.useMutation>["
 /** Skjemaet lever i et eget tre, så startverdiene kan hentes fra reiseprofilen uten effekter. */
 function CreateWatchForm({ profile, pending, error, onSubmit }: { profile: Profile; pending: boolean; error: string | null; onSubmit: (input: CreateInput) => void }) {
   const t = useT();
-  // Forhåndsutfylt fra reiseprofilen — hjemmeflyplass og bagasjevane.
+  // Forhåndsutfylt fra reiseprofilen – hjemmeflyplass og bagasjevane.
   const [from, setFrom] = useState<Airport | null>(() => (profile?.homeAirports[0] ? (airportByIata(profile.homeAirports[0]) ?? null) : null));
   const [to, setTo] = useState<Airport | null>(null);
   const [dateFrom, setDateFrom] = useState(iso(14));

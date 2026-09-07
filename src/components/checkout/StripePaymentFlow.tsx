@@ -5,7 +5,7 @@ import { Loader2, Lock } from "lucide-react";
 
 /**
  * Felles Stripe-betalingsflyt for checkout og tilbudslenker.
- * - Kortdata går rett til Stripe (PaymentElement) — aldri via vår server.
+ * - Kortdata går rett til Stripe (PaymentElement) – aldri via vår server.
  * - `redirect: "if_required"`: 3DS håndteres i modal når mulig; ellers
  *   sendes kunden til `returnUrl` med `payment_intent_client_secret` i URL,
  *   og siden som eier flyten gjenopptar polling derfra.

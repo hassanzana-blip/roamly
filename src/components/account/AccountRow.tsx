@@ -56,12 +56,12 @@ export function CountBadge({ n }: { n: number }) {
   return <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-bold tabular text-primary-foreground">{n}</span>;
 }
 
-/** Gruppeoverskrift — beholdt for sider som setter egne lister. */
+/** Gruppeoverskrift – beholdt for sider som setter egne lister. */
 export function GroupLabel({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cn("mb-2 mt-7 px-1 text-[13px] font-semibold text-muted-foreground", className)}>{children}</p>;
 }
 
-/** Rolig bryter (switch) — samme grammatikk som resten av profilen. */
+/** Rolig bryter (switch) – samme grammatikk som resten av profilen. */
 export function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
     <button
@@ -78,7 +78,7 @@ export function Toggle({ checked, onChange, label, disabled }: { checked: boolea
   );
 }
 
-/** Valgbrikke — én av flere, eller flere av flere. 44 px høy. */
+/** Valgbrikke – én av flere, eller flere av flere. 44 px høy. */
 export function Chip({ active, onClick, children, className }: { active: boolean; onClick: () => void; children: ReactNode; className?: string }) {
   return (
     <button

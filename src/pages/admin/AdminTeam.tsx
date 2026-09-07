@@ -45,7 +45,7 @@ export function AdminMessages() {
     <div className="flex h-[calc(100vh-7.5rem)] flex-col">
       <PageHeader
         title="Teamchat"
-        description="Internmeldinger mellom ansatte — kun synlig for dere."
+        description="Internmeldinger mellom ansatte – kun synlig for dere."
       />
       <Card className="flex min-h-0 flex-1 flex-col !p-0 overflow-hidden">
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
@@ -53,7 +53,7 @@ export function AdminMessages() {
           {messages.data?.length === 0 && (
             <div className="flex h-full items-center justify-center">
               <p className="text-sm text-muted-foreground">
-                Ingen meldinger ennå — si hei til teamet! 👋
+                Ingen meldinger ennå – si hei til teamet! 👋
               </p>
             </div>
           )}
@@ -143,7 +143,7 @@ export function AdminNotes() {
     <div>
       <PageHeader
         title="Notattavle"
-        description="Felles notater for teamet — fest de viktigste øverst."
+        description="Felles notater for teamet – fest de viktigste øverst."
         actions={
           <Btn onClick={() => setOpen((v) => !v)}>
             <Plus className="h-4 w-4" /> Nytt notat
@@ -290,7 +290,7 @@ export function AdminProblems() {
     <div>
       <PageHeader
         title="Problemmeldinger"
-        description="Meld fra om feil og problemer — og følg dem til de er løst."
+        description="Meld fra om feil og problemer – og følg dem til de er løst."
         actions={
           canWrite ? (
             <Btn tone="danger" onClick={() => setOpen((v) => !v)}>

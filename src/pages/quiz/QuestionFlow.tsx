@@ -10,7 +10,7 @@ const slide = {
 };
 
 /**
- * De fem spørsmålene — samme flyt i alle moduser. Hvert valg går videre av
+ * De fem spørsmålene – samme flyt i alle moduser. Hvert valg går videre av
  * seg selv etter en kort pause, slik at valget rekker å vises.
  * `skip` lar oss hoppe over spørsmål som ikke gir mening i en modus
  * (f.eks. «hvem reiser du med» i Par-match, der svaret er gitt).

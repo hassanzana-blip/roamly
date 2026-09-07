@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const TYPES = ["price_watch", "flight_update", "booking", "payment", "reminder", "deal", "match", "referral", "rewards", "system"] as const;
 type NType = (typeof TYPES)[number];
 const ICON: Record<NType, LucideIcon> = { price_watch: TrendingDown, flight_update: Plane, booking: Ticket, payment: CreditCard, reminder: CalendarClock, deal: Sparkles, match: Users, referral: Gift, rewards: Wallet, system: Info };
-/** Transaksjonelle typer kan ikke slås av på e-post — de følger bestillingen. */
+/** Transaksjonelle typer kan ikke slås av på e-post – de følger bestillingen. */
 const LOCKED_EMAIL: NType[] = ["booking", "payment", "flight_update"];
 
 export default function Notifications() {

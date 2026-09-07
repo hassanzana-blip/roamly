@@ -27,7 +27,7 @@ export default function PaymentSection({
   value: CheckoutPaymentMethod;
   onChange: (m: CheckoutPaymentMethod) => void;
   currency: string;
-  /** Betalingsøkt er opprettet — metoden kan ikke byttes uten ny økt. */
+  /** Betalingsøkt er opprettet – metoden kan ikke byttes uten ny økt. */
   locked?: boolean;
   children?: ReactNode;
 }) {

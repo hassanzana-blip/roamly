@@ -18,7 +18,7 @@ export function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) 
 const HIDDEN_PREFIXES = ["/bestill", "/tilbud"];
 
 /**
- * Floating WhatsApp button — opens the WhatsApp app/chat directly.
+ * Floating WhatsApp button – opens the WhatsApp app/chat directly.
  * Rendered once in the app layout; hidden on payment pages so it never
  * overlaps the fixed price bar or the Stripe element.
  */
