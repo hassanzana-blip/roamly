@@ -65,9 +65,19 @@ export class TravelportError extends AppError {
 type CachedToken = { token: string; expiresAt: number };
 let cached: CachedToken | null = null;
 
+/**
+ * Negativ cache. Uten denne ber hvert eneste søk om en ny token, og en
+ * feilende innlogging blir til et regn av forespørsler mot Travelport som
+ * ender i 429 og skjuler den egentlige feilen. Ved avslag venter vi.
+ */
+type AuthFailure = { until: number; message: string; status?: number };
+let authFailure: AuthFailure | null = null;
+const AUTH_BACKOFF_MS = 60_000;
+
 /** Kun for tester. */
 export function resetTravelportToken(): void {
   cached = null;
+  authFailure = null;
 }
 
 /** Trekker fra et sikkerhetsvindu så en token aldri brukes på målstreken. */
@@ -76,6 +86,10 @@ const TOKEN_SKEW_MS = 60_000;
 export async function travelportToken(now: number = Date.now()): Promise<string> {
   if (cached && cached.expiresAt - TOKEN_SKEW_MS > now) return cached.token;
   if (!travelportConfig.configured) throw new TravelportError("Travelport er ikke konfigurert.");
+  if (authFailure && authFailure.until > now) {
+    // Ikke bank på en dør som nettopp ble smelt igjen.
+    throw new TravelportError(authFailure.message, { status: authFailure.status, retryable: true });
+  }
 
   const res = await fetch(travelportConfig.authUrl, {
     method: "POST",
@@ -90,15 +104,37 @@ export async function travelportToken(now: number = Date.now()): Promise<string>
   });
 
   if (!res.ok) {
-    // Aldri logg kropp eller headere her — de kan inneholde legitimasjon.
-    log.error({ status: res.status }, "Travelport: token-forespørsel avvist");
-    throw new TravelportError("Kunne ikke autentisere mot Travelport.", { status: res.status, retryable: res.status >= 500 });
+    // Feilkoden og -beskrivelsen fra OAuth sier hva som er galt (feil passord,
+    // ukjent klient, for mange forsøk). Den inneholder ikke legitimasjon, men
+    // vi kutter den likevel, og vi logger aldri kroppen vi sendte.
+    let code = "";
+    let description = "";
+    try {
+      const err = (await res.json()) as { error?: string; error_description?: string };
+      code = String(err.error ?? "").slice(0, 60);
+      description = String(err.error_description ?? "").slice(0, 200);
+    } catch {
+      /* ikke JSON — statuskoden får tale for seg */
+    }
+    log.error({ status: res.status, code, description }, "Travelport: token-forespørsel avvist");
+    const retryable = res.status === 429 || res.status >= 500;
+    authFailure = {
+      until: now + AUTH_BACKOFF_MS,
+      status: res.status,
+      message:
+        res.status === 429
+          ? "Travelport begrenser antall innlogginger akkurat nå. Prøv igjen om et minutt."
+          : "Kunne ikke autentisere mot Travelport.",
+    };
+    throw new TravelportError(authFailure.message, { status: res.status, retryable });
   }
 
   const body = (await res.json()) as { access_token?: string; expires_in?: number };
   if (!body.access_token) throw new TravelportError("Travelport svarte uten access_token.");
   const ttlMs = (typeof body.expires_in === "number" && body.expires_in > 0 ? body.expires_in : 3600) * 1000;
   cached = { token: body.access_token, expiresAt: now + ttlMs };
+  authFailure = null;
+  log.info({ ttlSeconds: Math.round(ttlMs / 1000) }, "Travelport: token hentet");
   return cached.token;
 }
 
