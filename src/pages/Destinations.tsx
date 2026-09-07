@@ -1,8 +1,11 @@
-import { Link } from "react-router";
-import { ArrowRight, ArrowUpRight, Clock3, Luggage, Plane } from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation } from "react-router";
+import { ArrowRight, ArrowUpRight, ChevronDown, Clock3, Luggage } from "lucide-react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import { CONTINENTS, FEATURED } from "@/content/destinations";
+import Icon from "@/components/app/Icon";
+import { Button } from "@/components/ui/button";
+import { CONTINENTS, FEATURED, type FeaturedDestination } from "@/content/destinations";
 import { PAGE_META, articleJsonLd, breadcrumbJsonLd, itemListJsonLd, usePageMeta } from "@/lib/seo";
 
 function departDate(days: number) {
@@ -11,6 +14,84 @@ function departDate(days: number) {
 
 function searchLink(iata: string) {
   return `/sok?from=OSL&to=${iata}&depart=${departDate(35)}&adults=1&children=0&infants=0&cabin=economy`;
+}
+
+/**
+ * One home route. Collapsed it is an index row (country, headline, gateways,
+ * flight time); open it is the full guide. Twelve open guides in a row made
+ * the page 30+ screens on a phone, so the reader chooses which one to read.
+ */
+function HomeRoute({ d, index, open: initiallyOpen }: { d: FeaturedDestination; index: number; open: boolean }) {
+  const [open, setOpen] = useState(initiallyOpen);
+  const bodyId = `${d.id}-guide`;
+  return (
+    <article id={d.id} className="scroll-mt-24 border-t border-border">
+      <h3 className="m-0">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen((o) => !o)}
+          className="group flex w-full items-start gap-4 py-6 text-left sm:gap-6 sm:py-7"
+        >
+          <span className="t-code w-7 shrink-0 pt-1.5 text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
+          <span className="min-w-0 flex-1">
+            <span className="t-h3 block">{d.country}</span>
+            <span className="mt-1 block text-[15px] text-muted-foreground">{d.headline}</span>
+            <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-muted-foreground">
+              <span className="flex flex-wrap gap-1.5">
+                {d.gateways.map((g) => (
+                  <span key={g.iata} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-0.5 text-foreground">
+                    {g.label} <span className="t-code text-muted-foreground">{g.iata}</span>
+                  </span>
+                ))}
+              </span>
+              <span className="inline-flex items-center gap-1.5"><Icon icon={Clock3} size={14} /> {d.flightTime}</span>
+            </span>
+          </span>
+          <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-card transition-colors group-hover:border-foreground/40">
+            <Icon icon={ChevronDown} size={18} className={`transition-transform duration-base ease-out ${open ? "rotate-180" : ""}`} />
+          </span>
+        </button>
+      </h3>
+      <div id={bodyId} hidden={!open} className="pb-8 pl-11 sm:pl-[3.25rem]">
+        <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
+          <div className="space-y-4">
+            {d.paragraphs.map((p, i) => (
+              <p key={i} className="t-body text-muted-foreground">{p}</p>
+            ))}
+            <ul className="mt-5 space-y-2.5 border-t border-border pt-5">
+              {d.tips.map((tip) => (
+                <li key={tip} className="flex gap-3 text-sm leading-relaxed">
+                  <Icon icon={Luggage} size={16} className="mt-0.5 shrink-0 text-foreground" />
+                  <span className="text-muted-foreground">{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <aside className="h-fit rounded-lg bg-muted/50 p-6">
+            <dl className="space-y-4 text-sm">
+              <div>
+                <dt className="t-label text-muted-foreground">Beste reisetid</dt>
+                <dd className="mt-1 text-foreground">{d.bestTime}</dd>
+              </div>
+              <div>
+                <dt className="t-label text-muted-foreground">Reisetid fra Oslo</dt>
+                <dd className="mt-1 text-foreground">{d.flightTime}</dd>
+              </div>
+              <div>
+                <dt className="t-label text-muted-foreground">Vanlig rute</dt>
+                <dd className="t-code mt-1 text-foreground">{d.typicalRoute}</dd>
+              </div>
+            </dl>
+            <Button asChild variant="dark" className="mt-6 w-full">
+              <Link to={searchLink(d.gateways[0].iata)}>Søk fly til {d.gateways[0].label} <Icon icon={ArrowRight} size={18} /></Link>
+            </Button>
+          </aside>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export default function Destinations() {
@@ -26,27 +107,27 @@ export default function Destinations() {
       ]),
     ],
   });
+  // A deep link (#syria) opens that guide; everything else starts collapsed.
+  const hash = useLocation().hash.replace(/^#/, "");
   return (
     <div className="relative min-h-screen bg-background">
       <SiteHeader />
       <main id="main" tabIndex={-1} className="outline-none">
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-muted/40 border-b border-border">
-        <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-32 sm:px-6">
-          <p className="mb-3 font-mono-label text-[11px] text-primary">
-            Reisemål fra Norge
-          </p>
-          <h1 className="max-w-3xl font-display text-5xl leading-[1.02] text-balance sm:text-6xl md:text-7xl">
-            Dit hjertet hører hjemme – <span className="text-primary">og resten av verden.</span>
+      <section className="border-b border-border">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-32">
+          <p className="t-label mb-4 text-muted-foreground">Reisemål fra Norge</p>
+          <h1 className="t-display max-w-3xl text-balance">
+            Dit hjertet hører hjemme – <span className="hl">og resten av verden.</span>
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <p className="t-lead mt-6 max-w-2xl text-muted-foreground">
             Vi flyr deg overalt. Men vi kjenner særlig godt rutene hjem – til
             familien i Istanbul og Erbil, Beirut og Casablanca, Asmara og Kabul,
             Islamabad og Delhi, Dhaka, Colombo og Warszawa. Her er alt vi vet om
             reisen dit, samlet på én side.
           </p>
-          <nav className="mt-8 flex flex-wrap gap-2" aria-label="Hopp til verdensdel">
+          <nav className="no-scrollbar -mx-4 mt-8 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Hopp til verdensdel">
             {[
               { id: "hjem", label: "Hjem til familien" },
               ...CONTINENTS.map((c) => ({ id: c.id, label: c.name })),
@@ -54,7 +135,7 @@ export default function Destinations() {
               <a
                 key={c.id}
                 href={`#${c.id}`}
-                className="rounded-lg border border-border bg-card px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                className="shrink-0 rounded-lg border border-border bg-card px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
               >
                 {c.label}
               </a>
@@ -63,105 +144,21 @@ export default function Destinations() {
         </div>
       </section>
 
-      {/* ── Featured: diaspora destinations ──────────────────────── */}
-      <section id="hjem" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6">
-        <div className="mb-10 max-w-2xl">
-          <p className="mb-2 font-mono-label text-[11px] text-primary">
-            Hjem til familien
-          </p>
-          <h2 className="font-display text-4xl leading-tight sm:text-5xl">
-            Rutene vi kjenner best
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+      {/* ── Home routes: an index you open, not twelve essays in a row ── */}
+      <section id="hjem" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mb-8 max-w-2xl sm:mb-10">
+          <p className="t-label mb-3 text-muted-foreground">Hjem til familien</p>
+          <h2 className="t-h1">Rutene vi kjenner best</h2>
+          <p className="t-body mt-4 text-muted-foreground">
             Millioner av reiser mellom Norge og verden hvert år handler om det
             samme: familie. Disse landene er hjem for Norges største
             innvandrergrupper – og rutene vi hjelper flest kunder med, året rundt.
+            Åpne et land for hele guiden.
           </p>
         </div>
-
-        <div className="space-y-8">
+        <div className="border-b border-border">
           {FEATURED.map((d, idx) => (
-            <article
-              key={d.id}
-              id={d.id}
-              className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card"
-            >
-              {/* header band */}
-              <div className={`bg-gradient-to-br ${d.hue} p-7 text-white sm:p-9`}>
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
-                      {String(idx + 1).padStart(2, "0")} · {d.community}
-                    </p>
-                    <h3 className="mt-2 font-display text-3xl text-white sm:text-4xl">{d.country}</h3>
-                    <p className="mt-1.5 text-base text-white/75">{d.headline}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {d.gateways.map((g) => (
-                      <Link
-                        key={g.iata}
-                        to={searchLink(g.iata)}
-                        className="group inline-flex items-center gap-2 rounded-xl bg-white/15 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-gold"
-                      >
-                        <Plane className="h-3.5 w-3.5" />
-                        {g.label}
-                        <span className="text-xs tracking-widest opacity-70">{g.iata}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* body */}
-              <div className="grid gap-8 p-7 sm:p-9 lg:grid-cols-[1.5fr_1fr]">
-                <div className="space-y-4">
-                  {d.paragraphs.map((p, i) => (
-                    <p key={i} className="text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
-                      {p}
-                    </p>
-                  ))}
-                  <ul className="mt-5 space-y-2.5 border-t border-border pt-5">
-                    {d.tips.map((t) => (
-                      <li key={t} className="flex gap-3 text-sm leading-relaxed">
-                        <Luggage className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
-                        <span className="text-muted-foreground">{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <aside className="h-fit rounded-lg border border-border bg-card p-6">
-                  <dl className="space-y-4 text-sm">
-                    <div>
-                      <dt className="font-mono-label text-[11px] text-primary">
-                        Beste reisetid
-                      </dt>
-                      <dd className="mt-1 text-muted-foreground">{d.bestTime}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-mono-label text-[11px] text-primary">
-                        Reisetid fra Oslo
-                      </dt>
-                      <dd className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                        <Clock3 className="h-3.5 w-3.5 text-foreground" /> {d.flightTime}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-mono-label text-[11px] text-primary">
-                        Vanlig rute
-                      </dt>
-                      <dd className="mt-1 text-muted-foreground">{d.typicalRoute}</dd>
-                    </div>
-                  </dl>
-                  <Link
-                    to={searchLink(d.gateways[0].iata)}
-                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
-                  >
-                    Søk fly til {d.gateways[0].label} <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </aside>
-              </div>
-            </article>
+            <HomeRoute key={d.id} d={d} index={idx} open={hash === d.id} />
           ))}
         </div>
       </section>
@@ -173,36 +170,27 @@ export default function Destinations() {
           id={c.id}
           className="mx-auto w-full max-w-6xl scroll-mt-24 border-t border-border px-4 py-14 sm:px-6"
         >
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="font-display text-4xl sm:text-5xl">{c.name}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{c.blurb}</p>
-            </div>
+          <div className="mb-8 max-w-2xl">
+            <h2 className="t-h1">{c.name}</h2>
+            <p className="t-body mt-2 text-muted-foreground">{c.blurb}</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {c.places.map((p) => (
               <Link
                 key={p.iata + p.city}
                 to={searchLink(p.iata)}
-                className="card-lift group rounded-xl border border-border bg-card p-6"
+                className="group flex min-w-0 items-center justify-between gap-4 rounded-lg border border-border bg-card px-5 py-4 transition-colors hover:border-foreground/40"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-display text-2xl">{p.city}</h3>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {p.country} · {p.note}
-                    </p>
-                  </div>
-                  <span className="rounded-lg bg-secondary px-2 py-1 text-xs font-semibold tracking-widest text-secondary-foreground">
-                    {p.iata}
+                <span className="min-w-0 flex-1">
+                  <span className="t-h3 block truncate">{p.city}</span>
+                  <span className="mt-0.5 block text-sm text-muted-foreground">{p.country} · {p.note}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-3">
+                  <span className="t-code text-muted-foreground">{p.iata}</span>
+                  <span className="grid h-8 w-8 place-items-center rounded-full border border-border transition-colors group-hover:border-foreground group-hover:bg-foreground group-hover:text-background">
+                    <Icon icon={ArrowUpRight} size={16} />
                   </span>
-                </div>
-                <div className="mt-5 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Fra Oslo Gardermoen</span>
-                  <span className="grid h-8 w-8 place-items-center rounded-full border border-border transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-white">
-                    <ArrowUpRight className="h-4 w-4" />
-                  </span>
-                </div>
+                </span>
               </Link>
             ))}
           </div>
@@ -210,21 +198,18 @@ export default function Destinations() {
       ))}
 
       {/* ── CTA ──────────────────────────────────────────────────── */}
-      <section className="relative border-t border-border bg-muted/40">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6">
-          <h2 className="max-w-2xl font-display text-4xl leading-tight sm:text-5xl">
-            Fant du ikke byen din? <span className="text-primary">Vi flyr dit alikevel.</span>
+      <section className="border-t border-border bg-muted/40">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 py-16 sm:px-6 sm:py-20">
+          <h2 className="t-h1 max-w-2xl text-balance">
+            Fant du ikke byen din? Vi flyr dit likevel.
           </h2>
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <p className="t-body max-w-xl text-muted-foreground">
             Søk i hele markedet – eller spør oss direkte på WhatsApp, så finner
             vi den beste veien sammen.
           </p>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-lg bg-gold px-8 py-4 text-base font-semibold text-white transition-colors hover:opacity-90"
-          >
-            Søk etter fly nå <ArrowRight className="h-5 w-5" />
-          </Link>
+          <Button asChild variant="dark" size="lg">
+            <Link to="/">Søk etter fly nå <Icon icon={ArrowRight} size={18} /></Link>
+          </Button>
         </div>
       </section>
       </main>
