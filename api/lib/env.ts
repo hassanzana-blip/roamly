@@ -27,6 +27,11 @@ const schema = z.object({
   TRAVELPORT_SEARCH_ENABLED: z.string().optional(),
   TRAVELPORT_CONTENT_SOURCE: z.string().optional(),
 
+  // Sanntids flystatus (AviationStack). Uten nøkkel svarer flystatus-siden
+  // ærlig at sanntidsdata ikke er tilgjengelig.
+  AVIATIONSTACK_API_KEY: z.string().optional(),
+  AVIATIONSTACK_BASE_URL: z.string().url().optional(),
+
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),

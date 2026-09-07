@@ -13,6 +13,7 @@ import { issueBookingAccessToken } from "./lib/bookingAccess";
 import { FLAT_FEE_BY_CURRENCY, instantBookingEnabled, loadPricingOverrides, SERVICE_FEE_PERCENT } from "./lib/pricing";
 import { searchAirports } from "../contracts/airports";
 import { travelportConfig, travelportSearch, isTravelportOffer } from "./lib/travelport";
+import { fetchFlightStatus, flightStatusConfig } from "./lib/flightStatus";
 import type { FlightStatus, Offer, Order, PriceHint, SearchResult, ServiceStatus } from "../contracts/types";
 
 // ─── Søk, tilbud og offentlige oppslag ─────────────────────────────────────
@@ -95,7 +96,7 @@ export async function resolveOffer(offerId: string): Promise<Offer> {
   return offer;
 }
 
-export type FlightStatusResult = (FlightStatus & { fetchedAt: string; demo: true }) | { unavailable: true; reason: string };
+export type FlightStatusResult = (FlightStatus & { fetchedAt: string; demo: boolean }) | { unavailable: true; reason: string };
 
 export const flightsRouter = createRouter({
   status: publicQuery.query((): Promise<ServiceStatusWithFees> => serviceStatus()),
@@ -154,11 +155,25 @@ export const flightsRouter = createRouter({
       }));
     }),
 
-  /** Flystatus: ingen ekte datakilde er koblet til — i live-modus svarer vi ærlig «ikke tilgjengelig». */
+  /**
+   * Flystatus. Med en leverandørnøkkel satt hentes ekte sanntidsdata; uten
+   * nøkkel svarer vi ærlig at det ikke er tilgjengelig (demodata kun utenfor
+   * produksjon). Vi viser aldri oppdiktet status som om den var ekte.
+   */
   flightStatus: publicQuery
     .input(z.object({ carrier: z.string().length(2), flightNumber: z.string().min(1).max(5), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }))
-    .query(({ input, ctx }): FlightStatusResult => {
+    .query(async ({ input, ctx }): Promise<FlightStatusResult> => {
       assertRateLimit("flightStatus", clientIp(ctx.req), 30, 60_000);
+
+      if (flightStatusConfig.configured) {
+        const live = await fetchFlightStatus(input);
+        if (live) return { ...live, fetchedAt: new Date().toISOString(), demo: false };
+        return {
+          unavailable: true,
+          reason: "Vi fant ingen status for denne avgangen. Sjekk flynummer og dato, eller se flyselskapets egen side.",
+        };
+      }
+
       if (duffelConfig.configured || env.isProdEnv) {
         return { unavailable: true, reason: "Sanntids flystatus er ikke tilgjengelig ennå. Sjekk flyselskapets nettside eller flyplassens tavle." };
       }
