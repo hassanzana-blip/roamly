@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "../queries/connection";
 import { bookingAttempts, bookingEvents, bookingSegments, bookings, scheduleChanges, tickets as ticketsTable } from "../../db/schema";
+import { notify } from "./notifications";
 import type { OfferSlice, Order } from "../../contracts/types";
 import { duffelConfig, duffelGetOrder, type SupplierOrder } from "./duffel";
 import { enqueueJob, isDuplicateKeyError } from "./jobs";
@@ -312,6 +313,16 @@ export async function reconcileBookingById(bookingId: number, source: string): P
                 { dedupeKey: `schedule-change-ops:${bookingId}:${fingerprint}` },
               ).catch(() => {});
               await logAudit({ actorType: "worker", actorId: source, action: "booking.schedule_change_detected", targetType: "booking", targetId: bookingId, metadata: { changes: diffs.length, fingerprint } });
+              if (booking.customerAccountId) {
+                await notify({
+                  customerId: booking.customerAccountId,
+                  type: "flight_update",
+                  title: `Flyselskapet har endret rutetidene: ${booking.bookingReference || booking.orderId}`,
+                  body: `${diffs.length === 1 ? "Ett segment" : `${diffs.length} segmenter`} har fått ny tid. Se den nye planen, og ta kontakt hvis den ikke passer.`,
+                  href: `/bekreftelse/${encodeURIComponent(booking.orderId)}`,
+                  dedupeKey: `schedule-change:${bookingId}:${fingerprint}`,
+                }).catch(() => {});
+              }
             });
           }
         }

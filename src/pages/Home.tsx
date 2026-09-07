@@ -26,6 +26,7 @@ import { DEAL_ROUTES, POPULAR_DESTINATIONS, RECOMMENDED_DESTINATIONS, imageSrcSe
 import { WHATSAPP_DISPLAY, WHATSAPP_LINK, WhatsAppIcon } from "@/components/WhatsAppFab";
 import { trpc } from "@/providers/trpc";
 import ArticleCard from "@/components/journal/ArticleCard";
+import ForYou from "@/components/home/ForYou";
 import { featured } from "@/content/journal";
 import { cn } from "@/lib/utils";
 
@@ -258,6 +259,7 @@ export default function Home() {
 
         {/* 2 · Ditt — kun innlogget, kun med data. */}
         {customer && <PersonalStrip />}
+        {customer && <ForYou />}
 
         {/* 3 · Reisemål vi kan godt — bildeledet rekke. */}
         <Reveal className="container-x mt-14">

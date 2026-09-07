@@ -20,6 +20,7 @@ import { airportByIata } from "../../contracts/airports";
 import { env } from "./env";
 import { AppError, appCodeOf, type ErrorCode } from "./errors";
 import { bookingEarnKr, recordReward, rewardRules } from "./rewards";
+import { notify } from "./notifications";
 import { log, withContext } from "./logger";
 import { toMinor, fromMinor } from "./money";
 import { decryptField } from "./crypto";
@@ -830,10 +831,34 @@ async function stepFinalize(attempt: AttemptRow, session: SessionRow): Promise<v
   orderCache.delete(attempt.id);
   if (bookingState === "CONFIRMED") inc("bookings_confirmed_total");
 
+
   const breakdown = parseBreakdown(session);
   const locale = customerLocale(session);
   const c = breakdown.currency;
   const firstName = (JSON.parse(session.passengersJson) as PassengerDetails[])[0]?.givenName;
+
+  // Innboksen: ekte hendelser på kontoen, aldri støy. Dedupet per bestilling.
+  if (session.customerAccountId && bookingId) {
+    const ref = order.bookingReference || order.id;
+    const first = order.slices?.[0];
+    const route = first ? `${first.origin.city || first.origin.iata} → ${first.destination.city || first.destination.iata}` : ref;
+    await notify({
+      customerId: session.customerAccountId,
+      type: "booking",
+      title: bookingState === "CONFIRMED" ? `Bestillingen er bekreftet: ${route}` : `Bestillingen behandles: ${route}`,
+      body: bookingState === "CONFIRMED" ? `Referanse ${ref}. Billettene sendes på e-post.` : `Vi venter på bekreftelse fra flyselskapet. Du får beskjed så snart den er her.`,
+      href: `/bekreftelse/${encodeURIComponent(order.id)}`,
+      dedupeKey: `booking:${bookingId}:${bookingState}`,
+    }).catch(() => {});
+    await notify({
+      customerId: session.customerAccountId,
+      type: "payment",
+      title: "Betaling mottatt",
+      body: `${fromMinor(breakdown.totalAmountMinor, c)} ${c} for ${ref}. Kvitteringen ligger under reisen.`,
+      href: `/kvittering/${encodeURIComponent(order.id)}`,
+      dedupeKey: `payment:${bookingId}`,
+    }).catch(() => {});
+  }
   await enqueueJob("send_email", { kind: "booking_confirmation", bookingId, locale }, { dedupeKey: `booking-confirmation:${bookingId}`, priority: 2 }).catch(() => {});
   const lines = [
     { label: "Flyreise", amount: fromMinor(breakdown.supplierAmountMinor, c), currency: c },

@@ -3,6 +3,7 @@ import { getDb } from "../queries/connection";
 import { customerAccounts, rewardEvents } from "../../db/schema";
 import { getSetting } from "./pricing";
 import { isDuplicateKeyError } from "./jobs";
+import { notify } from "./notifications";
 import { log } from "./logger";
 
 /**
@@ -128,6 +129,17 @@ export async function recordReward(input: RewardEventInput, tx?: Tx): Promise<bo
     .set({ bonusKr: sql`${customerAccounts.bonusKr} + ${input.amountKr}` })
     .where(eq(customerAccounts.id, input.customerId));
   log.info({ customerId: input.customerId, kind: input.kind, amountKr: input.amountKr }, "bonus registrert");
+  if (input.amountKr > 0) {
+    const what = input.kind === "booking" ? "for reisen din" : input.kind === "referral" ? "fordi en du inviterte har reist" : input.kind === "referral_welcome" ? "som velkomstbonus" : "";
+    await notify({
+      customerId: input.customerId,
+      type: "rewards",
+      title: `${input.amountKr} kr i bonus ${what}`.trim(),
+      body: input.note ?? undefined,
+      href: "/profil/bonus",
+      dedupeKey: `reward:${input.kind}:${input.refType ?? "-"}:${input.refId ?? "-"}`,
+    }).catch(() => {});
+  }
   return true;
 }
 
