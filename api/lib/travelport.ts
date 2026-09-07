@@ -467,3 +467,43 @@ export async function travelportSearch(input: TravelportSearchInput): Promise<Se
 export function isTravelportOffer(offerId: string): boolean {
   return offerId.startsWith(TRAVELPORT_OFFER_PREFIX);
 }
+
+/**
+ * MIDLERTIDIG feilsøking: prøver flere header- og URL-varianter og logger hva
+ * hver enkelt svarer, slik at vi finner den kombinasjonen gatewayen godtar
+ * uten å gjette én om gangen. Fjernes når integrasjonen virker.
+ */
+export async function travelportProbeVariants(): Promise<void> {
+  const token = await travelportToken();
+  const departureDate = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+  const body = JSON.stringify(
+    buildSearchRequest({ slices: [{ origin: "OSL", destination: "LHR", departureDate }], passengers: [{ type: "adult" }], cabinClass: "economy" }),
+  );
+
+  const base = travelportConfig.baseUrl;
+  const pcc = travelportConfig.pcc;
+  const common: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  const variants: Array<{ name: string; url: string; headers: Record<string, string> }> = [
+    { name: "docs-exact", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, "Accept-Encoding": "gzip, deflate", "TVP-PCC-Core": pcc, TraceId: "hellosky-probe" } },
+    { name: "accessgroup", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, "TVP-PCC-Core": pcc, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, TraceId: "hellosky-probe" } },
+    { name: "accept-version", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, "Accept-Version": "11", "TVP-PCC-Core": pcc, TraceId: "hellosky-probe" } },
+    { name: "no-pcc", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, TraceId: "hellosky-probe" } },
+    { name: "path-uppercase", url: `${base}/11/air/catalog/search/CatalogProductOfferings`, headers: { ...common, "TVP-PCC-Core": pcc, TraceId: "hellosky-probe" } },
+  ];
+
+  for (const v of variants) {
+    try {
+      const res = await fetch(v.url, { method: "POST", headers: v.headers, body });
+      const detail = (await res.text()).slice(0, 200);
+      log.info({ variant: v.name, status: res.status, detail }, "Travelport-variant");
+      if (res.ok) return;
+    } catch (err) {
+      log.info({ variant: v.name, err: String(err).slice(0, 200) }, "Travelport-variant kastet");
+    }
+  }
+}

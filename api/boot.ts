@@ -141,14 +141,8 @@ if (env.isProduction || process.env.FORCE_SERVE === "true") {
     if (process.env.TRAVELPORT_PROBE_ON_BOOT === "true") {
       void (async () => {
         try {
-          const { travelportSearch } = await import("./lib/travelport");
-          const departureDate = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-          const result = await travelportSearch({
-            slices: [{ origin: "OSL", destination: "LHR", departureDate }],
-            passengers: [{ type: "adult" }],
-            cabinClass: "economy",
-          });
-          log.info({ offers: result.offers.length }, "Travelport-sonde: søk fullført");
+          const { travelportProbeVariants } = await import("./lib/travelport");
+          await travelportProbeVariants();
         } catch (err) {
           log.error({ err: String(err) }, "Travelport-sonde: søk feilet");
         }
