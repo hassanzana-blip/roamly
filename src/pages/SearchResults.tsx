@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, Bell, CalendarDays, ChevronDown, Plane, RefreshCw, SearchX, SlidersHorizontal, TimerReset, TriangleAlert } from "lucide-react";
+import { ArrowRight, Bell, CalendarDays, ChevronDown, Plane, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -23,6 +23,7 @@ import { useFeeConfig } from "@/lib/useFeeConfig";
 import { useT, type I18nKey } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { PREFERENCES, isFamily, isPreference, rank, type Preference } from "@/lib/offers";
+import { ConnectionProblemSpot, NoFlightsSpot, SkeletonFlightCard } from "@/components/graphics";
 import { cn } from "@/lib/utils";
 
 type SortKey = Preference | "earliest";
@@ -37,24 +38,6 @@ const TIME_BANDS = [
 type TimeBand = (typeof TIME_BANDS)[number]["key"];
 
 const PAGE_SIZE = 20;
-
-function SkeletonCard() {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card" aria-hidden="true">
-      <div className="border-b border-border px-5 py-3">
-        <div className="shimmer h-5 w-40 rounded-md" />
-      </div>
-      <div className="space-y-4 px-5 py-6">
-        <div className="shimmer h-8 w-full rounded-md" />
-        <div className="shimmer h-8 w-2/3 rounded-md" />
-      </div>
-      <div className="flex items-center justify-between border-t border-border px-5 py-4">
-        <div className="shimmer h-9 w-32 rounded-md" />
-        <div className="shimmer h-11 w-24 rounded-lg" />
-      </div>
-    </div>
-  );
-}
 
 function parseAges(param: string | null): number[] {
   if (!param) return [];
@@ -746,15 +729,15 @@ export default function SearchResults() {
                 <p className="mt-3 text-sm font-semibold text-foreground">{t("sr.searching", { to: toAirport ? t("sr.searching.to", { city: toAirport.city }) : "" })}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{t("sr.searching.sub")}</p>
               </div>
-              <SkeletonCard />
-              <SkeletonCard />
-              <SkeletonCard />
+              <SkeletonFlightCard />
+              <SkeletonFlightCard />
+              <SkeletonFlightCard />
             </div>
           )}
 
           {search.isError && (
             <div role="alert" className="rounded-xl border border-destructive/30 bg-card p-8 text-center">
-              <TriangleAlert className="mx-auto size-8 text-destructive" aria-hidden="true" />
+              <ConnectionProblemSpot className="mx-auto" />
               <h2 className="mt-4 font-display text-2xl">{t("sr.error.title")}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{humanMessage(search.error)}</p>
               <Button className="mt-6" onClick={doSearch}>
@@ -765,7 +748,7 @@ export default function SearchResults() {
 
           {result && !filtered.length && (
             <div className="rounded-xl border border-border bg-card p-8 text-center">
-              <SearchX className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
+              <NoFlightsSpot className="mx-auto" />
               <h2 className="mt-4 font-display text-2xl">{allOffers.length ? t("sr.empty.filtered") : t("sr.empty.none")}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{allOffers.length ? t("sr.empty.filteredsub") : t("sr.empty.nonesub")}</p>
               {allOffers.length > 0 && (

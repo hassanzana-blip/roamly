@@ -7,6 +7,7 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import { CancelFlow, Itinerary, OrderActions, RefundTimeline, ScheduleChanges, StateBadge, TicketList } from "@/components/travel/OrderDetails";
 import { useOrder } from "@/components/travel/orderUtils";
 import { useCustomer } from "@/lib/useCustomer";
+import { BookingTimeline, NoTripsSpot, timelineFor } from "@/components/graphics";
 import { appCodeOf, humanMessage } from "@/lib/apiError";
 import { bookingStateLabel, cabinLabel, formatDateLong, formatDateShort, formatMinor, formatPrice, toMinor } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -37,6 +38,7 @@ function OrderPanel({ orderId }: { orderId: string }) {
           </div>
           <StateBadge state={data.state} />
         </div>
+        <BookingTimeline state={timelineFor(data.state)} className="mt-5" />
         <div className="mt-5 grid gap-2 border-t border-border pt-5 text-sm sm:grid-cols-2">
           <p className="text-muted-foreground">
             {t("common.class")}: <span className="font-medium text-foreground">{cabinLabel(o.cabinClass)}</span>
@@ -190,7 +192,10 @@ export default function MyTrip() {
           </section>
         )}
         {customer && trips.data && trips.data.length === 0 && (
-          <p className="mb-8 rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">{t("mt.nobookings")}</p>
+          <div className="mb-8 flex items-center gap-4 rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
+            <NoTripsSpot className="h-16 w-20 shrink-0" />
+            <p>{t("mt.nobookings")}</p>
+          </div>
         )}
 
         <form

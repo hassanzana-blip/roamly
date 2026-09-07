@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app/TopBar";
 import DestinationCard from "@/components/travel/DestinationCard";
 import DestinationSheet from "@/components/app/DestinationSheet";
 import { EmptyState } from "@/components/app/primitives";
+import { NoSavedSpot } from "@/components/graphics";
 import { useFavourites } from "@/lib/favourites";
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
@@ -14,7 +15,6 @@ import {
   destinationById,
   type DiscoverDestination,
 } from "@/content/discover";
-import { Compass } from "lucide-react";
 
 /**
  * Utforsk — destinations and inspiration. Category pills filter the full
@@ -82,7 +82,7 @@ export default function Explore() {
           </div>
         ) : (
           <EmptyState
-            icon={Compass}
+            illustration={<NoSavedSpot />}
             title="Ingenting her ennå"
             body="Vi fyller på med flere reisemål fortløpende."
           />

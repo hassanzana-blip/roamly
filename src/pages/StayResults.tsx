@@ -25,6 +25,7 @@ import { formatPrice } from "@/lib/format";
 import { humanMessage } from "@/lib/apiError";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { NoHotelsSpot } from "@/components/graphics";
 import type { RouterOutputs } from "@/providers/trpc";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -411,9 +412,10 @@ export default function StayResults() {
           )}
 
           {valid && !loading && !error && type === "hotell" && hotelList.length === 0 && (
-            <p className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              Fant ingen hoteller for disse datoene — prøv andre datoer.
-            </p>
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+              <NoHotelsSpot />
+              <p>Fant ingen hoteller for disse datoene. Prøv andre datoer.</p>
+            </div>
           )}
         </div>
 

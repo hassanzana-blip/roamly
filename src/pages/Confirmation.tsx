@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router";
-import { CheckCircle2, Clock, Copy, LifeBuoy, Mail, Radar } from "lucide-react";
+import { Clock, Copy, LifeBuoy, Mail, Radar } from "lucide-react";
+import { BookingFailedSpot, BookingTimeline, ConfirmationMark, timelineFor } from "@/components/graphics";
 import { useState } from "react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -65,8 +66,10 @@ export default function Confirmation() {
             <section className="fade-up rounded-xl border border-border bg-card p-8 text-center" aria-live="polite">
               {processing ? (
                 <Clock className="mx-auto h-14 w-14 text-warning" strokeWidth={1.6} aria-hidden="true" />
+              ) : failed ? (
+                <BookingFailedSpot className="mx-auto" />
               ) : (
-                <CheckCircle2 className={`mx-auto h-14 w-14 ${failed ? "text-primary" : "text-foreground"}`} strokeWidth={1.6} aria-hidden="true" />
+                <ConfirmationMark className="mx-auto" />
               )}
               <h1 className="mt-4 font-display text-4xl sm:text-5xl">
                 {failed ? t("cf.failed") : processing ? t("cf.almost") : t("cf.bonvoyage", { name: o.passengers[0] ? `, ${o.passengers[0].givenName}` : "" })}
@@ -74,6 +77,7 @@ export default function Confirmation() {
               <div className="mt-3">
                 <StateBadge state={state} />
               </div>
+              <BookingTimeline state={timelineFor(state)} className="mx-auto mt-6 max-w-xl text-left" />
               <p className="mt-3 text-muted-foreground">
                 {failed
                   ? t("cf.failedbody")

@@ -1,4 +1,5 @@
-import { Luggage, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
+import { BaggageVisual, CheckedBagGlyph } from "@/components/graphics";
 import type { Offer } from "@contracts/types";
 import { formatMinor, formatPrice, paxLabel, toMinor } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -47,8 +48,9 @@ export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, nam
         </span>
         {t("co.step.bags")}
       </h2>
-      <p className="mb-5 text-sm text-muted-foreground">
-        {offer.baggage.checkedBags > 0 ? t("ex.included", { count: offer.baggage.checkedBags }) : t("ex.handonly")}
+      <p className="mb-5 flex items-center gap-2 text-sm text-muted-foreground">
+        <BaggageVisual kind="checked" count={offer.baggage.checkedBags} size={20} label={offer.baggage.checkedBags > 0 ? t("bg.checked", { count: offer.baggage.checkedBags }) : t("bg.checked.none")} />
+        <span>{offer.baggage.checkedBags > 0 ? t("ex.included", { count: offer.baggage.checkedBags }) : t("ex.handonly")}</span>
       </p>
 
       {!available ? (
@@ -58,7 +60,7 @@ export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, nam
       ) : (
         <div className="rounded-lg border border-border bg-muted/50 p-4">
           <div className="mb-3 flex items-center gap-3">
-            <Luggage className="h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
+            <CheckedBagGlyph size={22} className="text-foreground" />
             <div>
               <p className="text-sm font-semibold">{t("ex.title")}</p>
               <p className="text-xs text-muted-foreground">
@@ -74,7 +76,10 @@ export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, nam
               const perPaxMax = Math.min(MAX_PER_PAX, svc!.maxExtraBags);
               return (
                 <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-3.5 py-2">
-                  <span className="min-w-0 truncate text-sm font-medium">{label}</span>
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                    <span className="truncate">{label}</span>
+                    {n > 0 && <BaggageVisual kind="checked" count={n} size={16} label={t("common.bags", { count: n })} className="text-muted-foreground" />}
+                  </span>
                   <span className="flex shrink-0 items-center gap-2" role="group" aria-label={t("ex.group", { name: label })}>
                     <button
                       type="button"

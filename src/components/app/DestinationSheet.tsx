@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useNavigate } from "react-router";
-import { CalendarDays, Plane, ShieldCheck } from "lucide-react";
+import { CalendarDays, Plane } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import Icon from "./Icon";
 import { FavoriteButton, PrimaryButton, RatingChip } from "./primitives";
 import { trpc } from "@/providers/trpc";
 import { departDate, searchHref, VISA_NOTES, type DiscoverDestination } from "@/content/discover";
+import { VisaStampGlyph } from "@/components/graphics";
 import { useFavourites } from "@/lib/favourites";
 
 /**
@@ -89,7 +90,7 @@ export default function DestinationSheet({
 
           {VISA_NOTES[d.id] && (
             <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/50 px-4 py-3">
-              <Icon icon={ShieldCheck} size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
+              <VisaStampGlyph size={18} className="mt-0.5 shrink-0 text-muted-foreground" />
               <p className="text-[12px] leading-relaxed text-muted-foreground">
                 {VISA_NOTES[d.id]}{" "}
                 <Link to="/visum" onClick={onClose} className="font-semibold text-foreground underline underline-offset-2">

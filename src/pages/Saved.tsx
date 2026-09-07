@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, Clock3, Heart } from "lucide-react";
+import { ArrowRight, Clock3 } from "lucide-react";
 import AppShell, { SectionHeader } from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import DestinationCard from "@/components/travel/DestinationCard";
 import DestinationSheet from "@/components/app/DestinationSheet";
 import { EmptyState } from "@/components/app/primitives";
+import { NoSavedSpot } from "@/components/graphics";
 import Icon from "@/components/app/Icon";
 import { useFavourites } from "@/lib/favourites";
 import { useT } from "@/lib/i18n";
@@ -52,7 +53,7 @@ export default function Saved() {
           </section>
         ) : (
           <EmptyState
-            icon={Heart}
+            illustration={<NoSavedSpot />}
             title={t("saved.empty")}
             body="Trykk på hjertet på et reisemål, så samler vi det her til neste gang."
             action={

@@ -119,12 +119,16 @@ export function FavoriteButton({ active, onToggle, label, className }: { active:
 
 /* ─── States ──────────────────────────────────────────────────────────── */
 
-export function EmptyState({ icon, title, body, action }: { icon: LucideIcon; title: string; body?: string; action?: ReactNode }) {
+export function EmptyState({ icon, illustration, title, body, action }: { icon?: LucideIcon; illustration?: ReactNode; title: string; body?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 px-6 py-12 text-center">
-      <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card text-muted-foreground shadow-soft">
-        <Icon icon={icon} size={24} />
-      </span>
+      {illustration ? (
+        <div className="mb-1">{illustration}</div>
+      ) : icon ? (
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card text-muted-foreground shadow-soft">
+          <Icon icon={icon} size={24} />
+        </span>
+      ) : null}
       <p className="font-display text-xl">{title}</p>
       {body ? <p className="max-w-sm text-sm text-muted-foreground">{body}</p> : null}
       {action}

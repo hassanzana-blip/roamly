@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n";
 import { PREFERENCES, highlights, payingPassengers, type Preference } from "@/lib/offers";
 import { cn } from "@/lib/utils";
 import { sliceBaggage, sliceLabel } from "./offerUtils";
+import { AirportChangeDiagram, BaggageVisual, RouteDiagram, AMENITY_ICONS } from "@/components/graphics";
 
 export function SliceViz({ slice }: { slice: OfferSlice }) {
   const t = useT();
@@ -97,6 +98,11 @@ function SegmentDetail({ seg }: { seg: Segment }) {
 function SliceDetails({ slice, label, fallbackBaggage }: { slice: OfferSlice; label: string; fallbackBaggage: Offer["baggage"] }) {
   const t = useT();
   const bag = sliceBaggage(slice, fallbackBaggage);
+  const airportChanges = slice.segments.slice(0, -1).flatMap((seg, i) => {
+    const next = slice.segments[i + 1];
+    if (seg.destination.iata === next.origin.iata) return [];
+    return [{ seg, next, minutes: layoverInfo(seg.arrivingAt, next.departingAt, seg.destination.timeZone).minutes }];
+  });
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -110,6 +116,10 @@ function SliceDetails({ slice, label, fallbackBaggage }: { slice: OfferSlice; la
           </span>
         </p>
       </div>
+      <RouteDiagram slice={slice} className="mb-4" />
+      {airportChanges.map(({ seg, next, minutes }) => (
+        <AirportChangeDiagram key={seg.id} fromIata={seg.destination.iata} fromName={seg.destination.name} toIata={next.origin.iata} toName={next.origin.name} minutes={minutes} className="mb-4" />
+      ))}
       <div className="space-y-4">
         {slice.segments.map((seg, i) => {
           const next = slice.segments[i + 1];
@@ -215,14 +225,16 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
             <div key={slice.id}>
               {offer.slices.length > 1 && <p className="eyebrow mb-2">{sliceLabel(offer.slices.length, i)}</p>}
               <SliceViz slice={slice} />
-              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Briefcase className="size-3.5" aria-hidden="true" /> {t("oc.carryon", { count: bag.carryOnBags })}
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <BaggageVisual kind="cabin" count={bag.carryOnBags} size={18} label={t("bg.carryon", { count: bag.carryOnBags })} />
+                  <span aria-hidden="true">{t("oc.carryon", { count: bag.carryOnBags })}</span>
                 </span>
-                <span className={cn("flex items-center gap-1", bag.checkedBags > 0 && "text-foreground")}>
-                  <Luggage className="size-3.5" aria-hidden="true" /> {bag.checkedBags === 0 ? t("oc.checked.none") : t("oc.checked", { count: bag.checkedBags })}
+                <span className={cn("flex items-center gap-1.5", bag.checkedBags > 0 && "text-foreground")}>
+                  <BaggageVisual kind="checked" count={bag.checkedBags} size={18} label={bag.checkedBags === 0 ? t("bg.checked.none") : t("bg.checked", { count: bag.checkedBags })} />
+                  <span aria-hidden="true">{bag.checkedBags === 0 ? t("oc.checked.none") : t("oc.checked", { count: bag.checkedBags })}</span>
                 </span>
-              </p>
+              </div>
             </div>
           );
         })}
@@ -255,9 +267,21 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
             ))}
             <div className="rounded-lg bg-card p-4 text-xs">
               <p className="eyebrow mb-1">{t("oc.conditions")}</p>
-              <ul className="space-y-1 text-foreground">
-                <li>{refundLabel}</li>
-                <li>{changeLabel}</li>
+              <ul className="space-y-1.5 text-foreground">
+                <li className="flex items-center gap-2">
+                  {(() => {
+                    const I = offer.conditions?.refundBeforeDeparture?.allowed ?? offer.refundable ? AMENITY_ICONS.refundable : AMENITY_ICONS.non_refundable;
+                    return <I size={16} className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />;
+                  })()}
+                  {refundLabel}
+                </li>
+                <li className="flex items-center gap-2">
+                  {(() => {
+                    const I = offer.conditions?.changeBeforeDeparture?.allowed ?? offer.changeable ? AMENITY_ICONS.changeable : AMENITY_ICONS.non_refundable;
+                    return <I size={16} className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />;
+                  })()}
+                  {changeLabel}
+                </li>
                 <li>{t("oc.supplierprice", { price: formatMinor(supplierMinor, currency) })}</li>
                 <li className="text-muted-foreground">{t("oc.conditions.note")}</li>
               </ul>

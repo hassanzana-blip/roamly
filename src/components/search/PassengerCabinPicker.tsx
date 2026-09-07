@@ -8,6 +8,7 @@ import { CABIN_LABELS, cabinLabel, paxLabel } from "@/lib/format";
 import type { CabinClass, PassengerType } from "@contracts/types";
 import { useT, type I18nKey } from "@/lib/i18n";
 import { MAX_PASSENGERS, paxTotal, syncAges, type PaxAges, type PaxCount } from "./paxUtils";
+import { AdultGlyph, CabinClassGlyph, ChildGlyph, InfantGlyph } from "@/components/graphics";
 
 interface Props {
   pax: PaxCount;
@@ -19,10 +20,10 @@ interface Props {
   joined?: boolean;
 }
 
-const ROWS: { type: PassengerType; hint: I18nKey }[] = [
-  { type: "adult", hint: "sw.adult.hint" },
-  { type: "child", hint: "sw.child.hint" },
-  { type: "infant_without_seat", hint: "sw.infant.hint" },
+const ROWS: { type: PassengerType; hint: I18nKey; Glyph: typeof AdultGlyph }[] = [
+  { type: "adult", hint: "sw.adult.hint", Glyph: AdultGlyph },
+  { type: "child", hint: "sw.child.hint", Glyph: ChildGlyph },
+  { type: "infant_without_seat", hint: "sw.infant.hint", Glyph: InfantGlyph },
 ];
 
 function Stepper({ value, min, max, onChange, label, fewer, more }: { value: number; min: number; max: number; onChange: (v: number) => void; label: string; fewer: string; more: string }) {
@@ -91,16 +92,19 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
       trigger={<FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} joined={joined} aria-label={`${t("sw.pax.title")}: ${value}`} />}
     >
       <div className="space-y-5 p-4">
-        {ROWS.map(({ type, hint }) => {
+        {ROWS.map(({ type, hint, Glyph }) => {
           const isAdult = type === "adult";
           const max = type === "infant_without_seat" ? pax.adult : MAX_PASSENGERS;
           const name = paxLabel(type);
           return (
             <div key={type}>
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-foreground"><Glyph size={22} /></span>
+                  <div>
                   <p className="text-base font-medium">{name}</p>
                   <p className="text-sm text-muted-foreground">{t(hint)}</p>
+                  </div>
                 </div>
                 <Stepper
                   value={pax[type]}
@@ -150,7 +154,7 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
           <p className="eyebrow mb-2">{t("sw.cabin")}</p>
           <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("sw.cabin")}>
             {(Object.keys(CABIN_LABELS) as CabinClass[]).map((c) => (
-              <Chip key={c} selected={cabin === c} onClick={() => onCabinChange(c)} className="justify-center">
+              <Chip key={c} selected={cabin === c} onClick={() => onCabinChange(c)} className="h-11 justify-start" icon={<CabinClassGlyph cabin={c} size={20} />}>
                 {cabinLabel(c)}
               </Chip>
             ))}

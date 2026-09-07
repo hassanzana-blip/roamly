@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { LockKeyhole, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyTableSpot } from "@/components/graphics";
 import { trpc } from "@/providers/trpc";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
