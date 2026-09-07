@@ -26,6 +26,7 @@ export default function WhatsAppFab() {
   const { pathname } = useLocation();
   if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
   return (
+    <aside aria-label="WhatsApp">
     <a
       href={WHATSAPP_LINK}
       target="_blank"
@@ -37,5 +38,6 @@ export default function WhatsAppFab() {
       <span className="sr-only">WhatsApp</span>
       <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
     </a>
+    </aside>
   );
 }

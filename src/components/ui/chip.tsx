@@ -12,11 +12,12 @@ interface ChipProps extends React.ComponentProps<"button"> {
  * Toggle chip for filters and preferences. Exposes aria-pressed so screen
  * readers announce the state; 40 px tall with generous horizontal padding.
  */
-export function Chip({ selected = false, icon, count, className, children, ...props }: ChipProps) {
+export function Chip({ selected = false, icon, count, className, children, role, ...props }: ChipProps) {
   return (
     <button
       type="button"
-      aria-pressed={selected}
+      role={role}
+      aria-pressed={role ? undefined : selected}
       className={cn(
         "inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 text-sm font-medium outline-none",
         "transition-[background-color,border-color,color,transform] duration-fast ease-out",

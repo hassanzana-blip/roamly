@@ -114,7 +114,7 @@ export default function Profile() {
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell>
-        <AppHeader title={t("profile.title")} />
+        <AppHeader title={t("profile.title")} as="h1" />
 
         {/* Konto — greeting + logout når innlogget, ellers innloggings-CTA */}
         {!isLoading &&

@@ -43,7 +43,7 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
       <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
       <span className="min-w-0 flex-1">
         <span className="block text-xs font-medium text-muted-foreground">{label}</span>
-        <span className={cn("block truncate text-base leading-tight", filled ? "font-semibold text-foreground" : "text-muted-foreground/80")}>
+        <span className={cn("block truncate text-base leading-tight", filled ? "font-semibold text-foreground" : "text-muted-foreground")}>
           {filled ? value : placeholder}
         </span>
       </span>
