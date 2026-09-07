@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  BaggageAllowance,
   CabinClass,
   Offer,
   OfferConditions,
@@ -426,14 +427,33 @@ function asCabin(v: string | null | undefined): CabinClass {
   return CABINS.includes(v as CabinClass) ? (v as CabinClass) : "economy";
 }
 
-function segmentBaggage(seg: ZSegment): { carryOnBags: number; checkedBags: number } {
+/**
+ * Bagasje for ett segment. Duffel lister tillatelsene eksplisitt — også når
+ * antallet er 0. Sier flyselskapet ingenting om en type, VET vi ikke, og det
+ * er noe helt annet enn at den ikke er inkludert. Vi skiller på det her, slik
+ * at siden kan si «ikke oppgitt» framfor å påstå «ikke inkludert».
+ */
+function segmentBaggage(seg: ZSegment): BaggageAllowance {
   let carryOn = 0;
   let checked = 0;
+  let carryOnSeen = false;
+  let checkedSeen = false;
   for (const b of seg.passengers?.[0]?.baggages ?? []) {
-    if (b.type === "carry_on") carryOn += b.quantity ?? 0;
-    if (b.type === "checked") checked += b.quantity ?? 0;
+    if (b.type === "carry_on") {
+      carryOn += b.quantity ?? 0;
+      carryOnSeen = true;
+    }
+    if (b.type === "checked") {
+      checked += b.quantity ?? 0;
+      checkedSeen = true;
+    }
   }
-  return { carryOnBags: carryOn, checkedBags: checked };
+  return {
+    carryOnBags: carryOn,
+    checkedBags: checked,
+    ...(carryOnSeen ? {} : { carryOnUnknown: true }),
+    ...(checkedSeen ? {} : { checkedUnknown: true }),
+  };
 }
 
 function mapSegment(seg: ZSegment): Segment {
@@ -521,12 +541,17 @@ function summarizeBagServices(services: BagService[], firstPassengerId: string |
 export function mapOffer(o: ZOffer): Offer {
   const slices = (o.slices ?? []).map(mapSlice);
   // Bagasje: minste tillatte antall på tvers av segmentene i hver slice (aldri lov å love mer enn det svakeste leddet).
+  // Mangler tillatelsen på ett eneste segment, er den ukjent for hele reisen.
   let carryOn = Infinity;
   let checked = Infinity;
+  let carryOnUnknown = false;
+  let checkedUnknown = false;
   for (const s of slices) {
     for (const seg of s.segments) {
       carryOn = Math.min(carryOn, seg.baggage?.carryOnBags ?? 0);
       checked = Math.min(checked, seg.baggage?.checkedBags ?? 0);
+      if (!seg.baggage || seg.baggage.carryOnUnknown) carryOnUnknown = true;
+      if (!seg.baggage || seg.baggage.checkedUnknown) checkedUnknown = true;
     }
   }
   const services = extractBagServices(o);
@@ -549,6 +574,8 @@ export function mapOffer(o: ZOffer): Offer {
     baggage: {
       carryOnBags: Number.isFinite(carryOn) ? carryOn : 0,
       checkedBags: Number.isFinite(checked) ? checked : 0,
+      ...(carryOnUnknown ? { carryOnUnknown: true } : {}),
+      ...(checkedUnknown ? { checkedUnknown: true } : {}),
     },
     emissionsKg: Math.round(Number(o.total_emissions_kg ?? 0)) || 0,
     refundable: Boolean(o.conditions?.refund_before_departure?.allowed),

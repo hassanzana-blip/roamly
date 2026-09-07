@@ -444,9 +444,9 @@ export function mapSearchResponse(body: TpResponse, input: TravelportSearchInput
           cabinClass: cabin,
           slices: [sliceFrom(segments, offers.length)],
           passengers: input.passengers.map((p, i) => ({ id: `tp_pax_${i}`, type: p.type, ...(p.age != null ? { age: p.age } : {}) })),
-          // Bagasje kommer ikke med i dette kallet. Null er ærlig: kortet viser
-          // «ikke oppgitt» framfor å antyde en tillatelse leverandøren ikke ga.
-          baggage: { carryOnBags: 0, checkedBags: 0 },
+          // Bagasje kommer ikke med i dette kallet. Vi merker den som ukjent,
+          // slik at kortet sier «ikke oppgitt» og ikke «ikke inkludert».
+          baggage: { carryOnBags: 0, checkedBags: 0, carryOnUnknown: true, checkedUnknown: true },
           emissionsKg: 0,
           refundable: false,
           changeable: false,

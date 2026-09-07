@@ -49,8 +49,27 @@ export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, nam
         {t("co.step.bags")}
       </h2>
       <p className="mb-5 flex items-center gap-2 text-sm text-muted-foreground">
-        <BaggageVisual kind="checked" count={offer.baggage.checkedBags} size={20} label={offer.baggage.checkedBags > 0 ? t("bg.checked", { count: offer.baggage.checkedBags }) : t("bg.checked.none")} />
-        <span>{offer.baggage.checkedBags > 0 ? t("ex.included", { count: offer.baggage.checkedBags }) : t("ex.handonly")}</span>
+        <BaggageVisual
+          kind="checked"
+          count={offer.baggage.checkedBags}
+          unknown={offer.baggage.checkedUnknown}
+          size={20}
+          className="shrink-0"
+          label={
+            offer.baggage.checkedUnknown
+              ? t("bg.checked.unknown")
+              : offer.baggage.checkedBags > 0
+                ? t("bg.checked", { count: offer.baggage.checkedBags })
+                : t("bg.checked.none")
+          }
+        />
+        <span>
+          {offer.baggage.checkedUnknown
+            ? t("ex.bagsunknown")
+            : offer.baggage.checkedBags > 0
+              ? t("ex.included", { count: offer.baggage.checkedBags })
+              : t("ex.handonly")}
+        </span>
       </p>
 
       {!available ? (

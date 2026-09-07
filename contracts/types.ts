@@ -70,6 +70,13 @@ export interface OfferPassenger {
 export interface BaggageAllowance {
   carryOnBags: number;
   checkedBags: number;
+  /**
+   * Settes bare når leverandøren ikke oppga tillatelsen. Da er tallet over 0
+   * fordi vi ikke har noe bedre, men vi skal si «ikke oppgitt» til den
+   * reisende — aldri «ikke inkludert», som er en påstand vi ikke har dekning for.
+   */
+  carryOnUnknown?: boolean;
+  checkedUnknown?: boolean;
 }
 
 export interface OfferServices {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeftRight, X } from "lucide-react";
-import type { Offer } from "@contracts/types";
+import type { BaggageAllowance, Offer } from "@contracts/types";
 import { fareConditionLabel, formatClock, formatDuration, formatMinor, previewTotalMinor, toMinor } from "@/lib/format";
 import { sliceBaggage } from "@/components/offers/offerUtils";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +15,12 @@ import type { FeeConfig } from "@contracts/types";
 
 function offerDuration(o: Offer): number {
   return o.slices.reduce((s, x) => s + x.durationMinutes, 0);
+}
+
+/** Antall kolli, eller «–» når leverandøren ikke oppga tillatelsen. */
+function bagCell(bag: BaggageAllowance, kind: "carryOn" | "checked"): string {
+  if (kind === "carryOn") return bag.carryOnUnknown ? "–" : String(bag.carryOnBags);
+  return bag.checkedUnknown ? "–" : String(bag.checkedBags);
 }
 
 const totalOf = (o: Offer, cfg: FeeConfig) => formatMinor(previewTotalMinor(o.totalAmount, o.totalCurrency, cfg), o.totalCurrency);
@@ -32,8 +38,9 @@ function CompareTable({ offers, onSelect, feeConfig }: { offers: Offer[]; onSele
         return max === 0 ? "Direkte" : `Maks ${max} stopp`;
       },
     },
-    { label: "Håndbagasje", value: (o) => o.slices.map((s) => `${sliceBaggage(s, o.baggage).carryOnBags}`).join(" / ") },
-    { label: "Innsjekket bagasje", value: (o) => o.slices.map((s) => `${sliceBaggage(s, o.baggage).checkedBags}`).join(" / ") },
+    // «–» når flyselskapet ikke har oppgitt tillatelsen: et tall her ville vært en påstand vi ikke har dekning for.
+    { label: "Håndbagasje", value: (o) => o.slices.map((s) => bagCell(sliceBaggage(s, o.baggage), "carryOn")).join(" / ") },
+    { label: "Innsjekket bagasje", value: (o) => o.slices.map((s) => bagCell(sliceBaggage(s, o.baggage), "checked")).join(" / ") },
     { label: "CO₂-utslipp", value: (o) => `${o.emissionsKg} kg` },
     { label: "Refusjon", value: (o) => fareConditionLabel("refund", o.conditions?.refundBeforeDeparture, o.refundable) },
     { label: "Endring", value: (o) => fareConditionLabel("change", o.conditions?.changeBeforeDeparture, o.changeable) },

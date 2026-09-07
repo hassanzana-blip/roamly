@@ -227,12 +227,26 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
               <SliceViz slice={slice} />
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <BaggageVisual kind="cabin" count={bag.carryOnBags} size={18} label={t("bg.carryon", { count: bag.carryOnBags })} />
-                  <span aria-hidden="true">{t("oc.carryon", { count: bag.carryOnBags })}</span>
+                  <BaggageVisual
+                    kind="cabin"
+                    count={bag.carryOnBags}
+                    unknown={bag.carryOnUnknown}
+                    size={18}
+                    label={bag.carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: bag.carryOnBags })}
+                  />
+                  <span aria-hidden="true">{bag.carryOnUnknown ? t("oc.carryon.unknown") : t("oc.carryon", { count: bag.carryOnBags })}</span>
                 </span>
-                <span className={cn("flex items-center gap-1.5", bag.checkedBags > 0 && "text-foreground")}>
-                  <BaggageVisual kind="checked" count={bag.checkedBags} size={18} label={bag.checkedBags === 0 ? t("bg.checked.none") : t("bg.checked", { count: bag.checkedBags })} />
-                  <span aria-hidden="true">{bag.checkedBags === 0 ? t("oc.checked.none") : t("oc.checked", { count: bag.checkedBags })}</span>
+                <span className={cn("flex items-center gap-1.5", !bag.checkedUnknown && bag.checkedBags > 0 && "text-foreground")}>
+                  <BaggageVisual
+                    kind="checked"
+                    count={bag.checkedBags}
+                    unknown={bag.checkedUnknown}
+                    size={18}
+                    label={bag.checkedUnknown ? t("bg.checked.unknown") : bag.checkedBags === 0 ? t("bg.checked.none") : t("bg.checked", { count: bag.checkedBags })}
+                  />
+                  <span aria-hidden="true">
+                    {bag.checkedUnknown ? t("oc.checked.unknown") : bag.checkedBags === 0 ? t("oc.checked.none") : t("oc.checked", { count: bag.checkedBags })}
+                  </span>
                 </span>
               </div>
             </div>

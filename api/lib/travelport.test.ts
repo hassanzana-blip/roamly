@@ -211,9 +211,9 @@ describe("Travelport: kartlegging av ekte DevKit-svar", () => {
     expect(offer.passengers[1].age).toBe(8);
   });
 
-  it("oppgir ikke bagasje som leverandøren ikke sendte", () => {
+  it("merker bagasje som ukjent når leverandøren ikke sendte den", () => {
     const [offer] = mapSearchResponse(FIXTURE, input);
-    expect(offer.baggage).toEqual({ carryOnBags: 0, checkedBags: 0 });
+    expect(offer.baggage).toEqual({ carryOnBags: 0, checkedBags: 0, carryOnUnknown: true, checkedUnknown: true });
     expect(offer.refundable).toBe(false);
     expect(offer.changeable).toBe(false);
   });

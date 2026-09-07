@@ -550,7 +550,11 @@ export default function Checkout() {
                     <div className="mt-5 flex flex-wrap gap-4 border-t border-border pt-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <Luggage className="h-3.5 w-3.5 text-foreground" aria-hidden="true" />
-                        {offer.baggage.checkedBags > 0 ? t("co.bags.included", { count: offer.baggage.checkedBags }) : t("co.bags.handonly")}
+                        {offer.baggage.checkedUnknown
+                          ? t("co.bags.unknown")
+                          : offer.baggage.checkedBags > 0
+                            ? t("co.bags.included", { count: offer.baggage.checkedBags })
+                            : t("co.bags.handonly")}
                       </span>
                       <span>{cabinLabel(offer.cabinClass)}</span>
                       <span>{fareConditionLabel("refund", offer.conditions?.refundBeforeDeparture, offer.refundable)}</span>

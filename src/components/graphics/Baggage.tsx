@@ -53,10 +53,37 @@ const BAG: Record<BagKind, (p: GlyphProps) => ReactElement> = {
  * Visual allowance: repeats the bag glyph `count` times (capped at 3, then "×n"),
  * or draws it struck through when nothing is included. The accessible name is
  * the full sentence passed in `label`; the glyphs are decorative.
+ *
+ * Three states, never two: included, not included, and not stated. A supplier
+ * that says nothing about an allowance is not a supplier saying zero, so
+ * `unknown` gets its own faded, question-marked treatment rather than the
+ * struck-through "not included" one.
  */
-export function BaggageVisual({ kind, count, label, size = 20, className }: { kind: BagKind; count: number; label: string; size?: number; className?: string }) {
+export function BaggageVisual({
+  kind,
+  count,
+  label,
+  size = 20,
+  className,
+  unknown = false,
+}: {
+  kind: BagKind;
+  count: number;
+  label: string;
+  size?: number;
+  className?: string;
+  unknown?: boolean;
+}) {
   const Bag = BAG[kind];
   const shown = Math.min(count, 3);
+  if (unknown) {
+    return (
+      <span className={cn("inline-flex items-center text-muted-foreground/70", className)} role="img" aria-label={label}>
+        <Bag size={size} className="opacity-70" />
+        <span className="-ml-0.5 text-xs font-bold" aria-hidden="true">?</span>
+      </span>
+    );
+  }
   return (
     <span className={cn("inline-flex items-center gap-0.5", count === 0 ? "text-muted-foreground/70" : "text-foreground", className)} role="img" aria-label={label}>
       {count === 0 ? (
