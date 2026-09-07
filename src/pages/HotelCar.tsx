@@ -87,7 +87,7 @@ export default function HotelCar() {
                   document.getElementById("skjema")?.scrollIntoView({ behavior: "smooth" });
                 }}
                 className={cn(
-                  "group relative overflow-hidden rounded-lg border border-border text-left transition-all duration-300",
+                  "group relative overflow-hidden rounded-lg border border-border text-left transition-[border-color,box-shadow,background-color] duration-base",
                   tab === c.key ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-90 hover:opacity-100",
                 )}
               >
@@ -95,7 +95,7 @@ export default function HotelCar() {
                   <img
                     src={c.img}
                     alt={c.title}
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/25 to-transparent" />
                 </div>
@@ -268,7 +268,7 @@ function CarForm() {
             onClick={() => setPartner(p)}
             aria-pressed={partner === p}
             className={cn(
-              "min-h-11 rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all",
+              "min-h-11 rounded-lg border px-5 py-2.5 text-sm font-semibold transition-colors",
               partner === p
                 ? "border-primary bg-primary text-white shadow-md shadow-primary/25"
                 : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
@@ -282,7 +282,7 @@ function CarForm() {
           onClick={() => setPartner("Beste pris")}
           aria-pressed={partner === "Beste pris"}
           className={cn(
-            "min-h-11 rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all",
+            "min-h-11 rounded-lg border px-5 py-2.5 text-sm font-semibold transition-colors",
             partner === "Beste pris"
               ? "border-primary bg-primary text-white shadow-md shadow-primary/25"
               : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
@@ -394,7 +394,7 @@ function SubmitRow({ pending, error, label }: { pending: boolean; error?: string
       <button
         type="submit"
         disabled={pending}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-semibold text-white shadow-xs transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-semibold text-white shadow-xs transition-colors hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
       >
         {pending ? "Sender …" : label}
       </button>

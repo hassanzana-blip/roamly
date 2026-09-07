@@ -9,6 +9,8 @@ interface Props extends Omit<React.ComponentProps<"button">, "value"> {
   placeholder: string;
   invalid?: boolean;
   trailing?: React.ReactNode;
+  /** Part of a joined field group: no own border/radius, ring drawn inset */
+  joined?: boolean;
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props extends Omit<React.ComponentProps<"button">, "value"> {
  * calm surface instead of a row of unrelated controls.
  */
 const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldButton(
-  { icon: Icon, label, value, placeholder, invalid, trailing, className, ...props },
+  { icon: Icon, label, value, placeholder, invalid, trailing, joined, className, ...props },
   ref,
 ) {
   const filled = value !== undefined && value !== null && value !== "";
@@ -28,18 +30,19 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
       data-filled={filled}
       aria-invalid={invalid || undefined}
       className={cn(
-        "group flex h-14 w-full items-center gap-3 rounded-lg border bg-card px-3.5 text-left outline-none",
-        "transition-[border-color,box-shadow] duration-fast ease-out",
-        "hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25",
-        "data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/25",
-        invalid ? "border-destructive" : "border-input",
+        "group flex h-14 w-full items-center gap-3 bg-card px-4 text-left outline-none",
+        "transition-[border-color,box-shadow,background-color] duration-fast ease-out",
+        joined
+          ? "border-0 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-muted/60"
+          : "rounded-lg border hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-ring",
+        invalid ? (joined ? "bg-destructive/5" : "border-destructive") : joined ? "" : "border-input",
         className,
       )}
       {...props}
     >
-      <Icon className={cn("size-5 shrink-0 transition-colors", filled ? "text-primary" : "text-muted-foreground")} aria-hidden="true" />
+      <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
       <span className="min-w-0 flex-1">
-        <span className="block text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
+        <span className="block text-xs font-medium text-muted-foreground">{label}</span>
         <span className={cn("block truncate text-base leading-tight", filled ? "font-semibold text-foreground" : "text-muted-foreground/80")}>
           {filled ? value : placeholder}
         </span>

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowRight, BedDouble, Building2, Car, Clock3, MapPin, Plane, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, BedDouble, Building2, Car, Clock3, MapPin, Plane, Users } from "lucide-react";
 import AppShell, { SectionHeader } from "@/components/app/AppShell";
 import { GreetingBar } from "@/components/app/TopBar";
 import PillTabs from "@/components/app/PillTabs";
@@ -145,7 +145,7 @@ export default function Home() {
           <h1 className="font-display text-balance text-[38px] leading-[1.04] sm:text-[52px] lg:text-[60px]">
             {t("home.title1")} <span className="hl">{t("home.title2")}</span> {t("home.title3")}
           </h1>
-          <p className="mt-3 max-w-xl text-base text-muted-foreground sm:text-lg">{t("footer.blurb")}</p>
+          <p className="mt-3 max-w-xl text-base text-muted-foreground sm:text-lg">{t("home.sub")}</p>
         </div>
 
         <div className="mt-6">
@@ -178,15 +178,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Plain trust line: real facts only */}
-        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          <li className="flex items-center gap-2">
-            <Icon icon={ShieldCheck} size={16} className="text-success" /> {t("footer.trust")}
-          </li>
-          <li className="flex items-center gap-2">
-            <Icon icon={Users} size={16} className="text-muted-foreground" /> {t("footer.hours")}
-          </li>
-        </ul>
+        {/* One plain trust line: real facts only */}
+        <p className="mt-4 text-sm text-muted-foreground">{t("home.trust")}</p>
 
         {/* Recommended for you */}
         <section className="mt-12">

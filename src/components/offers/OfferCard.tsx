@@ -7,7 +7,7 @@ import Icon from "@/components/app/Icon";
 import { Button } from "@/components/ui/button";
 import { useFeeConfig } from "@/lib/useFeeConfig";
 import { useT } from "@/lib/i18n";
-import { PREFERENCES, highlights, isFamily, payingPassengers, type Preference } from "@/lib/offers";
+import { PREFERENCES, highlights, payingPassengers, type Preference } from "@/lib/offers";
 import { cn } from "@/lib/utils";
 import { sliceBaggage, sliceLabel } from "./offerUtils";
 
@@ -154,8 +154,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   const supplierMinor = toMinor(offer.totalAmount, currency);
   const totalMinor = previewTotalMinor(offer.totalAmount, currency, feeConfig);
   const paying = payingPassengers(offer.passengers);
-  const family = isFamily(offer.passengers);
-  const hasOvernight = offer.slices.some((s) =>
+    const hasOvernight = offer.slices.some((s) =>
     s.segments.some((seg, i) => {
       const next = s.segments[i + 1];
       return next ? layoverInfo(seg.arrivingAt, next.departingAt, seg.destination.timeZone).overnight : false;
@@ -177,7 +176,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   );
   const refundLabel = fareConditionLabel("refund", offer.conditions?.refundBeforeDeparture, offer.refundable);
   const changeLabel = fareConditionLabel("change", offer.conditions?.changeBeforeDeparture, offer.changeable);
-  const tags = highlights(offer, offer.passengers).filter((k) => k !== "oc.direct");
+  const tags = highlights(offer, offer.passengers).filter((k) => k !== "oc.direct" && k !== "oc.tag.bags");
   const recommendedLabel = recommended ? PREFERENCES.find((p) => p.key === recommended)?.label : undefined;
 
   return (
@@ -259,6 +258,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
               <ul className="space-y-1 text-foreground">
                 <li>{refundLabel}</li>
                 <li>{changeLabel}</li>
+                <li>{t("oc.supplierprice", { price: formatMinor(supplierMinor, currency) })}</li>
                 <li className="text-muted-foreground">{t("oc.conditions.note")}</li>
               </ul>
             </div>
@@ -266,48 +266,47 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
         </Collapsible.Content>
       </Collapsible.Root>
 
-      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-t border-border px-4 py-4 sm:px-5">
         <div className="min-w-0">
-          <p className="text-2xs text-muted-foreground">{refundLabel}</p>
-          <p className="text-2xl font-semibold leading-none tracking-tight tabular text-foreground sm:text-[28px]">{formatMinor(totalMinor, currency)}</p>
-          <p className="mt-1 text-2xs text-muted-foreground">
-            {t("oc.totalfor", { count: offer.passengers.length })} · {t("oc.approx")}
+          <p className="text-[26px] font-semibold leading-none tracking-tight tabular text-foreground sm:text-[28px]">{formatMinor(totalMinor, currency)}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {t("oc.forpax", { count: offer.passengers.length })}
+            {paying > 1 && <>, {t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying), currency) })}</>}
           </p>
-          {(family || paying > 1) && <p className="text-2xs font-medium text-foreground">{t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying), currency) })}</p>}
-          <p className="text-2xs text-muted-foreground">{t("oc.supplierprice", { price: formatMinor(supplierMinor, currency) })}</p>
-          <div className="mt-2.5 flex items-center gap-2">
-            {onToggleCompare && (
-              <button
-                type="button"
-                onClick={() => onToggleCompare(offer)}
-                disabled={!comparing && compareDisabled}
-                aria-pressed={comparing}
-                className={cn(
-                  "inline-flex min-h-10 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors",
-                  comparing ? "border-night bg-night text-white" : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground disabled:opacity-40",
-                )}
-              >
-                <Icon icon={ArrowLeftRight} size={16} />
-                {comparing ? t("oc.selected") : t("oc.compare")}
-              </button>
-            )}
-            {shareText && (
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("oc.share")}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-              >
-                <Icon icon={Share2} size={16} />
-                {t("oc.share.short")}
-              </a>
-            )}
-          </div>
+          <p className="text-xs text-muted-foreground">{t("oc.approx")}</p>
         </div>
-        <Button size="lg" onClick={() => onSelect(offer)} className="px-8">
-          {t("oc.select")}
-        </Button>
+        <div className="flex items-center gap-1 sm:gap-2">
+          {onToggleCompare && (
+            <button
+              type="button"
+              onClick={() => onToggleCompare(offer)}
+              disabled={!comparing && compareDisabled}
+              aria-pressed={comparing}
+              className={cn(
+                "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors",
+                comparing ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40",
+              )}
+            >
+              <Icon icon={ArrowLeftRight} size={16} />
+              {comparing ? t("oc.selected") : t("oc.compare")}
+            </button>
+          )}
+          {shareText && (
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t("oc.share")}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Icon icon={Share2} size={16} />
+              {t("oc.share.short")}
+            </a>
+          )}
+          <Button size="lg" onClick={() => onSelect(offer)} className="ml-1 px-7">
+            {t("oc.select")}
+          </Button>
+        </div>
       </div>
     </article>
   );

@@ -118,7 +118,7 @@ export default function Support() {
                     alt={t("sp.team.alt", { name: p.name, role: p.role })}
                     loading="lazy"
                     decoding="async"
-                    className="h-full w-full object-cover object-top transition-transform duration-700 ease-out hover:scale-[1.03]"
+                    className="h-full w-full object-cover object-top transition-transform duration-500 ease-out hover:scale-[1.03]"
                   />
                 </div>
                 <div className="p-6">

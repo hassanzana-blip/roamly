@@ -333,7 +333,7 @@ export default function Profile() {
                 onClick={() => prefs.mutate({ marketingConsent: !customer.marketingConsent })}
                 className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60", customer.marketingConsent ? "bg-primary" : "bg-muted")}
               >
-                <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-card shadow transition-all", customer.marketingConsent ? "left-6" : "left-1")} />
+                <span className={cn("absolute left-1 top-1 h-5 w-5 rounded-full bg-card shadow transition-transform duration-fast ease-out", customer.marketingConsent ? "translate-x-5" : "translate-x-0")} />
               </button>
             </li>
           )}
@@ -356,8 +356,8 @@ export default function Profile() {
             >
               <span
                 className={cn(
-                  "absolute top-1 h-5 w-5 rounded-full bg-card shadow transition-all",
-                  dark ? "left-6" : "left-1",
+                  "absolute left-1 top-1 h-5 w-5 rounded-full bg-card shadow transition-transform duration-fast ease-out",
+                  dark ? "translate-x-5" : "translate-x-0",
                 )}
               />
             </button>

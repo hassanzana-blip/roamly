@@ -103,9 +103,9 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted }:
       }}
       noValidate
       aria-label={t("sw.aria")}
-      className={cn("w-full rounded-2xl border border-border bg-card p-3 shadow-md sm:p-4", variant === "hero" && "md:p-5")}
+      className={cn("w-full", variant === "compact" && "rounded-xl border border-border bg-card p-3 sm:p-4")}
     >
-      <Segmented aria-label={t("sw.triptype")} value={state.tripType} onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))} options={TRIP_TYPES} />
+      <Segmented aria-label={t("sw.triptype")} value={state.tripType} onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))} options={TRIP_TYPES} className="w-auto" />
 
       {isMulti ? (
         <div className="mt-3 space-y-3">
@@ -158,66 +158,76 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted }:
           />
         </div>
       ) : (
-        <div className="mt-3 grid gap-2 md:grid-cols-[1.1fr_1.1fr_1fr_1fr]">
-          {/* Origin + destination with a swap control on the seam */}
-          <div className="relative grid gap-2 md:col-span-2 md:grid-cols-2">
-            <AirportField
-              label={t("search.from")}
-              direction="from"
-              value={state.from}
-              exclude={state.to?.iata}
-              invalid={touched && problems.from}
-              onChange={(a) => setState((s) => ({ ...s, from: a }))}
+        <div className="mt-3 overflow-hidden rounded-xl border border-input bg-card shadow-xs">
+          <div className="grid divide-y divide-border md:grid-cols-[1fr_1fr_1.35fr_1.05fr] md:divide-x md:divide-y-0">
+            {/* Origin + destination with a swap control on the seam */}
+            <div className="relative grid divide-y divide-border md:col-span-2 md:grid-cols-2 md:divide-x md:divide-y-0">
+              <AirportField
+                label={t("search.from")}
+                direction="from"
+                value={state.from}
+                exclude={state.to?.iata}
+                invalid={touched && problems.from}
+                joined
+                onChange={(a) => setState((s) => ({ ...s, from: a }))}
+              />
+              <AirportField
+                label={t("search.to")}
+                direction="to"
+                value={state.to}
+                exclude={state.from?.iata}
+                invalid={touched && problems.to}
+                joined
+                onChange={(a) => setState((s) => ({ ...s, to: a }))}
+              />
+              <button
+                type="button"
+                onClick={swap}
+                aria-label={t("sw.swap")}
+                className={cn(
+                  "absolute z-10 grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm",
+                  "transition-[transform,color,border-color] duration-fast ease-out hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+                  "right-3 top-1/2 -translate-y-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2",
+                  "active:scale-95",
+                )}
+              >
+                <ArrowLeftRight className="size-4 rotate-90 md:rotate-0" />
+              </button>
+            </div>
+
+            <DateRangeField
+              depart={state.depart}
+              ret={state.ret}
+              roundtrip={isRound}
+              min={minDate}
+              invalid={touched && problems.dates}
+              joined
+              onChange={({ depart, ret }) => setState((s) => ({ ...s, depart, ret }))}
             />
-            <AirportField
-              label={t("search.to")}
-              direction="to"
-              value={state.to}
-              exclude={state.from?.iata}
-              invalid={touched && problems.to}
-              onChange={(a) => setState((s) => ({ ...s, to: a }))}
+
+            <PassengerCabinPicker
+              pax={state.pax}
+              onPaxChange={(p) => setState((s) => ({ ...s, pax: p }))}
+              ages={state.ages}
+              onAgesChange={(a) => setState((s) => ({ ...s, ages: a }))}
+              cabin={state.cabin}
+              onCabinChange={(c) => setState((s) => ({ ...s, cabin: c }))}
+              joined
             />
-            <button
-              type="button"
-              onClick={swap}
-              aria-label={t("sw.swap")}
-              className={cn(
-                "absolute z-10 grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm",
-                "transition-[transform,color,border-color] duration-base ease-out hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
-                "right-3 top-1/2 -translate-y-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2",
-                "active:rotate-180 motion-reduce:active:rotate-0",
-              )}
-            >
-              <ArrowLeftRight className="size-4 rotate-90 md:rotate-0" />
-            </button>
           </div>
-
-          <DateRangeField
-            depart={state.depart}
-            ret={state.ret}
-            roundtrip={isRound}
-            min={minDate}
-            invalid={touched && problems.dates}
-            onChange={({ depart, ret }) => setState((s) => ({ ...s, depart, ret }))}
-          />
-
-          <PassengerCabinPicker
-            pax={state.pax}
-            onPaxChange={(p) => setState((s) => ({ ...s, pax: p }))}
-            ages={state.ages}
-            onAgesChange={(a) => setState((s) => ({ ...s, ages: a }))}
-            cabin={state.cabin}
-            onCabinChange={(c) => setState((s) => ({ ...s, cabin: c }))}
-          />
         </div>
       )}
 
       {/* What matters most: sets the default ranking of results */}
-      <div className="mt-3">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">{t("pref.title")}</p>
-        <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t("pref.title")}>
+      <div className="mt-4">
+        <p className="mb-2 text-sm text-muted-foreground">{t("pref.title")}</p>
+        <div
+          className={cn("no-scrollbar flex gap-2 overflow-x-auto sm:flex-wrap", variant === "hero" ? "-mx-5 px-5 sm:mx-0 sm:px-0" : "-mx-3 px-3 sm:mx-0 sm:px-0")}
+          role="group"
+          aria-label={t("pref.title")}
+        >
           {PREFERENCES.map((p) => (
-            <Chip key={p.key} selected={state.pref === p.key} onClick={() => setState((s) => ({ ...s, pref: p.key }))} icon={<p.icon />} title={t(p.hint)}>
+            <Chip key={p.key} selected={state.pref === p.key} onClick={() => setState((s) => ({ ...s, pref: p.key }))} title={t(p.hint)}>
               {t(p.label)}
             </Chip>
           ))}
@@ -230,7 +240,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted }:
         </p>
       )}
 
-      <Button type="submit" size="xl" className="mt-3 w-full md:mt-4">
+      <Button type="submit" size="xl" className="mt-4 w-full md:mt-5 md:w-auto md:min-w-64">
         <Search />
         {t("sw.submit")}
       </Button>

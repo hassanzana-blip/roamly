@@ -81,7 +81,7 @@ export default function Quiz() {
                 <button
                   type="button"
                   onClick={() => setPhase(0)}
-                  className="mt-10 inline-flex items-center gap-2.5 rounded-lg bg-card px-9 py-4 text-base font-semibold text-primary-foreground transition-all hover:bg-primary hover:text-white active:scale-[0.98]"
+                  className="mt-10 inline-flex items-center gap-2.5 rounded-lg bg-card px-9 py-4 text-base font-semibold text-primary-foreground transition-colors hover:bg-primary hover:text-white active:scale-[0.98]"
                 >
                   Start quizen <ArrowRight className="h-5 w-5" />
                 </button>
@@ -135,7 +135,7 @@ export default function Quiz() {
                         type="button"
                         onClick={() => choose(QUESTIONS[step].key, o.id)}
                         aria-pressed={selected}
-                        className={`group relative overflow-hidden rounded-xl text-left transition-all duration-300 ${
+                        className={`group relative overflow-hidden rounded-xl text-left transition-[border-color,box-shadow,background-color] duration-base ${
                           selected
                             ? "ring-2 ring-white ring-offset-2 ring-offset-night"
                             : "hover:-translate-y-1"
@@ -147,7 +147,7 @@ export default function Quiz() {
                             alt=""
                             loading="lazy"
                             decoding="async"
-                            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+                            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/25 to-night/10 transition-opacity group-hover:from-night/80" />
                           <div className="absolute inset-x-0 bottom-0 p-5">
@@ -282,7 +282,7 @@ export default function Quiz() {
                             alt={alt.city}
                             loading="lazy"
                             decoding="async"
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-night/85 via-night/20 to-transparent" />
                           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { imageSrcSet, type DiscoverDestination } from "@/content/discover";
-import { FavoriteButton, RatingChip } from "@/components/app/primitives";
+import { FavoriteButton } from "@/components/app/primitives";
 
 /** Branded route illustration — honest fallback when no verified photo exists. */
 function RouteIllustration({ iata }: { iata: string }) {
@@ -72,9 +72,6 @@ export default function DestinationCard({ destination: d, isFavourite, onToggleF
             <RouteIllustration iata={d.iata} />
           )}
 
-          {typeof d.rating === "number" && (
-            <RatingChip value={d.rating} className="absolute left-3 top-3" />
-          )}
         </div>
 
         {/* Info surface beneath the photo */}

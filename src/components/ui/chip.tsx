@@ -19,12 +19,12 @@ export function Chip({ selected = false, icon, count, className, children, ...pr
       aria-pressed={selected}
       className={cn(
         "inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 text-sm font-medium outline-none",
-        "transition-[background-color,border-color,color] duration-fast ease-out",
+        "transition-[background-color,border-color,color,transform] duration-fast ease-out",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "active:scale-[0.98] motion-reduce:active:scale-100",
         selected
-          ? "border-primary/40 bg-primary-soft text-accent-foreground"
-          : "border-border bg-card text-foreground hover:border-foreground/30",
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-card text-foreground hover:border-foreground/40",
         "[&_svg]:size-4 [&_svg]:shrink-0",
         className,
       )}
@@ -33,7 +33,7 @@ export function Chip({ selected = false, icon, count, className, children, ...pr
       {icon}
       {children}
       {typeof count === "number" && (
-        <span className={cn("tabular text-xs", selected ? "text-accent-foreground/80" : "text-muted-foreground")}>{count}</span>
+        <span className={cn("tabular text-xs", selected ? "text-background/70" : "text-muted-foreground")}>{count}</span>
       )}
     </button>
   );

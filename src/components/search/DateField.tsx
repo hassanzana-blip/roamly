@@ -91,13 +91,14 @@ interface RangeProps {
   min?: string;
   roundtrip: boolean;
   invalid?: boolean;
+  joined?: boolean;
 }
 
 /**
  * Departure/return picker. One field that opens a single month on phones
  * (bottom sheet) and two months on larger screens (popover).
  */
-export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid }: RangeProps) {
+export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid, joined }: RangeProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -147,11 +148,12 @@ export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid 
           label={label}
           placeholder={roundtrip ? t("sw.pickdates") : t("sw.pickdate")}
           invalid={invalid}
+          joined={joined}
           value={summary}
           aria-label={`${label}: ${summary ?? t("sw.pickdate")}`}
           trailing={
             nights > 0 ? (
-              <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline">
+              <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground xl:inline">
                 {t("misc.night", { count: nights })}
               </span>
             ) : undefined

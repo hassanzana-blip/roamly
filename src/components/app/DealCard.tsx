@@ -46,13 +46,12 @@ export default function DealCard({
             <Icon icon={Plane} size={24} />
           </div>
         )}
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-white/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-soft backdrop-blur-sm">
-          {deal.originCity} → {d.city}
-        </span>
       </div>
       <div className="flex items-baseline justify-between gap-2 px-1.5 pt-3">
         <div className="min-w-0">
-          <h3 className="truncate text-[16px] font-semibold leading-tight">{d.city}</h3>
+          <h3 className="truncate text-[16px] font-semibold leading-tight">
+            {deal.originCity} → {d.city}
+          </h3>
           <p className="truncate text-[13px] text-muted-foreground">{d.country}</p>
         </div>
         {price ? (

@@ -662,24 +662,26 @@ export default function SearchResults() {
           )}
 
           {summaryCards.length > 0 && !search.isPending && (
-            <div className={cn("mb-4 grid gap-2 sm:gap-3", summaryCards.length === 4 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-3")}>
+            <div className="no-scrollbar -mx-5 mb-5 flex gap-1 overflow-x-auto border-b border-border px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0" role="radiogroup" aria-label={t("sr.sorting")}>
               {summaryCards.map((s) => (
                 <button
                   key={s.key}
                   type="button"
+                  role="radio"
+                  aria-checked={sort === s.key}
                   onClick={() => setSort(s.key)}
-                  aria-pressed={sort === s.key}
                   aria-label={t("sr.summary.aria", { label: s.label, price: formatMinor(totalOf(s.offer), s.offer.totalCurrency) })}
                   className={cn(
-                    "min-h-11 rounded-xl border p-3 text-left transition-colors sm:p-4",
-                    sort === s.key ? "border-primary/40 bg-primary-soft" : "border-border bg-card hover:border-foreground/30",
+                    "relative -mb-px min-w-0 shrink-0 px-3 py-3 text-left transition-colors duration-fast first:pl-0 sm:px-4",
+                    sort === s.key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <span className="block text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{s.label}</span>
-                  <span className="mt-1 block text-lg font-semibold tabular text-foreground sm:text-xl">{formatMinor(totalOf(s.offer), s.offer.totalCurrency)}</span>
-                  <span className="block truncate text-2xs text-muted-foreground">
+                  <span className="block text-xs font-medium">{s.label}</span>
+                  <span className="mt-0.5 block text-lg font-semibold tabular leading-tight">{formatMinor(totalOf(s.offer), s.offer.totalCurrency)}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
                     {formatDuration(sliceDuration(s.offer))} · {s.offer.owner.name}
                   </span>
+                  {sort === s.key && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary first:inset-x-0" aria-hidden="true" />}
                 </button>
               ))}
             </div>
@@ -697,7 +699,6 @@ export default function SearchResults() {
                   aria-checked={sort === p.key}
                   selected={sort === p.key}
                   onClick={() => setSort(p.key)}
-                  icon={<p.icon />}
                   title={t(p.hint)}
                   className="shrink-0 snap-start"
                 >

@@ -28,7 +28,7 @@ const BRAND_APPEARANCE: Appearance = {
     colorPrimary: "#5F7A05",
     colorText: "#131316",
     colorDanger: "#d0433b",
-    fontFamily: "Inter, system-ui, sans-serif",
+    fontFamily: "Manrope, system-ui, sans-serif",
     borderRadius: "10px",
     spacingUnit: "4px",
   },

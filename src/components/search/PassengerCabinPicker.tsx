@@ -16,6 +16,7 @@ interface Props {
   onAgesChange: (a: PaxAges) => void;
   cabin: CabinClass;
   onCabinChange: (c: CabinClass) => void;
+  joined?: boolean;
 }
 
 const ROWS: { type: PassengerType; hint: I18nKey }[] = [
@@ -62,7 +63,7 @@ function AgeSelect({ value, onChange, options, label, unit }: { value: number; o
   );
 }
 
-export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesChange, cabin, onCabinChange }: Props) {
+export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesChange, cabin, onCabinChange, joined }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const total = paxTotal(pax);
@@ -87,7 +88,7 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
       popoverClassName="w-[22rem]"
       align="end"
       doneLabel={t("sw.done")}
-      trigger={<FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} aria-label={`${t("sw.pax.title")}: ${value}`} />}
+      trigger={<FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} joined={joined} aria-label={`${t("sw.pax.title")}: ${value}`} />}
     >
       <div className="space-y-5 p-4">
         {ROWS.map(({ type, hint }) => {

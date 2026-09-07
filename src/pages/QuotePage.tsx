@@ -251,7 +251,7 @@ export default function QuotePage() {
         )}
 
         {q && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}>
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Tilbud {q.reference}</p>
             <h1 className="mt-2 font-display text-3xl font-semibold text-foreground sm:text-4xl">Hei {q.customerName} – reisen din er klar til bestilling</h1>
             <p className="mt-2 text-muted-foreground">

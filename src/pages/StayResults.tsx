@@ -130,7 +130,7 @@ function BookDialog({
               <button
                 type="submit"
                 disabled={submit.isPending}
-                className="min-h-12 w-full rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50"
+                className="min-h-12 w-full rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {submit.isPending ? "Sender …" : "Send forespørsel"}
               </button>
@@ -184,7 +184,7 @@ function HotelCard({ h, onBook }: { h: HotelItem; onBook: () => void }) {
             <button
               type="button"
               onClick={onBook}
-              className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
+              className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:opacity-90 active:scale-[0.98]"
             >
               Be om tilbud
             </button>
@@ -228,7 +228,7 @@ function CarCard({ c, onBook }: { c: CarItem; onBook: () => void }) {
         <button
           type="button"
           onClick={onBook}
-          className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
+          className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:opacity-90 active:scale-[0.98]"
         >
           Be om tilbud
         </button>

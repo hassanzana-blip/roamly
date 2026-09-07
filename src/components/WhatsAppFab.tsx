@@ -31,12 +31,10 @@ export default function WhatsAppFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Chat med oss på WhatsApp – ${WHATSAPP_DISPLAY}`}
-      className="group fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-0 rounded-full bg-night p-3 text-white shadow-lift transition-all duration-300 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 md:right-6 lg:bottom-6"
+      className="group fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-0 rounded-full bg-night p-3 text-white shadow-lift transition-transform duration-fast ease-out hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 md:right-6 lg:bottom-6"
     >
       <WhatsAppIcon className="h-5 w-5" />
-      <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-300 group-hover:ml-2 group-hover:max-w-[160px]">
-        WhatsApp
-      </span>
+      <span className="sr-only">WhatsApp</span>
       <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
     </a>
   );

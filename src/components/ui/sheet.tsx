@@ -58,7 +58,7 @@ function SheetContent({
         data-side={side}
         className={cn(
           "fixed z-50 flex flex-col bg-card text-card-foreground shadow-lift outline-none",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
           side === "right" &&
             "inset-y-0 right-0 h-full w-[min(22rem,90vw)] border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
           side === "left" &&

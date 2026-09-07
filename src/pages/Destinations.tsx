@@ -101,7 +101,7 @@ export default function Destinations() {
                       <Link
                         key={g.iata}
                         to={searchLink(g.iata)}
-                        className="group inline-flex items-center gap-2 rounded-xl bg-white/15 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-gold"
+                        className="group inline-flex items-center gap-2 rounded-xl bg-white/15 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-gold"
                       >
                         <Plane className="h-3.5 w-3.5" />
                         {g.label}
@@ -155,7 +155,7 @@ export default function Destinations() {
                   </dl>
                   <Link
                     to={searchLink(d.gateways[0].iata)}
-                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-5 py-3 text-sm font-semibold text-white transition-all hover:opacity-90"
+                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-5 py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
                   >
                     Søk fly til {d.gateways[0].label} <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -199,7 +199,7 @@ export default function Destinations() {
                 </div>
                 <div className="mt-5 flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Fra Oslo Gardermoen</span>
-                  <span className="grid h-8 w-8 place-items-center rounded-full border border-border transition-all group-hover:border-gold group-hover:bg-gold group-hover:text-white">
+                  <span className="grid h-8 w-8 place-items-center rounded-full border border-border transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-white">
                     <ArrowUpRight className="h-4 w-4" />
                   </span>
                 </div>
@@ -221,7 +221,7 @@ export default function Destinations() {
           </p>
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-lg bg-gold px-8 py-4 text-base font-semibold text-white transition-all hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-gold px-8 py-4 text-base font-semibold text-white transition-colors hover:opacity-90"
           >
             Søk etter fly nå <ArrowRight className="h-5 w-5" />
           </Link>

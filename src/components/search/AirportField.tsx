@@ -13,9 +13,10 @@ interface Props {
   exclude?: string;
   direction: "from" | "to";
   invalid?: boolean;
+  joined?: boolean;
 }
 
-export default function AirportField({ label, value, onChange, exclude, direction, invalid }: Props) {
+export default function AirportField({ label, value, onChange, exclude, direction, invalid, joined }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -72,6 +73,7 @@ export default function AirportField({ label, value, onChange, exclude, directio
           label={label}
           placeholder={t("sw.pickairport")}
           invalid={invalid}
+          joined={joined}
           aria-label={`${label}: ${value ? `${value.city} (${value.iata})` : t("sw.pickairport")}`}
           value={
             value ? (
