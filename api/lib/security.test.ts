@@ -15,6 +15,7 @@ import { backoffDelayMs, isDuplicateKeyError } from "./jobs";
 import { encryptField, decryptField, maskIdentifier, last4 } from "./crypto";
 import { maskPhone } from "./sms";
 import { sanitizeText } from "../community";
+import { isAllowedOrigin } from "./origin";
 
 describe("RBAC", () => {
   it("alle roller har et tillatelsessett", () => {
@@ -304,5 +305,32 @@ describe("Duffel webhook-signatur", () => {
     const ts = "1700000000";
     const manual = createHmac("sha256", secret).update(`${ts}.${body}`, "utf8").digest("hex");
     expect(signPayload(secret, ts, body)).toBe(manual);
+  });
+});
+
+describe("Origin-kontroll for muterende kall", () => {
+  const h = (init: Record<string, string>) => new Headers(init);
+
+  it("slipper gjennom kall uten Origin (curl, serverkall)", () => {
+    expect(isAllowedOrigin(h({ host: "hellosky.no" }))).toBe(true);
+  });
+
+  it("slipper gjennom samme opprinnelse, uansett hvilket domene appen serveres på", () => {
+    expect(isAllowedOrigin(h({ origin: "https://hellosky.no", host: "hellosky.no" }))).toBe(true);
+    expect(isAllowedOrigin(h({ origin: "https://www.hellosky.no", host: "www.hellosky.no" }))).toBe(true);
+    expect(isAllowedOrigin(h({ origin: "https://hellosky.up.railway.app", host: "hellosky.up.railway.app" }))).toBe(true);
+  });
+
+  it("bruker x-forwarded-host bak proxy", () => {
+    expect(isAllowedOrigin(h({ origin: "https://hellosky.no", host: "intern.railway.internal", "x-forwarded-host": "hellosky.no" }))).toBe(true);
+  });
+
+  it("avviser en annen opprinnelse (CSRF)", () => {
+    expect(isAllowedOrigin(h({ origin: "https://angriper.example", host: "hellosky.no" }))).toBe(false);
+    expect(isAllowedOrigin(h({ origin: "https://hellosky.no.angriper.example", host: "hellosky.no" }))).toBe(false);
+  });
+
+  it("avviser en Origin som ikke kan tolkes", () => {
+    expect(isAllowedOrigin(h({ origin: "null", host: "hellosky.no" }))).toBe(false);
   });
 });

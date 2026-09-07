@@ -5,6 +5,7 @@ import { hasPermission, REAUTH_ACTIONS, type Permission } from "./lib/rbac";
 import { AppError, toTRPCError } from "./lib/errors";
 import { sessionIsFresh } from "./lib/sessions";
 import { log } from "./lib/logger";
+import { isAllowedOrigin, shortOrigin } from "./lib/origin";
 import { captureException } from "./lib/monitoring";
 
 // ─── tRPC-oppsett ────────────────────────────────────────────────────────────
@@ -66,8 +67,23 @@ const errorBoundary = t.middleware(async ({ next }) => {
   return result;
 });
 
+/**
+ * CSRF-forsvar i dybden (OTA-076): muterende kall må komme fra appens egen
+ * opprinnelse. Sjekken ligger her, ikke i Hono, slik at avvisningen går ut som
+ * en ekte tRPC-feil — et rått JSON-svar kan ikke tolkes av klientens
+ * superjson-transformer og gir «Unable to transform response from server».
+ */
+const originGuard = t.middleware(({ ctx, type, next }) => {
+  if (type === "mutation" && ctx.req && !isAllowedOrigin(ctx.req.headers)) {
+    log.warn({ origin: shortOrigin(ctx.req.headers), requestId: ctx.requestId }, "avvist: ukjent Origin");
+    const message = "Forespørselen kom fra en ukjent opprinnelse.";
+    throw new TRPCError({ code: "FORBIDDEN", message, cause: new AppError("FORBIDDEN", { message }) });
+  }
+  return next();
+});
+
 /** Basisprosedyre — alle prosedyrer bruker denne (feilhåndtering inkludert). */
-export const publicQuery = t.procedure.use(errorBoundary);
+export const publicQuery = t.procedure.use(errorBoundary).use(originGuard);
 export const baseProcedure = publicQuery;
 
 const unauthorized = (message = "Du må være logget inn.") => new TRPCError({ code: "UNAUTHORIZED", message, cause: new AppError("UNAUTHORIZED", { message }) });

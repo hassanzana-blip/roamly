@@ -103,24 +103,10 @@ app.get("/metrics", (c) => {
 app.route("/api/webhooks/stripe", stripeWebhookApp);
 app.route("/api/webhooks/duffel", duffelWebhookApp);
 
-// ─── Origin-sjekk for muterende tRPC-kall (CSRF-forsvar i dybden, OTA-076) ──
-// Cookies er SameSite, men Origin-sjekken stopper også eldre nettlesere og
-// subdomene-angrep. Uten Origin-header (samme-opphav GET, curl) slipper vi
-// gjennom — tRPC-mutasjoner sendes alltid av nettleseren med Origin.
-const allowedOrigins = new Set<string>([new URL(env.baseUrl).origin]);
-if (!env.isProduction) {
-  for (const o of ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"]) allowedOrigins.add(o);
-}
-app.use("/api/trpc/*", async (c, next) => {
-  if (c.req.method !== "GET" && c.req.method !== "HEAD" && c.req.method !== "OPTIONS") {
-    const origin = c.req.header("origin");
-    if (origin && !allowedOrigins.has(origin)) {
-      log.warn({ origin: origin.slice(0, 120), path: c.req.path }, "avvist: ukjent Origin");
-      return c.json({ error: "Ugyldig opprinnelse" }, 403);
-    }
-  }
-  await next();
-});
+// ─── Origin-sjekk for muterende tRPC-kall ────────────────────────────────────
+// Ligger i tRPC-laget (api/middleware.ts → originGuard), ikke her: et rått
+// 403-svar herfra er ikke en tRPC-konvolutt, og klientens superjson-transformer
+// klarer ikke å tolke det («Unable to transform response from server»).
 
 app.use("/api/trpc/*", async (c) => {
   return fetchRequestHandler({
