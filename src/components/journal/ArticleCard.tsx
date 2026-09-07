@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const fmtDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "short", year: "numeric" });
 
 /** Ett bilde eller én typografisk flate; aldri et tomt grått felt. */
-export function ArticleCover({ a, className, sizes }: { a: Article; className?: string; sizes?: string }) {
+export function ArticleCover({ a, className, sizes, wide = false }: { a: Article; className?: string; sizes?: string; wide?: boolean }) {
   const dest = a.hero ? destinationById(a.hero) : undefined;
   if (dest?.image) {
     return (
@@ -25,9 +25,9 @@ export function ArticleCover({ a, className, sizes }: { a: Article; className?: 
     );
   }
   return (
-    <span className={cn("relative flex h-full w-full flex-col justify-end overflow-hidden bg-night p-5 text-white", className)} aria-hidden="true">
+    <span className={cn("relative flex h-full w-full flex-col justify-end overflow-hidden bg-night text-white", wide ? "p-6 sm:p-10" : "p-5", className)} aria-hidden="true">
       <SkyMark className="absolute -right-8 -top-10 h-[140%] w-auto text-primary opacity-[0.18]" />
-      <span className="relative font-display text-[22px] leading-tight sm:text-[24px]">{a.title}</span>
+      <span className={cn("relative font-display leading-tight", wide ? "max-w-3xl text-[28px] sm:text-[44px] sm:leading-[1.05]" : "text-[22px] sm:text-[24px]")}>{a.title}</span>
     </span>
   );
 }
@@ -49,8 +49,8 @@ export default function ArticleCard({ a, className, wide = false }: { a: Article
   const hasPhoto = Boolean(dest?.image);
   return (
     <Link to={`/journal/${a.slug}`} className={cn("press group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}>
-      <span className={cn("relative block overflow-hidden rounded-xl bg-muted", wide ? "aspect-[16/9]" : "aspect-[4/3]")}>
-        <ArticleCover a={a} sizes={wide ? "(max-width: 1024px) 100vw, 1024px" : undefined} />
+      <span className={cn("relative block overflow-hidden rounded-xl bg-muted", wide ? (hasPhoto ? "aspect-[16/9]" : "aspect-[16/9] sm:aspect-[21/9]") : "aspect-[4/3]")}>
+        <ArticleCover a={a} wide={wide} sizes={wide ? "(max-width: 1024px) 100vw, 1024px" : undefined} />
       </span>
       <span className="block px-1 pt-3">
         <ArticleMeta a={a} />
