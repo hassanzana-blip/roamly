@@ -558,6 +558,13 @@ export async function travelportProbeVariants(): Promise<void> {
       const offerings = parsed.CatalogProductOfferingsResponse?.CatalogProductOfferings?.CatalogProductOffering?.length ?? 0;
       const offers = mapSearchResponse(parsed, search);
       log.info({ case: c.name, offerings, mapped: offers.length, sample: offers[0] ? `${offers[0].totalAmount} ${offers[0].totalCurrency}` : null }, "Travelport-rute");
+      if (offerings > 0 && offers.length === 0) {
+        // NDC-svaret har innhold, men kartleggingen fant ingenting. Logg
+        // strukturen (testdata, ingen persondata) så feltnavnene kan rettes.
+        const first = parsed.CatalogProductOfferingsResponse?.CatalogProductOfferings?.CatalogProductOffering?.[0];
+        const refTypes = (parsed.CatalogProductOfferingsResponse?.ReferenceList ?? []).map((r) => r["@type"] ?? "?");
+        log.info({ case: c.name, refTypes, offering: JSON.stringify(first).slice(0, 1800) }, "Travelport-struktur");
+      }
       if (offers.length > 0) {
         log.info({ case: c.name, offers: offers.length, first: offers[0] }, "Travelport: EKTE TILBUD KARTLAGT");
         return;
