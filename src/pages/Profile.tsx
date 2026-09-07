@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, Bell, Car, ChevronRight, CircleHelp, Gift, Globe, Heart, LogOut, Luggage, Mail, MailWarning, MessagesSquare, Moon, Plane, Radar, ShieldCheck, Sparkles, TrendingDown, UserPen, UserRound, Users, Wallet } from "lucide-react";
+import { ArrowRight, Bell, Car, ChevronRight, CircleHelp, Gift, Globe, Heart, LayoutGrid, LogOut, Luggage, Mail, MailWarning, MessagesSquare, Moon, Plane, Radar, ShieldCheck, Sparkles, TrendingDown, UserPen, UserRound, Users, Wallet } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
@@ -198,6 +198,8 @@ export default function Profile() {
             <ul className="flex flex-col gap-2">
               <AccountRow to="/profil/reiseprofil" icon={Sparkles} title={t("acct.travelprofile")} sub={h ? t("tpf.completeness", { pct: h.profile.completeness }) : t("acct.travelprofilesub")} />
               <AccountRow to="/lagret" icon={Heart} title={t("acct.saved")} sub={h && h.savedCount > 0 ? t("acct.savedsub", { count: h.savedCount }) : t("acct.savedempty")} />
+              <AccountRow to="/tavler" icon={LayoutGrid} title="Reisetavler" sub="Planlegg en tur sammen — stem og del" />
+              <AccountRow to="/quiz" icon={Sparkles} title="ReiseMatch" sub="Alene, som par eller med gjengen" />
               <AccountRow to="/profil/varsler" icon={Bell} title={t("acct.notifications")} sub={t("acct.notificationssub")} badge={<CountBadge n={h?.unreadNotifications ?? 0} />} />
               <AccountRow to="/profil/bonus" icon={Wallet} title={t("acct.rewards")} sub={t("acct.rewardssub", { balance: customer.bonusKr ?? 0, tier: h?.rewards.tier.name ?? "Explorer" })} />
               <AccountRow to="/profil/inviter" icon={Gift} title={t("acct.invite")} sub={t("profile.invitesub")} />

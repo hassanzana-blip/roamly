@@ -96,12 +96,12 @@ export default function SiteFooter() {
   const paymentsConfigured = status.data?.paymentsConfigured === true;
 
   return (
-    <footer className="relative border-t border-border bg-card">
+    <footer className="relative border-t border-border bg-card text-foreground">
       <div className="container-x grid gap-x-10 gap-y-8 pt-14 md:grid-cols-[1.4fr_1fr_1fr]">
         <div className="md:col-start-1 md:row-start-1">
           <div className="flex items-center gap-2">
             <SkyMark className="h-8 w-8 text-foreground" />
-            <span className="text-[22px] font-extrabold lowercase tracking-tight">hellosky</span>
+            <span className="text-[22px] font-extrabold lowercase tracking-tight text-foreground">hellosky</span>
           </div>
           <p className="font-display mt-4 text-2xl text-foreground">{t("footer.tagline")}</p>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">{t("footer.blurb")}</p>
@@ -123,7 +123,7 @@ export default function SiteFooter() {
             href={FACEBOOK_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-background px-3.5 text-sm font-medium transition-colors hover:border-foreground/30"
+            className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-background px-3.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
           >
             <Facebook className="size-4" aria-hidden="true" /> {t("footer.facebook")}
           </a>

@@ -40,6 +40,9 @@ const Security = lazy(() => import('./pages/account/Security'))
 const Rewards = lazy(() => import('./pages/account/Rewards'))
 const Referral = lazy(() => import('./pages/account/Referral'))
 const Trips = lazy(() => import('./pages/Trips'))
+const MatchSession = lazy(() => import('./pages/MatchSession'))
+const Boards = lazy(() => import('./pages/Boards'))
+const BoardPage = lazy(() => import('./pages/Board'))
 const VerifyEmail = lazy(() => import('./pages/account/VerifyEmail'))
 const Receipt = lazy(() => import('./pages/account/Receipt'))
 const Terms = lazy(() => import('./pages/content/Terms'))
@@ -105,6 +108,10 @@ export default function App() {
             <Route path="/hjelp" element={<Support />} />
             <Route path="/reisemal" element={<Destinations />} />
             <Route path="/quiz" element={<Quiz />} />
+            <Route path="/quiz/:mode" element={<Quiz />} />
+            <Route path="/m/:token" element={<MatchSession />} />
+            <Route path="/tavler" element={<Boards />} />
+            <Route path="/tavler/:token" element={<BoardPage />} />
             <Route path="/hotell-bil" element={<HotelCar />} />
             <Route path="/overnatting-bil" element={<StayResults />} />
             <Route path="/tilbud/:token" element={<QuotePage />} />

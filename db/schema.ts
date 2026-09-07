@@ -1170,3 +1170,136 @@ export const rewardEvents = mysqlTable(
   },
   (t) => [index("idx_reward_customer").on(t.customerId, t.createdAt), uniqueIndex("uq_reward_ref").on(t.kind, t.refType, t.refId)],
 );
+
+// ─── ReiseMatch: par og venner ───────────────────────────────────────────────
+// En økt deles med lenke (token). Deltakerne svarer hver for seg; svarene
+// ligger i JSON og vises aldri rått til de andre — bare enigheten og
+// kandidatene. Budsjett deles kun hvis deltakeren selv sa ja.
+
+export const matchSessions = mysqlTable(
+  "match_sessions",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    token: varchar("token", { length: 32 }).notNull(),
+    /** couple | friends */
+    mode: varchar("mode", { length: 12 }).notNull(),
+    title: varchar("title", { length: 80 }).notNull(),
+    ownerCustomerId: ref("owner_customer_id").references((): AnyMySqlColumn => customerAccounts.id),
+    /** Hemmelig eier-nøkkel (hash) for gjester uten konto. */
+    ownerKeyHash: varchar("owner_key_hash", { length: 64 }),
+    /** Vennerom: valgt reisemål når gruppen har bestemt seg. */
+    decidedDestinationId: varchar("decided_destination_id", { length: 40 }),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_match_token").on(t.token), index("idx_match_owner").on(t.ownerCustomerId)],
+);
+
+export const matchParticipants = mysqlTable(
+  "match_participants",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    sessionId: ref("session_id").references((): AnyMySqlColumn => matchSessions.id).notNull(),
+    name: varchar("name", { length: 40 }).notNull(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id),
+    /** Deltakerens egen nøkkel (hash) — for å redigere sine svar/stemmer uten konto. */
+    keyHash: varchar("key_hash", { length: 64 }).notNull(),
+    answersJson: text("answers_json").notNull(),
+    shareBudget: boolean("share_budget").notNull().default(false),
+    /** Datoer deltakeren ikke kan: [{ from, to }] */
+    unavailableJson: text("unavailable_json"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_matchpart_session").on(t.sessionId)],
+);
+
+export const matchVotes = mysqlTable(
+  "match_votes",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    sessionId: ref("session_id").references((): AnyMySqlColumn => matchSessions.id).notNull(),
+    participantId: ref("participant_id").references((): AnyMySqlColumn => matchParticipants.id).notNull(),
+    destinationId: varchar("destination_id", { length: 40 }).notNull(),
+    /** 1 = for, -1 = mot */
+    value: int("value").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_matchvote").on(t.participantId, t.destinationId), index("idx_matchvote_session").on(t.sessionId)],
+);
+
+export const matchComments = mysqlTable(
+  "match_comments",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    sessionId: ref("session_id").references((): AnyMySqlColumn => matchSessions.id).notNull(),
+    participantId: ref("participant_id").references((): AnyMySqlColumn => matchParticipants.id).notNull(),
+    body: varchar("body", { length: 500 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_matchcomment_session").on(t.sessionId, t.createdAt)],
+);
+
+// ─── Reisetavler ─────────────────────────────────────────────────────────────
+// «Ibiza med gutta», «Familie Kurdistan». Eieren har konto; tavla deles med
+// privat lenke. Gjester med lenken kan stemme og kommentere med navn.
+
+export const tripBoards = mysqlTable(
+  "trip_boards",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    token: varchar("token", { length: 32 }).notNull(),
+    ownerCustomerId: ref("owner_customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    title: varchar("title", { length: 80 }).notNull(),
+    /** Destinasjons-id hvis tavla har et forsidebilde fra innholdet vårt. */
+    coverDestinationId: varchar("cover_destination_id", { length: 40 }),
+    /** Valgfri periode: fri tekst («Sommer 2027», «18.–21. oktober»). */
+    when: varchar("when_text", { length: 60 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (t) => [uniqueIndex("uq_board_token").on(t.token), index("idx_board_owner").on(t.ownerCustomerId)],
+);
+
+export const tripBoardItems = mysqlTable(
+  "trip_board_items",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    boardId: ref("board_id").references((): AnyMySqlColumn => tripBoards.id).notNull(),
+    /** destination | flight | article | note */
+    kind: varchar("kind", { length: 16 }).notNull(),
+    refId: varchar("ref_id", { length: 120 }),
+    /** Øyeblikksbilde: rute, dato, pris sett da, tittel … */
+    payloadJson: text("payload_json"),
+    note: varchar("note", { length: 500 }),
+    addedByName: varchar("added_by_name", { length: 40 }),
+    addedByCustomerId: ref("added_by_customer_id").references((): AnyMySqlColumn => customerAccounts.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_boarditem_board").on(t.boardId, t.createdAt)],
+);
+
+export const tripBoardVotes = mysqlTable(
+  "trip_board_votes",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    itemId: ref("item_id").references((): AnyMySqlColumn => tripBoardItems.id).notNull(),
+    /** Stabil nøkkel per stemmegiver: konto-id eller nettleserens nøkkel (hash). */
+    voterKey: varchar("voter_key", { length: 64 }).notNull(),
+    voterName: varchar("voter_name", { length: 40 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_boardvote").on(t.itemId, t.voterKey)],
+);
+
+export const tripBoardComments = mysqlTable(
+  "trip_board_comments",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    boardId: ref("board_id").references((): AnyMySqlColumn => tripBoards.id).notNull(),
+    authorName: varchar("author_name", { length: 40 }).notNull(),
+    authorCustomerId: ref("author_customer_id").references((): AnyMySqlColumn => customerAccounts.id),
+    body: varchar("body", { length: 500 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_boardcomment_board").on(t.boardId, t.createdAt)],
+);

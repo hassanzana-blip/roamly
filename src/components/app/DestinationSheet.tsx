@@ -9,6 +9,7 @@ import { trpc } from "@/providers/trpc";
 import { departDate, searchHref, VISA_NOTES, type DiscoverDestination } from "@/content/discover";
 import { VisaStampGlyph } from "@/components/graphics";
 import { useSavedDestinations } from "@/lib/useAccount";
+import AddToBoard from "@/components/account/AddToBoard";
 
 /**
  * DestinationSheet — native quick-view when a destination card is tapped.
@@ -81,11 +82,14 @@ export default function DestinationSheet({
             />
           </div>
 
-          <div>
-            <h3 className="font-display text-2xl tracking-tight">{d.city}</h3>
-            <p className="mt-0.5 text-[14px] text-muted-foreground">
-              {d.country} · {d.tagline}
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-display text-2xl tracking-tight">{d.city}</h3>
+              <p className="mt-0.5 text-[14px] text-muted-foreground">
+                {d.country} · {d.tagline}
+              </p>
+            </div>
+            <AddToBoard kind="destination" refId={d.id} className="shrink-0" />
           </div>
 
           {VISA_NOTES[d.id] && (
