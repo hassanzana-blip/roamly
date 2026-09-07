@@ -141,8 +141,22 @@ if (env.isProduction || process.env.FORCE_SERVE === "true") {
     if (process.env.TRAVELPORT_PROBE_ON_BOOT === "true") {
       void (async () => {
         try {
-          const { travelportProbeVariants } = await import("./lib/travelport");
-          await travelportProbeVariants();
+          const { travelportSearch } = await import("./lib/travelport");
+          const departureDate = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+          const result = await travelportSearch({
+            slices: [{ origin: "JFK", destination: "LAX", departureDate }],
+            passengers: [{ type: "adult" }],
+            cabinClass: "economy",
+          });
+          const first = result.offers[0];
+          log.info(
+            {
+              offers: result.offers.length,
+              liveMode: result.liveMode,
+              first: first ? `${first.slices[0].segments.map((sg) => sg.flightNumber).join(">")} ${first.totalAmount} ${first.totalCurrency}` : null,
+            },
+            "Travelport-sonde: ekte søkevei",
+          );
         } catch (err) {
           log.error({ err: String(err) }, "Travelport-sonde: søk feilet");
         }
