@@ -85,7 +85,7 @@ export default function About() {
           skriv til oss på WhatsApp — vi svarer raskt.
         </p>
         <p className="text-[13px]">
-          {COMPANY.legalName} · {COMPANY.orgNumberLabel} · {COMPANY.address}
+          {COMPANY.identityLine}
         </p>
         <Link
           to="/hjelp"

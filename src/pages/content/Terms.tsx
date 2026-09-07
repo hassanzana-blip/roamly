@@ -21,7 +21,7 @@ export default function Terms() {
     >
       <Section title="1. Hvem du inngår avtale med" id="avtalepart">
         <p>
-          {COMPANY.legalName} ({COMPANY.orgNumberLabel}, {COMPANY.address}) er et norsk reisebyrå som formidler
+          {COMPANY.identityLine} er et norsk reisebyrå som formidler
           flybilletter. Når du bestiller hos oss, kjøper du billetten gjennom oss som mellommann — selve flyreisen
           utføres av flyselskapet, og flyselskapets befordringsvilkår gjelder for gjennomføringen av reisen.
           Flyinnhold og utstedelse leveres teknisk via vår leverandør Duffel.

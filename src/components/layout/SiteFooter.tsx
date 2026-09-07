@@ -108,7 +108,7 @@ export default function SiteFooter() {
       </div>
 
       <div className="container-x mt-10 border-t border-border py-5 text-center text-xs leading-relaxed text-muted-foreground">
-        © {new Date().getFullYear()} {COMPANY.legalName} · {COMPANY.orgNumberLabel} · {COMPANY.address} · {t("footer.copy")}
+        © {new Date().getFullYear()} {COMPANY.identityLine} · {t("footer.copy")}
         <span className="mx-2 text-muted-foreground/60">·</span>
         {t("footer.photo")}
       </div>

@@ -21,7 +21,7 @@ export default function Privacy() {
     >
       <Section title="1. Behandlingsansvarlig" id="behandlingsansvarlig">
         <p>
-          {COMPANY.legalName} ({COMPANY.orgNumberLabel}), {COMPANY.address}, er behandlingsansvarlig for
+          {COMPANY.identityLine}, er behandlingsansvarlig for
           personopplysninger som samles inn gjennom hellosky.no og tilhørende tjenester. Spørsmål om personvern
           sendes til{" "}
           <a href={`mailto:${COMPANY.privacyEmail}`} className="font-semibold text-foreground underline underline-offset-2">

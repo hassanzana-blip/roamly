@@ -77,12 +77,14 @@ const dict = {
 
   // ── Footer ─────────────────────────────────────────────────────────────
   "footer.tagline": { nb: "Hele verden. Nærmere.", en: "The whole world. Closer.", sv: "Hela världen. Närmare.", da: "Hele verden. Tættere på.", de: "Die ganze Welt. Näher." },
+  // Ingen påstand om «hele markedet» eller «under to minutter»: vi kan ikke
+  // dokumentere noen av delene, og feil løfte er verre enn ingen løfte.
   "footer.blurb": {
-    nb: "Vi gjør det like enkelt å fly som å drømme om det. Søk i hele markedet, book på under to minutter og få hjelp av ekte mennesker når du trenger det.",
-    en: "We make flying as easy as dreaming about it. Search the whole market, book in under two minutes and get help from real people when you need it.",
-    sv: "Vi gör det lika enkelt att flyga som att drömma om det. Sök i hela marknaden, boka på under två minuter och få hjälp av riktiga människor.",
-    da: "Vi gør det lige så nemt at flyve som at drømme om det. Søg i hele markedet, book på under to minutter og få hjælp af rigtige mennesker.",
-    de: "Wir machen Fliegen so einfach wie das Träumen davon. Durchsuchen Sie den gesamten Markt, buchen Sie in unter zwei Minuten und erhalten Sie Hilfe von echten Menschen.",
+    nb: "Vi kan reisene hjem — til familie, til høytider, med bagasje som faktisk må være med. Totalprisen står der fra første søk, og du får hjelp av ekte mennesker.",
+    en: "We know journeys home — to family, for holidays, with the baggage that has to come along. The total price is there from the first search, and real people help when you need it.",
+    sv: "Vi kan resorna hem — till familjen, till högtiderna, med bagaget som faktiskt måste med. Totalpriset står där från första sökningen, och riktiga människor hjälper dig.",
+    da: "Vi kender rejserne hjem — til familien, til højtiderne, med den bagage der skal med. Totalprisen står der fra første søgning, og rigtige mennesker hjælper dig.",
+    de: "Wir kennen die Reisen nach Hause — zur Familie, zu den Feiertagen, mit dem Gepäck, das mit muss. Der Gesamtpreis steht ab der ersten Suche, und echte Menschen helfen.",
   },
   "footer.trust": { nb: "Sikker betaling via Stripe · Bekreftelse på e-post · Norsk kundeservice", en: "Secure payment via Stripe · Confirmation by e-mail · Norwegian customer service", sv: "Säker betalning via Stripe · Bekräftelse via e-post · Nordisk kundservice", da: "Sikker betaling via Stripe · Bekræftelse på e-mail · Nordisk kundeservice", de: "Sichere Zahlung über Stripe · Bestätigung per E-Mail · Kundenservice" },
   "footer.paywith": { nb: "Betal med", en: "Pay with", sv: "Betala med", da: "Betal med", de: "Bezahlen mit" },
@@ -147,10 +149,17 @@ const dict = {
   "home.tab.flight": { nb: "Fly", en: "Flights" },
   "home.tab.hotel": { nb: "Hotell", en: "Hotels" },
   "home.tab.car": { nb: "Leiebil", en: "Car rental" },
-  "home.sub": { nb: "Søk i hele markedet, se totalprisen med en gang og få hjelp av ekte mennesker.", en: "Search the whole market, see the total price up front and get help from real people." },
+  "home.sub": { nb: "Se totalprisen med en gang — med bagasje og gebyrer. Og få hjelp av ekte mennesker.", en: "See the total price up front, baggage and fees included. And get help from real people." },
   "home.trust": { nb: "Sikker betaling via Stripe. Norsk kundeservice alle dager 06–24.", en: "Secure payment via Stripe. Norwegian customer service every day 06–24." },
-  "home.recommended": { nb: "Anbefalt for deg", en: "Recommended for you" },
-  "home.deals": { nb: "Gode tilbud", en: "Great deals" },
+  // Ikke personalisert — en redaksjonell liste. «For deg» ville lovet noe
+  // produktet ikke gjør.
+  "home.recommended": { nb: "Reisemål vi kan godt", en: "Destinations we know well" },
+  "home.deals": { nb: "Populære ruter fra Norge", en: "Popular routes from Norway" },
+  "home.quiz.title": { nb: "Usikker på hvor du vil?", en: "Not sure where to go?" },
+  "home.quiz.body": { nb: "Svar på noen korte spørsmål, så finner vi reiser som passer deg.", en: "Answer a few short questions and we will find trips that suit you." },
+  "home.quiz.cta": { nb: "Finn min reise", en: "Find my trip" },
+  "home.help.title": { nb: "Snakk med et menneske", en: "Talk to a person" },
+  "home.help.body": { nb: "Usikker på bagasje, mellomlanding eller hvem som kan reise? Skriv til oss, så svarer vi på norsk.", en: "Unsure about baggage, connections or who can travel? Message us and we answer in Norwegian." },
   "home.seeall": { nb: "Se alle", en: "See all" },
   "home.recent": { nb: "Siste søk", en: "Recent searches" },
   "home.paylater": { nb: "Book nå, betal senere med Klarna", en: "Book now, pay later with Klarna" },

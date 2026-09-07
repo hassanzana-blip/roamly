@@ -6,7 +6,6 @@ import { GreetingBar } from "@/components/app/TopBar";
 import PillTabs from "@/components/app/PillTabs";
 import SearchWidget from "@/components/search/SearchWidget";
 import DestinationSheet from "@/components/app/DestinationSheet";
-import DestinationCard from "@/components/travel/DestinationCard";
 import DealCard from "@/components/app/DealCard";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -14,12 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useFavourites } from "@/lib/favourites";
 import { loadRecentSearches, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
-import { useRoutePrice } from "@/lib/useRoutePrice";
 import { useT, type I18nKey } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
-import { DEAL_ROUTES, RECOMMENDED_DESTINATIONS, type DiscoverDestination } from "@/content/discover";
+import { DEAL_ROUTES, type DiscoverDestination } from "@/content/discover";
+import { WHATSAPP_DISPLAY, WHATSAPP_LINK, WhatsAppIcon } from "@/components/WhatsAppFab";
 
 const TABS: { id: string; label: I18nKey; icon: typeof Plane }[] = [
   { id: "fly", label: "home.tab.flight", icon: Plane },
@@ -106,18 +104,11 @@ function HotelCarSearch({ kind }: { kind: "hotell" | "leiebil" }) {
   );
 }
 
-/** Recommended card with a live «from» price line (null-safe: hides when absent). */
-function RecommendedCard({ d, favs, toggle, onOpen }: { d: DiscoverDestination; favs: Set<string>; toggle: (id: string) => void; onOpen: (d: DiscoverDestination) => void }) {
-  const price = useRoutePrice("OSL", d.iata);
-  return <DestinationCard destination={d} isFavourite={favs.has(d.id)} onToggleFavourite={toggle} onOpen={onOpen} price={price} />;
-}
-
 export default function Home() {
   usePageMeta(PAGE_META.home);
   const t = useT();
   const [tab, setTab] = useState("fly");
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
-  const [favs, toggleFav] = useFavourites();
   const [recent] = useState<RecentSearch[]>(() => loadRecentSearches());
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -181,10 +172,30 @@ export default function Home() {
         {/* One plain trust line: real facts only */}
         <p className="mt-4 text-sm text-muted-foreground">{t("home.trust")}</p>
 
-        {/* Recommended for you */}
+        {/* Én invitasjon til Travel Match — ved siden av søket, aldri i veien for det. */}
+        <section className="mt-8 rounded-xl border border-border bg-card p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="font-display text-xl text-foreground">{t("home.quiz.title")}</h2>
+              <p className="mt-1 max-w-md text-sm text-muted-foreground">{t("home.quiz.body")}</p>
+            </div>
+            <Link
+              to="/quiz"
+              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-foreground bg-foreground px-4 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+            >
+              {t("home.quiz.cta")} <Icon icon={ArrowRight} size={16} />
+            </Link>
+          </div>
+        </section>
+
+        {/*
+          Én oppdagelsesseksjon, ikke to. Rutene under viser ekte «fra»-priser
+          fra vårt eget prissøk; reisemålene uten pris lå tidligere i en egen
+          karusell med de samme bildene, noe som bare gjentok seg selv.
+        */}
         <section className="mt-12">
           <SectionHeader
-            title={t("home.recommended")}
+            title={t("home.deals")}
             action={
               <Link to="/utforsk" className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">
                 {t("home.seeall")} <Icon icon={ArrowRight} size={16} />
@@ -192,22 +203,27 @@ export default function Home() {
             }
           />
           <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
-            {RECOMMENDED_DESTINATIONS.map((d) => (
-              <RecommendedCard key={d.id} d={d} favs={favs} toggle={toggleFav} onOpen={setQuickView} />
-            ))}
-          </div>
-        </section>
-
-        {/* Good deals: indicative prices from the price search, never fabricated */}
-        <section className="mt-12">
-          <SectionHeader title={t("home.deals")} />
-          <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
             {DEAL_ROUTES.map((deal) => (
               <DealCard key={deal.id} deal={deal} onOpen={setQuickView} />
             ))}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">«Fra»-priser hentes fra vårt eget prissøk og er veiledende. Endelig pris ser du i søkeresultatet.</p>
+          <p className="mt-3 text-xs text-muted-foreground">«Fra»-priser hentes fra vårt eget prissøk og er veiledende. Endelig pris, bagasje og gebyrer ser du i søkeresultatet.</p>
         </section>
+
+        {/* Menneskene bak. Ingen bilder her før de ansatte har godkjent egne. */}
+        <section className="mt-12 rounded-xl border border-border bg-muted/40 p-5 sm:p-6">
+          <h2 className="font-display text-xl text-foreground">{t("home.help.title")}</h2>
+          <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted-foreground">{t("home.help.body")}</p>
+          <a
+            href={WHATSAPP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold transition-colors hover:border-foreground/30"
+          >
+            <WhatsAppIcon className="h-4 w-4" /> WhatsApp {WHATSAPP_DISPLAY}
+          </a>
+        </section>
+
       </AppShell>
 
       <div className="mt-16">
