@@ -144,7 +144,7 @@ export default function Auth() {
 
   return (
     <div className="min-h-[100dvh] bg-background">
-      <AppShell className="max-w-md">
+      <AppShell bleed className="mx-auto w-full max-w-md px-5 sm:px-8">
         <div
           className="flex items-center justify-between pb-6"
           style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}

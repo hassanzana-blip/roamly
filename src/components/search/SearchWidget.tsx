@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeftRight, Plus, Search, X } from "lucide-react";
 import AirportField from "./AirportField";
@@ -20,9 +20,11 @@ interface Props {
   /** "hero" is the large homepage form; "compact" is the edit form on results */
   variant?: "hero" | "compact";
   onSubmitted?: () => void;
+  /** Rendered on the same row as the trip-type control (e.g. product tabs on the front page). */
+  leading?: ReactNode;
 }
 
-export default function SearchWidget({ initial, variant = "hero", onSubmitted }: Props) {
+export default function SearchWidget({ initial, variant = "hero", onSubmitted, leading }: Props) {
   const t = useT();
   const navigate = useNavigate();
   const [state, setState] = useState<SearchParamsState>(() => ({
@@ -105,7 +107,10 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted }:
       aria-label={t("sw.aria")}
       className={cn("w-full", variant === "compact" && "rounded-xl border border-border bg-card p-3 sm:p-4")}
     >
-      <Segmented aria-label={t("sw.triptype")} value={state.tripType} onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))} options={TRIP_TYPES} className="w-auto" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {leading}
+        <Segmented aria-label={t("sw.triptype")} value={state.tripType} onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))} options={TRIP_TYPES} className="w-auto" size={variant === "hero" ? "md" : "sm"} />
+      </div>
 
       {isMulti ? (
         <div className="mt-3 space-y-3">
@@ -158,8 +163,8 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted }:
           />
         </div>
       ) : (
-        <div className="mt-3 overflow-hidden rounded-xl border border-input bg-card shadow-xs">
-          <div className="grid divide-y divide-border md:grid-cols-[1fr_1fr_1.35fr_1.05fr] md:divide-x md:divide-y-0">
+        <div className={cn("mt-3 overflow-hidden rounded-xl border border-input bg-card", variant === "hero" && "lg:[--field-h:4rem]")}>
+          <div className={cn("grid divide-y divide-border md:divide-x md:divide-y-0", variant === "hero" ? "md:grid-cols-[1fr_1fr_1.35fr_1.05fr] lg:grid-cols-[1fr_1fr_1.35fr_1.05fr_auto]" : "md:grid-cols-[1fr_1fr_1.35fr_1.05fr]")}>
             {/* Origin + destination with a swap control on the seam */}
             <div className="relative grid divide-y divide-border md:col-span-2 md:grid-cols-2 md:divide-x md:divide-y-0">
               <AirportField
@@ -214,6 +219,14 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted }:
               onCabinChange={(c) => setState((s) => ({ ...s, cabin: c }))}
               joined
             />
+            {variant === "hero" && (
+              <div className="hidden lg:flex">
+                <Button type="submit" size="xl" className="h-full min-h-[var(--field-h,3.5rem)] rounded-none px-6">
+                  <Search />
+                  {t("sw.submit")}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -240,7 +253,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted }:
         </p>
       )}
 
-      <Button type="submit" size="xl" className="mt-4 w-full md:mt-5 md:w-auto md:min-w-64">
+      <Button type="submit" size="xl" className={cn("mt-4 w-full md:mt-5 md:w-auto md:min-w-64", variant === "hero" && !isMulti && "lg:hidden")}>
         <Search />
         {t("sw.submit")}
       </Button>

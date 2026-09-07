@@ -206,6 +206,7 @@ const dict = {
   "home.trust.4": { nb: "Mennesker som svarer på norsk", en: "People who answer in Norwegian" },
   "home.seeall": { nb: "Se alle", en: "See all" },
   "home.recent": { nb: "Siste søk", en: "Recent searches" },
+  "home.hero.photo": { nb: "Flyvinge over skyene i solnedgang", en: "Aircraft wing above the clouds at sunset" },
   "home.paylater": { nb: "Book nå, betal senere med Klarna", en: "Book now, pay later with Klarna" },
 
   // ── Explore / Saved ────────────────────────────────────────────────────

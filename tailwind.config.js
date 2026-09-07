@@ -6,8 +6,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Manrope", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-        display: ["Newsreader", "Iowan Old Style", "Times New Roman", "Georgia", "serif"],
+        sans: ["Manrope Variable", "Manrope", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        display: ["Newsreader Variable", "Newsreader", "Iowan Old Style", "Times New Roman", "Georgia", "serif"],
       },
       colors: {
         gold: "hsl(var(--gold))",
@@ -76,7 +76,7 @@ module.exports = {
         md: "10px",
         lg: "var(--radius)",
         xl: "16px",
-        "2xl": "18px",
+        "2xl": "16px",
         "3xl": "20px",
       },
       boxShadow: {
@@ -93,7 +93,8 @@ module.exports = {
         "safe-b": "env(safe-area-inset-bottom)",
       },
       transitionTimingFunction: {
-        out: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        out: "cubic-bezier(0.23, 1, 0.32, 1)",
+        "in-out": "cubic-bezier(0.77, 0, 0.175, 1)",
       },
       transitionDuration: {
         fast: "150ms",

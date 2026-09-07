@@ -55,8 +55,9 @@
     --dur-fast: 150ms;
     --dur-base: 220ms;
     --dur-slow: 320ms;
-    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
     /* Legacy slot names — kept so existing components compile. */
     --gold: 74 93% 54%;
@@ -136,7 +137,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     font-feature-settings: "calt", "tnum";
     font-weight: 400;
     line-height: 1.5;
@@ -174,12 +175,37 @@
   button:disabled, [aria-disabled="true"] {
     cursor: not-allowed;
   }
+  /* Browser surfaces belong to the design too: thin, quiet scrollbars. */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--foreground) / 0.22) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--foreground) / 0.22);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  /* Photos never render as broken-image icons: a quiet fill until decoded. */
+  img {
+    background-color: hsl(var(--muted));
+  }
+  img[src$=".svg"], img[src^="data:"] {
+    background-color: transparent;
+  }
 }
 
 @layer utilities {
   /* Display type: editorial serif for headlines only */
   .font-display {
-    font-family: "Newsreader", "Iowan Old Style", "Times New Roman", Georgia, serif;
+    font-family: "Newsreader Variable", "Newsreader", "Iowan Old Style", "Times New Roman", Georgia, serif;
     font-weight: 500;
     letter-spacing: -0.012em;
     line-height: 1.08;
@@ -187,13 +213,14 @@
   }
   /* Small labels: IATA codes, eyebrows, technical data */
   .font-mono-label {
-    font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    font-family: "Manrope Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
   }
+  /* Small label above a value or a list. Sentence case: labels inform, they do not shout. */
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground;
+    @apply text-xs font-semibold text-muted-foreground;
   }
   .text-balance {
     text-wrap: balance;
@@ -435,6 +462,28 @@
   animation: plane-fly 2.4s cubic-bezier(0.45, 0, 0.35, 1) infinite;
 }
 
+/* Press feedback for tappable cards: quick scale-down, spring back on release. */
+.press {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.press:active {
+  transform: scale(0.98);
+}
+/* Elevation declared once per surface: a card is bordered OR lifted, never both. */
+.surface {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+}
+.surface-lift {
+  background: hsl(var(--card));
+  border-radius: 16px;
+  box-shadow: 0 1px 2px hsl(240 10% 8% / 0.05), 0 24px 56px -28px hsl(240 10% 8% / 0.32);
+}
+.dark .surface-lift {
+  box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.08), 0 24px 56px -28px hsl(0 0% 0% / 0.7);
+}
+
 .card-lift {
   transition:
     border-color var(--dur-base) var(--ease-out),
@@ -508,6 +557,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .press:active {
+    transform: none;
   }
   .fade-up, .fade-in, .marquee-track, .pulse-soft, .route-dash, .ken-burns, .plane-fly {
     animation: none !important;

@@ -30,7 +30,7 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
       data-filled={filled}
       aria-invalid={invalid || undefined}
       className={cn(
-        "group flex h-14 w-full items-center gap-3 bg-card px-4 text-left outline-none",
+        "group flex h-[var(--field-h,3.5rem)] w-full items-center gap-3 bg-card px-4 text-left outline-none",
         "transition-[border-color,box-shadow,background-color] duration-fast ease-out",
         joined
           ? "border-0 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-muted/60"

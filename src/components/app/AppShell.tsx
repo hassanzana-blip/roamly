@@ -27,7 +27,8 @@ export function SkipLink({ className }: { className?: string }) {
   );
 }
 
-export default function AppShell({ children, className }: { children: ReactNode; className?: string }) {
+/** `bleed`: the page manages its own containers (full-width photo sections). */
+export default function AppShell({ children, className, bleed = false }: { children: ReactNode; className?: string; bleed?: boolean }) {
   const reduce = useReducedMotion();
   return (
     <>
@@ -43,7 +44,7 @@ export default function AppShell({ children, className }: { children: ReactNode;
         initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reduce ? 0.12 : 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-        className={cn("container-x outline-none", className)}
+        className={cn(bleed ? "outline-none" : "container-x outline-none", className)}
       >
         {children}
       </motion.main>

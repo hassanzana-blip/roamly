@@ -5,18 +5,23 @@ import { IconButton } from "./primitives";
 import SkyMark from "@/components/brand/SkyMark";
 import { useCustomer } from "@/lib/useCustomer";
 import { useT } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 /**
  * TopBar — the greeting header of the home screen.
  * Circular avatar, personal greeting when logged in, quiet icon actions.
  * All targets ≥ 44px.
  */
-export function GreetingBar({ onSearch }: { onSearch?: () => void }) {
+export function GreetingBar({ onSearch, tone = "light" }: { onSearch?: () => void; tone?: "light" | "dark" }) {
   const { customer } = useCustomer();
   const t = useT();
+  const onDark = tone === "dark";
+  const round = onDark
+    ? "border-white/20 bg-white/10 text-white backdrop-blur-sm hover:border-white/50 hover:bg-white/15"
+    : "border-border bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60";
   return (
     <header
-      className="flex items-center justify-between gap-4 pb-5"
+      className={cn("flex items-center justify-between gap-4 pb-5", onDark && "text-white")}
       style={{ paddingTop: "max(20px, env(safe-area-inset-top))" }}
     >
       <Link to="/profil" className="flex min-h-11 min-w-0 items-center gap-3 rounded-full" aria-label={t("topbar.openprofile")}>
@@ -25,12 +30,12 @@ export function GreetingBar({ onSearch }: { onSearch?: () => void }) {
             <img src={customer.avatarUrl} alt="" className="h-full w-full object-cover" />
           </span>
         ) : (
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-full", onDark ? "bg-white/15 text-white backdrop-blur-sm" : "bg-muted text-muted-foreground")}>
             <Icon icon={User} size={20} />
           </span>
         )}
         <span className="min-w-0">
-          <span className="block text-[13px] text-muted-foreground">
+          <span className={cn("block text-[13px]", onDark ? "text-white/75" : "text-muted-foreground")}>
             {customer ? t("greet.name", { name: customer.firstName }) : t("greet.hi")}
           </span>
           <span className="block truncate text-[15px] font-semibold leading-tight">
@@ -39,12 +44,12 @@ export function GreetingBar({ onSearch }: { onSearch?: () => void }) {
         </span>
       </Link>
       <div className="flex shrink-0 items-center gap-2">
-        <IconButton icon={Search} label={t("topbar.search")} onClick={onSearch} />
+        <IconButton icon={Search} label={t("topbar.search")} onClick={onSearch} className={round} />
         <Link
           to="/profil"
           aria-label={t("topbar.settings")}
           title={t("topbar.settings")}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors duration-fast hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
+          className={cn("inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-ring", round)}
         >
           <Icon icon={SlidersHorizontal} size={20} />
         </Link>
@@ -86,11 +91,11 @@ export function AppHeader({
           <Icon icon={ChevronLeft} size={20} />
         </button>
       ) : (
-        <Link to="/" aria-label={t("topbar.home")} className="flex min-h-11 min-w-11 items-center gap-2 rounded-full">
+        <Link to="/" aria-label={t("topbar.home")} className="flex min-h-11 min-w-11 items-center gap-2 rounded-full lg:hidden">
           <SkyMark className="h-7 w-7 text-foreground" />
         </Link>
       )}
-      {title ? <Tag className="font-display text-2xl">{title}</Tag> : null}
+      {title ? <Tag className="font-display text-2xl lg:text-[34px]">{title}</Tag> : null}
     </header>
   );
 }
