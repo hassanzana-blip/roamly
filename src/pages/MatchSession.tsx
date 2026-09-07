@@ -16,7 +16,7 @@ import { usePageMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 /**
- * /m/:token — rommet for Par- og Venne-match. Uten deltakernøkkel: bli med
+ * /m/:token – rommet for Par- og Venne-match. Uten deltakernøkkel: bli med
  * (navn + svar). Med nøkkel: enighet, kandidater, stemmer, kommentarer og
  * «vi drar hit». Aldri andres rå svar.
  */
@@ -32,7 +32,7 @@ function labelFor(dim: string, value: string): string {
 
 export default function MatchSession() {
   const { token = "" } = useParams<{ token: string }>();
-  usePageMeta({ title: "ReiseMatch", description: "Finn ut hvor dere skal — sammen.", canonicalPath: `/m/${token}`, noindex: true });
+  usePageMeta({ title: "ReiseMatch", description: "Finn ut hvor dere skal – sammen.", canonicalPath: `/m/${token}`, noindex: true });
   const [keys, setKeys] = useState(() => matchKeysFor(token));
   const utils = trpc.useUtils();
   const q = trpc.match.get.useQuery({ token, participantKey: keys.participantKey, ownerKey: keys.ownerKey }, { enabled: /^[a-f0-9]{24}$/.test(token), retry: false, refetchInterval: 20_000 });
@@ -73,7 +73,7 @@ export default function MatchSession() {
               {phase === "intro" ? (
                 <motion.section key="join" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="py-6">
                   <p className="font-mono-label inline-flex items-center gap-2.5 rounded-md border border-white/20 bg-white/5 px-4 py-2 text-[10px] text-white/85">{couple ? <Heart className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />} {couple ? "Par-match" : "Venne-match"} · {s.title}</p>
-                  <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">{s.participants[0]?.name ?? "Noen"} vil vite hvor dere skal.<span className="block italic" style={{ fontWeight: 400 }}>Svar for deg selv — vi viser bare det dere er enige om.</span></h1>
+                  <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">{s.participants[0]?.name ?? "Noen"} vil vite hvor dere skal.<span className="block italic" style={{ fontWeight: 400 }}>Svar for deg selv – vi viser bare det dere er enige om.</span></h1>
                   {s.participants.length >= s.maxParticipants ? (
                     <p className="mt-6 text-white/70">{couple ? "Begge har allerede svart i denne matchen." : "Rommet er fullt."}</p>
                   ) : (
@@ -116,17 +116,17 @@ export default function MatchSession() {
               <div className="mt-6 flex flex-wrap items-center gap-2 rounded-xl border border-white/15 bg-white/5 p-4">
                 <Link2 className="h-4 w-4 text-primary" /><span className="min-w-0 flex-1 truncate font-mono text-[12px] text-white/75">{s.shareUrl}</span>
                 <button type="button" onClick={copy} className={ghostBtn}>{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Kopiert" : "Kopier"}</button>
-                <a href={`https://wa.me/?text=${encodeURIComponent(`${couple ? "Hvor skal vi? Svar her, så ser vi hva vi er enige om:" : `Bli med i «${s.title}» — svar her:`} ${s.shareUrl}`)}`} target="_blank" rel="noopener noreferrer" className={ghostBtn}><WhatsAppIcon className="h-4 w-4" /> WhatsApp</a>
+                <a href={`https://wa.me/?text=${encodeURIComponent(`${couple ? "Hvor skal vi? Svar her, så ser vi hva vi er enige om:" : `Bli med i «${s.title}» – svar her:`} ${s.shareUrl}`)}`} target="_blank" rel="noopener noreferrer" className={ghostBtn}><WhatsAppIcon className="h-4 w-4" /> WhatsApp</a>
               </div>
 
-              {!s.ready && couple && <p className="mt-8 max-w-xl text-base text-white/70">Send lenken. Når den andre har svart, dukker resultatet opp her — automatisk.</p>}
+              {!s.ready && couple && <p className="mt-8 max-w-xl text-base text-white/70">Send lenken. Når den andre har svart, dukker resultatet opp her – automatisk.</p>}
 
               {s.ready && (
                 <>
                   <div className="mt-10">
                     <p className="font-mono-label text-[10px] text-white/50">{couple ? "Dere er enige om" : "Gruppen er enig om"}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {Object.entries(s.agreement).length === 0 && <span className="text-white/70">Ikke så mye ennå — men se kandidatene, de passer alle.</span>}
+                      {Object.entries(s.agreement).length === 0 && <span className="text-white/70">Ikke så mye ennå – men se kandidatene, de passer alle.</span>}
                       {Object.entries(s.agreement).map(([dim, v]) => <span key={dim} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-card px-3.5 text-[14px] font-semibold text-primary-foreground"><Check className="h-4 w-4" /> {labelFor(dim, v as string)}</span>)}
                     </div>
                     {!s.includeBudget && <p className="mt-2 text-[12px] text-white/50">Budsjett vises når alle har delt det.</p>}
@@ -195,7 +195,7 @@ export default function MatchSession() {
                 </>
               )}
               {(vote.isError || comment.isError || decide.isError) && <p role="alert" className="mt-4 text-sm text-primary">{humanMessage(vote.error ?? comment.error ?? decide.error)}</p>}
-              <p className="font-mono-label mt-10 text-[9px] text-white/40">Svarene lagres i 30 dager og vises bare for dem med lenken. Ingen rå svar deles — bare enigheten.</p>
+              <p className="font-mono-label mt-10 text-[9px] text-white/40">Svarene lagres i 30 dager og vises bare for dem med lenken. Ingen rå svar deles – bare enigheten.</p>
             </motion.section>
           )}
         </MotionConfig>

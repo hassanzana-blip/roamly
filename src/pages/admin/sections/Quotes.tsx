@@ -59,7 +59,7 @@ function CreateQuoteDialog({ open, onClose, onCreated }: { open: boolean; onClos
           <div className="space-y-3">
             <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
               <p className="font-semibold">Tilbud {result.reference} opprettet · {formatMoney(result.total)}</p>
-              <p className="mt-1">Betalingslenke (vises kun nå — send den til kunden eller bruk «Send» for e-post):</p>
+              <p className="mt-1">Betalingslenke (vises kun nå – send den til kunden eller bruk «Send» for e-post):</p>
               <p className="mt-1.5 select-all break-all rounded-lg bg-card px-3 py-2 font-mono text-xs text-foreground">
                 {window.location.origin}{result.checkoutPath}
               </p>

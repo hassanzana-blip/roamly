@@ -19,7 +19,7 @@ function ChoiceRow<V extends string>({ id, label, value, options, onChange, desc
   );
 }
 
-/** Passasjerskjema — delt mellom Checkout (/bestill) og tilbudslenken (/tilbud). */
+/** Passasjerskjema – delt mellom Checkout (/bestill) og tilbudslenken (/tilbud). */
 
 // ─── Små feltkomponenter ────────────────────────────────────────────────────
 

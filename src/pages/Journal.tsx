@@ -9,7 +9,7 @@ import { articlesByTag, featured, TAG_LABELS, tagsInUse, type JournalTag } from 
 import { PAGE_META, breadcrumbJsonLd, itemListJsonLd, usePageMeta } from "@/lib/seo";
 
 /**
- * HelloSky Journal — nyttig, ikke pent. Én stor sak øverst, så alt annet.
+ * HelloSky Journal – nyttig, ikke pent. Én stor sak øverst, så alt annet.
  * Ingen «trending», ingen tellere; rekkefølgen er sist oppdatert først.
  */
 export default function Journal() {

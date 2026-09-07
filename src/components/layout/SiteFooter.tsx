@@ -92,7 +92,7 @@ function FooterGroup({ title, links, className }: { title: string; links: { to: 
 export default function SiteFooter() {
   const t = useT();
   // Betalingsmerkene er en påstand om hvordan du betaler. Står Stripe ikke klart
-  // i miljøet, kan ingen betale — da viser vi dem ikke.
+  // i miljøet, kan ingen betale – da viser vi dem ikke.
   const status = trpc.flights.status.useQuery(undefined, { staleTime: 300_000, retry: false });
   const paymentsConfigured = status.data?.paymentsConfigured === true;
 
@@ -130,7 +130,7 @@ export default function SiteFooter() {
           </a>
         </div>
 
-        {/* Kontakt står alltid åpent — det er det folk leter etter i bunnteksten. */}
+        {/* Kontakt står alltid åpent – det er det folk leter etter i bunnteksten. */}
         <div className="md:col-start-3 md:row-start-1">
           <h2 className="eyebrow mb-4">{t("footer.contact")}</h2>
           <ul className="space-y-2 text-sm text-muted-foreground">

@@ -4,7 +4,7 @@ import { currentLang } from "@/lib/format";
 /**
  * Bagasje for én strekning: minste tillatte over segmentene (det som faktisk
  * gjelder hele veien). Mangler tillatelsen på ett segment, er den ukjent for
- * hele strekningen — vi lover aldri noe det svakeste leddet ikke dekker, og
+ * hele strekningen – vi lover aldri noe det svakeste leddet ikke dekker, og
  * vi påstår aldri «ikke inkludert» når flyselskapet bare har tiet.
  */
 export function sliceBaggage(slice: OfferSlice, fallback: BaggageAllowance): BaggageAllowance {
@@ -18,7 +18,7 @@ export function sliceBaggage(slice: OfferSlice, fallback: BaggageAllowance): Bag
   };
 }
 
-/** «Reise» / «Utreise» / «Hjemreise» / «Strekning n» — følger aktivt språk. */
+/** «Reise» / «Utreise» / «Hjemreise» / «Strekning n» – følger aktivt språk. */
 export function sliceLabel(count: number, i: number): string {
   const en = currentLang() !== "nb";
   if (count === 1) return en ? "Trip" : "Reise";

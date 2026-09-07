@@ -25,7 +25,7 @@ import { articleBySlug, type Article } from "@/content/journal";
 import { cn } from "@/lib/utils";
 
 /**
- * Kundeservice — en veiviser, ikke en labyrint. Søk øverst, så «velg det som
+ * Kundeservice – en veiviser, ikke en labyrint. Søk øverst, så «velg det som
  * ligner mest», så hjelpesekken: det du bør ha klart, som pakkes mens du
  * fyller ut. Menneskene og kanalene står tydelig, med ekte åpningstider.
  */

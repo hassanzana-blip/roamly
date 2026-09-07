@@ -5,9 +5,9 @@ import { imageSrcSet, type DealRoute, type DiscoverDestination } from "@/content
 import { useRoutePrice } from "@/lib/useRoutePrice";
 
 /**
- * DealCard — horizontally swipeable deal (reference grammar): big rounded
+ * DealCard – horizontally swipeable deal (reference grammar): big rounded
  * photo, route line, destination, starting price. The price is a live
- * «fra»-hint from the price API — never a fabricated discount or deadline.
+ * «fra»-hint from the price API – never a fabricated discount or deadline.
  */
 export default function DealCard({
   deal,

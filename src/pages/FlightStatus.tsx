@@ -11,7 +11,7 @@ import { STATUS_LABELS, formatClock, formatDateLong } from "@/lib/format";
 import { humanMessage } from "@/lib/apiError";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 
-/** Flyselskapenes egne statussider — brukes når vi ikke har en datakilde selv. */
+/** Flyselskapenes egne statussider – brukes når vi ikke har en datakilde selv. */
 const CARRIER_STATUS_LINKS: Record<string, string> = {
   DY: "https://www.norwegian.com/no/reiseinformasjon/flystatus/",
   SK: "https://www.flysas.com/no-no/flystatus/",
@@ -49,7 +49,7 @@ function UnavailablePanel({ reason, carrier }: { reason: string; carrier: string
     <section role="status" className="fade-up rounded-xl border border-border bg-card p-6 sm:p-8">
       <h2 className="font-display text-2xl">Flystatus er ikke tilgjengelig ennå</h2>
       <p className="mt-2 text-sm text-muted-foreground">{reason}</p>
-      <p className="mt-3 text-sm text-muted-foreground">Sjekk flyselskapets egen nettside eller flyplassens avgangstavle — de har alltid siste informasjon om gate, forsinkelser og kanselleringer.</p>
+      <p className="mt-3 text-sm text-muted-foreground">Sjekk flyselskapets egen nettside eller flyplassens avgangstavle – de har alltid siste informasjon om gate, forsinkelser og kanselleringer.</p>
       <ul className="mt-4 space-y-2 text-sm">
         {own && (
           <li>
@@ -60,7 +60,7 @@ function UnavailablePanel({ reason, carrier }: { reason: string; carrier: string
         )}
         <li>
           <a href="https://avinor.no/flyplass/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-5 font-medium">
-            Avinor — avganger og ankomster <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            Avinor – avganger og ankomster <ExternalLink className="h-4 w-4" aria-hidden="true" />
           </a>
         </li>
       </ul>
@@ -75,7 +75,7 @@ function StatusCard({ status, demo }: { status: FlightStatusType; demo?: boolean
     <section className="fade-up rounded-xl border border-border bg-card p-6 sm:p-8">
       {demo && (
         <p className="mb-4 inline-block rounded-md border border-border bg-muted px-3 py-1 text-xs font-semibold text-foreground">
-          Demodata — ikke reell flystatus
+          Demodata – ikke reell flystatus
         </p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -254,7 +254,7 @@ export default function FlightStatus() {
           {status.data && !("unavailable" in status.data) && <StatusCard status={status.data} demo={status.data.demo} />}
           {!submitted && (
             <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              Skriv inn flightnummeret — det står på billetten din, f.eks.{" "}
+              Skriv inn flightnummeret – det står på billetten din, f.eks.{" "}
               <span className="font-semibold text-primary">DY 452</span> eller{" "}
               <span className="font-semibold text-primary">SK 278</span>.
             </div>

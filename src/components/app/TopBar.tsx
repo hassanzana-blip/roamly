@@ -53,7 +53,7 @@ export function GreetingBar({ tone = "light" }: { tone?: "light" | "dark" }) {
 }
 
 /**
- * AppHeader — compact bar for sub-screens: back chevron + title,
+ * AppHeader – compact bar for sub-screens: back chevron + title,
  * or the brand mark on first-level app tabs.
  *
  * A11y (OTA-186): only ONE h1 per page. The title renders as a <p> by default;

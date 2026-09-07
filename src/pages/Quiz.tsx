@@ -18,7 +18,7 @@ import { humanMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
 
 /**
- * ReiseMatch — HelloSkys signaturprodukt. Én mørk scene, seks moduser:
+ * ReiseMatch – HelloSkys signaturprodukt. Én mørk scene, seks moduser:
  * Finn min reise · Par-match · Venne-match · Overrask meg · Helgerulett ·
  * Budsjettutfordring. Ingen priser påstås her; alt ender i et ekte søk.
  */
@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 type Mode = "finn" | "par" | "venner" | "overrask" | "helg" | "budsjett";
 const MODES: { id: Mode; icon: LucideIcon; title: string; sub: string; kicker: string }[] = [
   { id: "finn", icon: Sparkles, title: "Finn min reise", sub: "Fem spørsmål, ett reisemål. Skrap frem boardingkortet.", kicker: "30 sekunder" },
-  { id: "par", icon: Heart, title: "Par-match", sub: "Dere svarer hver for dere. Vi viser hva dere er enige om — og tre steder som passer begge.", kicker: "To lenker, ett svar" },
+  { id: "par", icon: Heart, title: "Par-match", sub: "Dere svarer hver for dere. Vi viser hva dere er enige om – og tre steder som passer begge.", kicker: "To lenker, ett svar" },
   { id: "venner", icon: Users, title: "Venne-match", sub: "Et rom for gjengen: alle svarer, stemmer og sier når de ikke kan. Budsjett holdes privat.", kicker: "Hvor skal vi?" },
   { id: "overrask", icon: Dices, title: "Overrask meg", sub: "Ett reisemål, valgt for deg. Snurr igjen så mange ganger du vil.", kicker: "Rulett" },
   { id: "helg", icon: Plane, title: "Helgerulett", sub: "Fredag ut, søndag hjem. Vi trekker byen og setter datoene.", kicker: "Neste fredag" },
@@ -68,7 +68,7 @@ function Hub() {
           Vet du ikke hvor?
           <span className="block italic" style={{ fontWeight: 400 }}>Vi finner det ut sammen.</span>
         </h1>
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">Velg en modus. Alt du får er inspirasjon med ekte søk bak — vi finner aldri på priser eller tilgjengelighet.</p>
+        <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">Velg en modus. Alt du får er inspirasjon med ekte søk bak – vi finner aldri på priser eller tilgjengelighet.</p>
         <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MODES.map((m) => (
             <li key={m.id}>
@@ -136,7 +136,7 @@ function SoloMode() {
           <motion.section key="intro" {...slide} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="flex flex-1 flex-col items-center justify-center py-10 text-center">
             <p className="font-mono-label inline-flex items-center gap-2.5 rounded-md border border-white/20 bg-white/5 px-4 py-2 text-[10px] text-white/85"><Sparkles className="h-3.5 w-3.5" /> Finn min reise · 5 spørsmål · 30 sekunder</p>
             <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">Vet du ikke hvor du vil dra?<span className="block italic" style={{ fontWeight: 400 }}>Vi skraper det frem.</span></h1>
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">Svar på fem kjappe spørsmål om stemning, vær og hvem du reiser med — så matcher vi deg med reisemålet ditt og lager et boardingkort du kan sende til noen du er glad i.</p>
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">Svar på fem kjappe spørsmål om stemning, vær og hvem du reiser med – så matcher vi deg med reisemålet ditt og lager et boardingkort du kan sende til noen du er glad i.</p>
             <button type="button" onClick={() => setPhase("questions")} className={cn(primaryBtn, "mt-10 px-9 py-4 text-base active:scale-[0.98]")}>Start <ArrowRight className="h-5 w-5" /></button>
             <p className="font-mono-label mt-5 text-[9px] text-white/40">Ingen innlogging · ingenting lagres</p>
           </motion.section>
@@ -173,7 +173,7 @@ function GroupStart({ mode }: { mode: "par" | "venner" }) {
             <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">{couple ? "Dere svarer hver for dere." : "Hvor skal vi, egentlig?"}<span className="block italic" style={{ fontWeight: 400 }}>{couple ? "Så viser vi hva dere er enige om." : "Alle svarer. Ingen taper."}</span></h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">
               {couple
-                ? "Du svarer nå og får en lenke. Den andre svarer uten å se svarene dine. Vi viser bare det dere er enige om — og tre reisemål som passer begge. Budsjett holdes privat med mindre begge sier ja."
+                ? "Du svarer nå og får en lenke. Den andre svarer uten å se svarene dine. Vi viser bare det dere er enige om – og tre reisemål som passer begge. Budsjett holdes privat med mindre begge sier ja."
                 : "Du lager rommet og får en lenke til gjengen. Hver enkelt svarer for seg, sier når de ikke kan, og stemmer på forslagene. Budsjett er privat for hver enkelt til alle har delt."}
             </p>
             <div className="mt-8 grid max-w-xl gap-3">
@@ -243,14 +243,14 @@ function SurpriseMode() {
     <Shell back="/quiz">
       <section className="py-6">
         <p className="font-mono-label inline-flex items-center gap-2.5 rounded-md border border-white/20 bg-white/5 px-4 py-2 text-[10px] text-white/85"><Dices className="h-3.5 w-3.5" /> Overrask meg</p>
-        <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">Ett reisemål.<span className="block italic" style={{ fontWeight: 400 }}>{profile && Object.keys(profile.taste).length ? "Vektet etter smaksprofilen din." : "Helt tilfeldig — eller nesten."}</span></h1>
+        <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">Ett reisemål.<span className="block italic" style={{ fontWeight: 400 }}>{profile && Object.keys(profile.taste).length ? "Vektet etter smaksprofilen din." : "Helt tilfeldig – eller nesten."}</span></h1>
         {!pick ? (
           <button type="button" onClick={roll} className={cn(primaryBtn, "mt-10 px-9 py-4 text-base")}><Dices className="h-5 w-5" /> Snurr</button>
         ) : (
           <AnimatePresence mode="wait">
             <motion.div key={spin} initial={{ opacity: 0, y: 24, rotate: -1 }} animate={{ opacity: 1, y: 0, rotate: 0 }} exit={{ opacity: 0, y: -24 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="mt-8 max-w-2xl">
               <BoardingPass destination={pick} isCouple={false} names={["", ""]} />
-              <p className="font-display mt-5 text-lg italic text-white/85" style={{ fontWeight: 400 }}>{pick.tagline} — {pick.romance}</p>
+              <p className="font-display mt-5 text-lg italic text-white/85" style={{ fontWeight: 400 }}>{pick.tagline} – {pick.romance}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link to={searchHref(pick.iata)} className={primaryBtn}><Plane className="h-4 w-4" /> Søk ekte fly til {pick.city}</Link>
                 <button type="button" onClick={roll} className={ghostBtn}><RotateCcw className="h-4 w-4" /> Snurr igjen</button>
@@ -271,7 +271,7 @@ function nextFriday(): number {
   return 10 + ((5 - d.getUTCDay() + 7) % 7);
 }
 function WeekendMode() {
-  // Helgen regnes én gang per sidevisning — rene render.
+  // Helgen regnes én gang per sidevisning – rene render.
   const [depart] = useState(() => new Date(Date.now() + nextFriday() * 86_400_000));
   const cities = useMemo(() => QUIZ_DESTINATIONS.filter((d) => WEEKEND_IDS.includes(d.id)), []);
   const [pick, setPick] = useState<QuizDestination | null>(null);
@@ -284,7 +284,7 @@ function WeekendMode() {
       <section className="py-6">
         <p className="font-mono-label inline-flex items-center gap-2.5 rounded-md border border-white/20 bg-white/5 px-4 py-2 text-[10px] text-white/85"><Plane className="h-3.5 w-3.5" /> Helgerulett</p>
         <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">Ut {fmt(depart)}.<span className="block italic" style={{ fontWeight: 400 }}>Hjem {fmt(home)}.</span></h1>
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">Vi trekker byen. Du sjekker den ekte prisen med ett trykk — datoene er allerede satt.</p>
+        <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">Vi trekker byen. Du sjekker den ekte prisen med ett trykk – datoene er allerede satt.</p>
         {!pick ? (
           <button type="button" onClick={roll} className={cn(primaryBtn, "mt-10 px-9 py-4 text-base")}><Dices className="h-5 w-5" /> Trekk en by</button>
         ) : (

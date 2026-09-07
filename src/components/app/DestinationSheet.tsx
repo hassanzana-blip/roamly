@@ -12,7 +12,7 @@ import { useSavedDestinations } from "@/lib/useAccount";
 import AddToBoard from "@/components/account/AddToBoard";
 
 /**
- * DestinationSheet — native quick-view when a destination card is tapped.
+ * DestinationSheet – native quick-view when a destination card is tapped.
  * Big photo, editorial info, and the next four departures with REAL
  * guide prices from the price API (never fabricated). CTA runs the
  * actual search.
@@ -109,7 +109,7 @@ export default function DestinationSheet({
 
           <div>
             <p className="mb-2 flex items-center gap-1.5 font-mono-label text-[10px] text-muted-foreground">
-              <Icon icon={CalendarDays} size={16} /> Neste avganger fra Oslo — veiledende pris
+              <Icon icon={CalendarDays} size={16} /> Neste avganger fra Oslo – veiledende pris
             </p>
             <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {DAY_OFFSETS.map((offset, i) => {

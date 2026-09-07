@@ -20,7 +20,7 @@ type Board = RouterOutputs["boards"]["get"];
 type Item = Board["items"][number];
 const inputCls = "w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none transition-colors focus:border-foreground/30 placeholder:text-muted-foreground/60";
 
-/** Delekortet: turens idé i ett bilde — tydelig merket som idé, ikke bestilling. */
+/** Delekortet: turens idé i ett bilde – tydelig merket som idé, ikke bestilling. */
 function TripIdeaCard({ board }: { board: Board }) {
   const cover = board.coverDestinationId ? destinationById(board.coverDestinationId) : (board.items.find((i) => i.kind === "destination" && i.refId) ? destinationById(board.items.find((i) => i.kind === "destination")!.refId!) : undefined);
   const places = board.items.filter((i) => i.kind === "destination").map((i) => destinationById(i.refId ?? "")?.city).filter(Boolean);
@@ -29,7 +29,7 @@ function TripIdeaCard({ board }: { board: Board }) {
       {cover?.image && <img src={cover.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />}
       <div className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" aria-hidden="true" />
       <div className="relative flex min-h-[220px] flex-col justify-end p-5 sm:min-h-[280px] sm:p-7">
-        <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-primary">Reiseidé — ikke en bestilling</p>
+        <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-primary">Reiseidé – ikke en bestilling</p>
         <h1 className="font-display mt-2 text-[34px] leading-[1.02] sm:text-[46px]">{board.title}</h1>
         <p className="mt-2 text-[14px] text-white/80">{[board.when, places.slice(0, 3).join(" · ")].filter(Boolean).join(" · ")}</p>
       </div>
@@ -104,7 +104,7 @@ export default function BoardPage() {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button type="button" onClick={copy} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[14px] font-semibold"><Icon icon={copied ? Check : Copy} size={16} /> {copied ? "Kopiert" : "Kopier lenke"}</button>
-              <a href={`https://wa.me/?text=${encodeURIComponent(`«${b.title}» — legg til og stem: ${b.shareUrl}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[14px] font-semibold"><WhatsAppIcon className="h-4 w-4" /> Del</a>
+              <a href={`https://wa.me/?text=${encodeURIComponent(`«${b.title}» – legg til og stem: ${b.shareUrl}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[14px] font-semibold"><WhatsAppIcon className="h-4 w-4" /> Del</a>
               <span className="flex-1" />
               {b.canEdit && <button type="button" onClick={() => { if (confirm("Slette tavla og alt på den?")) remove.mutate({ token }); }} className="inline-flex min-h-11 items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-destructive"><Icon icon={Trash2} size={14} /> Slett tavle</button>}
             </div>

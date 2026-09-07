@@ -84,7 +84,7 @@ export function useSavedDestinations(): { ids: Set<string>; toggle: (id: string)
   return { ids, toggle, isServer: Boolean(customer) };
 }
 
-/** Send søket til kontoen når kunden er innlogget — ellers ingenting. */
+/** Send søket til kontoen når kunden er innlogget – ellers ingenting. */
 export function useRecordSearch() {
   const { customer } = useCustomer();
   const utils = trpc.useUtils();

@@ -16,7 +16,7 @@ import { trpc } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 
 /**
- * Reiser — kommandosenteret. Kommende, tidligere og kansellerte fra ekte
+ * Reiser – kommandosenteret. Kommende, tidligere og kansellerte fra ekte
  * bestillinger på kontoen. Gjester sendes til oppslaget med referanse.
  */
 
@@ -32,7 +32,7 @@ export default function Trips() {
   const resend = trpc.customerAuth.resendVerification.useMutation();
   const errCode = trips.error ? appCodeOf(trips.error) : null;
 
-  // Ett «nå» per sidevisning — rene render, stabil gruppering.
+  // Ett «nå» per sidevisning – rene render, stabil gruppering.
   const [now] = useState(() => Date.now());
   const all = trips.data ?? [];
   const groups: Record<Tab, typeof all> = {

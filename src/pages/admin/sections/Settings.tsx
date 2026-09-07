@@ -114,7 +114,7 @@ function RewardsForm({ rules, isDefault }: { rules: { bookingEarnFraction: numbe
     <Card>
       <h2 className="mb-1 font-display text-xl font-semibold text-foreground">Bonus og henvisning</h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Det kunden ser under «Bonus» og «Inviter venner» kommer herfra. {isDefault ? "Standardsatsene gjelder — ingenting er endret ennå." : "Egendefinerte satser er aktive."} Nivåer uten fordeler er bare et navn; skriv bare inn fordeler dere faktisk gir.
+        Det kunden ser under «Bonus» og «Inviter venner» kommer herfra. {isDefault ? "Standardsatsene gjelder – ingenting er endret ennå." : "Egendefinerte satser er aktive."} Nivåer uten fordeler er bare et navn; skriv bare inn fordeler dere faktisk gir.
       </p>
       {fb.banner}
       <form className="space-y-5" onSubmit={submit}>

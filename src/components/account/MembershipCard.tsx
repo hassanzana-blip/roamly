@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /**
  * Digitalt HelloSky-kort. Identitet, ikke betaling: navn, nivå, medlemsnummer
  * og programnavn. Aldri saldo, aldri noe som ligner et kortnummer.
- * Kortet er mørkt med én lime-detalj — brand-øyeblikket i profilen.
+ * Kortet er mørkt med én lime-detalj – brand-øyeblikket i profilen.
  */
 export default function MembershipCard({
   name,
@@ -39,7 +39,7 @@ export default function MembershipCard({
       role="img"
       aria-label={`${programName}: ${name}, ${tierName}, medlemsnummer ${memberNumber}`}
     >
-      {/* Én stor, stille bue — merket som landskap, ikke som logo. */}
+      {/* Én stor, stille bue – merket som landskap, ikke som logo. */}
       <SkyMark className="absolute -right-10 -top-16 h-[150%] w-auto text-primary opacity-[0.16]" aria-hidden="true" />
       <div className="relative flex h-full flex-col justify-between p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">

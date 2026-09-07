@@ -5,7 +5,7 @@ import { formatMinor, formatPrice, paxLabel, toMinor } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 
 /**
- * Tilvalg — kun ekstra innsjekket bagasje (det eneste leverandøren faktisk
+ * Tilvalg – kun ekstra innsjekket bagasje (det eneste leverandøren faktisk
  * leverer). Pris per kolli kommer fra tilbudet (`offer.services.extraBagPrice`)
  * i tilbudets valuta. Endelig sum bekreftes av serveren i checkout-økten.
  */

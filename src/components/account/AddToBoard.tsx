@@ -7,7 +7,7 @@ import { trpc } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 
 /**
- * «Legg til på tavle» — liten velger over kundens egne tavler. Gjester får en
+ * «Legg til på tavle» – liten velger over kundens egne tavler. Gjester får en
  * rolig lenke til innlogging; ingen tavle uten konto.
  */
 export default function AddToBoard({ kind, refId, payload, className }: { kind: "destination" | "flight" | "article"; refId: string; payload?: Record<string, unknown>; className?: string }) {

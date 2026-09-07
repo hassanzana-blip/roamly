@@ -7,7 +7,7 @@ import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 
-/** /bekreft-epost?token=… — bekrefter e-postadressen fra lenken i e-posten. */
+/** /bekreft-epost?token=… – bekrefter e-postadressen fra lenken i e-posten. */
 export default function VerifyEmail() {
   usePageMeta(PAGE_META.verifyEmail);
   const [params] = useSearchParams();
@@ -73,7 +73,7 @@ export default function VerifyEmail() {
                 to="/profil"
                 className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-night px-7 text-[14px] font-semibold text-white transition-colors hover:opacity-90"
               >
-                Til profilen — send ny lenke
+                Til profilen – send ny lenke
               </Link>
             </>
           )}

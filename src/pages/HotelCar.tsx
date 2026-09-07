@@ -17,7 +17,7 @@ import { humanMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 
-const PARTNER_NOTE = "Vi sender forespørselen til partner og svarer med pris — ingen betaling nå";
+const PARTNER_NOTE = "Vi sender forespørselen til partner og svarer med pris – ingen betaling nå";
 
 const CAR_PARTNERS = ["Europcar", "Hertz", "Avis", "Sixt"];
 const CAR_CLASSES = ["Liten og smart", "Kompakt", "Familiebil / SUV", "Premium", "Elbil"];
@@ -56,7 +56,7 @@ export default function HotelCar() {
             Hotell og leiebil, ordnet av oss
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Fortell oss hvor du skal — vi sjekker pris og tilgjengelighet hos partnerne våre
+            Fortell oss hvor du skal – vi sjekker pris og tilgjengelighet hos partnerne våre
             og kommer tilbake til deg med et konkret tilbud. {PARTNER_NOTE}.
           </p>
 
@@ -122,7 +122,7 @@ export default function HotelCar() {
           {[
             { icon: ShieldCheck, title: "Etablerte partnere", sub: "Vi bruker kjente hotell- og bilutleiepartnere" },
             { icon: Clock, title: "Svar innen 24 timer", sub: "Et menneske hos oss finner alternativer til deg" },
-            { icon: Sparkles, title: "Uforpliktende", sub: "Du får et tilbud — og betaler ingenting nå" },
+            { icon: Sparkles, title: "Uforpliktende", sub: "Du får et tilbud – og betaler ingenting nå" },
           ].map((f) => (
             <div key={f.title} className="flex items-start gap-3.5">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
@@ -184,7 +184,7 @@ function HotelForm() {
         <BedDouble className="mr-2 inline h-7 w-7 text-primary" aria-hidden="true" /> Be om hotelltilbud
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Fortell oss hvor og når — vi sjekker priser og tilgjengelighet og sender deg alternativer på e-post.
+        Fortell oss hvor og når – vi sjekker priser og tilgjengelighet og sender deg alternativer på e-post.
       </p>
       <form
         className="mt-7 grid gap-4 sm:grid-cols-2"
@@ -257,7 +257,7 @@ function CarForm() {
         <Car className="mr-2 inline h-7 w-7 text-primary" aria-hidden="true" /> Be om leiebiltilbud
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Vi samarbeider med Europcar, Hertz, Avis og Sixt — velg favoritten din, eller la oss finne beste pris.
+        Vi samarbeider med Europcar, Hertz, Avis og Sixt – velg favoritten din, eller la oss finne beste pris.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
@@ -363,7 +363,7 @@ function ContactFields({
         <input required type="email" className={cn(inputCls, "min-h-11")} value={f.customerEmail} onChange={set("customerEmail")} placeholder="deg@epost.no" />
       </label>
       <label className="block sm:col-span-2">
-        <span className={labelCls}>Telefon (valgfritt — raskere svar)</span>
+        <span className={labelCls}>Telefon (valgfritt – raskere svar)</span>
         <input className={cn(inputCls, "min-h-11")} value={f.customerPhone} onChange={set("customerPhone")} placeholder="+47 …" />
       </label>
       {/* Honeypot */}
@@ -399,7 +399,7 @@ function SubmitRow({ pending, error, label }: { pending: boolean; error?: string
         {pending ? "Sender …" : label}
       </button>
       <p className="mt-3 text-center text-[11px] text-muted-foreground">
-        Helt uforpliktende — vi svarer med et konkret tilbud innen 24 timer.
+        Helt uforpliktende – vi svarer med et konkret tilbud innen 24 timer.
       </p>
     </div>
   );
@@ -415,7 +415,7 @@ function SuccessMessage({ what }: { what: string }) {
       <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
         <CheckCircle2 className="h-7 w-7 text-success" />
       </span>
-      <h2 className="mt-4 font-display text-2xl">Takk — vi har mottatt {what}!</h2>
+      <h2 className="mt-4 font-display text-2xl">Takk – vi har mottatt {what}!</h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
         Noen på HelloSky-teamet ser på dette og kommer tilbake til deg med et tilbud
         innen 24 timer. Du betaler ingenting nå.

@@ -9,7 +9,7 @@ import { trpc } from "@/providers/trpc";
 import { formatDateShort, formatPrice } from "@/lib/format";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 
-/** Prisvarsler — vi sender e-post når prisen faller under målet. */
+/** Prisvarsler – vi sender e-post når prisen faller under målet. */
 export default function PriceAlerts() {
   usePageMeta(PAGE_META.priceAlerts);
   const { customer, isLoading } = useCustomer();

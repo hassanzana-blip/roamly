@@ -42,7 +42,7 @@ const POLL_MAX_MS = 3 * 60_000;
 
 // ─── Hjelpere ───────────────────────────────────────────────────────────────
 
-/** Rekonstruer søket som ga tilbudet — for automatisk nytt søk ved utløpt tilbud. */
+/** Rekonstruer søket som ga tilbudet – for automatisk nytt søk ved utløpt tilbud. */
 function parseSearchQuery(qs: string): { slices: SearchSliceInput[]; passengers: SearchPassengerInput[]; cabinClass: CabinClass } | null {
   if (!qs) return null;
   const p = new URLSearchParams(qs);
@@ -155,7 +155,7 @@ export default function Checkout() {
   const [marketing, setMarketing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Utkast i sessionStorage — ALDRI passnummer
+  // Utkast i sessionStorage – ALDRI passnummer
   useEffect(() => {
     if (!offerId) return;
     const safePax = Object.fromEntries(Object.entries(pax).map(([id, p]) => [id, { ...p, passportNumber: "" }]));
@@ -862,7 +862,7 @@ export default function Checkout() {
         )}
       </main>
 
-      {/* Mobil bunnlinje — BottomNav er skjult på /bestill */}
+      {/* Mobil bunnlinje – BottomNav er skjult på /bestill */}
       {offer && !offerExpired && step !== "bekreft" && step !== "betaling" && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">

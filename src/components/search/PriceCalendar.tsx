@@ -6,7 +6,7 @@ import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
- * Priskalender — hele månedens veiledende priser fra vårt eget prissøk.
+ * Priskalender – hele månedens veiledende priser fra vårt eget prissøk.
  * Velg en dato for å søke på nytt. Kun reelle data fra priceHints-APIet.
  */
 
@@ -49,7 +49,7 @@ export default function PriceCalendar({
 
   const today = iso(new Date());
 
-  // Alle dager i måneden fra og med i dag (maks 31 — priceHints-grensen)
+  // Alle dager i måneden fra og med i dag (maks 31 – priceHints-grensen)
   const dates = useMemo(() => {
     const y = month.getUTCFullYear();
     const m = month.getUTCMonth();
@@ -77,7 +77,7 @@ export default function PriceCalendar({
     { enabled: dates.length > 0, staleTime: 300_000, placeholderData: (prev) => prev },
   );
 
-  // amount er en desimal-streng (eller null) — sammenlign som tall, aldri som streng
+  // amount er en desimal-streng (eller null) – sammenlign som tall, aldri som streng
   const byDate = useMemo(
     () => new Map((hints.data ?? []).map((h) => [h.date, h.amount ? Number(h.amount) : null])),
     [hints.data],

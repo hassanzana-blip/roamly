@@ -2,7 +2,7 @@ import { forwardRef, type ComponentProps } from "react";
 import type { LucideIcon } from "lucide-react";
 
 /**
- * Unified icon wrapper — the ONLY way icons render in the app shell.
+ * Unified icon wrapper – the ONLY way icons render in the app shell.
  * Lucide icons, currentColor, consistent stroke, rounded caps/joins
  * (lucide default), sizes locked to the 14/16/20/24/28 scale.
  */

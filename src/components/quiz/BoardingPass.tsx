@@ -1,7 +1,7 @@
 import type { QuizDestination } from "@/content/quiz";
 import { departDate } from "@/content/discover";
 
-/** Deterministisk strekkode generert fra destinasjonen — dekorativ. */
+/** Deterministisk strekkode generert fra destinasjonen – dekorativ. */
 function Barcode({ seed }: { seed: string }) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -31,7 +31,7 @@ function formatPassDate(iso: string): string {
 }
 
 /**
- * Inspirasjons-boardingkort — laget for skjermdump og deling.
+ * Inspirasjons-boardingkort – laget for skjermdump og deling.
  * "Vi to ✦ Paris" for par, ellers den reisendes selskap.
  * Tydelig merket som inspirasjon, ikke en ekte billett.
  */
@@ -108,7 +108,7 @@ export default function BoardingPass({
             <Barcode seed={d.iata + d.city} />
           </div>
           <p className="font-mono-label mt-3 text-[8px] leading-relaxed text-foreground/40">
-            Inspirasjonskort fra hellosky — ikke en billett. Ekte priser og seter
+            Inspirasjonskort fra hellosky – ikke en billett. Ekte priser og seter
             finner du i søket.
           </p>
         </div>

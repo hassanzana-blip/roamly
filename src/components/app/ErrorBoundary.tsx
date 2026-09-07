@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 /**
- * ErrorBoundary — fanger render-feil i rutetreet og viser en vennlig norsk
+ * ErrorBoundary – fanger render-feil i rutetreet og viser en vennlig norsk
  * feilside med «Last siden på nytt». Klassekomponent (React krever det).
  * Bevisst uten avhengigheter til router/i18n slik at den fungerer selv om
  * disse er årsaken til feilen.
@@ -18,7 +18,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Ingen ekstern feilrapportering konfigurert ennå — logg lokalt.
+    // Ingen ekstern feilrapportering konfigurert ennå – logg lokalt.
     console.error("[ErrorBoundary]", error, info.componentStack);
   }
 

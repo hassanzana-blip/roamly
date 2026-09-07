@@ -15,7 +15,7 @@ function read(): Set<string> {
 
 /**
  * Favourite destinations stored locally in the browser.
- * Deliberately local state + localStorage — no global state library
+ * Deliberately local state + localStorage – no global state library
  * is needed for this simple interaction.
  */
 export function useFavourites(): [Set<string>, (id: string) => void] {
@@ -37,7 +37,7 @@ export function useFavourites(): [Set<string>, (id: string) => void] {
       try {
         localStorage.setItem(KEY, JSON.stringify([...next]));
       } catch {
-        /* private mode — keep in-memory state */
+        /* private mode – keep in-memory state */
       }
       return next;
     });

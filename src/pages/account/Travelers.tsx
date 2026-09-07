@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { Plus, Trash2, UserPlus } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
+import { EmptyState, PrimaryButton } from "@/components/app/primitives";
+import { FamilyGlyph } from "@/components/graphics";
 import DateField from "@/components/search/DateField";
 import { useCustomer } from "@/lib/useCustomer";
 import { trpc } from "@/providers/trpc";
@@ -13,7 +15,7 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 const inputCls =
   "w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none transition-colors focus:border-foreground/30 placeholder:text-muted-foreground/60";
 
-/** Lagrede reisende — fyll ut passasjerskjemaet med ett trykk i checkout. */
+/** Lagrede reisende – fyll ut passasjerskjemaet med ett trykk i checkout. */
 export default function Travelers() {
   usePageMeta(PAGE_META.travelers);
   const { customer, isLoading } = useCustomer();
@@ -86,13 +88,12 @@ export default function Travelers() {
             </div>
           ))}
           {list.data?.length === 0 && !open && (
-            <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft">
-              <Icon icon={Users} size={24} className="mx-auto text-muted-foreground" />
-              <p className="mt-3 font-display text-xl">Ingen lagrede reisende ennå</p>
-              <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">
-                Legg til familien, så går neste bestilling mye raskere.
-              </p>
-            </div>
+            <EmptyState
+              illustration={<FamilyGlyph size={56} className="text-foreground" />}
+              title="Ingen lagrede reisende ennå"
+              body="Legg til familien, så går neste bestilling mye raskere."
+              action={<PrimaryButton icon={Plus} onClick={() => setOpen(true)} className="mt-2">Legg til reisende</PrimaryButton>}
+            />
           )}
         </div>
 
@@ -156,12 +157,14 @@ export default function Travelers() {
             </div>
           </form>
         ) : (
-          <button
-            onClick={() => setOpen(true)}
-            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:opacity-90"
-          >
-            <Icon icon={Plus} size={16} /> Legg til reisende
-          </button>
+          (list.data?.length ?? 0) > 0 && (
+            <button
+              onClick={() => setOpen(true)}
+              className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:opacity-90"
+            >
+              <Icon icon={Plus} size={16} /> Legg til reisende
+            </button>
+          )
         )}
       </AppShell>
     </div>

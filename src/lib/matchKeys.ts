@@ -1,5 +1,5 @@
 /**
- * Nøkler for ReiseMatch og reisetavler — lagres i nettleseren, aldri i URL-en.
+ * Nøkler for ReiseMatch og reisetavler – lagres i nettleseren, aldri i URL-en.
  * En deltaker uten konto kjenner igjen seg selv med participantKey; eieren
  * med ownerKey. Tavler bruker én stabil voterKey per nettleser.
  */
@@ -29,7 +29,7 @@ export function saveMatchKeys(token: string, keys: MatchKeys): void {
     all[token] = { ...(all[token] ?? {}), ...keys };
     localStorage.setItem(MATCH_KEY, JSON.stringify(all));
   } catch {
-    /* privat modus — nøkkelen lever bare i minnet denne økten */
+    /* privat modus – nøkkelen lever bare i minnet denne økten */
   }
 }
 

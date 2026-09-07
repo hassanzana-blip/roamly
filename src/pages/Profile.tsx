@@ -17,7 +17,7 @@ import { humanMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
 
 /**
- * Profil — navet for reiseverdenen din. Ikke en innstillingsside.
+ * Profil – navet for reiseverdenen din. Ikke en innstillingsside.
  *
  * Bare moduler med ekte data vises: neste reise, prisovervåking, lagret,
  * rutene dine, uleste varsler. Uten data står bare det du kan gjøre.
@@ -234,7 +234,7 @@ export default function Profile() {
               <AccountGroup label={t("acct.group.personal")}>
                 <AccountRow to="/profil/reiseprofil" icon={Sparkles} title={t("acct.travelprofile")} sub={h ? t("tpf.completeness", { pct: h.profile.completeness }) : t("acct.travelprofilesub")} />
                 <AccountRow to="/lagret" icon={Heart} title={t("acct.saved")} sub={h && h.savedCount > 0 ? t("acct.savedsub", { count: h.savedCount }) : t("acct.savedempty")} />
-                <AccountRow to="/tavler" icon={LayoutGrid} title="Reisetavler" sub="Planlegg en tur sammen — stem og del" />
+                <AccountRow to="/tavler" icon={LayoutGrid} title="Reisetavler" sub="Planlegg en tur sammen – stem og del" />
                 <AccountRow to="/quiz" icon={Sparkles} title="ReiseMatch" sub="Alene, som par eller med gjengen" />
                 <AccountRow to="/profil/varsler" icon={Bell} title={t("acct.notifications")} sub={t("acct.notificationssub")} badge={<CountBadge n={h?.unreadNotifications ?? 0} />} />
                 <AccountRow to="/profil/bonus" icon={Wallet} title={t("acct.rewards")} sub={t("acct.rewardssub", { balance: customer.bonusKr ?? 0, tier: h?.rewards.tier.name ?? "Explorer" })} />

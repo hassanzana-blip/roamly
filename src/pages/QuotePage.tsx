@@ -132,7 +132,7 @@ export default function QuotePage() {
   const canSubmitPassengers = q?.canSubmitPassengers === true;
   const setP = (id: string, patch: Partial<PaxForm>) => setPax((prev) => ({ ...prev, [id]: { ...(prev[id] ?? emptyPax()), ...patch } }));
 
-  // Allerede innsendte reisende (navn/fødselsdato) fyller skjemaet ved «Endre» — pass må skrives inn på nytt.
+  // Allerede innsendte reisende (navn/fødselsdato) fyller skjemaet ved «Endre» – pass må skrives inn på nytt.
   const submitted = q?.submittedPassengers;
   useEffect(() => {
     if (!submitted?.length) return;
@@ -148,7 +148,7 @@ export default function QuotePage() {
     });
   }, [submitted]);
 
-  // Utkast i sessionStorage — ALDRI passnummer
+  // Utkast i sessionStorage – ALDRI passnummer
   useEffect(() => {
     try {
       const safe = Object.fromEntries(Object.entries(pax).map(([id, p]) => [id, { ...p, passportNumber: "" }]));
@@ -317,7 +317,7 @@ export default function QuotePage() {
                   </p>
                 </div>
 
-                {/* Reisende — må registreres før betaling (startPayment avviser med INVALID_PASSENGER uten) */}
+                {/* Reisende – må registreres før betaling (startPayment avviser med INVALID_PASSENGER uten) */}
                 {canSubmitPassengers && (
                   <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm" aria-labelledby="pax-heading">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -379,7 +379,7 @@ export default function QuotePage() {
                   </section>
                 )}
 
-                {/* Online betaling — backend åpner først når passasjerene er registrert */}
+                {/* Online betaling – backend åpner først når passasjerene er registrert */}
                 {q.onlinePaymentAvailable ? (
                   <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm" aria-labelledby="pay-heading" aria-live="polite">
                     <h2 id="pay-heading" className="font-display text-xl font-semibold text-foreground">
@@ -423,7 +423,7 @@ export default function QuotePage() {
                           )}
                         >
                           {startPayment.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                          {t("co.topay")} — {formatPrice(q.totalAmount, currency)}
+                          {t("co.topay")} – {formatPrice(q.totalAmount, currency)}
                         </button>
                         {!passengersSubmitted && <p className="mt-2 text-xs text-muted-foreground">{t("qp.pax.required")}</p>}
                       </div>
@@ -454,7 +454,7 @@ export default function QuotePage() {
                         ) : pollTimedOut ? (
                           <div>
                             <p className="font-semibold">{t("co.slow.title")}</p>
-                            <p className="mt-1 text-muted-foreground">Vi venter fortsatt på flyselskapet. Du får e-post når billetten er bekreftet — kortet belastes først da.</p>
+                            <p className="mt-1 text-muted-foreground">Vi venter fortsatt på flyselskapet. Du får e-post når billetten er bekreftet – kortet belastes først da.</p>
                             <button
                               type="button"
                               onClick={() => {

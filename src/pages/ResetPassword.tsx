@@ -69,7 +69,7 @@ export default function ResetPassword() {
               Passordet er endret
             </h1>
             <p className="mt-2 text-[15px] text-muted-foreground">
-              Du er nå logget inn — vi tar deg videre til profilen din.
+              Du er nå logget inn – vi tar deg videre til profilen din.
             </p>
           </div>
         ) : !token ? (

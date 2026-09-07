@@ -104,7 +104,7 @@ function CommentThread({ post }: { post: FeedPost }) {
         </div>
       ))}
       {comments.data?.length === 0 && (
-        <p className="text-[12px] text-muted-foreground">Ingen svar ennå — bli den første!</p>
+        <p className="text-[12px] text-muted-foreground">Ingen svar ennå – bli den første!</p>
       )}
       {customer ? (
         <form
@@ -305,8 +305,8 @@ export default function Community() {
                   maxLength={2000}
                   placeholder={
                     postKind === "question"
-                      ? "Spør om hva som helst — visum, bagasje, beste tid å reise …"
-                      : "Del et tips fra reisen din — flyplass, bagasje, lokale triks …"
+                      ? "Spør om hva som helst – visum, bagasje, beste tid å reise …"
+                      : "Del et tips fra reisen din – flyplass, bagasje, lokale triks …"
                   }
                   className="w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-[14px] outline-none focus:border-foreground/30"
                 />

@@ -17,7 +17,7 @@ export function invoiceOf(data: OrderGetResult | undefined): { invoice: InvoiceS
 
 // ─── Tilgangstoken ──────────────────────────────────────────────────────────
 
-/** Token fra `?t=` (bekreftelseslenke) eller sessionStorage (etter oppslag) — lagres per ordre. */
+/** Token fra `?t=` (bekreftelseslenke) eller sessionStorage (etter oppslag) – lagres per ordre. */
 export function useAccessToken(orderId: string): string | undefined {
   const [params] = useSearchParams();
   const fromUrl = params.get("t");

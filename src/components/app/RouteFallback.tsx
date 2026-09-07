@@ -1,5 +1,5 @@
 /**
- * RouteFallback — skjelett mens en lat rute lastes. Holder samme rytme som
+ * RouteFallback – skjelett mens en lat rute lastes. Holder samme rytme som
  * sidene (topplinje + kort) så overgangen ikke «hopper». Admin-varianten
  * speiler sidebar + innholdsflate.
  */

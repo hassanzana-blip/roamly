@@ -19,7 +19,7 @@ import { formatDateShort } from "@/lib/format";
 import { trpc } from "@/providers/trpc";
 
 /**
- * Lagret — reisemål og søk. Innloggede har alt på kontoen (og får det med
+ * Lagret – reisemål og søk. Innloggede har alt på kontoen (og får det med
  * seg mellom enheter); gjester har det i nettleseren.
  */
 export default function Saved() {

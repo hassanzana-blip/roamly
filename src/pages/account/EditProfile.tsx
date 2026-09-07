@@ -12,7 +12,7 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 const inputCls =
   "w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none transition-colors focus:border-foreground/30 placeholder:text-muted-foreground/60";
 
-/** Skaler valgt bilde til 192×192 JPEG (data-URL) — ingen opplasting av original. */
+/** Skaler valgt bilde til 192×192 JPEG (data-URL) – ingen opplasting av original. */
 async function resizeToAvatar(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const size = Math.min(bitmap.width, bitmap.height);
@@ -114,7 +114,7 @@ export default function EditProfile() {
       const dataUrl = await resizeToAvatar(f);
       setAvatar.mutate({ dataUrl });
     } catch {
-      setAvatarMsg("Kunne ikke lese bildet — prøv et annet.");
+      setAvatarMsg("Kunne ikke lese bildet – prøv et annet.");
     }
   };
 
@@ -148,7 +148,7 @@ export default function EditProfile() {
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold">Profilbilde</p>
             <p className="text-[12px] text-muted-foreground">
-              Vises i samfunnet og på profilen din. Bildet skaleres ned — originalen forlater aldri enheten din.
+              Vises i samfunnet og på profilen din. Bildet skaleres ned – originalen forlater aldri enheten din.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
@@ -248,7 +248,7 @@ export default function EditProfile() {
             <Icon icon={LogOut} size={20} /> Økter
           </h2>
           <p className="mb-3 text-[13px] text-muted-foreground">
-            Logg ut av alle enheter — lurt hvis du har brukt en delt eller offentlig enhet.
+            Logg ut av alle enheter – lurt hvis du har brukt en delt eller offentlig enhet.
           </p>
           <button
             onClick={() => logoutAll.mutate()}
