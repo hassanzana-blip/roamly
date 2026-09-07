@@ -455,7 +455,25 @@ export function mapSearchResponse(body: TpResponse, input: TravelportSearchInput
     }
   }
 
-  return offers;
+  return collapseBrandVariants(offers);
+}
+
+/**
+ * NDC gir ett tilbud per merkenivå per produkt — én reise JFK–LAX ble til 122
+ * nesten like kort. Vi beholder det billigste tilbudet per reise og kabin, så
+ * lista viser faktiske valg framfor det samme flyet om og om igjen.
+ */
+function collapseBrandVariants(offers: Offer[]): Offer[] {
+  const cheapest = new Map<string, Offer>();
+  for (const offer of offers) {
+    const journey = offer.slices
+      .map((sl) => sl.segments.map((seg) => `${seg.flightNumber}@${seg.departingAt}`).join(">"))
+      .join("|");
+    const key = `${journey}#${offer.cabinClass}`;
+    const seen = cheapest.get(key);
+    if (!seen || Number(offer.totalAmount) < Number(seen.totalAmount)) cheapest.set(key, offer);
+  }
+  return [...cheapest.values()];
 }
 
 // ─── Søk ─────────────────────────────────────────────────────────────────────

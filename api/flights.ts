@@ -85,8 +85,8 @@ export async function resolveOffer(offerId: string): Promise<Offer> {
   // Et Travelport-tilbud kan ikke bookes gjennom Duffel — id-ene tilhører
   // ulike leverandører. Stopp her framfor å sende den videre.
   if (isTravelportOffer(offerId)) {
-    throw new AppError("OFFER_EXPIRED", {
-      message: "Dette tilbudet kan ikke bookes ennå. Søk på nytt og velg et annet.",
+    throw new AppError("SUPPLIER_REJECTED", {
+      message: "Denne avgangen kan ikke bestilles på nett ennå. Kontakt oss, så ordner vi bestillingen for deg.",
     });
   }
   if (duffelConfig.configured) return duffelGetOffer(offerId);
