@@ -6,7 +6,7 @@ import DestinationCard from "@/components/travel/DestinationCard";
 import DestinationSheet from "@/components/app/DestinationSheet";
 import { EmptyState } from "@/components/app/primitives";
 import { NoSavedSpot } from "@/components/graphics";
-import { useFavourites } from "@/lib/favourites";
+import { useSavedDestinations } from "@/lib/useAccount";
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ export default function Explore() {
   usePageMeta(PAGE_META.explore);
   const [cat, setCat] = useState("alle");
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
-  const [favs, toggleFav] = useFavourites();
+  const { ids: favs, toggle: toggleFav } = useSavedDestinations();
   const t = useT();
 
   const list: DiscoverDestination[] = useMemo(() => {

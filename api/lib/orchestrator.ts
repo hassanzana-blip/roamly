@@ -19,6 +19,7 @@ import type { Offer, Order, PassengerDetails, PriceBreakdownMinor, Ticket } from
 import { airportByIata } from "../../contracts/airports";
 import { env } from "./env";
 import { AppError, appCodeOf, type ErrorCode } from "./errors";
+import { bookingEarnKr, recordReward, rewardRules } from "./rewards";
 import { log, withContext } from "./logger";
 import { toMinor, fromMinor } from "./money";
 import { decryptField } from "./crypto";
@@ -789,11 +790,14 @@ async function finalizeBooking(
       );
       invoiceNumber = (await issueReceipt(tx, { bookingId, breakdown, segments: segmentsForVat })).invoiceNumber;
 
-      // Bonusopptjening 1 % (hele kroner) for innloggede NOK-kunder — én gang
-      if (session.customerAccountId && breakdown.currency === "NOK" && freshAttempt.state !== "CONFIRMED") {
-        const earnKr = Math.floor(breakdown.totalAmountMinor / 100 / 100);
+      // Bonusopptjening for innloggede NOK-kunder. Satsen kommer fra admin
+      // (rewards.rules); reskontroen er unik per bestilling, så samme booking
+      // kan aldri gi bonus to ganger uansett hvor mange ganger vi kommer hit.
+      if (session.customerAccountId && freshAttempt.state !== "CONFIRMED") {
+        const rules = await rewardRules();
+        const earnKr = bookingEarnKr(rules, breakdown.totalAmountMinor, breakdown.currency);
         if (earnKr > 0) {
-          await tx.update(customerAccounts).set({ bonusKr: sql`${customerAccounts.bonusKr} + ${earnKr}` }).where(eq(customerAccounts.id, session.customerAccountId));
+          await recordReward({ customerId: session.customerAccountId, kind: "booking", amountKr: earnKr, refType: "booking", refId: bookingId, note: `Bonus for bestilling ${order.bookingReference}` }, tx);
         }
       }
     }

@@ -1002,3 +1002,171 @@ export const invoices = mysqlTable(
 
 // Tilgjengelig for typede referanser ellers i koden.
 export type AnyColumn = AnyMySqlColumn;
+
+// ─── Reiseidentitet (kundens profil utover navn og e-post) ───────────────────
+// Én rad per konto. JSON-kolonner holder lister og små strukturer som endres
+// sammen; alt leses og skrives gjennom api/account.ts, som validerer formen.
+
+export const customerTravelProfiles = mysqlTable(
+  "customer_travel_profiles",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    /** Hjemmeflyplasser, IATA-koder i prioritert rekkefølge. JSON-array. */
+    homeAirportsJson: text("home_airports_json"),
+    /** Favorittreisemål (destinasjons-id fra innholdet, f.eks. "erbil"). JSON-array. */
+    favouriteDestinationsJson: text("favourite_destinations_json"),
+    preferredCabin: varchar("preferred_cabin", { length: 16 }),
+    /** cabin_only | 20kg | 30kg | 40kg */
+    baggagePreference: varchar("baggage_preference", { length: 16 }),
+    /** Hvem kunden vanligvis reiser med: solo | partner | family | friends */
+    companions: varchar("companions", { length: 16 }),
+    /** { directPreferred, maxOneStop, avoidSelfTransfer, avoidAirportChange, shortLayovers, flexibleTickets, refundablePreferred } */
+    flightPrefsJson: text("flight_prefs_json"),
+    /** { morningDeparture, daytimeArrival, avoidOvernightConnection } */
+    timingPrefsJson: text("timing_prefs_json"),
+    /** window | aisle | together */
+    seatPreference: varchar("seat_preference", { length: 16 }),
+    /** Smaksprofil: { beach: 0–100, city, food, culture, nature, ... } — kun reisepreferanser, aldri sensitive kjennetegn. */
+    tasteJson: text("taste_json"),
+    /** Varslingsvalg per kanal og type. */
+    notificationPrefsJson: text("notification_prefs_json"),
+    /** Antall ganger kunden har delt henvisningslenken (kun teller, ingen mottakere lagres). */
+    referralShares: int("referral_shares").notNull().default(0),
+    onboardingCompletedAt: timestamp("onboarding_completed_at"),
+    onboardingSkippedAt: timestamp("onboarding_skipped_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (t) => [uniqueIndex("uq_travelprofile_customer").on(t.customerId)],
+);
+
+/** Lagret innhold på konto: reisemål, flyreiser, artikler, reiseidéer. */
+export const savedItems = mysqlTable(
+  "saved_items",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    /** destination | flight | article | trip_idea */
+    kind: varchar("kind", { length: 16 }).notNull(),
+    /** Stabil nøkkel innen typen (destinasjons-id, artikkelslug, rute+dato for fly). */
+    refId: varchar("ref_id", { length: 120 }).notNull(),
+    /** Øyeblikksbilde av det som ble lagret (rute, dato, pris sett da) — merket «pris da du lagret». */
+    payloadJson: text("payload_json"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_saved_customer_kind_ref").on(t.customerId, t.kind, t.refId), index("idx_saved_customer").on(t.customerId, t.createdAt)],
+);
+
+/** Søkehistorikk for innloggede kunder (anonyme kunder får kun localStorage). */
+export const searchHistory = mysqlTable(
+  "search_history",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    originIata: varchar("origin_iata", { length: 3 }).notNull(),
+    destinationIata: varchar("destination_iata", { length: 3 }).notNull(),
+    departDate: varchar("depart_date", { length: 10 }).notNull(),
+    returnDate: varchar("return_date", { length: 10 }),
+    adults: int("adults").notNull().default(1),
+    children: int("children").notNull().default(0),
+    infants: int("infants").notNull().default(0),
+    cabin: varchar("cabin", { length: 16 }).notNull().default("economy"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_searchhistory_customer").on(t.customerId, t.createdAt)],
+);
+
+/** Varslingsinnboks. Alt her er faktiske hendelser på kontoen — aldri fabrikkert aktivitet. */
+export const customerNotifications = mysqlTable(
+  "customer_notifications",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    /** price_watch | flight_update | booking | payment | reminder | deal | match | referral | rewards | system */
+    type: varchar("type", { length: 24 }).notNull(),
+    title: varchar("title", { length: 160 }).notNull(),
+    body: text("body"),
+    href: varchar("href", { length: 255 }),
+    /** Hindrer dobbeltvarsling om samme hendelse. */
+    dedupeKey: varchar("dedupe_key", { length: 120 }),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_notif_dedupe").on(t.dedupeKey), index("idx_notif_customer").on(t.customerId, t.readAt, t.createdAt)],
+);
+
+/**
+ * Prisovervåking med fleksible rammer («helger i september–oktober under
+ * 5 000 kr, maks ett stopp»). Skiller seg fra price_alerts (én dato, ett mål):
+ * dette er en stående bestilling som workeren sjekker mot leverandøren.
+ * Et treff meldes bare når et ekte tilbud oppfyller alle vilkårene.
+ */
+export const priceWatches = mysqlTable(
+  "price_watches",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    originIata: varchar("origin_iata", { length: 3 }).notNull(),
+    destinationIata: varchar("destination_iata", { length: 3 }).notNull(),
+    dateFrom: varchar("date_from", { length: 10 }).notNull(),
+    dateTo: varchar("date_to", { length: 10 }).notNull(),
+    weekendsOnly: boolean("weekends_only").notNull().default(false),
+    /** Reiselengde i netter (null = én vei). */
+    nightsMin: int("nights_min"),
+    nightsMax: int("nights_max"),
+    maxPriceMinor: minor("max_price_minor").notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("NOK"),
+    maxStops: int("max_stops"),
+    minCheckedBags: int("min_checked_bags"),
+    adults: int("adults").notNull().default(1),
+    children: int("children").notNull().default(0),
+    infants: int("infants").notNull().default(0),
+    cabin: varchar("cabin", { length: 16 }).notNull().default("economy"),
+    /** immediate | daily | weekly */
+    cadence: varchar("cadence", { length: 12 }).notNull().default("daily"),
+    active: boolean("active").notNull().default(true),
+    lastCheckedAt: timestamp("last_checked_at"),
+    lastNotifiedAt: timestamp("last_notified_at"),
+    /** Beste treff ved siste sjekk: { priceMinor, currency, departDate, returnDate, stops, checkedBags, offerId, seenAt } */
+    lastResultJson: text("last_result_json"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (t) => [index("idx_pricewatch_customer").on(t.customerId, t.active), index("idx_pricewatch_due").on(t.active, t.lastCheckedAt)],
+);
+
+/** Kundens svar på «Tilbud for deg» — mater den regelbaserte anbefalingen. */
+export const dealFeedback = mysqlTable(
+  "deal_feedback",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    dealId: varchar("deal_id", { length: 64 }).notNull(),
+    /** interested | not_for_me | saved */
+    verdict: varchar("verdict", { length: 16 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_dealfeedback_customer_deal").on(t.customerId, t.dealId)],
+);
+
+/**
+ * Bonusreskontro. customer_accounts.bonus_kr er den cachede saldoen; hver
+ * endring skrives her slik at kunden og admin kan se hvor kronene kom fra.
+ */
+export const rewardEvents = mysqlTable(
+  "reward_events",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    /** booking | referral | referral_welcome | milestone | promotion | redemption | adjustment */
+    kind: varchar("kind", { length: 24 }).notNull(),
+    /** Hele kroner, signert (uttak er negativt). */
+    amountKr: int("amount_kr").notNull(),
+    refType: varchar("ref_type", { length: 32 }),
+    refId: varchar("ref_id", { length: 64 }),
+    note: varchar("note", { length: 255 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_reward_customer").on(t.customerId, t.createdAt), uniqueIndex("uq_reward_ref").on(t.kind, t.refType, t.refId)],
+);

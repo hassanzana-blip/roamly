@@ -41,11 +41,11 @@ import { env } from "./lib/env";
 import { logAudit } from "./lib/audit";
 import { log } from "./lib/logger";
 import { normalizePhone } from "./lib/validation";
+import { recordReward, rewardRules } from "./lib/rewards";
 
 const RESET_TTL_MS = 60 * 60_000; // 1 time
 const VERIFY_TTL_MS = 72 * 60 * 60_000; // 72 timer
 const OTP_TTL_MS = 10 * 60_000; // 10 minutter
-const REFERRAL_BONUS_KR = 200;
 const REGISTRATION_VELOCITY_LIMIT = 5; // kontoer per IP per 24t før fraud-flagg
 const CONSENT_VERSION = "2026-09";
 
@@ -203,16 +203,18 @@ export async function creditReferralBonusIfEligible(customerAccountId: number): 
     .limit(1);
   if (!referrer || referrer.deletedAt) return { credited: false };
 
+  // Satsene styres fra admin (rewards.rules). Reskontroen er idempotent på (kind, refType, refId).
+  const rules = await rewardRules();
   await db.transaction(async (tx) => {
-    await tx.update(customerAccounts).set({ bonusKr: sql`${customerAccounts.bonusKr} + ${REFERRAL_BONUS_KR}` }).where(eq(customerAccounts.id, account.id));
-    await tx.update(customerAccounts).set({ bonusKr: sql`${customerAccounts.bonusKr} + ${REFERRAL_BONUS_KR}` }).where(eq(customerAccounts.id, referrer.id));
+    await recordReward({ customerId: referrer.id, kind: "referral", amountKr: rules.referralReferrerKr, refType: "customer_account", refId: account.id, note: "Henvisning: den inviterte fullførte sin første reise" }, tx);
+    await recordReward({ customerId: account.id, kind: "referral_welcome", amountKr: rules.referralReferredKr, refType: "customer_account", refId: account.id, note: "Velkomstbonus etter første reise" }, tx);
   });
   await logAudit({
     actorType: "system",
     action: "bonus.referral_credited",
     targetType: "customer_account",
     targetId: account.id,
-    metadata: { referrerId: referrer.id, amountKr: REFERRAL_BONUS_KR },
+    metadata: { referrerId: referrer.id, referrerKr: rules.referralReferrerKr, referredKr: rules.referralReferredKr },
   });
   return { credited: true };
 }

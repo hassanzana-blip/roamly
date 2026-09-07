@@ -110,6 +110,11 @@ export const SETTING_KEYS = [
   "booking.instant_enabled",
   "markup.percent",
   "markup.flat_minor_by_currency",
+  // Bonus og henvisning styres fra admin (api/lib/rewards.ts) — aldri hardkodet i klienten.
+  "rewards.rules",
+  // Redaksjonelle brytere: hvilke forsidemoduler og artikler som er skrudd på.
+  "content.home_modules",
+  "content.hidden_articles",
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 

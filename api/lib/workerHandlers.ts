@@ -17,6 +17,7 @@ import { handleDuffelWebhook } from "../webhooks/duffel";
 import { captureException } from "./monitoring";
 import type { Order, Ticket } from "../../contracts/types";
 import type { EmailKind, EmailPayloads } from "./emails/templates";
+import { checkPriceWatches, expirePriceWatches } from "../watch";
 
 // ─── Jobbhåndterere (OTA-121) ───────────────────────────────────────────────
 // Skilt fra worker.ts slik at `dispatch`/`runJob` kan importeres av tester og
@@ -118,6 +119,12 @@ export async function dispatch(type: string, payload: Record<string, unknown>): 
       return createOrderFromQuote(Number(payload.quoteId));
     case "price_alerts":
       return handlePriceAlerts();
+    case "price_watches": {
+      await expirePriceWatches();
+      const r = await checkPriceWatches();
+      log.info(r, "prisovervåking sjekket");
+      return;
+    }
     case "disruptions":
     case "disruption_email":
       log.warn({ type }, "Utfaset jobbtype ignorert (OTA-132)");

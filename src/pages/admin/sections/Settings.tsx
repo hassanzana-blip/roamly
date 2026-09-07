@@ -74,6 +74,79 @@ function SystemStatusCard() {
   );
 }
 
+/* ── Bonus og henvisning (rewardRulesGet/Set) ─────────────────────────── */
+
+type TierDraft = { id: string; name: string; minCompletedTrips: string; benefits: string };
+
+function RewardsCard() {
+  const q = trpc.admin.rewardRulesGet.useQuery(undefined, { retry: false });
+  if (q.isLoading) return <Card><p className="text-sm text-muted-foreground">Laster …</p></Card>;
+  if (q.error || !q.data) return <Card><ErrorState error={q.error} /></Card>;
+  return <RewardsForm key={JSON.stringify(q.data.rules)} rules={q.data.rules} isDefault={q.data.isDefault} />;
+}
+
+function RewardsForm({ rules, isDefault }: { rules: { bookingEarnFraction: number; referralReferrerKr: number; referralReferredKr: number; programName: string; tiers: { id: string; name: string; minCompletedTrips: number; benefits: string[] }[] }; isDefault: boolean }) {
+  const utils = trpc.useUtils();
+  const fb = useActionFeedback();
+  const set = trpc.admin.rewardRulesSet.useMutation({
+    onSuccess: () => { fb.flash("Bonusregler lagret."); utils.admin.rewardRulesGet.invalidate(); },
+    onError: fb.fail,
+  });
+  const [programName, setProgramName] = useState(rules.programName);
+  const [earnPct, setEarnPct] = useState(String(rules.bookingEarnFraction * 100));
+  const [referrerKr, setReferrerKr] = useState(String(rules.referralReferrerKr));
+  const [referredKr, setReferredKr] = useState(String(rules.referralReferredKr));
+  const [tiers, setTiers] = useState<TierDraft[]>(rules.tiers.map((t) => ({ id: t.id, name: t.name, minCompletedTrips: String(t.minCompletedTrips), benefits: t.benefits.join("\n") })));
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    set.mutate({
+      programName,
+      bookingEarnFraction: Number(earnPct) / 100,
+      referralReferrerKr: Number(referrerKr),
+      referralReferredKr: Number(referredKr),
+      tiers: tiers.map((t) => ({ id: t.id, name: t.name, minCompletedTrips: Number(t.minCompletedTrips), benefits: t.benefits.split("\n").map((b) => b.trim()).filter(Boolean) })),
+    });
+  };
+  const updateTier = (i: number, patch: Partial<TierDraft>) => setTiers((prev) => prev.map((t, j) => (j === i ? { ...t, ...patch } : t)));
+
+  return (
+    <Card>
+      <h2 className="mb-1 font-display text-xl font-semibold text-foreground">Bonus og henvisning</h2>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Det kunden ser under «Bonus» og «Inviter venner» kommer herfra. {isDefault ? "Standardsatsene gjelder — ingenting er endret ennå." : "Egendefinerte satser er aktive."} Nivåer uten fordeler er bare et navn; skriv bare inn fordeler dere faktisk gir.
+      </p>
+      {fb.banner}
+      <form className="space-y-5" onSubmit={submit}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Programnavn" htmlFor="rw-name"><input id="rw-name" className={inputCls} value={programName} onChange={(e) => setProgramName(e.target.value)} maxLength={40} /></Field>
+          <Field label="Opptjening på bestilling (% av totalpris, kun NOK)" htmlFor="rw-earn"><input id="rw-earn" type="number" step="0.5" min="0" max="20" className={inputCls} value={earnPct} onChange={(e) => setEarnPct(e.target.value)} /></Field>
+          <Field label="Henvisning: kroner til den som inviterte" htmlFor="rw-ref1" hint="Krediteres når den inviterte har fullført sin første reise."><input id="rw-ref1" type="number" min="0" max="5000" className={inputCls} value={referrerKr} onChange={(e) => setReferrerKr(e.target.value)} /></Field>
+          <Field label="Henvisning: kroner til den inviterte" htmlFor="rw-ref2"><input id="rw-ref2" type="number" min="0" max="5000" className={inputCls} value={referredKr} onChange={(e) => setReferredKr(e.target.value)} /></Field>
+        </div>
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-foreground">Nivåer</p>
+          {tiers.map((t, i) => (
+            <div key={i} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[1fr_1fr_120px]">
+              <Field label="ID (a–z, 0–9)" htmlFor={`rw-tier-id-${i}`}><input id={`rw-tier-id-${i}`} className={inputCls} value={t.id} onChange={(e) => updateTier(i, { id: e.target.value })} /></Field>
+              <Field label="Navn" htmlFor={`rw-tier-name-${i}`}><input id={`rw-tier-name-${i}`} className={inputCls} value={t.name} onChange={(e) => updateTier(i, { name: e.target.value })} /></Field>
+              <Field label="Fra antall reiser" htmlFor={`rw-tier-min-${i}`}><input id={`rw-tier-min-${i}`} type="number" min="0" className={inputCls} value={t.minCompletedTrips} onChange={(e) => updateTier(i, { minCompletedTrips: e.target.value })} /></Field>
+              <div className="sm:col-span-3">
+                <Field label="Fordeler (én per linje)" htmlFor={`rw-tier-ben-${i}`}><textarea id={`rw-tier-ben-${i}`} rows={3} className={inputCls} value={t.benefits} onChange={(e) => updateTier(i, { benefits: e.target.value })} /></Field>
+              </div>
+              {tiers.length > 1 && (
+                <div className="sm:col-span-3"><Btn tone="ghost" onClick={() => setTiers((prev) => prev.filter((_, j) => j !== i))}>Fjern nivå</Btn></div>
+              )}
+            </div>
+          ))}
+          {tiers.length < 5 && <Btn tone="ghost" onClick={() => setTiers((prev) => [...prev, { id: "", name: "", minCompletedTrips: "0", benefits: "" }])}>Legg til nivå</Btn>}
+        </div>
+        <Btn type="submit" disabled={set.isPending}>Lagre bonusregler</Btn>
+      </form>
+    </Card>
+  );
+}
+
 /* ── Innstillinger (settingsGet/settingsSet) ───────────────────────────── */
 
 const CURRENCIES = ["NOK", "SEK", "DKK", "EUR", "GBP", "USD"];
@@ -419,7 +492,7 @@ export function AdminSettings() {
           <TabsTrigger value="jobs">Jobber og webhooks</TabsTrigger>
         </TabsList>
         <TabsContent value="system"><SystemStatusCard /></TabsContent>
-        <TabsContent value="rules"><SettingsForm /></TabsContent>
+        <TabsContent value="rules"><div className="space-y-6"><SettingsForm /><RewardsCard /></div></TabsContent>
         <TabsContent value="staff"><StaffCard /></TabsContent>
         <TabsContent value="jobs">
           <div className="grid gap-6 lg:grid-cols-2">

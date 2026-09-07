@@ -36,6 +36,7 @@ export async function loop(workerId = `worker-${randomToken(6)}`): Promise<void>
     if (shuttingDown) return;
     const hour = new Date().toISOString().slice(0, 13);
     if (!duffelConfig.configured) await enqueueJob("price_alerts", {}, { dedupeKey: `price-alerts:${hour}` }).catch(() => {});
+    await enqueueJob("price_watches", {}, { dedupeKey: `price-watches:${hour}`, priority: 8 }).catch(() => {});
     setTimeout(hourly, 60 * 60_000).unref();
   };
   await hourly();

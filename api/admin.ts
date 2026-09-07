@@ -35,6 +35,7 @@ import {
 import { assertTransition, REFUND_STATE_LABELS, STATE_LABELS, type BookingState, type RefundState } from "./lib/statemachine";
 import { addAmounts, toMinor } from "./lib/money";
 import { getSetting, priceWithServiceFee, SETTING_KEYS, setSetting } from "./lib/pricing";
+import { DEFAULT_REWARD_RULES, rewardRules } from "./lib/rewards";
 import { enqueueJob, retryJob } from "./lib/jobs";
 import { logAudit } from "./lib/audit";
 import { humanReference } from "./lib/tokens";
@@ -45,7 +46,7 @@ import { duffelGetOffer } from "./lib/duffel";
 import { demoGetOffer } from "./lib/demo";
 import { duffelConfig } from "./lib/duffel";
 import { decryptField } from "./lib/crypto";
-import { toTRPCError } from "./lib/errors";
+import { toTRPCError, AppError } from "./lib/errors";
 import { createRefundCase, refundedSoFarMinor, transitionRefund, capturedPayment, OPEN_REFUND_STATES } from "./lib/refunds";
 import { env } from "./lib/env";
 import { passengerDetailsSchema } from "./checkout";
@@ -1101,6 +1102,46 @@ export const adminRouter = createRouter({
       await logAudit({
         actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
         action: "settings.changed", targetType: "setting", targetId: input.key, metadata: { previous, value: input.value }, ip: clientIp(ctx.req),
+      });
+      return { ok: true };
+    }),
+
+  // ─── BONUS OG HENVISNING (regelmotor) ─────────────────────────────────────
+  // Satser og nivåer bor i settings.rewards.rules. Klienten leser dem via
+  // account.rewards/referral — ingen kampanje er hardkodet i frontend.
+
+  rewardRulesGet: permittedProcedure("settings:manage").query(async () => {
+    const [rules, stored] = await Promise.all([rewardRules(), getSetting<unknown>("rewards.rules", null)]);
+    return { rules, isDefault: stored === null, defaults: DEFAULT_REWARD_RULES };
+  }),
+
+  rewardRulesSet: permittedProcedure("settings:manage")
+    .input(
+      z.object({
+        bookingEarnFraction: z.number().min(0).max(0.2),
+        referralReferrerKr: z.number().int().min(0).max(5000),
+        referralReferredKr: z.number().int().min(0).max(5000),
+        programName: z.string().trim().min(2).max(40),
+        tiers: z
+          .array(
+            z.object({
+              id: z.string().trim().regex(/^[a-z0-9_-]{2,24}$/),
+              name: z.string().trim().min(2).max(40),
+              minCompletedTrips: z.number().int().min(0).max(200),
+              benefits: z.array(z.string().trim().min(1).max(120)).max(8),
+            }),
+          )
+          .min(1)
+          .max(5),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (input.tiers[0].minCompletedTrips !== 0) throw new AppError("VALIDATION", { message: "Første nivå må starte på 0 reiser, ellers står nye kunder uten nivå." });
+      const previous = await getSetting<unknown>("rewards.rules", null);
+      await setSetting("rewards.rules", input, ctx.staff!.userId);
+      await logAudit({
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        action: "settings.changed", targetType: "setting", targetId: "rewards.rules", metadata: { previous, value: input }, ip: clientIp(ctx.req),
       });
       return { ok: true };
     }),

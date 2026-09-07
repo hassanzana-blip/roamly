@@ -8,7 +8,7 @@ import { FavoriteButton, PrimaryButton, RatingChip } from "./primitives";
 import { trpc } from "@/providers/trpc";
 import { departDate, searchHref, VISA_NOTES, type DiscoverDestination } from "@/content/discover";
 import { VisaStampGlyph } from "@/components/graphics";
-import { useFavourites } from "@/lib/favourites";
+import { useSavedDestinations } from "@/lib/useAccount";
 
 /**
  * DestinationSheet — native quick-view when a destination card is tapped.
@@ -29,7 +29,7 @@ export default function DestinationSheet({
   onClose: () => void;
 }) {
   const navigate = useNavigate();
-  const [favs, toggleFav] = useFavourites();
+  const { ids: favs, toggle: toggleFav } = useSavedDestinations();
   const [imgFailed, setImgFailed] = useState(false);
 
   const hints = trpc.flights.priceHints.useQuery(

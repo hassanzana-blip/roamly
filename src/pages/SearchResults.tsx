@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCustomer } from "@/lib/useCustomer";
+import { useRecordSearch } from "@/lib/useAccount";
 import { humanMessage } from "@/lib/apiError";
 import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { CabinClass, Offer, SearchPassengerInput, SearchSliceInput } from "@contracts/types";
@@ -155,6 +156,7 @@ export default function SearchResults() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [now, setNow] = useState(() => Date.now());
   const { customer } = useCustomer();
+  const recordSearch = useRecordSearch();
   const createAlert = trpc.extras.createPriceAlert.useMutation({ onSuccess: () => setAlertTarget("") });
 
   const doSearch = () => {
@@ -162,6 +164,17 @@ export default function SearchResults() {
     setVisible(PAGE_SIZE);
     setPriceMax(null);
     search.mutate({ slices, passengers, cabinClass: cabin });
+    // Innloggede får søket på kontoen («Rutene dine», søkehistorikk). Gjester: kun localStorage.
+    recordSearch({
+      origin: slices[0].origin,
+      destination: slices[0].destination,
+      departDate: slices[0].departureDate,
+      returnDate: slices[1]?.departureDate,
+      adults: Number(params.get("adults") ?? 1),
+      children: childAges.length,
+      infants: infantAges.length,
+      cabin,
+    });
   };
 
   useEffect(() => {
