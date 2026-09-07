@@ -7,6 +7,8 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import { SliceViz } from "@/components/offers/OfferCard";
 import ExtrasSection from "@/components/checkout/ExtrasSection";
 import PassengerForm, { Field } from "@/components/checkout/PassengerForm";
+import SelectWrap from "@/components/checkout/SelectWrap";
+import { Button } from "@/components/ui/button";
 import { buildPassengerDetails, emptyPax, inputCls, normalizePhone, selectCls, validatePassengers, type PaxForm } from "@/components/checkout/passengerUtils";
 import PaymentSection from "@/components/checkout/PaymentSection";
 import { klarnaAvailable, type CheckoutPaymentMethod } from "@/components/checkout/paymentMethods";
@@ -440,7 +442,7 @@ export default function Checkout() {
     <div className="relative min-h-screen bg-background">
       <SiteHeader />
 
-      <main id="main" tabIndex={-1} className="container-x pb-44 pt-24 outline-none lg:pb-20">
+      <main id="main" tabIndex={-1} className="container-x pb-44 pt-20 outline-none lg:pb-20 lg:pt-24">
         {!offerId ? (
           <div className="grid min-h-[50vh] place-items-center text-center">
             <div>
@@ -459,14 +461,22 @@ export default function Checkout() {
               <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("co.backresults")}
             </button>
 
-            <h1 className="font-display text-[32px] sm:text-4xl">{t("co.title")}</h1>
+            <h1 className="t-h1">{t("co.title")}</h1>
             <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
               <Lock className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
               {t("co.secure")}
             </p>
 
-            {/* Stegindikator */}
-            <ol className="mt-6 flex items-center gap-1.5 sm:gap-2" aria-label={t("co.progress")}>
+            {/* Stegindikator: på telefon én linje + fem segmenter, fra sm den fulle raden. */}
+            <div className="mt-6 sm:hidden" aria-hidden="true">
+              <p className="t-label text-foreground">{t("co.stepof", { n: stepIndex + 1, total: STEPS.length, label: t(STEPS[stepIndex].label) })}</p>
+              <ol className="mt-2 flex gap-1.5">
+                {STEPS.map((s, i) => (
+                  <li key={s.key} className={cn("h-1 flex-1 rounded-full transition-colors duration-base", i < stepIndex ? "bg-success" : i === stepIndex ? "bg-primary" : "bg-border")} />
+                ))}
+              </ol>
+            </div>
+            <ol className="mt-6 hidden items-center gap-1.5 sm:flex sm:gap-2" aria-label={t("co.progress")}>
               {STEPS.map((s, i) => {
                 const done = i < stepIndex;
                 const current = i === stepIndex;
@@ -575,9 +585,9 @@ export default function Checkout() {
                       </p>
                       <PassengerForm {...paxCtx} pax={pax} onChange={setP} errors={errors} savedTravelers={savedTravelers} t={t} />
                       <div className="mt-6 flex justify-end">
-                        <button type="button" onClick={() => goNext("reisende")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60">
+                        <Button type="button" size="lg" onClick={() => goNext("reisende")}>
                           {t("co.next.contact")}
-                        </button>
+                        </Button>
                       </div>
                     </section>
                   )}
@@ -604,25 +614,27 @@ export default function Checkout() {
                         <Field id="contact-phone" label={t("co.f.phone")} error={errors["contact.phone"]} hint={t("co.f.phone.hint")}>
                           {(a) => (
                             <div className="flex gap-2">
-                              <select aria-label={t("co.f.countrycode")} value={contact.phoneCode} onChange={(e) => setContact((c) => ({ ...c, phoneCode: e.target.value }))} className={selectCls + " w-32 shrink-0"}>
-                                {PHONE_CODES.map((pc) => (
-                                  <option key={pc.code} value={pc.code}>
-                                    {pc.label}
-                                  </option>
-                                ))}
-                              </select>
+                              <SelectWrap className="w-36 shrink-0">
+                                <select aria-label={t("co.f.countrycode")} value={contact.phoneCode} onChange={(e) => setContact((c) => ({ ...c, phoneCode: e.target.value }))} className={selectCls}>
+                                  {PHONE_CODES.map((pc) => (
+                                    <option key={pc.code} value={pc.code}>
+                                      {pc.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </SelectWrap>
                               <input id={a.id} aria-describedby={a.describedBy} aria-invalid={a.invalid} type="tel" autoComplete="tel-national" inputMode="tel" placeholder="900 00 000" value={contact.phoneLocal} onChange={(e) => setContact((c) => ({ ...c, phoneLocal: e.target.value }))} className={inputCls} />
                             </div>
                           )}
                         </Field>
                       </div>
                       <div className="mt-6 flex justify-between gap-3">
-                        <button type="button" onClick={() => setStep("reisende")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
+                        <Button type="button" variant="outline" size="lg" onClick={() => setStep("reisende")}>
                           {t("common.back")}
-                        </button>
-                        <button type="button" onClick={() => goNext("kontakt")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60">
+                        </Button>
+                        <Button type="button" size="lg" onClick={() => goNext("kontakt")}>
                           {t("co.next.bags")}
-                        </button>
+                        </Button>
                       </div>
                     </section>
                   )}
@@ -675,24 +687,12 @@ export default function Checkout() {
                       )}
 
                       <div className="flex justify-between gap-3">
-                        <button type="button" onClick={() => setStep("kontakt")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
+                        <Button type="button" variant="outline" size="lg" onClick={() => setStep("kontakt")}>
                           {t("common.back")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => startSession()}
-                          disabled={createSession.isPending || offerExpired}
-                          aria-busy={createSession.isPending}
-                          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60"
-                        >
-                          {createSession.isPending ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> {t("co.confirmingprice")}
-                            </>
-                          ) : (
-                            t("co.topay")
-                          )}
-                        </button>
+                        </Button>
+                        <Button type="button" size="lg" onClick={() => startSession()} disabled={offerExpired} loading={createSession.isPending}>
+                          <Lock aria-hidden="true" /> {t("co.topay")}
+                        </Button>
                       </div>
                     </>
                   )}

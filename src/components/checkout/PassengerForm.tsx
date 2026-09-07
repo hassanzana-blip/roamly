@@ -1,8 +1,23 @@
 import type { ReactNode } from "react";
 import DateField from "@/components/search/DateField";
+import SelectWrap from "./SelectWrap";
+import { Chip } from "@/components/ui/chip";
 import { COUNTRIES } from "@/content/countries";
 import type { Gender, Title } from "@contracts/types";
 import { emptyPax, inputCls, passengerLabel, selectCls, type PassengerContext, type PaxForm, type T } from "./passengerUtils";
+
+/** A short fixed choice is one tap, not open-a-menu-then-tap. Radio semantics for screen readers. */
+function ChoiceRow<V extends string>({ id, label, value, options, onChange, describedBy, invalid }: { id: string; label: string; value: V | undefined; options: { value: V; label: string }[]; onChange: (v: V) => void; describedBy?: string; invalid: boolean }) {
+  return (
+    <div id={id} role="radiogroup" aria-label={label} aria-describedby={describedBy} aria-invalid={invalid || undefined} className="flex gap-2">
+      {options.map((o) => (
+        <Chip key={o.value} role="radio" aria-checked={value === o.value} selected={value === o.value} onClick={() => onChange(o.value)} className="min-h-11 min-w-0 flex-1 justify-center px-2">
+          {o.label}
+        </Chip>
+      ))}
+    </div>
+  );
+}
 
 /** Passasjerskjema — delt mellom Checkout (/bestill) og tilbudslenken (/tilbud). */
 
@@ -104,12 +119,19 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
               {p.type !== "infant_without_seat" && (
                 <Field id={`${idp}-title`} label={t("co.f.title")} error={errors[k("title")]}>
                   {(a) => (
-                    <select id={a.id} aria-describedby={a.describedBy} aria-invalid={a.invalid} value={d.title ?? ""} onChange={(e) => onChange(p.id, { title: (e.target.value || undefined) as Title })} className={selectCls}>
-                      <option value="">{t("common.choose")}</option>
-                      <option value="mr">Mr</option>
-                      <option value="ms">Ms</option>
-                      <option value="mrs">Mrs</option>
-                    </select>
+                    <ChoiceRow<Title>
+                      id={a.id}
+                      label={t("co.f.title")}
+                      describedBy={a.describedBy}
+                      invalid={a.invalid}
+                      value={d.title}
+                      options={[
+                        { value: "mr", label: "Mr" },
+                        { value: "ms", label: "Ms" },
+                        { value: "mrs", label: "Mrs" },
+                      ]}
+                      onChange={(v) => onChange(p.id, { title: v })}
+                    />
                   )}
                 </Field>
               )}
@@ -138,25 +160,34 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
               {p.type !== "infant_without_seat" && (
                 <Field id={`${idp}-gender`} label={t("co.f.gender")} error={errors[k("gender")]} hint={t("co.f.gender.hint")}>
                   {(a) => (
-                    <select id={a.id} aria-describedby={a.describedBy} aria-invalid={a.invalid} value={d.gender ?? ""} onChange={(e) => onChange(p.id, { gender: (e.target.value || undefined) as Gender })} className={selectCls}>
-                      <option value="">{t("common.choose")}</option>
-                      <option value="m">{t("co.f.male")}</option>
-                      <option value="f">{t("co.f.female")}</option>
-                    </select>
+                    <ChoiceRow<Gender>
+                      id={a.id}
+                      label={t("co.f.gender")}
+                      describedBy={a.describedBy}
+                      invalid={a.invalid}
+                      value={d.gender}
+                      options={[
+                        { value: "m", label: t("co.f.male") },
+                        { value: "f", label: t("co.f.female") },
+                      ]}
+                      onChange={(v) => onChange(p.id, { gender: v })}
+                    />
                   )}
                 </Field>
               )}
               {p.type === "infant_without_seat" && (
                 <Field id={`${idp}-guardian`} label={t("co.f.guardian")} error={errors[k("infantPassengerId")]}>
                   {(a) => (
-                    <select id={a.id} aria-describedby={a.describedBy} aria-invalid={a.invalid} value={d.infantPassengerId ?? ""} onChange={(e) => onChange(p.id, { infantPassengerId: e.target.value || undefined })} className={selectCls}>
-                      <option value="">{t("common.choose")}</option>
-                      {adults.map((ad, ai) => (
-                        <option key={ad.id} value={ad.id}>
-                          {pax[ad.id]?.givenName || t("co.f.adultn", { n: ai + 1 })}
-                        </option>
-                      ))}
-                    </select>
+                    <SelectWrap>
+                      <select id={a.id} aria-describedby={a.describedBy} aria-invalid={a.invalid} value={d.infantPassengerId ?? ""} onChange={(e) => onChange(p.id, { infantPassengerId: e.target.value || undefined })} className={selectCls}>
+                        <option value="">{t("common.choose")}</option>
+                        {adults.map((ad, ai) => (
+                          <option key={ad.id} value={ad.id}>
+                            {pax[ad.id]?.givenName || t("co.f.adultn", { n: ai + 1 })}
+                          </option>
+                        ))}
+                      </select>
+                    </SelectWrap>
                   )}
                 </Field>
               )}
@@ -169,13 +200,15 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
                   </Field>
                   <Field id={`${idp}-country`} label={t("co.f.country")} error={errors[k("identityDocument.issuingCountryCode")]}>
                     {(a) => (
-                      <select id={a.id} aria-describedby={a.describedBy} aria-invalid={a.invalid} value={d.passportCountry} onChange={(e) => onChange(p.id, { passportCountry: e.target.value })} className={selectCls}>
-                        {COUNTRIES.map((c) => (
-                          <option key={c.code} value={c.code}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                      <SelectWrap>
+                        <select id={a.id} aria-describedby={a.describedBy} aria-invalid={a.invalid} value={d.passportCountry} onChange={(e) => onChange(p.id, { passportCountry: e.target.value })} className={selectCls}>
+                          {COUNTRIES.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </SelectWrap>
                     )}
                   </Field>
                   <Field id={`${idp}-expiry`} label={t("co.f.expiry")} error={errors[k("identityDocument.expiresOn")]} hint={t("co.f.expiry.hint", { date: lastArrival })}>
