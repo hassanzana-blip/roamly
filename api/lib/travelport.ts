@@ -525,28 +525,36 @@ export async function travelportProbeVariants(): Promise<void> {
     buildSearchRequest({ slices: [{ origin: "OSL", destination: "LHR", departureDate }], passengers: [{ type: "adult" }], cabinClass: "economy" }),
   );
 
-  const base = travelportConfig.baseUrl;
   const pcc = travelportConfig.pcc;
-  const common: Record<string, string> = { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" };
-  const url = `${base}/11/air/catalog/search/catalogproductofferings`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    XAUTH_TRAVELPORT_ACCESSGROUP: pcc,
+    "Accept-Version": "11",
+    "Content-Version": "11",
+  };
 
-  // Tilgangsgruppa er ikke nødvendigvis identisk med PCC-en; prøv begge former.
-  const variants: Array<{ name: string; headers: Record<string, string> }> = [
-    { name: "devkit", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, "Accept-Version": "11", "Content-Version": "11" } },
-    { name: "devkit+pcc-header", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, "TVP-PCC-Core": pcc, "Accept-Version": "11", "Content-Version": "11" } },
-    { name: "accessgroup-uten-suffiks", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc.split("_")[0], "Accept-Version": "11", "Content-Version": "11" } },
-    { name: "uten-accessgroup", headers: { ...common, "Accept-Version": "11", "Content-Version": "11" } },
+  // Tokenet er utstedt for en annen vert (aud) enn den hurtigstartsiden oppgir.
+  // Prøv vertene DevKit-en og tokenet peker på, og se hvem som godtar det.
+  const hosts = [
+    travelportConfig.baseUrl,
+    "https://api.apim-a.zu2.pp.travelport.io",
+    "https://traefik-pp.edge-dev.tvptcloud.io",
+    "https://api.pp.travelport.net",
   ];
 
-  for (const v of variants) {
+  for (const host of hosts) {
+    const url = `${host}/11/air/catalog/search/catalogproductofferings`;
     try {
-      const res = await fetch(url, { method: "POST", headers: v.headers, body });
+      const res = await fetch(url, { method: "POST", headers, body });
       const detail = (await res.text()).slice(0, 300);
-      log.info({ variant: v.name, status: res.status, detail }, "Travelport-variant");
+      log.info({ host, status: res.status, detail }, "Travelport-vert");
       if (res.ok) return;
     } catch (err) {
-      log.info({ variant: v.name, err: String(err).slice(0, 200) }, "Travelport-variant kastet");
+      log.info({ host, err: String(err).slice(0, 160) }, "Travelport-vert kastet");
     }
   }
 }
+
 
