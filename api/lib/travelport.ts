@@ -129,13 +129,40 @@ export async function travelportToken(now: number = Date.now()): Promise<string>
     throw new TravelportError(authFailure.message, { status: res.status, retryable });
   }
 
-  const body = (await res.json()) as { access_token?: string; expires_in?: number };
+  const body = (await res.json()) as { access_token?: string; expires_in?: number; token_type?: string };
   if (!body.access_token) throw new TravelportError("Travelport svarte uten access_token.");
   const ttlMs = (typeof body.expires_in === "number" && body.expires_in > 0 ? body.expires_in : 3600) * 1000;
   cached = { token: body.access_token, expiresAt: now + ttlMs };
   authFailure = null;
-  log.info({ ttlSeconds: Math.round(ttlMs / 1000) }, "Travelport: token hentet");
+  // Diagnostikk: hvilke felter kom, og hvem er tokenet utstedt til? Kun
+  // metadata (aud/iss/scope) — aldri selve tokenet eller signaturen.
+  log.info(
+    {
+      ttlSeconds: Math.round(ttlMs / 1000),
+      fields: Object.keys(body),
+      tokenType: body.token_type ?? null,
+      claims: tokenClaims(body.access_token),
+    },
+    "Travelport: token hentet",
+  );
   return cached.token;
+}
+
+/** Leser ut aud/iss/scope fra en JWT uten å verifisere eller logge den. */
+function tokenClaims(jwt: string): Record<string, unknown> | null {
+  try {
+    const part = jwt.split(".")[1];
+    if (!part) return null;
+    const json = JSON.parse(Buffer.from(part.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8")) as Record<string, unknown>;
+    return {
+      aud: json.aud ?? null,
+      iss: json.iss ?? null,
+      scope: json.scope ?? null,
+      typ: json.typ ?? null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ─── Forespørsel ─────────────────────────────────────────────────────────────
