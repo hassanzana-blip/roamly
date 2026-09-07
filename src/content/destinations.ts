@@ -17,7 +17,6 @@ export interface FeaturedDestination {
   bestTime: string;
   flightTime: string;
   typicalRoute: string;
-  hue: string;
 }
 
 export interface ContinentPlace {
@@ -61,7 +60,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "April–juni og september–oktober. Bayram og juli er travlest.",
     flightTime: "Ca. 4 t til Istanbul, 7–9 t til Erbil inkl. mellomlanding",
     typicalRoute: "OSL → IST (direkte) · OSL → IST → EBL",
-    hue: "from-[#7a2a2a] to-[#0f1f3d]",
   },
   {
     id: "syria",
@@ -87,7 +85,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Vår (mars–mai) og høst (september–november)",
     flightTime: "Ca. 8–12 t inkl. mellomlanding",
     typicalRoute: "OSL → IST → DAM · OSL → BEY + landvei",
-    hue: "from-[#6b4a2a] to-[#0f1f3d]",
   },
   {
     id: "libanon",
@@ -110,7 +107,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Mai–juni og september–oktober. Juli–august er travlest.",
     flightTime: "Ca. 7–9 t inkl. mellomlanding",
     typicalRoute: "OSL → IST/FRA/CDG → BEY",
-    hue: "from-[#2a5c4e] to-[#0f1f3d]",
   },
   {
     id: "marokko",
@@ -136,7 +132,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Hele året – vår og høst er best. Sommeren er familiebesøksesong.",
     flightTime: "Ca. 4,5–7 t avhengig av mellomlanding",
     typicalRoute: "OSL → CMN via LIS/CDG/AMS · OSL → RAK via AGP/LIS",
-    hue: "from-[#7a4a1d] to-[#0f1f3d]",
   },
   {
     id: "eritrea",
@@ -159,7 +154,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Oktober–mars for kjøligere vær. Sommer og jul er reisesesongene.",
     flightTime: "Ca. 10–14 t inkl. mellomlanding",
     typicalRoute: "OSL → IST/CAI/ADD → ASM",
-    hue: "from-[#1d4e5e] to-[#0f1f3d]",
   },
   {
     id: "afghanistan",
@@ -185,7 +179,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Vår og høst",
     flightTime: "Ca. 10–14 t inkl. mellomlanding",
     typicalRoute: "OSL → IST/DXB → KBL · OSL → ISB",
-    hue: "from-[#4a3a7a] to-[#0f1f3d]",
   },
   {
     id: "pakistan",
@@ -212,7 +205,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Oktober–mars. Desember er bryllupshøysesong.",
     flightTime: "Ca. 9–12 t inkl. mellomlanding",
     typicalRoute: "OSL → IST/DOH/DXB → ISB/LHE/KHI",
-    hue: "from-[#1c5c3a] to-[#0f1f3d]",
   },
   {
     id: "india",
@@ -238,7 +230,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Oktober–mars",
     flightTime: "Ca. 10–13 t inkl. mellomlanding",
     typicalRoute: "OSL → DOH/DXB/IST/HEL → DEL/BOM",
-    hue: "from-[#7a5a1d] to-[#0f1f3d]",
   },
   {
     id: "bangladesh",
@@ -261,7 +252,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "November–februar",
     flightTime: "Ca. 12–15 t inkl. mellomlanding",
     typicalRoute: "OSL → DOH/DXB/IST → DAC",
-    hue: "from-[#1d5e4e] to-[#0f1f3d]",
   },
   {
     id: "sri-lanka",
@@ -284,7 +274,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Desember–mars (vest/sør) · mai–september (øst)",
     flightTime: "Ca. 12–15 t inkl. mellomlanding",
     typicalRoute: "OSL → DOH/DXB/IST → CMB",
-    hue: "from-[#2a4a7a] to-[#0f1f3d]",
   },
   {
     id: "polen",
@@ -311,7 +300,6 @@ export const FEATURED: FeaturedDestination[] = [
     bestTime: "Hele året – mai–september er finest",
     flightTime: "Ca. 1 t 45 min direkte",
     typicalRoute: "OSL → WAW/KRK/GDN (direkte)",
-    hue: "from-[#7a2a4e] to-[#0f1f3d]",
   },
 ];
 
