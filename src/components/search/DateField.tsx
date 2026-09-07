@@ -148,7 +148,6 @@ export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid,
           invalid={invalid}
           joined={joined}
           value={summary}
-          aria-label={`${label}: ${summary ?? t("sw.pickdate")}`}
           trailing={
             nights > 0 ? (
               <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground xl:inline">

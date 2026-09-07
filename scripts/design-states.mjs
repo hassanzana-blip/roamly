@@ -21,12 +21,12 @@ const SOK = `/sok?from=OSL&to=IST&depart=${d1}&ret=${d2}&adults=2&children=1&inf
 const STEPS = {
   "airport-to": async (page) => {
     await page.goto(base + "/", { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: /^Til:/ }).first().click();
+    await page.getByRole("button", { name: /^Til\b/ }).first().click();
     await page.waitForTimeout(700);
   },
   travelers: async (page) => {
     await page.goto(base + "/", { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: /^Reisende og klasse:/ }).first().click();
+    await page.getByRole("button", { name: /^Reisende\b/ }).first().click();
     await page.waitForTimeout(500);
     // add a child and an infant so the party row has something to show
     await page.getByRole("button", { name: /^Flere barn/ }).first().click();
@@ -36,7 +36,7 @@ const STEPS = {
   },
   dates: async (page) => {
     await page.goto(base + "/", { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: /^Datoer:/ }).first().click();
+    await page.getByRole("button", { name: /^Datoer\b/ }).first().click();
     await page.waitForTimeout(700);
   },
   "prefs-more": async (page) => {

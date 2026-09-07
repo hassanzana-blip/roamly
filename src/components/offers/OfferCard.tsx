@@ -224,7 +224,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
           {recommendedLabel && (
             <span className="inline-flex items-center gap-1.5 rounded-md bg-primary-soft px-2 py-0.5 text-2xs font-semibold text-accent-foreground">
               {t(recommendedLabel)}
-              {reason && <span className="font-medium text-accent-foreground/80">· {reason}</span>}
+              {reason && <span className="font-medium">· {reason}</span>}
             </span>
           )}
           {airportChange && <span className="rounded-md bg-warning/10 px-2 py-0.5 text-2xs font-semibold text-warning">{t("oc.tag.airportchange")}</span>}

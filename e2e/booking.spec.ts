@@ -7,11 +7,11 @@ import AxeBuilder from "@axe-core/playwright";
 const EMAIL = `e2e-${Date.now()}@hellosky.test`;
 
 async function pickAirport(page: Page, label: "Fra" | "Til", query: string, iata: string) {
-  await page.getByRole("button", { name: new RegExp(`^${label}:`) }).first().click();
+  await page.getByRole("button", { name: new RegExp(`^${label}\\b`) }).first().click();
   const input = page.getByPlaceholder("Søk by eller flyplass …");
   await input.fill(query);
   await page.getByRole("option", { name: new RegExp(`\\b${iata}\\b`) }).first().click();
-  await expect(page.getByRole("button", { name: new RegExp(`^${label}:`) }).first()).toContainText(iata);
+  await expect(page.getByRole("button", { name: new RegExp(`^${label}\\b`) }).first()).toContainText(iata);
 }
 
 /** react-day-picker (dropdown-caption): velg år/måned i select og klikk dagen. */

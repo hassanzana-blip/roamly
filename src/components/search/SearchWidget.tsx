@@ -168,7 +168,8 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
         </div>
       ) : (
         <div className={cn("mt-3 overflow-hidden rounded-xl border border-input bg-card", variant === "hero" && "lg:[--field-h:4rem]")}>
-          <div className={cn("grid divide-y divide-border md:divide-x md:divide-y-0", variant === "hero" ? "md:grid-cols-[1fr_1fr_1.35fr_1.05fr] lg:grid-cols-[1fr_1fr_1.35fr_1.05fr_auto]" : "md:grid-cols-[1fr_1fr_1.35fr_1.05fr]")}>
+          {/* Tablet: two rows (from|to over dates|travellers); four cells in one row only fit from lg. */}
+          <div className={cn("grid divide-y divide-border md:grid-cols-2 lg:divide-x lg:divide-y-0", variant === "hero" ? "lg:grid-cols-[1fr_1fr_1.35fr_1.05fr_auto]" : "lg:grid-cols-[1fr_1fr_1.35fr_1.05fr]")}>
             {/* Origin + destination with a swap control on the seam */}
             <div className="relative grid divide-y divide-border md:col-span-2 md:grid-cols-2 md:divide-x md:divide-y-0">
               <AirportField
@@ -214,15 +215,17 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
               onChange={({ depart, ret }) => setState((s) => ({ ...s, depart, ret }))}
             />
 
-            <PassengerCabinPicker
-              pax={state.pax}
-              onPaxChange={(p) => setState((s) => ({ ...s, pax: p }))}
-              ages={state.ages}
-              onAgesChange={(a) => setState((s) => ({ ...s, ages: a }))}
-              cabin={state.cabin}
-              onCabinChange={(c) => setState((s) => ({ ...s, cabin: c }))}
-              joined
-            />
+            <div className="md:border-l md:border-border">
+              <PassengerCabinPicker
+                pax={state.pax}
+                onPaxChange={(p) => setState((s) => ({ ...s, pax: p }))}
+                ages={state.ages}
+                onAgesChange={(a) => setState((s) => ({ ...s, ages: a }))}
+                cabin={state.cabin}
+                onCabinChange={(c) => setState((s) => ({ ...s, cabin: c }))}
+                joined
+              />
+            </div>
             {variant === "hero" && (
               <div className="hidden lg:flex">
                 <Button type="submit" size="xl" className="h-full min-h-[var(--field-h,3.5rem)] rounded-none px-6">

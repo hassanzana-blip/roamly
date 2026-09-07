@@ -141,7 +141,6 @@ export default function AirportField({ label, value, onChange, exclude, directio
           placeholder={t("sw.pickairport")}
           invalid={invalid}
           joined={joined}
-          aria-label={`${label}: ${value ? `${value.city} (${value.iata})` : t("sw.pickairport")}`}
           value={
             value ? (
               <>

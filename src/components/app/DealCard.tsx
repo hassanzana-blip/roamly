@@ -24,7 +24,6 @@ export default function DealCard({
     <button
       type="button"
       onClick={() => onOpen?.(d)}
-      aria-label={`Se flyreiser ${deal.originCity} til ${d.city}`}
       className="hover-lift group block w-[272px] shrink-0 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-[300px]"
     >
       <div className="relative aspect-[16/11] overflow-hidden rounded-xl bg-muted">
