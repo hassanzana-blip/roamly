@@ -333,6 +333,7 @@ type TpPrice = {
 type TpProduct = {
   id?: string;
   totalDuration?: string;
+  FlightSegment?: Array<{ sequence?: number; Flight?: { FlightRef?: string } }>;
   PassengerFlight?: Array<{ FlightProduct?: Array<{ cabin?: string; classOfService?: string }> }>;
 };
 
@@ -348,6 +349,7 @@ type TpResponse = {
           flightRefs?: string[];
           ProductBrandOffering?: Array<{
             id?: string;
+            Identifier?: { value?: string; authority?: string };
             BestCombinablePrice?: TpPrice;
             Price?: TpPrice;
             Product?: Array<{ productRef?: string }>;
@@ -380,6 +382,18 @@ function productIndex(body: TpResponse): Map<string, TpProduct> {
   return index;
 }
 
+/**
+ * GDS lister flightRefs rett på ProductBrandOptions. NDC gjør det ikke — der
+ * er flygningene bare tilgjengelige via produktets FlightSegment. Rekkefølgen
+ * er `sequence`, ikke rekkefølgen i lista.
+ */
+function flightRefsOfProduct(product: TpProduct | undefined): string[] {
+  return [...(product?.FlightSegment ?? [])]
+    .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+    .map((seg) => seg.Flight?.FlightRef)
+    .filter((ref): ref is string => Boolean(ref));
+}
+
 /** Kabinen ligger på produktet, ikke på flygningen. */
 function cabinOfProduct(product: TpProduct | undefined, fallback: CabinClass): CabinClass {
   const raw = product?.PassengerFlight?.[0]?.FlightProduct?.[0]?.cabin ?? "";
@@ -398,11 +412,8 @@ export function mapSearchResponse(body: TpResponse, input: TravelportSearchInput
 
   for (const offering of offerings) {
     for (const option of offering.ProductBrandOptions ?? []) {
-      const rawFlights = (option.flightRefs ?? []).map((ref) => flights.get(String(ref))).filter((f): f is TpFlight => Boolean(f));
-      if (rawFlights.length === 0) continue;
-
       for (const brand of option.ProductBrandOffering ?? []) {
-        // GDS-svaret legger prisen i BestCombinablePrice; Price finnes i andre varianter.
+        // Prisen ligger i BestCombinablePrice i både GDS- og NDC-svar.
         const price = brand.BestCombinablePrice ?? brand.Price;
         const currency = price?.CurrencyCode?.value;
         if (!price || typeof price.TotalPrice !== "number" || !currency) continue;
@@ -411,11 +422,17 @@ export function mapSearchResponse(body: TpResponse, input: TravelportSearchInput
         const fees = typeof price.TotalFees === "number" ? price.TotalFees : 0;
         const tax = typeof price.TotalTaxes === "number" ? price.TotalTaxes + fees : Math.max(0, price.TotalPrice - base);
         const product = products.get(String(brand.Product?.[0]?.productRef ?? ""));
+
+        // GDS: flightRefs på opsjonen. NDC: bare via produktet.
+        const refs = option.flightRefs?.length ? option.flightRefs : flightRefsOfProduct(product);
+        const rawFlights = refs.map((ref) => flights.get(String(ref))).filter((f): f is TpFlight => Boolean(f));
+        if (rawFlights.length === 0) continue;
+
         const cabin = cabinOfProduct(product, input.cabinClass);
         const segments = rawFlights.map((f) => mapSegment(f, cabin));
 
         offers.push({
-          id: `${TRAVELPORT_OFFER_PREFIX}${offering.id ?? ""}_${brand.id ?? brand.Product?.[0]?.productRef ?? segments[0].id}`,
+          id: `${TRAVELPORT_OFFER_PREFIX}${offering.id ?? ""}_${brand.id ?? brand.Identifier?.value ?? brand.Product?.[0]?.productRef ?? segments[0].id}`,
           totalAmount: price.TotalPrice.toFixed(2),
           totalCurrency: currency,
           baseAmount: base.toFixed(2),

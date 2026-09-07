@@ -255,3 +255,111 @@ describe("Travelport: kartlegging av ekte DevKit-svar", () => {
     expect(mapSearchResponse({ CatalogProductOfferingsResponse: {} }, input)).toEqual([]);
   });
 });
+
+/**
+ * NDC-svar er formet annerledes enn GDS: ProductBrandOptions har ingen
+ * flightRefs i det hele tatt, og flygningene er kun tilgjengelige via
+ * produktets FlightSegment. Denne fixturen er hentet fra et ekte NDC-svar
+ * (American Airlines, JFK–LAX) fra pre-production.
+ */
+const NDC_FIXTURE = {
+  CatalogProductOfferingsResponse: {
+    CatalogProductOfferings: {
+      CatalogProductOffering: [
+        {
+          "@type": "CatalogProductOffering",
+          sequence: 1,
+          id: "AA_CPO0",
+          Identifier: { authority: "AA", value: "QUFfQ1BPMA==" },
+          Departure: "JFK",
+          Arrival: "LAX",
+          ProductBrandOptions: [
+            {
+              "@type": "ProductBrandOptions",
+              ProductBrandOffering: [
+                {
+                  "@type": "ProductBrandOffering",
+                  Identifier: { authority: "AA", value: "WEJGRDJGN0MwLTE5QjAt" },
+                  Brand: { "@type": "BrandID", BrandRef: "AAb1" },
+                  Product: [{ "@type": "ProductID", productRef: "AAp0" }],
+                  BestCombinablePrice: {
+                    "@type": "BestCombinablePriceDetail",
+                    CurrencyCode: { decimalPlace: 2, value: "GBP" },
+                    Base: 157,
+                    TotalTaxes: 23.1,
+                    TotalFees: 0,
+                    TotalPrice: 180.1,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    ReferenceList: [
+      {
+        "@type": "ReferenceListFlight",
+        Flight: [
+          {
+            "@type": "FlightDetail",
+            duration: "PT6H20M",
+            carrier: "AA",
+            number: "3",
+            equipment: "32B",
+            id: "AAs1",
+            Departure: { location: "JFK", date: "2026-10-07", time: "08:00:00", terminal: "8" },
+            Arrival: { location: "LAX", date: "2026-10-07", time: "11:20:00", terminal: "4" },
+          },
+        ],
+      },
+      {
+        "@type": "ReferenceListProduct",
+        Product: [
+          {
+            "@type": "ProductAir",
+            id: "AAp0",
+            totalDuration: "PT6H20M",
+            FlightSegment: [{ "@type": "FlightSegment", sequence: 1, Flight: { "@type": "FlightID", FlightRef: "AAs1" } }],
+            PassengerFlight: [{ FlightProduct: [{ classOfService: "O", cabin: "Economy" }] }],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+describe("Travelport: NDC-svar (ingen flightRefs)", () => {
+  const ndcInput = {
+    slices: [{ origin: "JFK", destination: "LAX", departureDate: "2026-10-07" }],
+    passengers: [{ type: "adult" as const }],
+    cabinClass: "economy" as const,
+  };
+
+  it("finner flygningene via produktet når flightRefs mangler", () => {
+    const offers = mapSearchResponse(NDC_FIXTURE, ndcInput);
+    expect(offers.length).toBe(1);
+    const slice = offers[0].slices[0];
+    expect(slice.segments.map((s) => s.flightNumber)).toEqual(["AA3"]);
+    expect(slice.origin.iata).toBe("JFK");
+    expect(slice.destination.iata).toBe("LAX");
+    expect(slice.stops).toBe(0);
+    expect(slice.segments[0].origin.terminal).toBe("8");
+  });
+
+  it("leser pris og kabin fra NDC-svaret", () => {
+    const [offer] = mapSearchResponse(NDC_FIXTURE, ndcInput);
+    expect(offer.totalAmount).toBe("180.10");
+    expect(offer.totalCurrency).toBe("GBP");
+    expect(offer.baseAmount).toBe("157.00");
+    expect(offer.taxAmount).toBe("23.10");
+    expect(offer.cabinClass).toBe("economy");
+    expect(offer.owner.iata).toBe("AA");
+  });
+
+  it("bruker leverandørens Identifier i tilbuds-id-en når det ikke finnes noen id", () => {
+    const [offer] = mapSearchResponse(NDC_FIXTURE, ndcInput);
+    expect(offer.id.startsWith(TRAVELPORT_OFFER_PREFIX)).toBe(true);
+    expect(offer.id).toContain("AA_CPO0");
+  });
+});
