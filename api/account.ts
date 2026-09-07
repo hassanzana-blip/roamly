@@ -53,10 +53,10 @@ const timingPrefsSchema = z.object({
 const tasteSchema = z
   .record(z.string(), z.number().int().min(0).max(100))
   .transform((raw) => Object.fromEntries(Object.entries(raw).filter(([k]) => (TASTE_DIMENSIONS as readonly string[]).includes(k))) as Partial<Record<TasteDimension, number>>);
-const notificationTypeSchema = z.enum(["price_watch", "flight_update", "booking", "payment", "reminder", "deal", "match", "referral", "rewards", "system"]);
+// Løs form her; cleanNotificationPrefs beholder kun kjente typer.
 const notificationPrefsSchema = z.object({
-  email: z.record(notificationTypeSchema, z.boolean()).optional(),
-  inApp: z.record(notificationTypeSchema, z.boolean()).optional(),
+  email: z.record(z.string(), z.boolean()).optional(),
+  inApp: z.record(z.string(), z.boolean()).optional(),
 });
 
 export type FlightPrefs = z.infer<typeof flightPrefsSchema>;
@@ -468,7 +468,7 @@ export const accountRouter = createRouter({
     const code = account?.referralCode ?? null;
     return {
       code,
-      link: code ? `${env.baseUrl}/logg-inn?mode=register&ref=${encodeURIComponent(code)}` : null,
+      link: code ? `${env.baseUrl}/logg-inn?modus=registrer&ref=${encodeURIComponent(code)}` : null,
       referrerKr: rules.referralReferrerKr,
       referredKr: rules.referralReferredKr,
       shares: profile.referralShares,

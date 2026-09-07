@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
-import { Compass, Heart, Home, User } from "lucide-react";
+import { Compass, Heart, Home, Luggage, User } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Icon from "./Icon";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,12 @@ import { useT, type I18nKey } from "@/lib/i18n";
 const TABS: { to: string; label: I18nKey; icon: typeof Home; end?: boolean }[] = [
   { to: "/", label: "nav.home", icon: Home, end: true },
   { to: "/utforsk", label: "nav.explore", icon: Compass },
+  { to: "/reiser", label: "nav.trips", icon: Luggage },
   { to: "/lagret", label: "nav.saved", icon: Heart },
   { to: "/profil", label: "nav.profile", icon: User },
 ];
 
-const HIDDEN = [/^\/admin/, /^\/bestill/, /^\/bekreftelse/, /^\/tilbud/];
+const HIDDEN = [/^\/admin/, /^\/bestill/, /^\/bekreftelse/, /^\/tilbud/, /^\/velkommen/];
 
 export default function BottomNav() {
   const { pathname } = useLocation();
@@ -46,7 +47,7 @@ export default function BottomNav() {
             to={tab.to}
             end={tab.end}
             aria-current={pathname === tab.to || (!tab.end && pathname.startsWith(tab.to)) ? "page" : undefined}
-            className="relative flex min-h-11 min-w-[60px] flex-col items-center justify-center gap-0.5 rounded-full px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-row sm:gap-1.5 sm:px-4"
+            className="relative flex min-h-11 min-w-[54px] flex-col items-center justify-center gap-0.5 rounded-full px-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-row sm:gap-1.5 sm:px-4"
           >
             {({ isActive }) => (
               <>

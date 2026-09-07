@@ -48,6 +48,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const next = params.get("next") || "/profil";
+  const refCode = params.get("ref") ?? "";
 
   const [mode, setMode] = useState<Mode>(
     params.get("modus") === "registrer" ? "register" : "login",
@@ -97,7 +98,14 @@ export default function Auth() {
   };
 
   const login = trpc.customerAuth.login.useMutation({ onSuccess: onDone, onError: onErr });
-  const register = trpc.customerAuth.register.useMutation({ onSuccess: onDone, onError: onErr });
+  const register = trpc.customerAuth.register.useMutation({
+    onSuccess: () => {
+      utils.customerAuth.me.invalidate();
+      // Ny konto → 30–60 sekunders onboarding (kan hoppes over), aldri en tom profil.
+      navigate("/velkommen", { replace: true });
+    },
+    onError: onErr,
+  });
   const forgot = trpc.customerAuth.requestPasswordReset.useMutation({
     onSuccess: () => setForgotSent(true),
     onError: onErr,
@@ -127,7 +135,7 @@ export default function Auth() {
       return;
     }
     if (mode === "login") login.mutate({ identifier, password });
-    else if (mode === "register") register.mutate({ identifier, password, firstName, lastName });
+    else if (mode === "register") register.mutate({ identifier, password, firstName, lastName, referralCode: refCode || undefined });
     else if (mode === "otp") {
       if (otpSent) verifyCode.mutate({ phone: otpPhone, code: otpCode });
       else requestCode.mutate({ phone: otpPhone });

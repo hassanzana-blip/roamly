@@ -32,6 +32,14 @@ const Community = lazy(() => import('./pages/Community'))
 const EditProfile = lazy(() => import('./pages/account/EditProfile'))
 const Travelers = lazy(() => import('./pages/account/Travelers'))
 const PriceAlerts = lazy(() => import('./pages/account/PriceAlerts'))
+const PriceWatches = lazy(() => import('./pages/account/PriceWatches'))
+const TravelProfilePage = lazy(() => import('./pages/account/TravelProfile'))
+const Onboarding = lazy(() => import('./pages/account/Onboarding'))
+const Notifications = lazy(() => import('./pages/account/Notifications'))
+const Security = lazy(() => import('./pages/account/Security'))
+const Rewards = lazy(() => import('./pages/account/Rewards'))
+const Referral = lazy(() => import('./pages/account/Referral'))
+const Trips = lazy(() => import('./pages/Trips'))
 const VerifyEmail = lazy(() => import('./pages/account/VerifyEmail'))
 const Receipt = lazy(() => import('./pages/account/Receipt'))
 const Terms = lazy(() => import('./pages/content/Terms'))
@@ -107,6 +115,14 @@ export default function App() {
             <Route path="/profil/rediger" element={<EditProfile />} />
             <Route path="/profil/reisende" element={<Travelers />} />
             <Route path="/profil/prisvarsler" element={<PriceAlerts />} />
+            <Route path="/profil/prisovervaking" element={<PriceWatches />} />
+            <Route path="/profil/reiseprofil" element={<TravelProfilePage />} />
+            <Route path="/profil/varsler" element={<Notifications />} />
+            <Route path="/profil/sikkerhet" element={<Security />} />
+            <Route path="/profil/bonus" element={<Rewards />} />
+            <Route path="/profil/inviter" element={<Referral />} />
+            <Route path="/velkommen" element={<Onboarding />} />
+            <Route path="/reiser" element={<Trips />} />
             <Route path="/kvittering/:orderId" element={<Receipt />} />
             <Route path="/vilkar" element={<Terms />} />
             <Route path="/personvern" element={<Privacy />} />
