@@ -519,7 +519,6 @@ export function isTravelportOffer(offerId: string): boolean {
  */
 export async function travelportProbeVariants(): Promise<void> {
   const departureDate = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-  const search = { slices: [{ origin: "OSL", destination: "LHR", departureDate }], passengers: [{ type: "adult" as const }], cabinClass: "economy" as const };
   const token = await travelportToken();
   const url = `${travelportConfig.baseUrl}/11/air/catalog/search/catalogproductofferings`;
   const headers: Record<string, string> = {
@@ -530,24 +529,45 @@ export async function travelportProbeVariants(): Promise<void> {
     TraceId: "hellosky-probe",
   };
 
-  // Kontoen har rett på ett bestemt innhold. Hurtigstarten bruker NDC.
-  for (const sources of [["NDC"], ["GDS"], ["NDC", "GDS"]]) {
+  // NDC-testinnholdet dekker bare enkelte selskaper og ruter. Hurtigstarten
+  // bruker JFK–LAX med American Airlines; prøv den før våre egne ruter.
+  const cases: Array<{ name: string; from: string; to: string; carrier?: string }> = [
+    { name: "JFK-LAX/AA (hurtigstartens eksempel)", from: "JFK", to: "LAX", carrier: "AA" },
+    { name: "JFK-LAX uten selskapsvalg", from: "JFK", to: "LAX" },
+    { name: "LHR-JFK", from: "LHR", to: "JFK" },
+    { name: "OSL-LHR (vår rute)", from: "OSL", to: "LHR" },
+  ];
+
+  for (const c of cases) {
+    const search = { slices: [{ origin: c.from, destination: c.to, departureDate }], passengers: [{ type: "adult" as const }], cabinClass: "economy" as const };
     const request = buildSearchRequest(search) as Record<string, Record<string, unknown>>;
-    request.CatalogProductOfferingsRequest.contentSourceList = sources;
+    if (c.carrier) {
+      request.CatalogProductOfferingsRequest.SearchModifiersAir = {
+        "@type": "SearchModifiersAir",
+        CarrierPreference: [{ "@type": "CarrierPreference", preferenceType: "Preferred", carriers: [c.carrier] }],
+      };
+    }
     try {
       const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(request) });
       const text = await res.text();
-      log.info({ sources: sources.join("+"), status: res.status, detail: text.slice(0, 220) }, "Travelport-innhold");
-      if (res.ok) {
-        const offers = mapSearchResponse(JSON.parse(text) as TpResponse, search);
-        log.info({ sources: sources.join("+"), offers: offers.length }, "Travelport: SØK VIRKER");
+      if (!res.ok) {
+        log.info({ case: c.name, status: res.status, detail: text.slice(0, 200) }, "Travelport-rute feilet");
+        continue;
+      }
+      const parsed = JSON.parse(text) as TpResponse;
+      const offerings = parsed.CatalogProductOfferingsResponse?.CatalogProductOfferings?.CatalogProductOffering?.length ?? 0;
+      const offers = mapSearchResponse(parsed, search);
+      log.info({ case: c.name, offerings, mapped: offers.length, sample: offers[0] ? `${offers[0].totalAmount} ${offers[0].totalCurrency}` : null }, "Travelport-rute");
+      if (offers.length > 0) {
+        log.info({ case: c.name, offers: offers.length, first: offers[0] }, "Travelport: EKTE TILBUD KARTLAGT");
         return;
       }
     } catch (err) {
-      log.info({ sources: sources.join("+"), err: String(err).slice(0, 160) }, "Travelport-innhold kastet");
+      log.info({ case: c.name, err: String(err).slice(0, 160) }, "Travelport-rute kastet");
     }
   }
 }
+
 
 
 
