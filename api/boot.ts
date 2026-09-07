@@ -135,6 +135,25 @@ if (env.isProduction || process.env.FORCE_SERVE === "true") {
   const port = env.PORT;
   const server = serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, () => {
     log.info({ port, appEnv: env.APP_ENV }, "Server running");
+    // Midlertidig: ett testsøk mot Travelport ved oppstart mens integrasjonen
+    // feilsøkes, slik at hver deploy gir et svar i loggen uten at noen må
+    // søke manuelt. Slås av ved å fjerne TRAVELPORT_PROBE_ON_BOOT.
+    if (process.env.TRAVELPORT_PROBE_ON_BOOT === "true") {
+      void (async () => {
+        try {
+          const { travelportSearch } = await import("./lib/travelport");
+          const departureDate = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+          const result = await travelportSearch({
+            slices: [{ origin: "OSL", destination: "LHR", departureDate }],
+            passengers: [{ type: "adult" }],
+            cabinClass: "economy",
+          });
+          log.info({ offers: result.offers.length }, "Travelport-sonde: søk fullført");
+        } catch (err) {
+          log.error({ err: String(err) }, "Travelport-sonde: søk feilet");
+        }
+      })();
+    }
   });
 
   // Graceful shutdown: slutt å ta imot ny trafikk, la pågående fullføre
