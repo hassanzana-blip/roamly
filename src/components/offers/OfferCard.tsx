@@ -7,7 +7,19 @@ import Icon from "@/components/app/Icon";
 import { Button } from "@/components/ui/button";
 import { useFeeConfig } from "@/lib/useFeeConfig";
 import { useT } from "@/lib/i18n";
-import { PREFERENCES, highlights, payingPassengers, type Preference } from "@/lib/offers";
+import { PREFERENCES, hasAirportChange, highlights, payingPassengers, type Preference } from "@/lib/offers";
+import type { OfferPassenger } from "@contracts/types";
+
+/** "2 voksne · 1 barn" from the offer's passenger list; infants only when present. */
+function useParty(passengers: Pick<OfferPassenger, "type">[]) {
+  const t = useT();
+  const n = (type: OfferPassenger["type"]) => passengers.filter((p) => p.type === type).length;
+  const parts: string[] = [];
+  if (n("adult")) parts.push(t("pax.adults", { count: n("adult") }));
+  if (n("child")) parts.push(t("pax.children", { count: n("child") }));
+  if (n("infant_without_seat")) parts.push(t("pax.infants", { count: n("infant_without_seat") }));
+  return parts.join(" · ");
+}
 import { cn } from "@/lib/utils";
 import { sliceBaggage, sliceLabel } from "./offerUtils";
 import { AirportChangeDiagram, BaggageVisual, RouteDiagram, AMENITY_ICONS } from "@/components/graphics";
@@ -18,8 +30,8 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
   return (
     <div className="flex items-center gap-3">
       <div className="w-14 shrink-0 text-right sm:w-16">
-        <p className="text-lg font-semibold leading-none tabular sm:text-xl">{formatClock(slice.departingAt)}</p>
-        <p className="mt-1 text-xs font-medium tracking-wider text-muted-foreground">{slice.origin.iata}</p>
+        <p className="t-num text-lg font-semibold leading-none sm:text-xl">{formatClock(slice.departingAt)}</p>
+        <p className="t-code mt-1 text-muted-foreground">{slice.origin.iata}</p>
       </div>
       <div className="relative min-w-0 flex-1 px-1">
         <div className="flex items-center">
@@ -50,7 +62,7 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
         </p>
       </div>
       <div className="w-14 shrink-0 sm:w-16">
-        <p className="text-lg font-semibold leading-none tabular sm:text-xl">
+        <p className="t-num text-lg font-semibold leading-none sm:text-xl">
           {formatClock(slice.arrivingAt)}
           {dayShift > 0 && (
             <sup className="ml-0.5 text-[10px] font-semibold text-muted-foreground" aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
@@ -58,7 +70,7 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
             </sup>
           )}
         </p>
-        <p className="mt-1 text-xs font-medium tracking-wider text-muted-foreground">{slice.destination.iata}</p>
+        <p className="t-code mt-1 text-muted-foreground">{slice.destination.iata}</p>
       </div>
     </div>
   );
@@ -186,8 +198,13 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   );
   const refundLabel = fareConditionLabel("refund", offer.conditions?.refundBeforeDeparture, offer.refundable);
   const changeLabel = fareConditionLabel("change", offer.conditions?.changeBeforeDeparture, offer.changeable);
-  const tags = highlights(offer, offer.passengers).filter((k) => k !== "oc.direct" && k !== "oc.tag.bags");
+  const allHighlights = highlights(offer, offer.passengers);
+  const tags = allHighlights.filter((k) => k !== "oc.direct" && k !== "oc.tag.bags");
+  const airportChange = hasAirportChange(offer);
   const recommendedLabel = recommended ? PREFERENCES.find((p) => p.key === recommended)?.label : undefined;
+  // Why this one ranks first: the two strongest facts, never a score.
+  const reason = recommended ? allHighlights.slice(0, 2).map((k) => t(k)).join(" · ") : "";
+  const party = useParty(offer.passengers);
 
   return (
     <article
@@ -199,12 +216,18 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5 sm:px-5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-2xs font-bold tracking-wider text-foreground" aria-hidden="true">
+          <span className="t-code grid size-7 shrink-0 place-items-center rounded-md bg-muted text-foreground" aria-hidden="true">
             {offer.owner.iata}
           </span>
           <span className="text-sm font-medium">{offer.owner.name}</span>
           {operatedBy.length > 0 && <span className="text-2xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
-          {recommendedLabel && <span className="rounded-md bg-primary-soft px-2 py-0.5 text-2xs font-semibold text-accent-foreground">{t(recommendedLabel)}</span>}
+          {recommendedLabel && (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-primary-soft px-2 py-0.5 text-2xs font-semibold text-accent-foreground">
+              {t(recommendedLabel)}
+              {reason && <span className="font-medium text-accent-foreground/80">· {reason}</span>}
+            </span>
+          )}
+          {airportChange && <span className="rounded-md bg-warning/10 px-2 py-0.5 text-2xs font-semibold text-warning">{t("oc.tag.airportchange")}</span>}
           {offer.slices.some((s) => crossesMidnight(s.departingAt, s.arrivingAt) > 0) && (
             <span className="flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-2xs font-medium text-foreground">
               <Moon className="size-3" aria-hidden="true" /> {t("oc.arrivalnextday")}
@@ -306,12 +329,14 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
 
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-t border-border px-4 py-4 sm:px-5">
         <div className="min-w-0">
-          <p className="text-[26px] font-semibold leading-none tracking-tight tabular text-foreground sm:text-[28px]">{formatMinor(totalMinor, currency)}</p>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {t("oc.forpax", { count: offer.passengers.length })}
-            {paying > 1 && <>, {t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying), currency) })}</>}
+          <p className="t-price text-foreground">{formatMinor(totalMinor, currency)}</p>
+          <p className="mt-2 text-sm text-foreground">
+            {offer.passengers.length > 1 ? t("oc.totalfor.party", { party }) : t("oc.forpax", { count: 1 })}
           </p>
-          <p className="text-xs text-muted-foreground">{t("oc.approx")}</p>
+          <p className="text-xs text-muted-foreground">
+            {paying > 1 && <>{t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying / 100) * 100, currency) })} · </>}
+            {t("oc.approx")}
+          </p>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           {onToggleCompare && (

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Minus, Plus, Users } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import FieldButton from "./FieldButton";
 import PickerSurface from "./PickerSurface";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,6 +10,7 @@ import type { CabinClass, PassengerType } from "@contracts/types";
 import { useT, type I18nKey } from "@/lib/i18n";
 import { MAX_PASSENGERS, paxTotal, syncAges, type PaxAges, type PaxCount } from "./paxUtils";
 import { AdultGlyph, CabinClassGlyph, ChildGlyph, InfantGlyph } from "@/components/graphics";
+import { cn } from "@/lib/utils";
 
 interface Props {
   pax: PaxCount;
@@ -26,9 +28,75 @@ const ROWS: { type: PassengerType; hint: I18nKey; Glyph: typeof AdultGlyph }[] =
   { type: "infant_without_seat", hint: "sw.infant.hint", Glyph: InfantGlyph },
 ];
 
+const GLYPH: Record<PassengerType, typeof AdultGlyph> = { adult: AdultGlyph, child: ChildGlyph, infant_without_seat: InfantGlyph };
+
+/**
+ * The party, drawn: one glyph per traveller. Adding someone pops a new
+ * figure into the row; the count rolls. Pure feedback for a change the
+ * user just made, so it earns its motion; reduced motion falls back to a
+ * plain fade.
+ */
+function PartyRow({ pax, cabin }: { pax: PaxCount; cabin: CabinClass }) {
+  const t = useT();
+  const reduce = useReducedMotion();
+  const total = paxTotal(pax);
+  const people: { key: string; type: PassengerType }[] = [];
+  (["adult", "child", "infant_without_seat"] as PassengerType[]).forEach((type) => {
+    for (let i = 0; i < pax[type]; i++) people.push({ key: `${type}-${i}`, type });
+  });
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl bg-muted/60 px-4 py-3" aria-label={t("sw.party")}>
+      <div className="flex items-center">
+        <AnimatePresence initial={false}>
+          {people.map((p, i) => {
+            const G = GLYPH[p.type];
+            return (
+              <motion.span
+                key={p.key}
+                layout={!reduce}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6, y: 6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6, y: 6 }}
+                transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.6 }}
+                className={cn(
+                  "grid size-10 place-items-center rounded-full border-2 border-card bg-card text-foreground shadow-xs",
+                  i > 0 && "-ml-2.5",
+                  p.type === "infant_without_seat" && "size-8 self-end",
+                )}
+                style={{ zIndex: people.length - i }}
+                aria-hidden="true"
+              >
+                <G size={p.type === "infant_without_seat" ? 16 : 20} />
+              </motion.span>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+      <div className="min-w-0 text-right">
+        <div className="relative h-6 overflow-hidden text-base font-semibold leading-6">
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.span
+              key={total}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
+              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+              className="block tabular"
+              aria-live="polite"
+            >
+              {t("common.pax", { count: total })}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+        <p className="truncate text-sm text-muted-foreground">{cabinLabel(cabin)}</p>
+      </div>
+    </div>
+  );
+}
+
 function Stepper({ value, min, max, onChange, label, fewer, more }: { value: number; min: number; max: number; onChange: (v: number) => void; label: string; fewer: string; more: string }) {
   const btn =
-    "grid size-11 place-items-center rounded-full border border-input bg-card text-foreground transition-colors hover:border-foreground/40 disabled:opacity-30 disabled:hover:border-input focus-visible:ring-2 focus-visible:ring-ring";
+    "grid size-11 place-items-center rounded-full border border-input bg-card text-foreground transition-[border-color,transform] duration-fast ease-out hover:border-foreground/40 active:scale-95 disabled:opacity-30 disabled:hover:border-input disabled:active:scale-100 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:active:scale-100";
   return (
     <div className="flex items-center gap-2" role="group" aria-label={label}>
       <button type="button" onClick={() => onChange(value - 1)} disabled={value <= min} className={btn} aria-label={fewer}>
@@ -86,12 +154,14 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
       open={open}
       onOpenChange={setOpen}
       title={t("sw.pax.title")}
-      popoverClassName="w-[22rem]"
+      popoverClassName="w-[23rem]"
       align="end"
       doneLabel={t("sw.done")}
       trigger={<FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} joined={joined} aria-label={`${t("sw.pax.title")}: ${value}`} />}
     >
       <div className="space-y-5 p-4">
+        <PartyRow pax={pax} cabin={cabin} />
+
         {ROWS.map(({ type, hint, Glyph }) => {
           const isAdult = type === "adult";
           const max = type === "infant_without_seat" ? pax.adult : MAX_PASSENGERS;
@@ -100,10 +170,12 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
             <div key={type}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-foreground"><Glyph size={22} /></span>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-foreground">
+                    <Glyph size={22} />
+                  </span>
                   <div>
-                  <p className="text-base font-medium">{name}</p>
-                  <p className="text-sm text-muted-foreground">{t(hint)}</p>
+                    <p className="text-base font-medium">{name}</p>
+                    <p className="text-sm text-muted-foreground">{t(hint)}</p>
                   </div>
                 </div>
                 <Stepper
@@ -151,7 +223,7 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
         {(pax.child > 0 || pax.infant_without_seat > 0) && <p className="text-sm text-muted-foreground">{t("sw.family.note")}</p>}
 
         <div className="border-t border-border pt-4">
-          <p className="eyebrow mb-2">{t("sw.cabin")}</p>
+          <p className="mb-2 text-sm font-medium">{t("sw.cabin")}</p>
           <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("sw.cabin")}>
             {(Object.keys(CABIN_LABELS) as CabinClass[]).map((c) => (
               <Chip key={c} selected={cabin === c} onClick={() => onCabinChange(c)} className="h-auto min-h-11 justify-start whitespace-normal py-2 text-left leading-tight" icon={<CabinClassGlyph cabin={c} size={20} />}>

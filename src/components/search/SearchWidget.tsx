@@ -1,6 +1,6 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeftRight, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, CalendarRange, ChevronDown, Plus, Search, X } from "lucide-react";
 import AirportField from "./AirportField";
 import DateField, { DateRangeField } from "./DateField";
 import PassengerCabinPicker from "./PassengerCabinPicker";
@@ -9,7 +9,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Chip } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
 import { saveRecentSearch } from "@/lib/recentSearches";
-import { PREFERENCES } from "@/lib/offers";
+import { PREFERENCES, type Preference } from "@/lib/offers";
 import { buildSearchQuery, defaultState, todayPlus, type SearchParamsState, type TripLeg, type TripType } from "./searchQuery";
 export type { SearchParamsState, TripLeg, TripType } from "./searchQuery";
 import { useT } from "@/lib/i18n";
@@ -24,6 +24,8 @@ interface Props {
   leading?: ReactNode;
 }
 
+const PRIMARY_PREFS: Preference[] = ["best", "cheapest", "fastest"];
+
 export default function SearchWidget({ initial, variant = "hero", onSubmitted, leading }: Props) {
   const t = useT();
   const navigate = useNavigate();
@@ -34,6 +36,8 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
   }));
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(() => !PRIMARY_PREFS.includes(state.pref));
+  const moreId = useId();
 
   const isMulti = state.tripType === "multicity";
   const isRound = state.tripType === "roundtrip";
@@ -231,21 +235,53 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
         </div>
       )}
 
-      {/* What matters most: sets the default ranking of results */}
-      <div className="mt-4">
-        <p className="mb-2 text-sm text-muted-foreground">{t("pref.title")}</p>
+      {/* What matters most: sets the default ranking of results.
+          Three primary answers as one control; the rest behind a disclosure so
+          the form never reads as a wall of equal pills. */}
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex items-center gap-3">
+          <span className="hidden text-sm text-muted-foreground sm:inline">{t("pref.title")}</span>
+          <Segmented
+            aria-label={t("pref.title")}
+            value={PRIMARY_PREFS.includes(state.pref) ? state.pref : ("" as Preference)}
+            onValueChange={(pref) => setState((s) => ({ ...s, pref }))}
+            options={PREFERENCES.filter((p) => PRIMARY_PREFS.includes(p.key)).map((p) => ({ value: p.key, label: t(p.label) }))}
+            size="md"
+            className="w-auto"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMoreOpen((o) => !o)}
+            aria-expanded={moreOpen}
+            aria-controls={moreId}
+            className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            {moreOpen ? t("sw.pref.less") : t("sw.pref.more")}
+            <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-base ease-out", moreOpen && "rotate-180")} aria-hidden="true" />
+          </button>
+          {!isMulti && (
+            <Chip selected={state.flex} onClick={() => setState((s) => ({ ...s, flex: !s.flex }))} title={t("sw.flex.hint")} icon={<CalendarRange aria-hidden="true" />}>
+              {t("sw.flex")}
+            </Chip>
+          )}
+        </div>
+      </div>
+      {moreOpen && (
         <div
-          className={cn("no-scrollbar flex gap-2 overflow-x-auto sm:flex-wrap", variant === "hero" ? "-mx-5 px-5 sm:mx-0 sm:px-0" : "-mx-3 px-3 sm:mx-0 sm:px-0")}
+          id={moreId}
           role="group"
-          aria-label={t("pref.title")}
+          aria-label={t("sw.pref.more")}
+          className={cn("no-scrollbar mt-3 flex gap-2 overflow-x-auto sm:flex-wrap", variant === "hero" ? "-mx-5 px-5 sm:mx-0 sm:px-0" : "-mx-3 px-3 sm:mx-0 sm:px-0")}
         >
-          {PREFERENCES.map((p) => (
-            <Chip key={p.key} selected={state.pref === p.key} onClick={() => setState((s) => ({ ...s, pref: p.key }))} title={t(p.hint)}>
+          {PREFERENCES.filter((p) => !PRIMARY_PREFS.includes(p.key)).map((p) => (
+            <Chip key={p.key} selected={state.pref === p.key} onClick={() => setState((s) => ({ ...s, pref: p.key }))} title={t(p.hint)} icon={<p.icon aria-hidden="true" />}>
               {t(p.label)}
             </Chip>
           ))}
         </div>
-      </div>
+      )}
 
       {error && (
         <p className="mt-3 text-sm font-medium text-destructive" role="alert">

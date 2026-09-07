@@ -1,7 +1,7 @@
 import type { I18nKey } from "@/lib/i18n";
 
 /**
- * Valgene i reiseprofilen — én kilde for onboarding og innstillinger.
+ * Valgene i reiseprofilen – én kilde for onboarding og innstillinger.
  * Etikettene er i18n-nøkler; verdiene matcher api/account.ts.
  */
 
@@ -67,5 +67,5 @@ export const TIMING_PREF_OPTIONS: { id: "morningDeparture" | "daytimeArrival" | 
   { id: "avoidOvernightConnection", label: "tp.noovernight" },
 ];
 
-/** Flyplassene folk i Norge oftest reiser fra — snarveier i onboarding; alt annet via søk. */
+/** Flyplassene folk i Norge oftest reiser fra – snarveier i onboarding; alt annet via søk. */
 export const HOME_AIRPORT_SHORTCUTS = ["OSL", "TRF", "BGO", "SVG", "TRD", "TOS", "ARN", "GOT", "CPH"];

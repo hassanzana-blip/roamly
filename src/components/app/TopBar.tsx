@@ -1,59 +1,53 @@
 import { Link, useNavigate } from "react-router";
-import { ChevronLeft, Search, SlidersHorizontal, User } from "lucide-react";
+import { ChevronLeft, User } from "lucide-react";
 import Icon from "./Icon";
-import { IconButton } from "./primitives";
 import SkyMark from "@/components/brand/SkyMark";
 import { useCustomer } from "@/lib/useCustomer";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * TopBar — the greeting header of the home screen.
- * Circular avatar, personal greeting when logged in, quiet icon actions.
+ * GreetingBar: the phone header of the home screen. Brand on the left,
+ * one control on the right (the profile), nothing else. The search lives
+ * one thumb-flick below and does not need an icon pointing at it.
  * All targets ≥ 44px.
  */
-export function GreetingBar({ onSearch, tone = "light" }: { onSearch?: () => void; tone?: "light" | "dark" }) {
+export function GreetingBar({ tone = "light" }: { tone?: "light" | "dark" }) {
   const { customer } = useCustomer();
   const t = useT();
   const onDark = tone === "dark";
-  const round = onDark
-    ? "border-white/20 bg-white/10 text-white backdrop-blur-sm hover:border-white/50 hover:bg-white/15"
-    : "border-border bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60";
   return (
     <header
-      className={cn("flex items-center justify-between gap-4 pb-5", onDark && "text-white")}
-      style={{ paddingTop: "max(20px, env(safe-area-inset-top))" }}
+      className={cn("flex items-center justify-between gap-4 pb-6", onDark && "text-white")}
+      style={{ paddingTop: "max(18px, env(safe-area-inset-top))" }}
     >
-      <Link to="/profil" className="flex min-h-11 min-w-0 items-center gap-3 rounded-full" aria-label={t("topbar.openprofile")}>
+      <Link to="/" aria-label={t("topbar.home")} className="flex min-h-11 items-center gap-2 rounded-full">
+        <SkyMark className={cn("h-7 w-7", onDark ? "text-white" : "text-foreground")} />
+        <span className="text-[19px] font-extrabold lowercase tracking-tight">hellosky</span>
+      </Link>
+      <Link
+        to="/profil"
+        aria-label={t("topbar.openprofile")}
+        className={cn(
+          "flex min-h-11 min-w-11 items-center gap-2.5 rounded-full pl-3 pr-1 transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-ring",
+          onDark ? "hover:bg-white/10" : "hover:bg-muted/60",
+        )}
+      >
+        {customer ? (
+          <span className={cn("hidden max-w-[9rem] truncate text-[14px] font-medium sm:block", onDark ? "text-white/85" : "text-foreground")}>
+            {t("greet.name", { name: customer.firstName })}
+          </span>
+        ) : null}
         {customer?.avatarUrl ? (
-          <span className="h-12 w-12 shrink-0 overflow-hidden rounded-full">
+          <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full">
             <img src={customer.avatarUrl} alt="" className="h-full w-full object-cover" />
           </span>
         ) : (
-          <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-full", onDark ? "bg-white/15 text-white backdrop-blur-sm" : "bg-muted text-muted-foreground")}>
+          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border", onDark ? "border-white/25 bg-white/10 text-white backdrop-blur-sm" : "border-border bg-card text-foreground")}>
             <Icon icon={User} size={20} />
           </span>
         )}
-        <span className="min-w-0">
-          <span className={cn("block text-[13px]", onDark ? "text-white/75" : "text-muted-foreground")}>
-            {customer ? t("greet.name", { name: customer.firstName }) : t("greet.hi")}
-          </span>
-          <span className="block truncate text-[15px] font-semibold leading-tight">
-            {t("greet.where")}
-          </span>
-        </span>
       </Link>
-      <div className="flex shrink-0 items-center gap-2">
-        <IconButton icon={Search} label={t("topbar.search")} onClick={onSearch} className={round} />
-        <Link
-          to="/profil"
-          aria-label={t("topbar.settings")}
-          title={t("topbar.settings")}
-          className={cn("inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-ring", round)}
-        >
-          <Icon icon={SlidersHorizontal} size={20} />
-        </Link>
-      </div>
     </header>
   );
 }

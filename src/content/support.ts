@@ -3,7 +3,7 @@ import { ARTICLES, type Article } from "@/content/journal";
 
 /**
  * Kundeservice: intensjoner («hva ligner mest?»), hva du bør ha klart, og
- * søk på tvers av FAQ, journal og sider. Ingen chatbot — dette er en
+ * søk på tvers av FAQ, journal og sider. Ingen chatbot – dette er en
  * veiviser til riktig svar eller riktig menneske.
  */
 

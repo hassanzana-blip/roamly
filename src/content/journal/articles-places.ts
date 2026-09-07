@@ -2,7 +2,7 @@ import type { Article } from "./types";
 
 /**
  * Steder: det praktiske rundt ankomst og flyplass. Aldri visumregler eller
- * priser som tall — vi peker på UD og ambassaden, som faktisk bestemmer.
+ * priser som tall – vi peker på UD og ambassaden, som faktisk bestemmer.
  */
 export const PLACES: Article[] = [
   {

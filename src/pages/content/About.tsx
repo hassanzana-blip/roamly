@@ -28,11 +28,11 @@ export default function About() {
     <ContentPage
       eyebrow="Om HelloSky"
       title="Reisebyrået som kjenner veien hjem"
-      intro="HelloSky er et norsk reisebyrå. Vi hjelper deg med å finne de beste flyreisene — særlig rutene hjem til familien — med ekte mennesker på andre siden av telefonen."
+      intro="HelloSky er et norsk reisebyrå. Vi hjelper deg med å finne de beste flyreisene – særlig rutene hjem til familien – med ekte mennesker på andre siden av telefonen."
     >
       <Section title="Hvem vi er">
         <p>
-          HelloSky ble startet av folk som selv har reist disse rutene hele livet — til familie i Kurdistan,
+          HelloSky ble startet av folk som selv har reist disse rutene hele livet – til familie i Kurdistan,
           Libanon, Marokko, Tyrkia og resten av verden. Vi vet hva det koster, hva som kan gå galt, og hva
           som betyr noe når du endelig er fremme. Den kunnskapen får du med deg i hver bestilling.
         </p>
@@ -54,8 +54,8 @@ export default function About() {
 
       <Section title="Ærlig pris, ingen overraskelser">
         <p>
-          Prisen du ser er alltid totalprisen. Vårt servicegebyr — {COMPANY.serviceFeePercent} % av
-          flyselskapets pris pluss {COMPANY.serviceFeeFlatNok} kr per bestilling — vises som egen linje før du
+          Prisen du ser er alltid totalprisen. Vårt servicegebyr – {COMPANY.serviceFeePercent} % av
+          flyselskapets pris pluss {COMPANY.serviceFeeFlatNok} kr per bestilling – vises som egen linje før du
           betaler. Betalingen går trygt gjennom Stripe, med bankkort eller Klarna. Vi lagrer aldri kortopplysninger.
         </p>
         <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -68,7 +68,7 @@ export default function About() {
       </Section>
 
       <Section title="Følg oss">
-        <p>Reisetips, gode priser og nyheter fra HelloSky — følg oss gjerne på Facebook.</p>
+        <p>Reisetips, gode priser og nyheter fra HelloSky – følg oss gjerne på Facebook.</p>
         <a
           href={FACEBOOK_LINK}
           target="_blank"
@@ -82,7 +82,7 @@ export default function About() {
       <Section title="Kontakt oss">
         <p>
           Ring {COMPANY.supportPhone} ({COMPANY.openingHours}), send e-post til {COMPANY.supportEmail}, eller
-          skriv til oss på WhatsApp — vi svarer raskt.
+          skriv til oss på WhatsApp – vi svarer raskt.
         </p>
         <p className="text-[13px]">
           {COMPANY.identityLine}

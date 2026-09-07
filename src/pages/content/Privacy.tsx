@@ -16,7 +16,7 @@ export default function Privacy() {
     <ContentPage
       eyebrow="Personvern"
       title="Personvernerklæring"
-      intro="Vi samler bare inn det vi trenger for å levere reisen din — og vi selger aldri dataene dine. Her forklarer vi hva vi lagrer, hvorfor, hvem som hjelper oss med det, og hvilke rettigheter du har."
+      intro="Vi samler bare inn det vi trenger for å levere reisen din – og vi selger aldri dataene dine. Her forklarer vi hva vi lagrer, hvorfor, hvem som hjelper oss med det, og hvilke rettigheter du har."
       updated={UPDATED}
     >
       <Section title="1. Behandlingsansvarlig" id="behandlingsansvarlig">
@@ -36,7 +36,7 @@ export default function Privacy() {
           <li>Kontaktopplysninger: navn, e-postadresse og telefonnummer.</li>
           <li>
             Reiseopplysninger: passasjernavn, fødselsdato, kjønn og reisedetaljer. På enkelte ruter krever
-            flyselskapet også passnummer, utstederland og utløpsdato — disse lagres kryptert og vises kun maskert.
+            flyselskapet også passnummer, utstederland og utløpsdato – disse lagres kryptert og vises kun maskert.
           </li>
           <li>Betalingsstatus og referanser fra Stripe. Vi lagrer aldri kortnummer eller sikkerhetskode.</li>
           <li>Kontoinformasjon dersom du oppretter konto: innlogging, lagrede reisende, prisvarsler og preferanser (språk, valuta).</li>
@@ -47,22 +47,22 @@ export default function Privacy() {
 
       <Section title="3. Formål og rettslig grunnlag" id="formal">
         <ul className="list-disc space-y-1.5 pl-5">
-          <li>Gjennomføre bestillingen din og utstede billett hos flyselskapet — <em>avtale</em> (GDPR art. 6 nr. 1 b).</li>
-          <li>Sende bekreftelser, reiseinformasjon og viktige varsler om reisen — <em>avtale</em>.</li>
-          <li>Kundeservice, endringer, refusjoner og erstatningssaker — <em>avtale</em> og <em>berettiget interesse</em> (art. 6 nr. 1 f).</li>
-          <li>Prisvarsler og nyhetsbrev du selv har bedt om — <em>samtykke</em> (art. 6 nr. 1 a), kan trekkes når som helst.</li>
-          <li>Bokføring og regnskap — <em>rettslig forpliktelse</em> (art. 6 nr. 1 c, bokføringsloven).</li>
-          <li>Sikkerhet, svindelforebygging og feilsøking — <em>berettiget interesse</em>.</li>
+          <li>Gjennomføre bestillingen din og utstede billett hos flyselskapet – <em>avtale</em> (GDPR art. 6 nr. 1 b).</li>
+          <li>Sende bekreftelser, reiseinformasjon og viktige varsler om reisen – <em>avtale</em>.</li>
+          <li>Kundeservice, endringer, refusjoner og erstatningssaker – <em>avtale</em> og <em>berettiget interesse</em> (art. 6 nr. 1 f).</li>
+          <li>Prisvarsler og nyhetsbrev du selv har bedt om – <em>samtykke</em> (art. 6 nr. 1 a), kan trekkes når som helst.</li>
+          <li>Bokføring og regnskap – <em>rettslig forpliktelse</em> (art. 6 nr. 1 c, bokføringsloven).</li>
+          <li>Sikkerhet, svindelforebygging og feilsøking – <em>berettiget interesse</em>.</li>
         </ul>
       </Section>
 
       <Section title="4. Databehandlere og mottakere" id="databehandlere">
         <p>Vi deler kun det som er nødvendig for å levere tjenesten, og har databehandleravtaler der loven krever det:</p>
         <ul className="list-disc space-y-1.5 pl-5">
-          <li><strong className="text-foreground">Flyselskapet</strong> du reiser med, og <strong className="text-foreground">Duffel</strong> (Storbritannia) som teknisk formidler av bestillingen — passasjer- og kontaktopplysninger.</li>
-          <li><strong className="text-foreground">Stripe</strong> (Irland/USA) — betalingsbehandling. Stripe er selvstendig behandlingsansvarlig for kortdata.</li>
-          <li><strong className="text-foreground">Railway</strong> — drift og hosting av tjenesten og databasen.</li>
-          <li><strong className="text-foreground">E-postleverandør</strong> — utsending av bekreftelser og varsler. <LegalNote>navngi leverandør</LegalNote></li>
+          <li><strong className="text-foreground">Flyselskapet</strong> du reiser med, og <strong className="text-foreground">Duffel</strong> (Storbritannia) som teknisk formidler av bestillingen – passasjer- og kontaktopplysninger.</li>
+          <li><strong className="text-foreground">Stripe</strong> (Irland/USA) – betalingsbehandling. Stripe er selvstendig behandlingsansvarlig for kortdata.</li>
+          <li><strong className="text-foreground">Railway</strong> – drift og hosting av tjenesten og databasen.</li>
+          <li><strong className="text-foreground">E-postleverandør</strong> – utsending av bekreftelser og varsler. <LegalNote>navngi leverandør</LegalNote></li>
           <li>Offentlige myndigheter der loven pålegger oss det.</li>
         </ul>
         <p>

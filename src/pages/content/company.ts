@@ -25,13 +25,13 @@ export const COMPANY = {
   /** tel:-format (kun sifre, +47 hvis ikke angitt). */
   supportPhoneTel: supportPhone.startsWith("+") ? supportPhone.replace(/\s+/g, "") : `+47${supportPhone.replace(/\D/g, "")}`,
   supportEmail: env.VITE_SUPPORT_EMAIL?.trim() || "hei@hellosky.no",
-  /** Identitetslinje uten tomme ledd — «HelloSky AS · Org.nr … · Oslo, Norge». */
+  /** Identitetslinje uten tomme ledd – «HelloSky AS · Org.nr … · Oslo, Norge». */
   get identityLine(): string {
     return [this.legalName, this.orgNumberLabel, this.address].filter(Boolean).join(" · ");
   },
   privacyEmail: env.VITE_SUPPORT_EMAIL?.trim() || "hei@hellosky.no",
   openingHours: "06–24 alle dager",
-  /** Servicegebyr — speiler api/lib/pricing.ts (8 % + 250 kr). */
+  /** Servicegebyr – speiler api/lib/pricing.ts (8 % + 250 kr). */
   serviceFeePercent: 8,
   serviceFeeFlatNok: 250,
 } as const;
