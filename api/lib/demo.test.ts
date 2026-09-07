@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { demoSearch, demoPaxFactor, demoPriceHint, demoSeatTaken, demoFlightStatus, demoGetOffer } from "./demo";
+import { demoSearch, demoPaxFactor, demoPriceHint, demoFlightStatus, demoGetOffer, demoCreateOrder, demoCancellationQuote, demoServicesMinor } from "./demo";
 import type { SearchPassengerInput, SearchSliceInput } from "../../contracts/types";
 
 const slices: SearchSliceInput[] = [
@@ -107,19 +107,48 @@ describe("demoPriceHint", () => {
   });
 });
 
-describe("demoSeatTaken", () => {
-  it("is deterministic per offer and seat", () => {
-    const first = demoSeatTaken("off_x", "3A");
-    expect(demoSeatTaken("off_x", "3A")).toBe(first);
+describe("demo offers carry supplier-shaped conditions", () => {
+  it("exposes conditions, identity-document flag, time zones and per-segment baggage", () => {
+    const r = demoSearch({ slices, passengers, cabinClass: "economy" });
+    for (const offer of r.offers) {
+      expect(offer.conditions?.refundBeforeDeparture?.allowed).toBe(offer.refundable);
+      expect(typeof offer.identityDocumentsRequired).toBe("boolean");
+      expect(offer.slices[0].origin.timeZone).toBe("Europe/Oslo");
+      expect(offer.slices[0].segments[0].baggage).toBeDefined();
+      expect(offer.services?.bagServiceId).toBeTruthy();
+    }
+  });
+});
+
+describe("demoCreateOrder", () => {
+  it("creates a Duffel-shaped order with PNR, tickets and attempt metadata", () => {
+    const r = demoSearch({ slices, passengers, cabinClass: "economy" });
+    const offer = r.offers[0];
+    const pax = offer.passengers.map((p, i) => ({ id: p.id, givenName: `Kari${i}`, familyName: "Nordmann", type: p.type }));
+    const order = demoCreateOrder({ offer, passengers: pax, amountMinor: Number(offer.totalAmount) * 100 + 54900, attemptId: 42 });
+    expect(order.id.startsWith("ord_demo_")).toBe(true);
+    expect(order.bookingReference).toHaveLength(6);
+    expect(order.tickets).toHaveLength(4);
+    expect(order.metadata.attempt_id).toBe("42");
+    expect(order.totalAmount).toBe(`${Number(offer.totalAmount) + 549}.00`);
+    expect(order.cancelledAt).toBeNull();
   });
 
-  it("occupies a plausible share of seats", () => {
-    let taken = 0;
-    const seats: string[] = [];
-    for (let row = 1; row <= 9; row++) for (const col of "ABCDEF") seats.push(`${row}${col}`);
-    for (const s of seats) if (demoSeatTaken("off_sample", s)) taken++;
-    expect(taken).toBeGreaterThan(0);
-    expect(taken).toBeLessThan(seats.length);
+  it("can create an order without PNR (BOOKING_PROCESSING path)", () => {
+    const r = demoSearch({ slices, passengers, cabinClass: "economy" });
+    const offer = r.offers[0];
+    const order = demoCreateOrder({ offer, passengers: [], amountMinor: 100000, attemptId: "x", withPnr: false });
+    expect(order.bookingReference).toBe("");
+    expect(order.tickets).toHaveLength(0);
+  });
+
+  it("quotes 80 % refund on cancellation and prices extra bags in minor units", () => {
+    const q = demoCancellationQuote("ord_demo_x", 100_000, "NOK");
+    expect(q.refundMinor).toBe(80_000);
+    expect(q.refundAmount).toBe("800.00");
+    const r = demoSearch({ slices, passengers, cabinClass: "economy" });
+    const offer = r.offers[0];
+    expect(demoServicesMinor(offer, 2)).toBe(Number(offer.services?.extraBagPrice) * 100 * 2);
   });
 });
 

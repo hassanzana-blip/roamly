@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /bestill
+Disallow: /bekreftelse
+Disallow: /kvittering
+Disallow: /profil
+Disallow: /tilbud
+Disallow: /logg-inn
+Disallow: /tilbakestill-passord
+Disallow: /bekreft-epost
+Disallow: /api/
+
+Sitemap: https://hellosky.no/sitemap.xml

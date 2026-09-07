@@ -10,10 +10,19 @@ import type {
   Segment,
 } from "../../contracts/types";
 import { airportByIata, type Airport } from "../../contracts/airports";
+import { env } from "./env";
+import type { SupplierOrder } from "./duffel";
+import { fromMinor, toMinor } from "./money";
 
 // ─── Demo engine ────────────────────────────────────────────────────────────
 // Deterministic, Duffel-shaped data so the full product works end-to-end
 // before a Duffel API key is configured. Same contract types, same flow.
+// Demomotoren kjører ALDRI i produksjon (assertNotProd) — der er en ekte
+// Duffel-nøkkel påkrevd (se env.assertProductionSafety).
+
+function assertNotProd(): void {
+  if (env.isProdEnv) throw new Error("Demomodus er forbudt i produksjon (APP_ENV=production).");
+}
 
 interface DemoCarrier {
   iata: string;
@@ -102,7 +111,7 @@ function isDirectPlausible(origin: Airport, dest: Airport): boolean {
   return trunk.includes(dest.iata) && ["OSL", "CPH", "ARN", "HEL"].includes(origin.iata);
 }
 
-function carriersForRoute(origin: Airport, _dest: Airport): DemoCarrier[] {
+function carriersForRoute(origin: Airport): DemoCarrier[] {
   const out: DemoCarrier[] = [];
   for (const c of CARRIERS) {
     const servesOrigin = c.hubs.includes(origin.iata) || haversineKm(origin, airportByIata(c.hubs[0])!) < 2600;
@@ -126,7 +135,7 @@ function demoId(prefix: string): string {
 }
 
 function toPoint(a: Airport) {
-  return { iata: a.iata, name: a.name, city: a.city, country: a.country, lat: a.lat, lng: a.lng };
+  return { iata: a.iata, name: a.name, city: a.city, country: a.country, lat: a.lat, lng: a.lng, timeZone: a.timeZone };
 }
 
 // Demo times model airport-local wall time. Emitting naive ISO (no "Z")
@@ -158,6 +167,10 @@ function buildSegment(
     flightNumber: flightNo,
     aircraft: AIRCRAFT[carrier.iata] ?? "Airbus A320",
     cabinClass,
+    baggage: {
+      carryOnBags: 1,
+      checkedBags: carrier.priceFactor < 0.8 ? (cabinClass === "economy" ? 0 : 1) : cabinClass === "economy" ? 1 : 2,
+    },
   };
 }
 
@@ -235,6 +248,7 @@ function priceFor(km: number, carrier: DemoCarrier, cabin: CabinClass, seed: num
 const offerStore = new Map<string, { offer: Offer; expires: number }>();
 
 export function demoGetOffer(offerId: string): Offer | null {
+  assertNotProd();
   const hit = offerStore.get(offerId);
   if (!hit) return null;
   if (Date.now() > hit.expires) {
@@ -249,12 +263,13 @@ export function demoSearch(input: {
   passengers: SearchPassengerInput[];
   cabinClass: CabinClass;
 }): SearchResult {
+  assertNotProd();
   const offers: Offer[] = [];
   const first = input.slices[0];
   const origin = airportByIata(first.origin);
   const dest = airportByIata(first.destination);
   if (origin && dest) {
-    const carriers = carriersForRoute(origin, dest).slice(0, 7);
+    const carriers = carriersForRoute(origin).slice(0, 7);
     for (const carrier of carriers) {
       const variants = 1 + Math.floor(hash(carrier.iata + first.departureDate) * 3);
       for (let v = 0; v < variants; v++) {
@@ -281,6 +296,10 @@ export function demoSearch(input: {
         const id = demoId("off");
         const expiresAt = new Date(Date.now() + 30 * 60_000).toISOString();
         const lowCost = carrier.priceFactor < 0.8;
+        const refundable = !lowCost && input.cabinClass !== "economy" ? true : seed > 0.6;
+        const changeable = lowCost ? seed > 0.5 : true;
+        const penalty = String(Math.round(total * 0.15));
+        const international = origin.countryCode !== dest.countryCode;
         const offer: Offer = {
           id,
           totalAmount: String(total),
@@ -300,12 +319,17 @@ export function demoSearch(input: {
             ? { carryOnBags: 1, checkedBags: input.cabinClass === "economy" ? 0 : 1 }
             : { carryOnBags: 1, checkedBags: input.cabinClass === "economy" ? 1 : 2 },
           emissionsKg: Math.round((totalKm * 0.115 * paxFactor) / (input.cabinClass === "economy" ? 1 : 1.8)),
-          refundable: !lowCost && input.cabinClass !== "economy" ? true : seed > 0.6,
-          changeable: lowCost ? seed > 0.5 : true,
+          refundable,
+          changeable,
+          conditions: {
+            refundBeforeDeparture: { allowed: refundable, penaltyAmount: refundable ? penalty : null, penaltyCurrency: refundable ? "NOK" : null },
+            changeBeforeDeparture: { allowed: changeable, penaltyAmount: changeable ? penalty : null, penaltyCurrency: changeable ? "NOK" : null },
+          },
+          identityDocumentsRequired: international && !["DK", "SE", "FI", "IS", "GB", "DE", "NL", "FR", "ES", "IT", "PT", "AT", "CH", "IE", "PL", "CZ", "HU", "GR", "LV", "LT", "EE"].includes(dest.countryCode),
           services: {
             maxExtraBags: 3,
             extraBagPrice: String(lowCost ? 349 : 549),
-            seatPrice: input.cabinClass === "economy" ? String(lowCost ? 129 : 95) : "0",
+            bagServiceId: `ase_demo_${id}`,
           },
         };
         offerStore.set(id, { offer, expires: Date.now() + 30 * 60_000 });
@@ -338,7 +362,7 @@ export function demoPriceHint(
   const o = airportByIata(origin);
   const d = airportByIata(destination);
   if (!o || !d) return null;
-  const carriers = carriersForRoute(o, d).slice(0, 7); // same carrier window as demoSearch
+  const carriers = carriersForRoute(o).slice(0, 7); // same carrier window as demoSearch
   let best = Infinity;
   // Mirror the offer engine: one base fee over the combined distance,
   // seeded by the outbound leg — keeps hints close to real offer totals.
@@ -351,14 +375,84 @@ export function demoPriceHint(
   return Number.isFinite(best) ? String(Math.round(best)) : null;
 }
 
-// Deterministic seat map occupancy for an offer (frontend mirrors this)
-export function demoSeatTaken(offerId: string, seat: string): boolean {
-  return hash(`${offerId}:${seat}`) < 0.32;
+// ─── Demo-ordre (speiler Duffel-ordreobjektet) ──────────────────────────────
+
+let orderSeq = 0;
+const PNR_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export function demoBookingReference(): string {
+  let out = "";
+  for (let i = 0; i < 6; i++) out += PNR_ALPHABET[Math.floor(Math.random() * PNR_ALPHABET.length)];
+  return out;
+}
+
+/**
+ * Opprett en demo-ordre fra et tilbudsøyeblikksbilde. Beløpet er tilbudets
+ * total + tilvalg (minste enhet) — samme regel som Duffel.
+ */
+export function demoCreateOrder(input: {
+  offer: Offer;
+  passengers: Array<{ id: string; givenName: string; familyName: string; type: string }>;
+  amountMinor: number;
+  attemptId: number | string;
+  withPnr?: boolean;
+}): SupplierOrder {
+  assertNotProd();
+  orderSeq += 1;
+  const currency = input.offer.totalCurrency;
+  const ref = input.withPnr === false ? "" : demoBookingReference();
+  const id = `ord_demo_${Date.now().toString(36)}${orderSeq.toString(36)}`;
+  return {
+    id,
+    liveMode: false,
+    bookingReference: ref,
+    createdAt: new Date().toISOString(),
+    totalAmount: fromMinor(input.amountMinor, currency),
+    totalCurrency: currency,
+    slices: input.offer.slices,
+    passengers: input.passengers,
+    tickets: ref
+      ? input.passengers.map((p, i) => ({
+          passengerId: p.id,
+          passengerName: `${p.givenName} ${p.familyName}`,
+          type: "electronic_ticket",
+          uniqueIdentifier: `000-${String(2000000000 + orderSeq * 17 + i)}`,
+        }))
+      : [],
+    paymentStatus: { awaitingPayment: false, paidAt: new Date().toISOString(), paymentRequiredBy: null },
+    cancelledAt: null,
+    availableActions: ["cancel"],
+    metadata: { source: "hellosky", attempt_id: String(input.attemptId) },
+    conditions: input.offer.conditions,
+  };
+}
+
+/** Demo-kanselleringstilbud: 80 % av leverandørbeløpet refunderes. */
+export function demoCancellationQuote(orderId: string, supplierAmountMinor: number, currency: string) {
+  assertNotProd();
+  const minor = Math.round(supplierAmountMinor * 0.8);
+  return {
+    id: `ore_demo_${orderId}_${Date.now().toString(36)}`,
+    orderId,
+    refundAmount: fromMinor(minor, currency),
+    refundCurrency: currency,
+    refundMinor: minor,
+    refundTo: "balance",
+    expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+    confirmedAt: null as string | null,
+  };
+}
+
+/** Tilvalgspris i minste enhet for et demo-tilbud (ekstra kolli × pris). */
+export function demoServicesMinor(offer: Offer, extraBags: number): number {
+  const per = offer.services?.extraBagPrice ? toMinor(offer.services.extraBagPrice, offer.totalCurrency) : 0;
+  return per * Math.max(0, extraBags);
 }
 
 // ─── Flight status (demo) ───────────────────────────────────────────────────
 
 export function demoFlightStatus(carrierIata: string, flightNumber: string, date: string): FlightStatus | null {
+  assertNotProd();
   const carrier = CARRIERS.find((c) => c.iata === carrierIata.toUpperCase());
   if (!carrier) return null;
   const seed = hash(`${carrier.iata}${flightNumber}${date}`);

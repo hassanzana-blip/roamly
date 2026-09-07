@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { eq } from "drizzle-orm";
-import { getDb } from "../queries/connection";
+import { env } from "../lib/env";
+import { getDb, closeDb } from "../queries/connection";
 import { staffInvites, staffUsers } from "../../db/schema";
 import { randomToken, sha256Hex } from "../lib/tokens";
 import { logAudit } from "../lib/audit";
@@ -21,7 +22,7 @@ import { logAudit } from "../lib/audit";
 async function main() {
   const ownerEmail = process.env.BOOTSTRAP_OWNER_EMAIL?.toLowerCase().trim();
   const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.toLowerCase().trim();
-  const baseUrl = (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const baseUrl = env.baseUrl;
 
   if (!ownerEmail || !adminEmail) {
     console.error("Mangler BOOTSTRAP_OWNER_EMAIL og/eller BOOTSTRAP_ADMIN_EMAIL.");
@@ -74,6 +75,8 @@ async function main() {
     console.log(`  Utløper om 48 timer. Send lenken på en sikker kanal.\n`);
   }
   console.log("Ferdig. Slett disse lenkene fra terminalhistorikken når de er delt.");
+  console.log("Aktivering krever passord + TOTP (autentikator-app) — se /admin/aktiver.");
+  await closeDb();
   process.exit(0);
 }
 

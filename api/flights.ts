@@ -1,22 +1,21 @@
 import { z } from "zod";
+import { and, eq } from "drizzle-orm";
 import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { bookings, bookingEvents, bookingSegments, customers, supportCases, supportMessages } from "../db/schema";
-import { eq, and } from "drizzle-orm";
-import {
-  duffelConfig,
-  duffelCreateOrder,
-  duffelGetOffer,
-  duffelSearch,
-  DuffelError,
-} from "./lib/duffel";
+import { bookings, supportCases, supportMessages } from "../db/schema";
+import { env } from "./lib/env";
+import { AppError, toTRPCError } from "./lib/errors";
+import { duffelConfig, duffelGetOffer, duffelSearch } from "./lib/duffel";
 import { demoFlightStatus, demoGetOffer, demoPaxFactor, demoPriceHint, demoSearch } from "./lib/demo";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
-import { sendBookingConfirmation, sendSupportAck } from "./lib/mailer";
 import { enqueueJob } from "./lib/jobs";
+import { issueBookingAccessToken } from "./lib/bookingAccess";
+import { FLAT_FEE_BY_CURRENCY, instantBookingEnabled, loadPricingOverrides, SERVICE_FEE_PERCENT } from "./lib/pricing";
 import { searchAirports } from "../contracts/airports";
-import { desc } from "drizzle-orm";
-import type { Order, PriceHint, ServiceStatus, SupportCase } from "../contracts/types";
+import type { FlightStatus, Offer, Order, PriceHint, SearchResult, ServiceStatus } from "../contracts/types";
+
+// ─── Søk, tilbud og offentlige oppslag ─────────────────────────────────────
+// Booking skjer KUN via checkout.* (OTA-020). Ordre hentes via orders.get.
 
 const passengerSearchSchema = z.object({
   type: z.enum(["adult", "child", "infant_without_seat"]),
@@ -35,325 +34,96 @@ const searchSchema = z.object({
   cabinClass: z.enum(["economy", "premium_economy", "business", "first"]),
 });
 
-const passengerDetailsSchema = z.object({
-  id: z.string().min(1),
-  type: z.enum(["adult", "child", "infant_without_seat"]),
-  title: z.enum(["mr", "ms", "mrs"]),
-  gender: z.enum(["m", "f"]),
-  givenName: z.string().trim().min(1).max(60),
-  familyName: z.string().trim().min(1).max(60),
-  bornOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  email: z.string().email().optional(),
-  phoneNumber: z.string().max(24).optional(),
-  infantPassengerId: z.string().optional(),
-  identityDocument: z
-    .object({
-      type: z.literal("passport"),
-      uniqueIdentifier: z.string().min(4).max(20),
-      issuingCountryCode: z.string().length(2),
-      expiresOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    })
-    .optional(),
-});
+type SearchInput = z.infer<typeof searchSchema>;
 
-const createOrderSchema = z.object({
-  offerId: z.string().min(1),
-  contactEmail: z.string().email(),
-  contactPhone: z.string().min(6).max(24),
-  passengers: z.array(passengerDetailsSchema).min(1).max(9),
-  // Idempotensnøkkel genereres av klienten per checkout-forsøk — forhindrer
-  // dobbeltbooking ved dobbeltklikk/nettverksfeil. Aldri rå kortdata her.
-  idempotencyKey: z.string().uuid(),
-  services: z
-    .object({
-      extraBags: z.number().int().min(0).max(3),
-      seats: z.record(z.string(), z.string().regex(/^\d{1,2}[A-F]$/)),
-    })
-    .optional(),
-});
+// ─── Søkecache (live): 5 min per normalisert input ─────────────────────────
+const SEARCH_CACHE_TTL_MS = 5 * 60_000;
+const searchCache = new Map<string, { at: number; result: SearchResult }>();
 
-function serviceStatus(): ServiceStatus {
+export function searchCacheKey(input: SearchInput): string {
+  const slices = input.slices.map((s) => `${s.origin.toUpperCase()}-${s.destination.toUpperCase()}@${s.departureDate}`).join("|");
+  const pax = [...input.passengers]
+    .map((p) => `${p.type}${p.age !== undefined ? `:${p.age}` : ""}`)
+    .sort()
+    .join(",");
+  return `${slices}#${pax}#${input.cabinClass}`;
+}
+
+setInterval(() => {
+  const cutoff = Date.now() - SEARCH_CACHE_TTL_MS;
+  for (const [k, v] of searchCache) if (v.at < cutoff) searchCache.delete(k);
+}, 60_000).unref();
+
+/** Gebyroppsett slik serveren faktisk priser (inkl. admin-overstyringer) — klientens forhåndsvisning må bruke dette (B8). */
+export type FeeConfig = { percent: number; flatMinorByCurrency: Record<string, number> };
+
+export async function currentFeeConfig(): Promise<FeeConfig> {
+  const overrides = await loadPricingOverrides();
   return {
-    duffelConfigured: duffelConfig.configured,
-    demoMode: !duffelConfig.configured,
-    paymentMode: duffelConfig.paymentType,
+    percent: overrides.percent ?? SERVICE_FEE_PERCENT,
+    flatMinorByCurrency: { ...FLAT_FEE_BY_CURRENCY, ...(overrides.flatByCurrency ?? {}) },
   };
 }
 
-async function resolveOffer(offerId: string) {
+export type ServiceStatusWithFees = ServiceStatus & { feeConfig: FeeConfig };
+
+async function serviceStatus(): Promise<ServiceStatusWithFees> {
+  const [instant, feeConfig] = await Promise.all([instantBookingEnabled(), currentFeeConfig()]);
+  return {
+    duffelConfigured: duffelConfig.configured,
+    demoMode: !duffelConfig.configured,
+    liveMode: duffelConfig.liveMode,
+    paymentsConfigured: env.stripeConfigured,
+    instantBookingEnabled: instant,
+    stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY ?? null,
+    feeConfig,
+  };
+}
+
+export async function resolveOffer(offerId: string): Promise<Offer> {
   if (duffelConfig.configured) return duffelGetOffer(offerId);
   const offer = demoGetOffer(offerId);
-  if (!offer) {
-    throw new Error(
-      "Tilbudet er utløpt eller finnes ikke. Gjør et nytt søk for å se oppdaterte priser.",
-    );
-  }
+  if (!offer) throw new AppError("OFFER_EXPIRED");
   return offer;
 }
 
+export type FlightStatusResult = (FlightStatus & { fetchedAt: string; demo: true }) | { unavailable: true; reason: string };
+
 export const flightsRouter = createRouter({
-  status: publicQuery.query((): ServiceStatus => serviceStatus()),
+  status: publicQuery.query((): Promise<ServiceStatusWithFees> => serviceStatus()),
 
-  airports: publicQuery.input(z.object({ query: z.string().max(60) })).query(({ input }) => {
-    return searchAirports(input.query);
-  }),
+  airports: publicQuery.input(z.object({ query: z.string().max(60) })).query(({ input }) => searchAirports(input.query)),
 
-  search: publicQuery.input(searchSchema).mutation(async ({ input, ctx }) => {
-    assertRateLimit("search", clientIp(ctx.req), 20, 60_000);
-    if (duffelConfig.configured) {
-      try {
-        return await duffelSearch(input);
-      } catch (err) {
-        if (err instanceof DuffelError) {
-          throw new Error(`Søket feilet hos flyselskapene: ${err.message}`);
-        }
-        throw err;
-      }
-    }
-    // Simulate realistic supplier latency in demo mode
-    await new Promise((r) => setTimeout(r, 1400));
-    return demoSearch(input);
-  }),
-
-  getOffer: publicQuery
-    .input(z.object({ offerId: z.string().min(1) }))
-    .query(({ input }) => resolveOffer(input.offerId)),
-
-  createOrder: publicQuery.input(createOrderSchema).mutation(async ({ input, ctx }) => {
-    assertRateLimit("createOrder", clientIp(ctx.req), 10, 60_000);
-
-    // Produksjonssikring: offentlig direktebooking kan slås av frem til
-    // betalingsleverandør er på plass (se DEPLOYMENT.md).
-    if (process.env.PUBLIC_INSTANT_BOOKING === "false") {
-      throw new Error(
-        "Direktebooking er midlertidig stengt. Kontakt oss på WhatsApp eller telefon, så hjelper vi deg med bestillingen.",
-      );
-    }
-
-    // Idempotens: samme nøkkel returnerer eksisterende ordre uten ny booking
-    const existing = await getDb()
-      .select()
-      .from(bookings)
-      .where(eq(bookings.idempotencyKey, input.idempotencyKey))
-      .limit(1);
-    if (existing[0]) {
-      return JSON.parse(existing[0].payload) as Order;
-    }
-
-    const offer = await resolveOffer(input.offerId);
-
-    // Validate and price the requested extras against the offer
-    const extras = input.services ?? { extraBags: 0, seats: {} };
-    const maxBags = offer.services?.maxExtraBags ?? 0;
-    const extraBags = Math.min(extras.extraBags, maxBags);
-    const seatPrice = offer.services?.seatPrice ? Number(offer.services.seatPrice) : 0;
-    const bagPrice = offer.services?.extraBagPrice ? Number(offer.services.extraBagPrice) : 0;
-    const seatCount = Object.keys(extras.seats).length;
-    const extrasTotal = extraBags * bagPrice + (seatPrice > 0 ? seatCount * seatPrice : 0);
-    const sanitizedServices =
-      extraBags > 0 || seatCount > 0
-        ? { extraBags, seats: extras.seats }
-        : undefined;
-
-    // Infants must be linked to a unique responsible adult (Duffel rule)
-    const infants = input.passengers.filter((p) => p.type === "infant_without_seat");
-    if (infants.length > 0) {
-      const adultsWithInfant = new Set(
-        input.passengers.filter((p) => p.infantPassengerId).map((p) => p.id),
-      );
-      if (adultsWithInfant.size !== infants.length) {
-        throw new Error("Hver baby må knyttes til nøyaktig én voksen reisende.");
-      }
-    }
-
-    let order: Order;
-    if (duffelConfig.configured) {
-      try {
-        order = await duffelCreateOrder({
-          offer,
-          passengers: input.passengers,
-          contactEmail: input.contactEmail,
-          contactPhone: input.contactPhone,
-          services: sanitizedServices,
-        });
-      } catch (err) {
-        if (err instanceof DuffelError) {
-          throw new Error(`Bestillingen kunne ikke fullføres: ${err.message}`);
-        }
-        throw err;
-      }
-    } else {
-      // Demo order — mirrors Duffel's order object
-      const ref = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
-      order = {
-        id: `ord_demo_${Date.now().toString(36)}`,
-        bookingReference: ref,
-        liveMode: false,
-        demoMode: true,
-        createdAt: new Date().toISOString(),
-        totalAmount: offer.totalAmount,
-        totalCurrency: offer.totalCurrency,
-        cabinClass: offer.cabinClass,
-        slices: offer.slices,
-        passengers: input.passengers,
-        contactEmail: input.contactEmail,
-        contactPhone: input.contactPhone,
-        paymentStatus: "succeeded",
-        services: sanitizedServices,
-        servicesAmount: extrasTotal > 0 ? String(extrasTotal) : undefined,
-      };
-      if (extrasTotal > 0) {
-        order.totalAmount = String(Number(offer.totalAmount) + extrasTotal);
-      }
-    }
-
-    // Persist med komplett driftsspor: kunde, tilstand, segmenter, events.
-    // Ordren er opprettet hos leverandøren — lagring MÅ lykkes (ellers
-    // legges den i AWAITING_RECONCILIATION og sweeperen plukker den opp).
-    let bookingId: number | null = null;
+  search: publicQuery.input(searchSchema).mutation(async ({ input, ctx }): Promise<SearchResult> => {
     try {
-      const db = getDb();
-      const normalizedEmail = order.contactEmail.toLowerCase().trim();
-      const existingCustomer = await db
-        .select()
-        .from(customers)
-        .where(eq(customers.email, normalizedEmail))
-        .limit(1);
-      let customerId = existingCustomer[0]?.id;
-      if (!customerId) {
-        const firstPax = input.passengers[0];
-        const result = await db.insert(customers).values({
-          email: normalizedEmail,
-          name: firstPax ? `${firstPax.givenName} ${firstPax.familyName}` : null,
-          phone: input.contactPhone,
-        });
-        customerId = Number(result[0].insertId);
-      }
-
-      const bookingResult = await db.insert(bookings).values({
-        orderId: order.id,
-        bookingReference: order.bookingReference,
-        contactEmail: normalizedEmail,
-        contactPhone: order.contactPhone,
-        liveMode: order.liveMode,
-        payload: JSON.stringify(order),
-        state: "CONFIRMED",
-        customerId,
-        totalAmount: order.totalAmount,
-        totalCurrency: order.totalCurrency,
-        source: "web",
-        idempotencyKey: input.idempotencyKey,
-      });
-      bookingId = Number(bookingResult[0].insertId);
-
-      await db.insert(bookingEvents).values({
-        bookingId,
-        fromState: "BOOKING_PROCESSING",
-        toState: "CONFIRMED",
-        actorType: "customer",
-        actorId: normalizedEmail,
-        reason: "Ordre opprettet og bekreftet hos leverandør",
-        correlationId: input.idempotencyKey,
-      });
-
-      let segIdx = 0;
-      for (let si = 0; si < order.slices.length; si++) {
-        for (const seg of order.slices[si].segments) {
-          await db.insert(bookingSegments).values({
-            bookingId,
-            sliceIndex: si,
-            segmentIndex: segIdx++,
-            originIata: seg.origin.iata,
-            destinationIata: seg.destination.iata,
-            carrierIata: seg.carrier.iata,
-            flightNumber: seg.flightNumber,
-            departingAt: seg.departingAt,
-            arrivingAt: seg.arrivingAt,
-            cabinClass: seg.cabinClass,
-          });
+      assertRateLimit("search", clientIp(ctx.req), 20, 60_000);
+      for (const s of input.slices) {
+        if (s.origin.toUpperCase() === s.destination.toUpperCase()) {
+          throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass." });
         }
       }
-    } catch (dbErr) {
-      // Kritisk: ordren finnes hos Duffel, men ble ikke lagret lokalt.
-      console.error("KRITISK: Kunne ikke lagre bestilling i databasen:", dbErr);
-      await enqueueJob("send_email", {
-        kind: "ops_alert",
-        subject: `Ordre ikke lagret lokalt: ${order.bookingReference}`,
-        body: `Ordre ${order.id} (${order.bookingReference}) ble opprettet hos leverandøren, men databasen svarte ikke. Legg inn manuelt eller kjør avstemming.\n\nFeil: ${String(dbErr)}`,
-      }).catch(() => {});
+      if (duffelConfig.configured) {
+        const key = searchCacheKey(input);
+        const hit = searchCache.get(key);
+        if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) return hit.result;
+        const result = await duffelSearch(input);
+        searchCache.set(key, { at: Date.now(), result });
+        return result;
+      }
+      await new Promise((r) => setTimeout(r, 600)); // realistisk leverandørlatens i demo
+      return demoSearch(input);
+    } catch (err) {
+      throw toTRPCError(err);
     }
-
-    // Bekreftelses-e-post via outbox (retry hos worker) — aldri inline-lås
-    if (bookingId !== null) {
-      await enqueueJob(
-        "send_email",
-        { kind: "booking_confirmation", bookingId },
-        { dedupeKey: `booking-confirmation:${bookingId}` },
-      ).catch(() => {});
-      // Driftsvarsel til teamet: ny booking registrert
-      await enqueueJob(
-        "send_email",
-        {
-          kind: "ops_alert",
-          subject: `Ny booking: ${order.bookingReference}`,
-          body: `Ny bestilling er registrert.\n\nReferanse: ${order.bookingReference}\nKunde: ${order.contactEmail}\nBeløp: ${order.totalAmount} ${order.totalCurrency}\nModus: ${order.liveMode ? "LIVE" : "test/demo"}\n\nÅpne admin → Bestillinger for detaljer.`,
-        },
-        { dedupeKey: `new-booking-alert:${bookingId}` },
-      ).catch(() => {});
-    } else {
-      await sendBookingConfirmation(order).catch(() => null);
-    }
-
-    return order;
   }),
 
-  getOrder: publicQuery
-    .input(z.object({ orderId: z.string().min(1) }))
-    .query(async ({ input }) => {
-      const rows = await getDb()
-        .select()
-        .from(bookings)
-        .where(eq(bookings.orderId, input.orderId))
-        .limit(1);
-      if (!rows[0]) throw new Error("Fant ikke bestillingen.");
-      return JSON.parse(rows[0].payload) as Order;
-    }),
-
-  findBooking: publicQuery
-    .input(z.object({ bookingReference: z.string().min(4).max(8), email: z.string().email() }))
-    .query(async ({ input }) => {
-      const rows = await getDb()
-        .select()
-        .from(bookings)
-        .where(
-          and(
-            eq(bookings.bookingReference, input.bookingReference.toUpperCase()),
-            eq(bookings.contactEmail, input.email.toLowerCase().trim()),
-          ),
-        )
-        .limit(1);
-      if (!rows[0]) {
-        throw new Error(
-          "Vi fant ingen bestilling med denne kombinasjonen av referanse og e-post. Sjekk at begge er skrevet riktig.",
-        );
-      }
-      return JSON.parse(rows[0].payload) as Order;
-    }),
-
-  flightStatus: publicQuery
-    .input(
-      z.object({
-        carrier: z.string().length(2),
-        flightNumber: z.string().min(1).max(5),
-        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      }),
-    )
-    .query(({ input, ctx }) => {
-      assertRateLimit("flightStatus", clientIp(ctx.req), 30, 60_000);
-      const status = demoFlightStatus(input.carrier, input.flightNumber, input.date);
-      if (!status) throw new Error("Vi kjenner ikke dette flyselskapet ennå.");
-      return status;
-    }),
+  getOffer: publicQuery.input(z.object({ offerId: z.string().min(1).max(128) })).query(async ({ input }) => {
+    try {
+      return await resolveOffer(input.offerId);
+    } catch (err) {
+      throw toTRPCError(err);
+    }
+  }),
 
   priceHints: publicQuery
     .input(
@@ -361,45 +131,55 @@ export const flightsRouter = createRouter({
         origin: z.string().length(3),
         destination: z.string().length(3),
         cabinClass: z.enum(["economy", "premium_economy", "business", "first"]),
-        dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(9),
-        returnDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(9).optional(),
+        dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(31),
+        returnDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(31).optional(),
         passengers: z.array(z.enum(["adult", "child", "infant_without_seat"])).min(1).max(9),
       }),
     )
     .query(({ input }): PriceHint[] => {
-      // Live mode: exact day-prices would require one offer request per date,
-      // so hints are only served in demo mode; the strip still works as navigation.
+      // Live: eksakte dagspriser krever ett tilbudskall per dato — hint kun i demo.
       if (duffelConfig.configured) return input.dates.map((date) => ({ date, amount: null }));
       const paxFactor = demoPaxFactor(input.passengers);
       return input.dates.map((date, i) => ({
         date,
-        amount: demoPriceHint(
-          input.origin,
-          input.destination,
-          input.cabinClass,
-          date,
-          paxFactor,
-          input.returnDates?.[i],
-        ),
+        amount: demoPriceHint(input.origin, input.destination, input.cabinClass, date, paxFactor, input.returnDates?.[i]),
       }));
     }),
 
-  myCases: publicQuery
-    .input(z.object({ email: z.string().email() }))
-    .query(async ({ input }): Promise<SupportCase[]> => {
-      const rows = await getDb()
-        .select()
-        .from(supportMessages)
-        .where(eq(supportMessages.email, input.email.toLowerCase().trim()))
-        .orderBy(desc(supportMessages.createdAt))
-        .limit(10);
-      return rows.map((r) => ({
-        caseReference: r.caseReference,
-        topic: r.topic,
-        message: r.message,
-        bookingReference: r.bookingReference,
-        createdAt: r.createdAt.toISOString(),
-      }));
+  /** Flystatus: ingen ekte datakilde er koblet til — i live-modus svarer vi ærlig «ikke tilgjengelig». */
+  flightStatus: publicQuery
+    .input(z.object({ carrier: z.string().length(2), flightNumber: z.string().min(1).max(5), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }))
+    .query(({ input, ctx }): FlightStatusResult => {
+      assertRateLimit("flightStatus", clientIp(ctx.req), 30, 60_000);
+      if (duffelConfig.configured || env.isProdEnv) {
+        return { unavailable: true, reason: "Sanntids flystatus er ikke tilgjengelig ennå. Sjekk flyselskapets nettside eller flyplassens tavle." };
+      }
+      const status = demoFlightStatus(input.carrier, input.flightNumber, input.date);
+      if (!status) return { unavailable: true, reason: "Vi kjenner ikke dette flyselskapet." };
+      return { ...status, fetchedAt: new Date().toISOString(), demo: true };
+    }),
+
+  /** Finn bestilling med referanse + e-post → Order + tilgangstoken til orders.* */
+  findBooking: publicQuery
+    .input(z.object({ bookingReference: z.string().min(4).max(8), email: z.string().email() }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        assertRateLimit("findBooking", clientIp(ctx.req), 10, 10 * 60_000);
+        const rows = await getDb()
+          .select()
+          .from(bookings)
+          .where(and(eq(bookings.bookingReference, input.bookingReference.toUpperCase().trim()), eq(bookings.contactEmail, input.email.toLowerCase().trim())))
+          .limit(1);
+        const b = rows[0];
+        if (!b) {
+          throw new AppError("NOT_FOUND", { message: "Vi fant ingen bestilling med denne kombinasjonen av referanse og e-post. Sjekk at begge er skrevet riktig." });
+        }
+        const order = JSON.parse(b.payload) as Order;
+        const accessToken = await issueBookingAccessToken(b.id);
+        return { order: { ...order, bookingReference: b.bookingReference || order.bookingReference }, orderId: b.orderId, state: b.state, accessToken };
+      } catch (err) {
+        throw toTRPCError(err);
+      }
     }),
 
   sendSupportMessage: publicQuery
@@ -413,40 +193,39 @@ export const flightsRouter = createRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      assertRateLimit("support", clientIp(ctx.req), 5, 60_000);
-      const caseReference = `RM-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-      const db = getDb();
-
-      // Opprett en reell sak i admin-portalen samtidig
-      const caseResult = await db.insert(supportCases).values({
-        reference: caseReference,
-        subject: `${input.topic === "booking" ? "Booking" : input.topic === "change" ? "Endring" : input.topic === "refund" ? "Refusjon" : input.topic === "baggage" ? "Bagasje" : "Annet"}: ${input.message.slice(0, 80)}`,
-        customerEmail: input.email.toLowerCase().trim(),
-        customerName: input.name,
-        priority: input.topic === "refund" ? "high" : "normal",
-        status: "open",
-      });
-      const caseId = Number(caseResult[0].insertId);
-
-      const result = await db.insert(supportMessages).values({
-        caseReference,
-        caseId,
-        name: input.name,
-        email: input.email.toLowerCase().trim(),
-        bookingReference: input.bookingReference?.toUpperCase() || null,
-        topic: input.topic,
-        message: input.message,
-        authorType: "customer",
-      });
-      await sendSupportAck({
-        email: input.email,
-        name: input.name,
-        caseReference,
-      }).catch(() => null);
-      return {
-        id: Number(result[0].insertId),
-        caseReference,
-        receivedAt: new Date().toISOString(),
-      };
+      try {
+        assertRateLimit("support", clientIp(ctx.req), 5, 60_000);
+        const db = getDb();
+        const email = input.email.toLowerCase().trim();
+        const ref = input.bookingReference?.toUpperCase().trim() || null;
+        // Knytt til booking kun når referanse OG e-post stemmer (ingen lekkasje på referanse alene)
+        const [booking] = ref ? await db.select({ id: bookings.id }).from(bookings).where(and(eq(bookings.bookingReference, ref), eq(bookings.contactEmail, email))).limit(1) : [];
+        const caseReference = `HS-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+        const topicLabel = { booking: "Booking", change: "Endring", refund: "Refusjon", baggage: "Bagasje", other: "Annet" }[input.topic];
+        const caseResult = await db.insert(supportCases).values({
+          reference: caseReference,
+          subject: `${topicLabel}: ${input.message.slice(0, 80)}`,
+          customerEmail: email,
+          customerName: input.name,
+          bookingId: booking?.id ?? null,
+          priority: input.topic === "refund" ? "high" : "normal",
+          status: "open",
+        });
+        const caseId = Number(caseResult[0].insertId);
+        const result = await db.insert(supportMessages).values({
+          caseReference,
+          caseId,
+          name: input.name,
+          email,
+          bookingReference: ref,
+          topic: input.topic,
+          message: input.message,
+          authorType: "customer",
+        });
+        await enqueueJob("send_email", { kind: "support_ack", to: email, locale: "nb", payload: { name: input.name, caseReference } }, { dedupeKey: `support-ack:${caseReference}` }).catch(() => {});
+        return { id: Number(result[0].insertId), caseReference, receivedAt: new Date().toISOString() };
+      } catch (err) {
+        throw toTRPCError(err);
+      }
     }),
 });

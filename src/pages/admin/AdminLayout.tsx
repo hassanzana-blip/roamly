@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, Navigate, Outlet, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   Ticket,
@@ -16,38 +16,74 @@ import {
   X,
   ShieldCheck,
   ChevronDown,
+  PlusCircle,
+  MessagesSquare,
+  StickyNote,
+  AlertTriangle,
+  Banknote,
+  BedDouble,
+  ScanSearch,
+  CalendarClock,
+  ShieldAlert,
+  ShoppingCart,
+  Globe,
 } from "lucide-react";
 import { trpc } from "@/providers/trpc";
-import RoamlyMark from "@/components/brand/RoamlyMark";
+import SkyMark from "@/components/brand/SkyMark";
 import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { PAGE_META, usePageMeta } from "@/lib/seo";
 
-const NAV_SECTIONS = [
+type NavItem = { to: string; label: string; icon: typeof Ticket; perm: string | null; end?: boolean };
+
+const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
   {
     label: "Drift",
     items: [
       { to: "/admin", end: true, label: "Oversikt", icon: LayoutDashboard, perm: null },
+      { to: "/admin/gjennomgang", label: "Gjennomgangskø", icon: ScanSearch, perm: "bookings:read" },
       { to: "/admin/bestillinger", label: "Bestillinger", icon: Ticket, perm: "bookings:read" },
+      { to: "/admin/ny-bestilling", label: "Ny bestilling", icon: PlusCircle, perm: "bookings:write" },
       { to: "/admin/tilbud", label: "Tilbud", icon: FileText, perm: "quotes:read" },
+      { to: "/admin/ruteendringer", label: "Ruteendringer", icon: CalendarClock, perm: "bookings:read" },
+      { to: "/admin/sesjoner", label: "Checkout-sesjoner", icon: ShoppingCart, perm: "bookings:read" },
+      { to: "/admin/hotell-bil", label: "Hotell og bil", icon: BedDouble, perm: "partners:read" },
+    ],
+  },
+  {
+    label: "Kunder",
+    items: [
       { to: "/admin/kundeservice", label: "Kundeservice", icon: MessageSquare, perm: "support:read" },
+      { to: "/admin/kunder", label: "Kunder", icon: Users, perm: "customers:read" },
+      { to: "/admin/samfunn", label: "Reisesamfunn", icon: Globe, perm: "support:write" },
+      { to: "/admin/svindel", label: "Svindelflagg", icon: ShieldAlert, perm: "bookings:read" },
     ],
   },
   {
     label: "Økonomi",
     items: [
       { to: "/admin/betalinger", label: "Betalinger", icon: CreditCard, perm: "payments:read" },
-      { to: "/admin/refusjoner", label: "Endringer og refusjoner", icon: ArrowLeftRight, perm: "payments:read" },
+      { to: "/admin/refusjoner", label: "Refusjoner", icon: ArrowLeftRight, perm: "payments:read" },
       { to: "/admin/rapporter", label: "Rapporter", icon: BarChart3, perm: "reports:read" },
+      { to: "/admin/lonn", label: "Lønn", icon: Banknote, perm: "payroll:read" },
+    ],
+  },
+  {
+    label: "Team",
+    items: [
+      { to: "/admin/meldinger", label: "Teamchat", icon: MessagesSquare, perm: "team:use" },
+      { to: "/admin/notater", label: "Notattavle", icon: StickyNote, perm: "team:use" },
+      { to: "/admin/problemer", label: "Problemer", icon: AlertTriangle, perm: "problems:read" },
     ],
   },
   {
     label: "System",
     items: [
-      { to: "/admin/kunder", label: "Kunder", icon: Users, perm: "customers:read" },
       { to: "/admin/aktivitetslogg", label: "Aktivitetslogg", icon: ScrollText, perm: "audit:read" },
       { to: "/admin/innstillinger", label: "Innstillinger", icon: Settings, perm: "settings:manage" },
     ],
   },
-] as const;
+];
 
 const ROLE_LABEL: Record<string, string> = {
   OWNER: "Eier",
@@ -58,44 +94,35 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { data: permData } = trpc.staffAuth.myPermissions.useQuery(undefined, {
-    staleTime: 60_000,
-    retry: false,
-  });
-  const perms = new Set(permData?.permissions ?? []);
+  const { data: permData } = trpc.staffAuth.myPermissions.useQuery(undefined, { staleTime: 60_000, retry: false });
+  const perms = new Set<string>(permData?.permissions ?? []);
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2.5 px-5 pt-6 pb-5">
-        <RoamlyMark className="h-8 w-8" />
+      <div className="flex items-center gap-2.5 px-5 pb-5 pt-6">
+        <SkyMark className="h-8 w-8 text-primary" />
         <div>
-          <p className="font-display text-lg font-bold leading-none text-night">Roamly</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Administrator
-          </p>
+          <p className="font-display text-lg font-bold leading-none text-night">HelloSky</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Administrator</p>
         </div>
       </div>
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-6">
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-6" aria-label="Adminmeny">
         {NAV_SECTIONS.map((section) => {
           const visible = section.items.filter((item) => !item.perm || perms.has(item.perm));
           if (visible.length === 0) return null;
           return (
             <div key={section.label}>
-              <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70">
-                {section.label}
-              </p>
-              <ul className="space-y-1">
+              <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{section.label}</p>
+              <ul className="space-y-0.5">
                 {visible.map((item) => (
                   <li key={item.to}>
                     <NavLink
                       to={item.to}
-                      end={"end" in item ? item.end : false}
+                      end={item.end ?? false}
                       onClick={onNavigate}
                       className={({ isActive }) =>
                         cn(
-                          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
-                          isActive
-                            ? "bg-night text-white shadow-sm"
-                            : "text-night/70 hover:bg-night/5 hover:text-night",
+                          "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-primary",
+                          isActive ? "bg-night text-white shadow-sm" : "text-night/80 hover:bg-night/5 hover:text-night",
                         )
                       }
                     >
@@ -110,33 +137,70 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
       <div className="border-t border-border px-5 py-4">
-        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-          Beskyttet område · MFA påkrevd
+        <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" /> Beskyttet område · MFA påkrevd
         </p>
       </div>
     </div>
   );
 }
 
+function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useFocusTrap(ref, open);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <button type="button" aria-label="Lukk meny" className="absolute inset-0 bg-night/50" onClick={onClose} />
+      <aside ref={ref} role="dialog" aria-modal="true" aria-label="Adminmeny" className="absolute inset-y-0 left-0 w-[min(18rem,88vw)] bg-white shadow-2xl">
+        <button type="button" aria-label="Lukk meny" onClick={onClose} className="absolute right-2 top-3 grid h-11 w-11 place-items-center rounded-full text-night/70 hover:bg-night/5">
+          <X className="h-5 w-5" aria-hidden="true" />
+        </button>
+        <SidebarContent onNavigate={onClose} />
+      </aside>
+    </div>
+  );
+}
+
 export function AdminLayout() {
+  usePageMeta(PAGE_META.admin, { layout: true });
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const me = trpc.staffAuth.me.useQuery(undefined, { retry: false, staleTime: 30_000 });
+  const utils = trpc.useUtils();
   const logout = trpc.staffAuth.logout.useMutation({
-    onSettled: () => navigate("/admin/logg-inn", { replace: true }),
+    onSettled: () => {
+      utils.staffAuth.me.reset();
+      navigate("/admin/logg-inn", { replace: true });
+    },
   });
 
   if (me.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background" role="status" aria-live="polite">
         <p className="text-sm text-muted-foreground">Laster …</p>
       </div>
     );
   }
   if (!me.data?.authenticated) {
-    return <Navigate to="/admin/logg-inn" replace />;
+    return <Navigate to={`/admin/logg-inn?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
+  // Konto uten MFA må fullføre oppsettet før admin åpnes (OTA-074).
+  if (me.data.mfaSetupRequired || (me.data.mfaEnabled && !me.data.mfaVerified)) {
+    return <Navigate to="/admin/logg-inn?mfa=1" replace />;
   }
 
   const user = me.data;
@@ -144,96 +208,61 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop sidebar */}
+      <a href="#admin-main" className="sr-only z-[100] rounded-full bg-night px-4 py-2 text-sm font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
+        Hopp til innhold
+      </a>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-white lg:block">
         <SidebarContent />
       </aside>
 
-      {/* Mobile sidebar */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            aria-label="Lukk meny"
-            className="absolute inset-0 bg-night/50"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-2xl">
-            <button
-              type="button"
-              aria-label="Lukk meny"
-              onClick={() => setMobileOpen(false)}
-              className="absolute right-3 top-3 rounded-full p-2 text-night/60 hover:bg-night/5"
-            >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
-          </aside>
-        </div>
-      )}
+      <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-white/90 px-4 backdrop-blur sm:px-6">
-          <button
-            type="button"
-            aria-label="Åpne meny"
-            onClick={() => setMobileOpen(true)}
-            className="rounded-full p-2 text-night hover:bg-night/5 lg:hidden"
-          >
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-white/90 px-3 backdrop-blur sm:gap-3 sm:px-6">
+          <button type="button" aria-label="Åpne meny" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="grid h-11 w-11 place-items-center rounded-full text-night hover:bg-night/5 lg:hidden">
             <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
 
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em]",
-              isProduction ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-800",
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em]",
+              isProduction ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-900",
             )}
           >
-            <span
-              className={cn("h-1.5 w-1.5 rounded-full", isProduction ? "bg-rose-500" : "bg-amber-500")}
-              aria-hidden="true"
-            />
+            <span className={cn("h-1.5 w-1.5 rounded-full", isProduction ? "bg-rose-500" : "bg-amber-500")} aria-hidden="true" />
             {isProduction ? "Produksjon" : "Staging / test"}
           </span>
+          {!user.sessionFresh && (
+            <span className="hidden text-[11px] text-muted-foreground md:inline" title="Sensitive handlinger krever ny innlogging">Sesjon &gt; 15 min</span>
+          )}
 
-          <div className="ml-auto relative">
+          <div className="relative ml-auto">
             <button
               type="button"
               onClick={() => setUserMenuOpen((v) => !v)}
               aria-expanded={userMenuOpen}
               aria-haspopup="menu"
-              className="flex items-center gap-2.5 rounded-full border border-border bg-white py-1.5 pl-1.5 pr-3 text-left shadow-sm hover:border-night/30"
+              className="flex min-h-11 items-center gap-2.5 rounded-full border border-border bg-white py-1.5 pl-1.5 pr-3 text-left shadow-sm hover:border-night/30"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">{user.name.charAt(0).toUpperCase()}</span>
               <span className="hidden sm:block">
                 <span className="block text-sm font-semibold leading-tight text-night">{user.name}</span>
-                <span className="block text-[11px] leading-tight text-muted-foreground">
-                  {ROLE_LABEL[user.role] ?? user.role}
-                </span>
+                <span className="block text-[11px] leading-tight text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role}</span>
               </span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             </button>
             {userMenuOpen && (
               <>
-                <button
-                  type="button"
-                  aria-label="Lukk brukermeny"
-                  className="fixed inset-0 z-10 cursor-default"
-                  onClick={() => setUserMenuOpen(false)}
-                />
-                <div
-                  role="menu"
-                  className="absolute right-0 z-20 mt-2 w-56 rounded-2xl border border-border bg-white p-2 shadow-xl"
-                >
+                <button type="button" aria-label="Lukk brukermeny" className="fixed inset-0 z-10 cursor-default" onClick={() => setUserMenuOpen(false)} />
+                <div role="menu" className="absolute right-0 z-20 mt-2 w-60 rounded-2xl border border-border bg-white p-2 shadow-xl">
                   <p className="truncate px-3 py-2 text-xs text-muted-foreground">{user.email}</p>
+                  <p className="px-3 pb-2 text-xs text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role} · MFA {user.mfaEnabled ? "på" : "av"}</p>
                   <button
                     type="button"
                     role="menuitem"
                     onClick={() => logout.mutate()}
                     disabled={logout.isPending}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-night hover:bg-night/5 disabled:opacity-50"
+                    className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm font-semibold text-night hover:bg-night/5 disabled:opacity-50"
                   >
                     <LogOut className="h-4 w-4" aria-hidden="true" />
                     {logout.isPending ? "Logger ut …" : "Logg ut"}
@@ -244,7 +273,7 @@ export function AdminLayout() {
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
+        <main id="admin-main" tabIndex={-1} className="min-w-0 px-3 py-5 outline-none sm:px-6 sm:py-6 lg:px-8">
           <Outlet />
         </main>
       </div>

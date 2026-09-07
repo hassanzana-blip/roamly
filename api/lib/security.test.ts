@@ -9,9 +9,12 @@ import {
   REPLAY_WINDOW_SEC,
 } from "./duffelWebhook";
 import { assertTransition, canTransition, ACTIVE_STATES, TRANSITIONS, BOOKING_STATES } from "./statemachine";
-import { toMinor, fromMinor, addAmounts } from "./money";
+import { toMinor, fromMinor, addAmounts, currencyExponent, multiplyAmount, percentOfMinor, assertSameCurrency } from "./money";
 import { randomToken, sha256Hex, humanReference } from "./tokens";
-import { backoffDelayMs } from "./jobs";
+import { backoffDelayMs, isDuplicateKeyError } from "./jobs";
+import { encryptField, decryptField, maskIdentifier, last4 } from "./crypto";
+import { maskPhone } from "./sms";
+import { sanitizeText } from "../community";
 
 describe("RBAC", () => {
   it("alle roller har et tillatelsessett", () => {
@@ -105,6 +108,77 @@ describe("Penger (desimal, aldri flyttall)", () => {
     expect(addAmounts("999.99", "0.01")).toBe("1000.00");
     expect(addAmounts("19.90", "-19.90")).toBe("0.00");
   });
+
+  it("håndterer valutaer med 0 og 3 desimaler", () => {
+    expect(currencyExponent("JPY")).toBe(0);
+    expect(currencyExponent("KWD")).toBe(3);
+    expect(currencyExponent("NOK")).toBe(2);
+    expect(toMinor("1500", "JPY")).toBe(1500);
+    expect(fromMinor(1500, "JPY")).toBe("1500");
+    expect(toMinor("1.234", "KWD")).toBe(1234);
+    expect(fromMinor(1234, "KWD")).toBe("1.234");
+  });
+
+  it("multiplyAmount og percentOfMinor", () => {
+    expect(multiplyAmount("19.90", 3)).toBe("59.70");
+    expect(() => multiplyAmount("19.90", 1.5)).toThrow();
+    expect(percentOfMinor(10000, 0.08)).toBe(800);
+    expect(percentOfMinor(12345, 0.08)).toBe(988); // 987.6 → 988
+  });
+
+  it("avviser ugyldige beløp og valuta-mismatch", () => {
+    expect(() => toMinor("12,50")).toThrow();
+    expect(() => toMinor("abc")).toThrow();
+    expect(() => fromMinor(1.5)).toThrow();
+    expect(() => assertSameCurrency("NOK", "SEK")).toThrow();
+    expect(() => assertSameCurrency("nok", "NOK")).not.toThrow();
+  });
+});
+
+describe("Feltkryptering (AES-256-GCM)", () => {
+  it("krypterer og dekrypterer, med unik IV per kall", () => {
+    const a = encryptField("AB123456");
+    const b = encryptField("AB123456");
+    expect(a).not.toBe(b);
+    expect(a.split(".")).toHaveLength(3);
+    expect(decryptField(a)).toBe("AB123456");
+    expect(decryptField(b)).toBe("AB123456");
+  });
+
+  it("oppdager manipulert chiffertekst (GCM-tag)", () => {
+    const enc = encryptField("hemmelig");
+    const [iv, tag, ct] = enc.split(".");
+    const flipped = Buffer.from(ct, "base64url");
+    flipped[0] ^= 0xff;
+    expect(() => decryptField(`${iv}.${tag}.${flipped.toString("base64url")}`)).toThrow();
+    expect(() => decryptField("ugyldig")).toThrow();
+  });
+
+  it("maskerer identifikatorer", () => {
+    expect(maskIdentifier("AB123456")).toBe("****3456");
+    expect(maskIdentifier("123")).toBe("****");
+    expect(last4("AB123456")).toBe("3456");
+    expect(maskPhone("+4791234567")).toBe("+47*****567");
+  });
+});
+
+describe("Jobbkø: duplikat-nøkkel", () => {
+  it("gjenkjenner ER_DUP_ENTRY / errno 1062, også innpakket i cause", () => {
+    expect(isDuplicateKeyError({ code: "ER_DUP_ENTRY" })).toBe(true);
+    expect(isDuplicateKeyError({ errno: 1062 })).toBe(true);
+    expect(isDuplicateKeyError(new Error("x", { cause: { code: "ER_DUP_ENTRY" } }))).toBe(true);
+    expect(isDuplicateKeyError({ code: "ER_NO_SUCH_TABLE" })).toBe(false);
+    expect(isDuplicateKeyError(null)).toBe(false);
+    expect(isDuplicateKeyError("ER_DUP_ENTRY")).toBe(false);
+  });
+});
+
+describe("Samfunn: tekstsanering", () => {
+  it("fjerner kontrolltegn og usynlige tegn, beholder linjeskift", () => {
+    expect(sanitizeText("Hei\u0000 der\u200B!\r\n\r\n\r\nlinje", 100)).toBe("Hei der!\n\nlinje");
+    expect(sanitizeText("  a  ", 100)).toBe("a");
+    expect(sanitizeText("x".repeat(50), 10)).toHaveLength(10);
+  });
 });
 
 describe("Tokens og referanser", () => {
@@ -117,10 +191,10 @@ describe("Tokens og referanser", () => {
   });
 
   it("sha256Hex er deterministisk og 64 tegn", () => {
-    const h = sha256Hex("roamly");
+    const h = sha256Hex("hellosky");
     expect(h).toHaveLength(64);
-    expect(h).toBe(sha256Hex("roamly"));
-    expect(h).not.toBe(sha256Hex("Roamly"));
+    expect(h).toBe(sha256Hex("hellosky"));
+    expect(h).not.toBe(sha256Hex("HelloSky"));
   });
 
   it("humanReference har prefiks og 6 tegn", () => {

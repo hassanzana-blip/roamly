@@ -4,52 +4,99 @@
 
 @layer base {
   :root {
-    /* ── Roamly identity (visual identity board) ─────────────────────────
-       Deep navy  #102640  → typography & brand structure
-       Royal blue #2457F5  → primary actions & selected states
-       Soft ivory #F7F5EF  → gentle background variation
-       White      #FFFFFF  → content & booking surfaces                  */
-    --background: 45 33% 95%;          /* ivory */
-    --foreground: 212 60% 16%;         /* navy */
-    --card: 0 0% 100%;                 /* white */
-    --card-foreground: 212 60% 16%;
+    /* ── HelloSky identity — native app-grammatikk ────────────────────────
+       Lime       #CDF527  → én vivid aksent: highlight, aktive piller, CTA
+       Nesten-svart #131316 → bunnnav-kapsel, footer, primærtekst
+       Hvit       #FFFFFF  → flater, kort, generøs luft
+       Grå        skala    → sekundærtekst, hårlinjer, dempede chips      */
+    --background: 0 0% 100%;            /* ren hvit app-flate */
+    --foreground: 240 5% 10%;           /* nesten-svart */
+    --card: 0 0% 100%;
+    --card-foreground: 240 5% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 212 60% 16%;
-    --primary: 225 91% 55%;            /* electric royal blue */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 221 46% 93%;          /* pale blue tint */
-    --secondary-foreground: 215 55% 30%;
-    --muted: 43 24% 91%;
-    --muted-foreground: 214 22% 42%;
-    --accent: 224 100% 97%;            /* barely-blue surface */
-    --accent-foreground: 225 91% 45%;
-    --destructive: 4 72% 51%;
+    --popover-foreground: 240 5% 10%;
+    --primary: 74 93% 54%;              /* lime — eneste vivid aksent */
+    --primary-foreground: 240 10% 8%;   /* mørk tekst på lime */
+    --secondary: 0 0% 95%;              /* nøytrale chips */
+    --secondary-foreground: 240 6% 12%;
+    --muted: 0 0% 96.5%;
+    --muted-foreground: 0 0% 40%;      /* ≥ 5.7:1 mot hvit — OK for 11–12px etiketter (WCAG AA) */
+    --accent: 74 90% 93%;               /* lime-tintet flate */
+    --accent-foreground: 72 85% 20%;
+    --destructive: 4 72% 48%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 56% 36%;
+    --success: 145 63% 32%;
     --success-foreground: 0 0% 100%;
-    --warning: 36 92% 44%;
+    --warning: 36 92% 42%;
     --warning-foreground: 0 0% 100%;
-    --border: 214 28% 87%;
-    --input: 214 28% 82%;
-    --ring: 225 91% 55%;
-    --radius: 0.75rem;
+    --border: 0 0% 91.5%;
+    --input: 0 0% 88%;
+    --ring: 74 93% 40%;
+    --radius: 1.25rem;
 
-    /* Brand tokens — slot names kept stable, values from the identity board */
-    --gold: 225 91% 55%;               /* accent slot = royal blue */
-    --skyline: 218 45% 45%;            /* readable mid-blue on light */
-    --night: 212 60% 16%;              /* deep navy (footer, panels) */
-    --cream: 45 33% 95%;               /* ivory */
-    --coral: 4 72% 51%;                /* destructive red */
+    /* Brand tokens — slot names kept stable */
+    --gold: 74 93% 54%;                 /* accent slot = lime */
+    --skyline: 74 95% 26%;              /* lesbar lime-oliven for tekstaksent */
+    --night: 240 6% 9%;                 /* nesten-svart (kapsel, footer) */
+    --cream: 0 0% 100%;
+    --coral: 4 72% 48%;                 /* destructive red */
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 212 60% 16%;
-    --sidebar-primary: 225 91% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 43 24% 91%;
-    --sidebar-accent-foreground: 212 60% 16%;
-    --sidebar-border: 214 28% 87%;
-    --sidebar-ring: 225 91% 55%;
+    --sidebar-foreground: 240 5% 10%;
+    --sidebar-primary: 74 93% 54%;
+    --sidebar-primary-foreground: 240 10% 8%;
+    --sidebar-accent: 0 0% 96.5%;
+    --sidebar-accent-foreground: 240 5% 10%;
+    --sidebar-border: 0 0% 91.5%;
+    --sidebar-ring: 74 93% 40%;
   }
+
+  /* ── Mørk modus ─────────────────────────────────────────────────────────── */
+  .dark {
+    --background: 240 7% 7%;
+    --foreground: 0 0% 96%;
+    --card: 240 6% 11%;
+    --card-foreground: 0 0% 96%;
+    --popover: 240 6% 12%;
+    --popover-foreground: 0 0% 96%;
+    --secondary: 240 5% 16%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 62%;
+    --accent: 74 55% 16%;
+    --accent-foreground: 74 90% 70%;
+    --border: 240 5% 20%;
+    --input: 240 5% 24%;
+    --night: 240 6% 12%;
+    --skyline: 74 80% 62%;
+    --sidebar-background: 240 6% 9%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-accent: 240 5% 15%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 240 5% 20%;
+  }
+}
+
+/* Mørk modus: remap hardkodede lyse flater fra komponenter */
+.dark .bg-white {
+  background-color: hsl(var(--card));
+}
+.dark .text-night {
+  color: hsl(var(--foreground));
+}
+/* …men lime flater beholder mørk tekst */
+.dark .bg-primary .text-night,
+.dark .bg-primary.text-night,
+.dark span.bg-primary.text-night,
+.dark button.bg-primary.text-night {
+  color: hsl(var(--primary-foreground));
+}
+.dark .bg-night {
+  background-color: hsl(240 6% 14%);
+}
+.dark .shadow-soft,
+.dark .shadow-lift {
+  box-shadow: 0 16px 40px -18px rgb(0 0 0 / 0.6);
 }
 
 @layer base {
@@ -63,10 +110,21 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv11";
+    font-feature-settings: "calt", "ss01", "cv11", "tnum";
+    font-weight: 400;
     overscroll-behavior-y: none;
     /* Safety net: nothing may ever create horizontal page scroll */
+    overflow-x: hidden;
     overflow-x: clip;
+  }
+  html {
+    overflow-x: hidden;
+  }
+  /* Plass til flytende bunnnav-kapsel (alle bredder) */
+  @media (max-width: 1023px) {
+    body.has-tabbar {
+      padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    }
   }
   ::selection {
     background: hsl(var(--primary) / 0.92);
@@ -75,14 +133,54 @@
 }
 
 @layer utilities {
-  /* Display type: tight modern sans echoing the roamly wordmark */
+  /* Overskrifter: Inter ekstra fet, tett tracking — booking-plattform-look */
   .font-display {
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     font-weight: 800;
     letter-spacing: -0.03em;
   }
+  /* Små etiketter: IATA-koder, eyebrows, tekniske data */
+  .font-mono-label {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
   .text-balance {
     text-wrap: balance;
+  }
+  /* Lesbar tekstaksent — ren lime på hvitt er for lys, oliven-variant bærer fargen */
+  .text-primary {
+    color: hsl(var(--skyline));
+  }
+  /* Lime flater skal ha mørk tekst — eldre komponenter med text-white korrigeres */
+  .bg-primary.text-white,
+  .bg-gold.text-white {
+    color: hsl(var(--primary-foreground));
+  }
+  /* Lime highlight-boks bak nøkkelord i overskrifter (referanse-grammatikk) */
+  .hl {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 0.02em 0.16em 0.06em;
+    border-radius: 0.22em;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  /* App-skygger: ekstremt myke, ingen harde kanter */
+  .shadow-soft {
+    box-shadow: 0 6px 24px -10px hsl(240 10% 8% / 0.10), 0 2px 8px -4px hsl(240 10% 8% / 0.06);
+  }
+  .shadow-lift {
+    box-shadow: 0 20px 48px -20px hsl(240 10% 8% / 0.22), 0 4px 12px -6px hsl(240 10% 8% / 0.08);
+  }
+  /* Horisontale striper uten synlig scrollbar */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
   /* thin hairline — dark navy at low opacity on light surfaces */
   .hairline {
@@ -91,25 +189,6 @@
   .hairline-light {
     border-color: hsl(0 0% 100% / 0.14);
   }
-  /* frosted surface — white glass on light theme */
-  .glass {
-    background: hsl(0 0% 100% / 0.82);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-  .glass-dark {
-    background: hsl(var(--night) / 0.72);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-}
-
-/* ─── Ambience: soft blue wash (light) ─────────────────────────────────── */
-.aurora-band {
-  background:
-    radial-gradient(60% 45% at 18% 0%, hsl(225 91% 55% / 0.10) 0%, transparent 70%),
-    radial-gradient(50% 40% at 82% 5%, hsl(212 60% 30% / 0.08) 0%, transparent 70%),
-    radial-gradient(70% 55% at 55% 20%, hsl(45 60% 92% / 0.6) 0%, transparent 75%);
 }
 
 .hero-vignette {
@@ -151,6 +230,75 @@
 .fade-up-3 { animation-delay: 0.42s; }
 .fade-up-4 { animation-delay: 0.6s; }
 
+/* Ken Burns — hero-media zoomer rolig fra 1.1 til 1.0 mens bildet er aktivt */
+@keyframes ken-burns {
+  from { transform: scale(1.1); }
+  to { transform: scale(1); }
+}
+.ken-burns {
+  animation: ken-burns 8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+/* Fremdriftslinje i hero-slideshow — fylles 0 → 100% per bilde */
+@keyframes slide-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Ord-for-ord reveal: hvert ord klippes frem med clip-path inset()
+   samtidig som det løfter 24px — 1200ms, trappet med 90ms per ord.
+   Bruk: pakk hvert ord i <span class="wr"><span class="wr-i">Ord</span></span> */
+.wr {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.wr-i {
+  display: inline-block;
+  clip-path: inset(0 0 110% 0);
+  transform: translateY(24px);
+  animation: word-reveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--wr-delay, 0ms);
+  will-change: transform, clip-path;
+}
+@keyframes word-reveal {
+  to {
+    clip-path: inset(0 0 -12% 0);
+    transform: translateY(0);
+  }
+}
+
+/* Nav-understrek: 1px linje som vokser 0 → 100% ved hover/aktiv */
+.nav-underline {
+  position: relative;
+}
+.nav-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-underline:hover::after,
+.nav-underline[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+/* Automatisk kontrast over varierende bakgrunn (video/foto → hvit tekst,
+   lys bakgrunn → mørk tekst) uten JavaScript */
+.blend-difference {
+  mix-blend-mode: difference;
+  color: #fff;
+}
+
 @keyframes marquee-x {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
@@ -158,7 +306,10 @@
 .marquee-track {
   display: flex;
   width: max-content;
-  animation: marquee-x 26s linear infinite;
+  animation: marquee-x 32s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
 }
 
 @keyframes pulse-soft {
@@ -192,6 +343,17 @@
   animation: plane-dash 1.2s linear infinite;
 }
 
+/* Fly som sveiver langs ruten under søk */
+@keyframes plane-fly {
+  from { transform: translate(0, 26px) rotate(-12deg); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  to { transform: translate(292px, 20px) rotate(8deg); opacity: 0; }
+}
+.plane-fly {
+  animation: plane-fly 2.4s cubic-bezier(0.45, 0, 0.35, 1) infinite;
+}
+
 .card-lift {
   transition:
     transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
@@ -204,11 +366,40 @@
   box-shadow: 0 16px 40px -18px hsl(var(--night) / 0.25);
 }
 
-/* keyboard focus — always visible, never ambiguous */
+/* keyboard focus — always visible, never ambiguous (OTA-188).
+   Ringen tegnes utenfor elementet og får en hvit «halo» slik at den er
+   synlig både på lyse og mørke flater (bunnnav, footer, dialoger). */
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
   border-radius: 4px;
+  box-shadow: 0 0 0 4px hsl(var(--background));
+}
+.bg-night :focus-visible,
+.bg-night:focus-visible {
+  outline-color: hsl(var(--primary));
+  box-shadow: none;
+}
+/* Skip-lenke og andre sr-only-elementer som blir synlige ved fokus */
+.focus\:not-sr-only:focus {
+  z-index: 100;
+}
+
+/* Desktop hover-løft på bildekort — zoom i bildet, kortet løfter */
+@media (hover: hover) and (pointer: fine) {
+  .img-zoom img {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .img-zoom:hover img {
+    transform: scale(1.05);
+  }
+  .hover-lift {
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 44px -20px hsl(var(--night) / 0.28);
+  }
 }
 
 /* hide scrollbars on horizontal strips */
@@ -238,8 +429,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   html {
     scroll-behavior: auto;
   }
-  .fade-up, .marquee-track, .pulse-soft, .route-dash, .shimmer {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .fade-up, .marquee-track, .pulse-soft, .route-dash, .shimmer, .ken-burns, .plane-fly {
     animation: none !important;
+  }
+  .wr-i {
+    animation: none;
+    clip-path: none;
+    transform: none;
   }
   .snap-row {
     scroll-behavior: auto;

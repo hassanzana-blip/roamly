@@ -1,3 +1,4 @@
+import { webcrypto } from "node:crypto";
 import { NobleCryptoPlugin, ScureBase32Plugin, generateSecret, generateURI, verify } from "otplib";
 
 // otplib v13 — eksplisitte plugin-instanser (ingen global tilstand)
@@ -9,7 +10,7 @@ export function newTotpSecret(): string {
 }
 
 export function totpUri(email: string, secret: string): string {
-  return generateURI({ issuer: "Roamly", label: email, secret });
+  return generateURI({ issuer: "HelloSky", label: email, secret });
 }
 
 export async function verifyTotp(secret: string, token: string): Promise<boolean> {
@@ -24,7 +25,7 @@ export function generateRecoveryCodes(count = 8): string[] {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const codes: string[] = [];
   const bytes = new Uint8Array(count * 8);
-  (globalThis.crypto ?? require("node:crypto").webcrypto).getRandomValues(bytes);
+  webcrypto.getRandomValues(bytes);
   for (let i = 0; i < count; i++) {
     let code = "";
     for (let j = 0; j < 8; j++) code += alphabet[bytes[i * 8 + j] % alphabet.length];

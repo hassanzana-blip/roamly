@@ -1,192 +1,113 @@
-import { Minus, Plus, Armchair, Luggage } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Luggage, Minus, Plus } from "lucide-react";
 import type { Offer } from "@contracts/types";
-import { formatPrice, PAX_LABELS } from "@/lib/format";
+import { formatMinor, formatPrice, paxLabel, toMinor } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
-// Mirrors the deterministic occupancy in the demo engine
-function seatTaken(offerId: string, seat: string): boolean {
-  let h = 2166136261;
-  const str = `${offerId}:${seat}`;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0) / 4294967295 < 0.32;
-}
-
-const ROWS_COUNT = 9;
-const COLS = ["A", "B", "C", "D", "E", "F"];
-
-function SeatMap({
-  offerId,
-  value,
-  onSelect,
-}: {
-  offerId: string;
-  value?: string;
-  onSelect: (seat: string) => void;
-}) {
-  return (
-    <div className="p-1">
-      <div className="mb-2 flex justify-center gap-4 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-secondary" /> Ledig</span>
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-muted/60" /> Opptatt</span>
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded bg-gold" /> Valgt</span>
-      </div>
-      <div className="space-y-1">
-        {Array.from({ length: ROWS_COUNT }, (_, r) => (
-          <div key={r} className="flex items-center justify-center gap-1">
-            <span className="w-4 text-right text-[10px] text-muted-foreground">{r + 1}</span>
-            {COLS.map((c, ci) => {
-              const seat = `${r + 1}${c}`;
-              const taken = seatTaken(offerId, seat);
-              const selected = value === seat;
-              return (
-                <span key={c} className="contents">
-                  {ci === 3 && <span className="w-3" />}
-                  <button
-                    type="button"
-                    disabled={taken}
-                    onClick={() => onSelect(seat)}
-                    aria-label={`Sete ${seat}${taken ? " (opptatt)" : ""}`}
-                    aria-pressed={selected}
-                    className={`h-7 w-7 rounded text-[10px] font-bold transition-colors ${
-                      selected
-                        ? "bg-gold text-white"
-                        : taken
-                          ? "cursor-not-allowed bg-muted/40 text-muted-foreground/50"
-                          : "bg-secondary text-skyline hover:bg-accent/40"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+/**
+ * Tilvalg — kun ekstra innsjekket bagasje (det eneste leverandøren faktisk
+ * leverer). Pris per kolli kommer fra tilbudet (`offer.services.extraBagPrice`)
+ * i tilbudets valuta. Endelig sum bekreftes av serveren i checkout-økten.
+ */
 
 interface Props {
   offer: Offer;
-  extraBags: number;
-  onExtraBags: (n: number) => void;
-  seats: Record<string, string>;
-  onSeats: (s: Record<string, string>) => void;
+  step: number;
+  /** passengerId → antall ekstra kolli (maks 3 per reisende) */
+  bagsByPax: Record<string, number>;
+  onBagsByPax: (v: Record<string, number>) => void;
+  /** passengerId → fornavn, vises ved valgene */
+  names?: Record<string, string>;
+  disabled?: boolean;
 }
 
-export default function ExtrasSection({ offer, extraBags, onExtraBags, seats, onSeats }: Props) {
+const MAX_PER_PAX = 3;
+
+export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, names, disabled }: Props) {
+  const t = useT();
   const svc = offer.services;
-  if (!svc) return null;
-  const seatPrice = svc.seatPrice !== undefined ? Number(svc.seatPrice) : null;
+  const seatHolders = offer.passengers.filter((p) => p.type !== "infant_without_seat");
+  const maxTotal = (svc?.maxExtraBags ?? 0) * seatHolders.length;
+  const bagPriceMinor = svc?.extraBagPrice ? toMinor(svc.extraBagPrice, offer.totalCurrency) : 0;
+  const totalBags = Object.values(bagsByPax).reduce((a, b) => a + b, 0);
+
+  const setBags = (paxId: string, n: number) => {
+    const next = { ...bagsByPax };
+    if (n <= 0) delete next[paxId];
+    else next[paxId] = Math.min(MAX_PER_PAX, n);
+    onBagsByPax(next);
+  };
+
+  const available = Boolean(svc && svc.maxExtraBags > 0 && seatHolders.length > 0);
 
   return (
-    <section className="rounded-3xl border hairline bg-card p-5 sm:p-6">
-      <h2 className="mb-1 flex items-center gap-2.5 font-display text-2xl">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-gold text-sm font-bold text-white">3</span>
-        Tilvalg
+    <section className="rounded-3xl border border-border bg-card p-5 sm:p-6" aria-labelledby="tilvalg-heading">
+      <h2 id="tilvalg-heading" className="mb-1 flex items-center gap-2.5 font-display text-2xl">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">
+          {step}
+        </span>
+        {t("co.step.bags")}
       </h2>
       <p className="mb-5 text-sm text-muted-foreground">
-        Legg til det du trenger — prisen oppdateres med én gang.
+        {offer.baggage.checkedBags > 0 ? t("ex.included", { count: offer.baggage.checkedBags }) : t("ex.handonly")}
       </p>
 
-      <div className="space-y-5">
-        {/* extra bags */}
-        {svc.maxExtraBags > 0 && (
-          <div className="flex items-center justify-between gap-4 rounded-2xl border hairline bg-muted/50 p-4">
-            <div className="flex items-center gap-3">
-              <Luggage className="h-5 w-5 shrink-0 text-gold" />
-              <div>
-                <p className="text-sm font-semibold">Ekstra innsjekket bagasje</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatPrice(svc.extraBagPrice ?? "0", offer.totalCurrency)} per kolli
-                  {offer.baggage.checkedBags > 0 && ` · ${offer.baggage.checkedBags} allerede inkludert`}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => onExtraBags(Math.max(0, extraBags - 1))}
-                disabled={extraBags === 0}
-                className="grid h-8 w-8 place-items-center rounded-full border hairline transition-colors hover:border-accent disabled:opacity-30"
-                aria-label="Færre kolli"
-              >
-                <Minus className="h-3.5 w-3.5" />
-              </button>
-              <span className="w-4 text-center text-sm font-bold">{extraBags}</span>
-              <button
-                type="button"
-                onClick={() => onExtraBags(Math.min(svc.maxExtraBags, extraBags + 1))}
-                disabled={extraBags >= svc.maxExtraBags}
-                className="grid h-8 w-8 place-items-center rounded-full border hairline transition-colors hover:border-accent disabled:opacity-30"
-                aria-label="Flere kolli"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
+      {!available ? (
+        <p className="rounded-2xl border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
+          {t("ex.unavailable")}
+        </p>
+      ) : (
+        <div className="rounded-2xl border border-border bg-muted/50 p-4">
+          <div className="mb-3 flex items-center gap-3">
+            <Luggage className="h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold">{t("ex.title")}</p>
+              <p className="text-xs text-muted-foreground">
+                {bagPriceMinor > 0 ? t("ex.perbag", { price: formatMinor(bagPriceMinor, offer.totalCurrency) }) : t("ex.priceatpay")}
+                {` · ${t("ex.maxper", { count: svc!.maxExtraBags })}`}
+              </p>
             </div>
           </div>
-        )}
-
-        {/* seat selection */}
-        {seatPrice !== null && (
-          <div className="rounded-2xl border hairline bg-muted/50 p-4">
-            <div className="mb-3 flex items-center gap-3">
-              <Armchair className="h-5 w-5 shrink-0 text-gold" />
-              <div>
-                <p className="text-sm font-semibold">Velg sete</p>
-                <p className="text-xs text-muted-foreground">
-                  {seatPrice === 0
-                    ? "Inkludert i billetten"
-                    : `${formatPrice(String(seatPrice), offer.totalCurrency)} per sete`}
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {offer.passengers.map((p) => (
-                <Popover key={p.id}>
-                  <PopoverTrigger asChild>
+          <ul className="space-y-2">
+            {seatHolders.map((p, i) => {
+              const n = bagsByPax[p.id] ?? 0;
+              const label = names?.[p.id] || `${paxLabel(p.type)} ${i + 1}`;
+              const perPaxMax = Math.min(MAX_PER_PAX, svc!.maxExtraBags);
+              return (
+                <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3.5 py-2">
+                  <span className="min-w-0 truncate text-sm font-medium">{label}</span>
+                  <span className="flex shrink-0 items-center gap-2" role="group" aria-label={t("ex.group", { name: label })}>
                     <button
                       type="button"
-                      className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm transition-colors ${
-                        seats[p.id]
-                          ? "border-gold bg-gold/10 text-gold"
-                          : "hairline text-muted-foreground hover:border-accent/60 hover:text-foreground"
-                      }`}
+                      onClick={() => setBags(p.id, n - 1)}
+                      disabled={disabled || n === 0}
+                      className="grid h-11 w-11 place-items-center rounded-full border border-border transition-colors hover:border-accent disabled:opacity-30"
+                      aria-label={t("ex.fewer", { name: label })}
                     >
-                      <span>{PAX_LABELS[p.type]}</span>
-                      <span className="font-bold">{seats[p.id] ?? "Velg sete"}</span>
+                      <Minus className="h-4 w-4" aria-hidden="true" />
                     </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto border hairline bg-popover text-popover-foreground shadow-2xl">
-                    <SeatMap
-                      offerId={offer.id}
-                      value={seats[p.id]}
-                      onSelect={(seat) => onSeats({ ...seats, [p.id]: seat })}
-                    />
-                    {seats[p.id] && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = { ...seats };
-                          delete next[p.id];
-                          onSeats(next);
-                        }}
-                        className="mt-2 w-full rounded-lg border hairline py-1.5 text-xs text-muted-foreground hover:text-primary"
-                      >
-                        Fjern setevalg
-                      </button>
-                    )}
-                  </PopoverContent>
-                </Popover>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+                    <span className="w-5 text-center text-sm font-bold" aria-live="polite">{n}</span>
+                    <button
+                      type="button"
+                      onClick={() => setBags(p.id, n + 1)}
+                      disabled={disabled || n >= perPaxMax || totalBags >= maxTotal}
+                      className="grid h-11 w-11 place-items-center rounded-full border border-border transition-colors hover:border-accent disabled:opacity-30"
+                      aria-label={t("ex.more", { name: label })}
+                    >
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {totalBags > 0 && (
+            <p className="mt-3 text-right text-xs font-semibold text-muted-foreground">
+              {t("common.bags", { count: totalBags })} ·{" "}
+              {bagPriceMinor > 0 ? formatMinor(totalBags * bagPriceMinor, offer.totalCurrency) : formatPrice(0, offer.totalCurrency)}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

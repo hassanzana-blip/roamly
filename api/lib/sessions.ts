@@ -1,13 +1,15 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, ne, or } from "drizzle-orm";
 import { getDb } from "../queries/connection";
 import { staffSessions, staffUsers } from "../../db/schema";
 import { randomToken, sha256Hex } from "./tokens";
+import { clientIp } from "./ratelimit";
+import { env } from "./env";
 
 // Absolutt levetid 12t + idle-grense 2t for admin (kortere enn kunde-soner).
 const ABSOLUTE_MS = 12 * 60 * 60_000;
 const IDLE_MS = 2 * 60 * 60_000;
 
-export const STAFF_COOKIE = "roamly_staff";
+export const STAFF_COOKIE = "hellosky_staff";
 
 export type StaffIdentity = {
   userId: number;
@@ -27,10 +29,12 @@ function cookieAttributes(maxAgeSec: number): string {
     `${STAFF_COOKIE}=`,
     `Path=/`,
     `HttpOnly`,
-    `SameSite=Lax`,
+    // Strict for admin (OTA-075): admin-siden lenkes aldri fra tredjepart,
+    // så vi kan bruke strengeste CSRF-beskyttelse uten UX-tap.
+    `SameSite=Strict`,
     `Max-Age=${maxAgeSec}`,
   ];
-  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  if (env.isProduction) parts.push("Secure");
   return parts.join("; ");
 }
 
@@ -68,7 +72,7 @@ export async function createSession(
     tokenHash: sha256Hex(token),
     userId,
     mfaVerified,
-    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    ip: clientIp(req),
     userAgent: req.headers.get("user-agent")?.slice(0, 255) ?? null,
     expiresAt: new Date(Date.now() + ABSOLUTE_MS),
   });
@@ -143,6 +147,14 @@ export async function revokeSession(sessionId: number): Promise<void> {
     .where(eq(staffSessions.id, sessionId));
 }
 
+/** Tilbakekall alle ANDRE sesjoner (brukes når MFA aktiveres — egen sesjon beholdes). */
+export async function revokeOtherUserSessions(userId: number, keepSessionId: number): Promise<void> {
+  await getDb()
+    .update(staffSessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(staffSessions.userId, userId), isNull(staffSessions.revokedAt), ne(staffSessions.id, keepSessionId)));
+}
+
 export async function revokeAllUserSessions(userId: number): Promise<void> {
   await getDb()
     .update(staffSessions)
@@ -153,4 +165,17 @@ export async function revokeAllUserSessions(userId: number): Promise<void> {
 /** Re-autentisering: sesjonen må være fersk (< 15 min) for kritiske handlinger. */
 export function sessionIsFresh(identity: StaffIdentity): boolean {
   return Date.now() - identity.sessionCreatedAt.getTime() < 15 * 60_000;
+}
+
+/**
+ * Rydd bort utløpte/tilbakekalte sesjoner eldre enn 7 dager (kjøres av worker).
+ * Sesjoner som er utløpt men ikke tilbakekalt er allerede ugyldige via
+ * `expiresAt`-sjekken — dette er kun opprydding av tabellen.
+ */
+export async function cleanupExpiredSessions(): Promise<number> {
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60_000);
+  const result = await getDb()
+    .delete(staffSessions)
+    .where(or(lt(staffSessions.expiresAt, cutoff), lt(staffSessions.revokedAt, cutoff)));
+  return Number(result[0].affectedRows ?? 0);
 }

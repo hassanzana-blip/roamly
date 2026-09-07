@@ -11,6 +11,7 @@ for (const [entry, outfile] of [["api/boot.ts", "dist/boot.js"], ["api/worker.ts
     format: "esm",
     outfile,
     banner: { js: banner },
+    define: { "process.env.BUNDLED": '"true"' },
     plugins: [jsdelivrAlias, nativeNodePlugin("dist")],
   });
   console.log(`bygget ${outfile}`);

@@ -1,23 +1,31 @@
 import { Link } from "react-router";
-import { Compass } from "lucide-react";
+import { ArrowRight, Compass } from "lucide-react";
+import Icon from "@/components/app/Icon";
+import { useT } from "@/lib/i18n";
+import { PAGE_META, usePageMeta } from "@/lib/seo";
 
 export default function NotFound() {
+  const t = useT();
+  usePageMeta(PAGE_META.notFound);
   return (
-    <div className="aurora-band grid min-h-screen place-items-center bg-background p-6 text-center">
+    <main id="main" className="grid min-h-[100dvh] place-items-center bg-background p-6 text-center">
       <div>
-        <Compass className="mx-auto h-12 w-12 text-gold" strokeWidth={1.5} />
-        <h1 className="mt-6 font-display text-6xl">404</h1>
-        <p className="mt-2 font-display text-2xl">Denne ruten finnes ikke</p>
-        <p className="mx-auto mt-3 max-w-sm text-sm text-muted-foreground">
-          Siden du leter etter har fløyet sin egen vei. La oss finne en bedre destinasjon.
-        </p>
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <Icon icon={Compass} size={28} />
+        </span>
+        <p className="mt-6 font-display text-6xl tracking-tight" aria-hidden="true">404</p>
+        <h1 className="mt-2 font-display text-2xl">
+          <span className="sr-only">404 – </span>
+          {t("notfound.sub")}
+        </h1>
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">{t("notfound.body")}</p>
         <Link
           to="/"
-          className="mt-8 inline-block rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground"
+          className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-7 text-[15px] font-bold text-primary-foreground transition-colors hover:brightness-95"
         >
-          Tilbake til søk
+          {t("notfound.cta")} <Icon icon={ArrowRight} size={16} />
         </Link>
       </div>
-    </div>
+    </main>
   );
 }

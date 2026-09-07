@@ -1,227 +1,240 @@
 import { useState } from "react";
-import { Link } from "react-router";
-import { KeyRound, Luggage, Radar, Search } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { ChevronRight, KeyRound, Luggage, MailWarning, Plane, Search } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import { SliceViz } from "@/components/offers/OfferCard";
-import { CABIN_LABELS, formatDateLong, formatPrice } from "@/lib/format";
-import type { Order, Segment } from "@contracts/types";
+import { CancelFlow, Itinerary, OrderActions, RefundTimeline, ScheduleChanges, StateBadge, TicketList } from "@/components/travel/OrderDetails";
+import { useOrder } from "@/components/travel/orderUtils";
+import { useCustomer } from "@/lib/useCustomer";
+import { appCodeOf, humanMessage } from "@/lib/apiError";
+import { bookingStateLabel, cabinLabel, formatDateLong, formatDateShort, formatMinor, formatPrice, toMinor } from "@/lib/format";
+import { useT } from "@/lib/i18n";
+import { PAGE_META, usePageMeta } from "@/lib/seo";
 
-function SegmentStatus({ seg }: { seg: Segment }) {
-  const date = seg.departingAt.slice(0, 10);
-  const status = trpc.flights.flightStatus.useQuery(
-    { carrier: seg.carrier.iata, flightNumber: seg.flightNumber, date },
-    { retry: 0, staleTime: 60_000 },
-  );
-  if (!status.data) return null;
-  return (
-    <Link
-      to={`/flystatus?carrier=${seg.carrier.iata}&flight=${seg.flightNumber}&date=${date}`}
-      className="mt-2 flex items-center gap-2 text-xs font-medium text-gold transition-opacity hover:opacity-80"
-    >
-      <Radar className="h-3.5 w-3.5" />
-      {status.data.status === "landed"
-        ? "Landet"
-        : status.data.delayMinutes > 0
-          ? `Forsinket ca. ${status.data.delayMinutes} min — se status`
-          : "I rute — se sanntidsstatus"}
-    </Link>
-  );
-}
-
-function OrderView({ order: o }: { order: Order }) {
+/** Full ordrevisning via orders.get (token fra oppslaget ligger i sessionStorage). */
+function OrderPanel({ orderId }: { orderId: string }) {
+  const t = useT();
+  const order = useOrder(orderId, { refetchWhileProcessing: true });
+  if (order.isLoading) return <div className="shimmer h-64 rounded-3xl" aria-busy="true" />;
+  if (order.isError || !order.data) {
+    return (
+      <p role="alert" className="rounded-3xl border border-primary/40 bg-card p-6 text-sm text-primary">
+        {order.error ? humanMessage(order.error) : t("mt.fetchfail")}
+      </p>
+    );
+  }
+  const data = order.data;
+  const o = data.order;
+  const currency = data.payment?.currency ?? o.totalCurrency;
   return (
     <div className="fade-up space-y-6">
       <section className="rounded-3xl border hairline bg-card p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-              Bookingreferanse
-            </p>
-            <p className="mt-1 font-display text-4xl tracking-[0.1em] text-gold">
-              {o.bookingReference}
-            </p>
+            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{t("common.pnr")}</p>
+            <p className="mt-1 font-display text-4xl tracking-[0.1em] text-foreground">{o.bookingReference || "—"}</p>
           </div>
-          <span className="rounded-full border border-gold/40 bg-gold/10 px-4 py-1.5 text-sm font-bold text-gold">
-            Bekreftet
-          </span>
+          <StateBadge state={data.state} />
         </div>
         <div className="mt-5 grid gap-2 border-t hairline pt-5 text-sm sm:grid-cols-2">
           <p className="text-muted-foreground">
-            Reisende:{" "}
-            <span className="font-medium text-foreground">
-              {o.passengers.map((p) => `${p.givenName} ${p.familyName}`).join(", ")}
-            </span>
+            {t("common.class")}: <span className="font-medium text-foreground">{cabinLabel(o.cabinClass)}</span>
           </p>
           <p className="text-muted-foreground">
-            Klasse: <span className="font-medium text-foreground">{CABIN_LABELS[o.cabinClass]}</span>
+            {t("common.booked")}: <span className="font-medium text-foreground">{formatDateLong(data.createdAt)}</span>
           </p>
           <p className="text-muted-foreground">
-            Betalt: <span className="font-medium text-gold">{formatPrice(o.totalAmount, o.totalCurrency)}</span>
+            {t("common.paid")}: <span className="font-medium text-foreground">{data.payment?.amountMinor != null ? formatMinor(data.payment.amountMinor, currency) : formatMinor(toMinor(o.totalAmount, o.totalCurrency), o.totalCurrency)}</span>
           </p>
-          <p className="text-muted-foreground">
-            Bestilt:{" "}
-            <span className="font-medium text-foreground">{formatDateLong(o.createdAt)}</span>
-          </p>
+          {o.services && o.services.extraBags > 0 && (
+            <p className="text-muted-foreground">
+              {t("common.extrabags")}: <span className="font-medium text-foreground">{t("common.bags", { count: o.services.extraBags })}</span>
+            </p>
+          )}
+        </div>
+        <div className="mt-5">
+          <OrderActions orderId={orderId} accessToken={order.accessToken} data={data} />
         </div>
       </section>
 
-      {o.slices.map((s, i) => (
-        <section key={s.id} className="rounded-3xl border hairline bg-card p-6 sm:p-8">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-skyline">
-            {i === 0 ? "Utreise" : "Hjemreise"} · {formatDateLong(s.departingAt)}
-          </p>
-          <SliceViz slice={s} />
-          <div className="mt-4 space-y-1.5">
-            {s.segments.map((seg) => (
-              <div key={seg.id} className="rounded-2xl bg-muted/50 px-4 py-3">
-                <p className="text-sm">
-                  <span className="font-bold">
-                    {seg.carrier.iata} {seg.flightNumber}
-                  </span>{" "}
-                  <span className="text-muted-foreground">
-                    · {seg.origin.iata} → {seg.destination.iata} · {seg.aircraft}
-                  </span>
-                </p>
-                <SegmentStatus seg={seg} />
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+      <ScheduleChanges changes={data.scheduleChanges} />
 
-      {o.services && (o.services.extraBags > 0 || Object.keys(o.services.seats).length > 0) && (
-        <section className="rounded-3xl border hairline bg-card p-6 sm:p-8">
-          <h2 className="mb-4 font-display text-2xl">Tilvalg</h2>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            {o.services.extraBags > 0 && (
-              <p>
-                Ekstra innsjekket bagasje:{" "}
-                <span className="font-medium text-foreground">{o.services.extraBags} kolli</span>
-              </p>
-            )}
-            {Object.keys(o.services.seats).length > 0 && (
-              <p>
-                Seter:{" "}
-                <span className="font-medium text-foreground">
-                  {o.passengers
-                    .filter((p) => o.services!.seats[p.id])
-                    .map((p) => `${p.givenName} → ${o.services!.seats[p.id]}`)
-                    .join(", ")}
-                </span>
-              </p>
-            )}
-          </div>
-        </section>
-      )}
+      <section className="rounded-3xl border hairline bg-card p-6 sm:p-8">
+        <h2 className="mb-5 font-display text-2xl">{t("common.itinerary")}</h2>
+        <Itinerary order={o} />
+      </section>
 
-      <section className="rounded-3xl border hairline bg-card p-6 text-center">
-        <p className="font-display text-xl">Trenger du å endre noe?</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Vi ordner endringer og kanselleringer for deg — oppgi bookingreferansen{" "}
-          {o.bookingReference}, så ser vi hva billetten din tillater.
-        </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-3">
-          <Link
-            to={`/hjelp?ref=${o.bookingReference}&topic=change`}
-            className="rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground"
-          >
-            Be om endring
-          </Link>
-          <Link
-            to={`/hjelp?ref=${o.bookingReference}&topic=refund`}
-            className="rounded-2xl border hairline px-6 py-3 text-sm font-medium transition-colors hover:border-gold hover:text-gold"
-          >
-            Be om kansellering
+      <section className="rounded-3xl border hairline bg-card p-6 sm:p-8">
+        <h2 className="mb-4 font-display text-2xl">{t("common.tickets")}</h2>
+        <TicketList order={o} />
+      </section>
+
+      <section className="rounded-3xl border hairline bg-card p-6 sm:p-8">
+        <h2 className="font-display text-2xl">{t("mt.change.title")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("mt.change.sub")}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <CancelFlow orderId={orderId} accessToken={order.accessToken} data={data} onDone={() => order.refetch()} />
+          <Link to={`/hjelp?ref=${o.bookingReference}&topic=change`} className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+            {t("mt.requestchange")}
           </Link>
         </div>
+        {data.refundCases.length > 0 && (
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("common.refund")}</h3>
+            <RefundTimeline orderId={orderId} accessToken={order.accessToken} />
+          </div>
+        )}
       </section>
     </div>
   );
 }
 
 export default function MyTrip() {
+  usePageMeta(PAGE_META.myTrip);
+  const t = useT();
   const [ref, setRef] = useState("");
   const [email, setEmail] = useState("");
-  const [lookup, setLookup] = useState<{ r: string; e: string } | null>(null);
+  const [foundOrderId, setFoundOrderId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { customer } = useCustomer();
+  const utils = trpc.useUtils();
+  const trips = trpc.customerAuth.myTrips.useQuery(undefined, { enabled: Boolean(customer), retry: 0 });
+  const resend = trpc.customerAuth.resendVerification.useMutation();
+  const tripsErrCode = trips.error ? appCodeOf(trips.error) : null;
 
-  const query = trpc.flights.findBooking.useQuery(
-    { bookingReference: lookup!.r, email: lookup!.e },
-    { enabled: Boolean(lookup), retry: 0 },
-  );
+  const find = trpc.flights.findBooking.useMutation({
+    onSuccess: (r) => {
+      try {
+        sessionStorage.setItem(`hellosky:access:${r.orderId}`, r.accessToken);
+      } catch {
+        /* ignore */
+      }
+      utils.orders.get.invalidate();
+      setFoundOrderId(r.orderId);
+    },
+  });
 
   const inputCls =
-    "w-full rounded-xl border hairline bg-card px-4 py-3.5 text-base outline-none transition-colors focus:border-accent placeholder:text-muted-foreground/60";
+    "min-h-11 w-full rounded-xl border hairline bg-card px-4 py-3.5 text-base outline-none transition-colors focus:border-accent placeholder:text-muted-foreground/60";
 
   return (
     <div className="relative min-h-screen bg-background">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-28 sm:px-6">
-        <div className="aurora-band -mx-4 -mt-28 mb-8 px-4 pb-10 pt-32 sm:-mx-6 sm:px-6">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-skyline">
-            <Luggage className="h-4 w-4 text-gold" /> Min reise
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 pb-20 pt-28 outline-none sm:px-6">
+        <div className="-mx-4 -mt-28 mb-8 border-b border-border bg-muted/40 px-4 pb-10 pt-32 sm:-mx-6 sm:px-6">
+          <p className="flex items-center gap-2 font-mono-label text-[11px] text-foreground">
+            <Luggage className="h-4 w-4 text-foreground" aria-hidden="true" /> {t("mt.kicker")}
           </p>
-          <h1 className="mt-2 font-display text-4xl sm:text-5xl">Finn bestillingen din</h1>
-          <p className="mt-3 max-w-lg text-muted-foreground">
-            Se reiserute, billettstatus og sanntidsinfo om flyene dine — alt du
-            trenger er bookingreferansen fra bekreftelsen.
-          </p>
+          <h1 className="mt-2 font-display text-4xl sm:text-5xl">{t("mt.title")}</h1>
+          <p className="mt-3 max-w-lg text-muted-foreground">{t("mt.sub")}</p>
         </div>
+
+        {/* Innlogget: e-post må være bekreftet */}
+        {customer && tripsErrCode === "EMAIL_NOT_VERIFIED" && (
+          <section className="mb-8 flex items-start gap-3 rounded-3xl border border-amber-300/60 bg-amber-50 p-5">
+            <MailWarning className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-amber-900">{t("mt.verify.title")}</p>
+              <p className="mt-1 text-sm text-amber-900/80">{t("mt.verify.body", { email: customer.email ?? "" })}</p>
+              <button
+                type="button"
+                onClick={() => resend.mutate()}
+                disabled={resend.isPending || resend.isSuccess}
+                className="mt-2 min-h-11 rounded-full bg-amber-900 px-5 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {resend.isSuccess ? t("common.sent") : resend.isPending ? t("common.sending") : t("common.resendlink")}
+              </button>
+              {resend.isError && (
+                <p role="alert" className="mt-2 text-xs text-primary">
+                  {humanMessage(resend.error)}
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {customer && (trips.data?.length ?? 0) > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-3 font-display text-2xl">{t("mt.yourbookings", { name: customer.firstName })}</h2>
+            <ul className="space-y-2">
+              {trips.data!.map((trip) => (
+                <li key={trip.orderId}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/bekreftelse/${encodeURIComponent(trip.orderId)}`)}
+                    className="flex min-h-11 w-full items-center gap-4 rounded-3xl border hairline bg-card p-4 text-left transition-colors hover:border-foreground/25"
+                  >
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-muted">
+                      <Plane className="h-5 w-5 text-foreground" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-bold">
+                        {trip.originCity || trip.originIata} → {trip.destinationCity || trip.destinationIata}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {trip.departingAt ? formatDateShort(trip.departingAt) : ""} · {t("common.pax", { count: trip.passengerCount })} · {t("mt.trip.ref", { ref: trip.bookingReference || "—" })}
+                        {trip.demoMode ? ` · ${t("mt.demo")}` : ""}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span className="block text-sm font-extrabold">{formatPrice(trip.totalAmount || "0", trip.totalCurrency)}</span>
+                      <span className="text-[11px] text-muted-foreground">{bookingStateLabel(trip.state)}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {customer && trips.data && trips.data.length === 0 && (
+          <p className="mb-8 rounded-3xl border hairline bg-card p-5 text-sm text-muted-foreground">{t("mt.nobookings")}</p>
+        )}
 
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            setLookup({ r: ref.trim().toUpperCase(), e: email.trim() });
+            setFoundOrderId(null);
+            find.mutate({ bookingReference: ref.trim().toUpperCase(), email: email.trim() });
           }}
-          className="rounded-3xl border hairline glass p-5 sm:p-6"
+          className="rounded-3xl border border-border bg-white p-5 shadow-soft sm:p-6"
+          aria-labelledby="lookup-heading"
         >
+          <h2 id="lookup-heading" className="mb-4 font-display text-xl">
+            {t("mt.lookup")}
+          </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Bookingreferanse
-              </span>
-              <input
-                placeholder="f.eks. X7K2P9"
-                value={ref}
-                onChange={(e) => setRef(e.target.value.toUpperCase())}
-                maxLength={8}
-                className={inputCls + " font-mono tracking-[0.2em]"}
-              />
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("mt.ref")}</span>
+              <input placeholder={t("mt.refph")} value={ref} onChange={(e) => setRef(e.target.value.toUpperCase())} maxLength={8} autoComplete="off" className={inputCls + " font-mono tracking-[0.2em]"} />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                E-post brukt ved bestilling
-              </span>
-              <input
-                type="email"
-                placeholder="deg@eksempel.no"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputCls}
-              />
+              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("mt.email")}</span>
+              <input type="email" placeholder={t("common.emailph")} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" className={inputCls} />
             </label>
           </div>
-          {query.isError && (
-            <p className="mt-4 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
-              {query.error.message}
+          {find.isError && (
+            <p role="alert" className="mt-4 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
+              {humanMessage(find.error)}
             </p>
           )}
           <button
             type="submit"
-            disabled={ref.trim().length < 5 || !email.includes("@") || query.isFetching}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-40"
+            disabled={ref.trim().length < 4 || !email.includes("@") || find.isPending}
+            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-40"
           >
-            <Search className="h-4 w-4" />
-            {query.isFetching ? "Ser etter reisen din …" : "Vis min reise"}
+            <Search className="h-4 w-4" aria-hidden="true" />
+            {find.isPending ? t("mt.looking") : t("mt.show")}
           </button>
           <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-            <KeyRound className="h-3 w-3" /> Vi deler aldri reiseinformasjonen din med andre.
+            <KeyRound className="h-3 w-3" aria-hidden="true" /> {t("mt.privacy")}
           </p>
         </form>
 
-        <div className="mt-8">{query.data && <OrderView order={query.data} />}</div>
+        {/* Luft i bunnen så WhatsApp-boblen ikke dekker hjelpeteksten under skjemaet på mobil */}
+        <div className={foundOrderId ? "mt-8" : "mt-8 pb-16 lg:pb-0"}>{foundOrderId && <OrderPanel orderId={foundOrderId} />}</div>
       </main>
 
       <SiteFooter />

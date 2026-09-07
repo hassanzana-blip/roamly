@@ -30,7 +30,7 @@ export default function AirportField({ label, value, onChange, exclude, directio
           className="group flex w-full items-center gap-3 rounded-2xl border hairline bg-card px-4 py-3 text-left transition-colors hover:border-accent/60 focus:outline-none focus:ring-2 focus:ring-ring"
           aria-label={`${label}: ${value ? value.city : "velg flyplass"}`}
         >
-          <Icon className="h-5 w-5 shrink-0 text-gold" />
+          <Icon className="h-5 w-5 shrink-0 text-foreground" />
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               {label}
@@ -87,7 +87,7 @@ export default function AirportField({ label, value, onChange, exclude, directio
                 </span>
                 <span className="block text-xs text-muted-foreground">{a.country}</span>
               </span>
-              {a.popular && <Star className="h-3.5 w-3.5 fill-gold text-gold" />}
+              {a.popular && <Star className="h-3.5 w-3.5 fill-skyline text-skyline" />}
               <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-bold tracking-wider text-skyline">
                 {a.iata}
               </span>

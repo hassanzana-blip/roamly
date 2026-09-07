@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const KEY = "roamly:favourites";
+const KEY = "hellosky:favourites";
 
 function read(): Set<string> {
   try {

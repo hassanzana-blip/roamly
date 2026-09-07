@@ -1,218 +1,247 @@
-import "dotenv/config";
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
+import { eq } from "drizzle-orm";
 import type { Order } from "../../contracts/types";
+import { env } from "./env";
+import { log } from "./logger";
+import { AppError } from "./errors";
+import { getDb } from "../queries/connection";
+import { emailEvents, quotes, supportCases } from "../../db/schema";
+import { renderEmail, type EmailKind, type EmailLocale, type EmailPayloads } from "./emails/templates";
 
-// ─── Transactional email ────────────────────────────────────────────────────
-// Configure with one of:
-//   SMTP_URL=smtp://user:pass@host:587
-//   SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS
-//   MAIL_FROM (default: "Roamly <hei@roamly.no>")
-// Without SMTP config the mailer logs instead of sending — bookings still work.
+// ─── Transaksjonell e-post (OTA-131/079/133/134/135) ─────────────────────────
+// Konfigureres med SMTP_URL eller SMTP_HOST/PORT/USER/PASS + MAIL_FROM.
+// Produksjon uten transport → kaster (fail-closed; assertProductionSafety
+// krever også SMTP). Dev uten transport → logger KUN "<kind> to <mottaker>",
+// aldri innhold eller lenker med tokens.
+// Hver sending registreres i email_events (queued → sent/failed).
 
-export type MailResult = { sent: boolean; reason?: string };
+export type MailResult = { sent: boolean; reason?: string; messageId?: string; eventId?: number };
 
-function buildTransport() {
-  if (process.env.SMTP_URL) return nodemailer.createTransport(process.env.SMTP_URL);
-  if (process.env.SMTP_HOST) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT ?? 587),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: process.env.SMTP_USER
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-        : undefined,
+let transport: Transporter | null | undefined;
+
+function buildTransport(): Transporter | null {
+  if (transport !== undefined) return transport;
+  if (env.SMTP_URL) transport = nodemailer.createTransport(env.SMTP_URL);
+  else if (env.SMTP_HOST) {
+    transport = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: Number(env.SMTP_PORT ?? 587),
+      secure: env.SMTP_SECURE === "true",
+      auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined,
+      pool: true,
+      maxConnections: 3,
+      connectionTimeout: 10_000,
+      socketTimeout: 20_000,
     });
-  }
-  return null;
+  } else transport = null;
+  return transport;
 }
 
-const from = () => process.env.MAIL_FROM ?? "Roamly <hei@roamly.no>";
+const from = () => env.MAIL_FROM ?? "HelloSky <hei@hellosky.no>";
 
-function sliceLine(s: Order["slices"][number], label: string): string {
-  const dep = new Date(s.departingAt);
-  const date = dep.toLocaleDateString("nb-NO", { weekday: "long", day: "numeric", month: "long" });
-  const time = (iso: string) =>
-    new Date(iso).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
-  const stops = s.stops === 0 ? "direkte" : `${s.stops} stopp`;
-  return `${label} ${date}: ${s.origin.city} (${s.origin.iata}) ${time(s.departingAt)} → ${s.destination.city} (${s.destination.iata}) ${time(s.arrivingAt)}, ${stops}`;
-}
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export async function sendBookingConfirmation(order: Order): Promise<MailResult> {
-  const transport = buildTransport();
-  const lines = order.slices.map((s, i) => sliceLine(s, i === 0 ? "Utreise" : "Hjemreise"));
-  const pax = order.passengers.map((p) => `${p.givenName} ${p.familyName}`).join(", ");
-  const services: string[] = [];
-  if (order.services?.extraBags) services.push(`${order.services.extraBags} ekstra kolli`);
-  const seatList = Object.entries(order.services?.seats ?? {});
-  if (seatList.length) services.push(`seter: ${seatList.map(([, v]) => v).join(", ")}`);
-
-  const text = [
-    `Hei ${order.passengers[0]?.givenName ?? ""}!`,
-    ``,
-    `Billetten din er bekreftet. Bookingreferanse: ${order.bookingReference}`,
-    ``,
-    ...lines,
-    ``,
-    `Reisende: ${pax}`,
-    services.length ? `Tilvalg: ${services.join(" · ")}` : "",
-    `Betalt: ${order.totalAmount} ${order.totalCurrency}`,
-    ``,
-    `Trenger du hjelp? Svar på denne e-posten eller ring 22 41 00 00 (alle dager 06–24).`,
-    ``,
-    `God reise!`,
-    `Roamly`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const html = `
-  <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#0f1f3d">
-    <div style="background:#102640;padding:24px 28px;border-radius:16px 16px 0 0">
-      <span style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px">Roamly</span>
-    </div>
-    <div style="border:1px solid #dbe2f0;border-top:0;padding:28px;border-radius:0 0 16px 16px">
-      <h1 style="font-size:24px;font-weight:800;color:#102640;margin:0 0 6px">Billetten din er bekreftet!</h1>
-      <p style="margin:0 0 18px;color:#4a5878">Bookingreferanse:
-        <strong style="font-size:20px;letter-spacing:2px;color:#0f1f3d">${order.bookingReference}</strong></p>
-      ${lines.map((l) => `<p style="margin:0 0 8px">${l}</p>`).join("")}
-      <p style="margin:16px 0 4px"><strong>Reisende:</strong> ${pax}</p>
-      ${services.length ? `<p style="margin:0 0 4px"><strong>Tilvalg:</strong> ${services.join(" · ")}</p>` : ""}
-      <p style="margin:0 0 20px"><strong>Betalt:</strong> ${order.totalAmount} ${order.totalCurrency}</p>
-      <p style="color:#4a5878;font-size:14px">Trenger du hjelp? Svar på denne e-posten eller ring
-        <strong>22 41 00 00</strong> (alle dager 06–24).</p>
-      <p style="margin-bottom:0">God reise!<br/>Roamly</p>
-    </div>
-  </div>`;
-
-  if (!transport) {
-    console.log(`[mailer] SMTP ikke konfigurert — bekreftelse til ${order.contactEmail} logges i stedet:\n${text}`);
-    return { sent: false, reason: "not_configured" };
+/**
+ * Render + send + logg. `to` valideres; ugyldig mottaker gir VALIDATION-feil
+ * (aldri stille «ok») slik at kallere ikke tror en e-post gikk ut.
+ */
+export async function sendTemplatedEmail<K extends EmailKind>(
+  kind: K,
+  to: string,
+  locale: EmailLocale | string | null | undefined,
+  payload: EmailPayloads[K],
+  opts: { bookingId?: number | null; replyTo?: string } = {},
+): Promise<MailResult> {
+  const recipient = String(to ?? "").trim().toLowerCase();
+  if (!EMAIL_RE.test(recipient) || recipient.length > 255) {
+    throw new AppError("VALIDATION", { message: "Ugyldig e-postadresse for utsending.", data: { kind } });
   }
+  const resolvedLocale = locale === "nb" || locale === "en" || locale === "sv" || locale === "da" || locale === "de" ? locale : "nb";
+  const rendered = renderEmail(kind, resolvedLocale, payload);
+  const db = getDb();
+
+  let eventId: number | undefined;
   try {
-    await transport.sendMail({
-      from: from(),
-      to: order.contactEmail,
-      subject: `Reisen din er bekreftet — ${order.bookingReference} | Roamly`,
-      text,
-      html,
+    const ins = await db.insert(emailEvents).values({
+      recipient,
+      kind,
+      locale: resolvedLocale,
+      bookingId: opts.bookingId ?? null,
+      provider: buildTransport() ? "smtp" : "none",
+      status: "queued",
     });
-    return { sent: true };
+    eventId = Number(ins[0].insertId);
   } catch (err) {
-    console.error("[mailer] Sending feilet:", err);
-    return { sent: false, reason: "failed" };
+    // Loggføring skal ikke stoppe utsending, men må synes.
+    log.error({ err, kind }, "[mailer] kunne ikke registrere email_event");
   }
-}
 
-export async function sendSupportAck(input: {
-  email: string;
-  name: string;
-  caseReference: string;
-}): Promise<MailResult> {
-  const transport = buildTransport();
-  if (!transport) return { sent: false, reason: "not_configured" };
+  const mark = async (status: "sent" | "failed" | "skipped", extra: { error?: string; providerMessageId?: string } = {}) => {
+    if (!eventId) return;
+    await db
+      .update(emailEvents)
+      .set({ status, error: extra.error?.slice(0, 2000) ?? null, providerMessageId: extra.providerMessageId?.slice(0, 128) ?? null })
+      .where(eq(emailEvents.id, eventId))
+      .catch(() => {});
+  };
+
+  const t = buildTransport();
+  if (!t) {
+    if (env.isProduction || env.isProdEnv) {
+      await mark("failed", { error: "SMTP ikke konfigurert" });
+      throw new AppError("INTERNAL", { message: "E-post er ikke konfigurert.", retryable: true, data: { kind } });
+    }
+    // Dev: ALDRI logg innhold/tokens — kun type og mottaker.
+    log.info(`[mailer] (dev) ${kind} to ${recipient}`);
+    await mark("skipped", { error: "dev: no transport" });
+    return { sent: false, reason: "not_configured", eventId };
+  }
+
   try {
-    await transport.sendMail({
+    const info = await t.sendMail({
       from: from(),
-      to: input.email,
-      subject: `Vi har mottatt henvendelsen din — ${input.caseReference} | Roamly`,
-      text: `Hei ${input.name}!\n\nTakk for at du kontaktet oss. Saken din er registrert med referanse ${input.caseReference}. Vi svarer så raskt vi kan — som regel innen 2 timer i åpningstiden (alle dager 06–24).\n\nVennlig hilsen\nRoamly kundeservice`,
+      to: recipient,
+      replyTo: opts.replyTo,
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
+      headers: { "X-HelloSky-Kind": kind },
     });
-    return { sent: true };
+    await mark("sent", { providerMessageId: info?.messageId });
+    log.info({ kind, eventId, bookingId: opts.bookingId ?? undefined }, "[mailer] sendt");
+    return { sent: true, messageId: info?.messageId, eventId };
   } catch (err) {
-    console.error("[mailer] Sending feilet:", err);
-    return { sent: false, reason: "failed" };
+    const message = err instanceof Error ? err.message : String(err);
+    await mark("failed", { error: message });
+    log.error({ kind, eventId, err: message }, "[mailer] sending feilet");
+    throw new AppError("INTERNAL", { message: "Kunne ikke sende e-post.", retryable: true, cause: err, data: { kind } });
   }
 }
 
-const baseUrl = () => (process.env.APP_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+// ─── Bakoverkompatible navngitte eksporter (tynne wrappere) ─────────────────
+
+export async function sendBookingConfirmation(
+  order: Order,
+  extras: { accessUrl?: string; locale?: string; bookingId?: number } = {},
+): Promise<MailResult> {
+  return sendTemplatedEmail("booking_confirmation", order.contactEmail, extras.locale ?? "nb", { order, accessUrl: extras.accessUrl }, { bookingId: extras.bookingId });
+}
+
+export function sendSupportAck(input: { email: string; name: string; caseReference: string; locale?: string }): Promise<MailResult> {
+  return sendTemplatedEmail("support_ack", input.email, input.locale ?? "nb", { name: input.name, caseReference: input.caseReference });
+}
 
 /** Tilbuds-lenke til kunde (assisted booking). */
 export async function sendQuoteCheckout(quoteId: number, token: string): Promise<MailResult> {
-  const { getDb } = await import("../queries/connection");
-  const { quotes } = await import("../../db/schema");
-  const { eq } = await import("drizzle-orm");
   const [quote] = await getDb().select().from(quotes).where(eq(quotes.id, quoteId)).limit(1);
-  if (!quote) throw new Error(`Tilbud ${quoteId} ikke funnet`);
-  const offer = JSON.parse(quote.offerSnapshot);
+  if (!quote) throw new AppError("NOT_FOUND", { message: `Tilbud ${quoteId} ikke funnet` });
+  const offer = JSON.parse(quote.offerSnapshot) as { slices?: Array<{ origin: { city: string }; destination: { city: string } }> };
   const slice = offer.slices?.[0];
   const route = slice ? `${slice.origin.city} → ${slice.destination.city}` : "";
-  const url = `${baseUrl()}/tilbud/${token}`;
-  const expires = quote.expiresAt.toLocaleString("nb-NO", { dateStyle: "long", timeStyle: "short" });
-
-  const text = [
-    `Hei ${quote.customerName}!`,
-    ``,
-    `Vi har laget et tilbud til deg: ${route}`,
-    `Totalt ${quote.totalAmount} ${quote.currency} (inkluderer vår serviceavgift på ${quote.serviceFeeAmount} ${quote.currency}).`,
-    ``,
-    `Se tilbudet og fullfør bestillingen her:`,
-    url,
-    ``,
-    `Tilbudet er gyldig til ${expires}.`,
-    ``,
-    `Vennlig hilsen`,
-    `Roamly`,
-  ].join("\n");
-
-  const transport = buildTransport();
-  if (!transport) {
-    console.log(`[mailer] SMTP ikke konfigurert — tilbuds-lenke til ${quote.customerEmail}: ${url}`);
-    return { sent: false, reason: "not_configured" };
-  }
-  try {
-    await transport.sendMail({
-      from: from(),
-      to: quote.customerEmail,
-      subject: `Ditt reisetilbud ${quote.reference} — ${route} | Roamly`,
-      text,
-    });
-    return { sent: true };
-  } catch (err) {
-    console.error("[mailer] Sending feilet:", err);
-    return { sent: false, reason: "failed" };
-  }
+  return sendTemplatedEmail("quote_checkout", quote.customerEmail, "nb", {
+    customerName: quote.customerName,
+    reference: quote.reference,
+    route,
+    totalAmount: quote.totalAmount,
+    serviceFeeAmount: quote.serviceFeeAmount,
+    currency: quote.currency,
+    url: `${env.baseUrl}/tilbud/${encodeURIComponent(token)}`,
+    expiresAt: quote.expiresAt.toISOString(),
+  });
 }
 
 /** Svar på kundesak. */
 export async function sendCaseReply(caseId: number, message: string): Promise<MailResult> {
-  const { getDb } = await import("../queries/connection");
-  const { supportCases } = await import("../../db/schema");
-  const { eq } = await import("drizzle-orm");
   const [supportCase] = await getDb().select().from(supportCases).where(eq(supportCases.id, caseId)).limit(1);
-  if (!supportCase) throw new Error(`Sak ${caseId} ikke funnet`);
+  if (!supportCase) throw new AppError("NOT_FOUND", { message: `Sak ${caseId} ikke funnet` });
+  return sendTemplatedEmail("case_reply", supportCase.customerEmail, "nb", {
+    name: supportCase.customerName ?? undefined,
+    caseReference: supportCase.reference,
+    message,
+  }, { bookingId: supportCase.bookingId ?? null });
+}
 
-  const transport = buildTransport();
-  if (!transport) {
-    console.log(`[mailer] SMTP ikke konfigurert — sakssvar til ${supportCase.customerEmail} (${supportCase.reference})`);
+/**
+ * Driftsvarsel til teamet: e-post til OPS_ALERT_EMAIL (fallback MAIL_FROM) og,
+ * hvis satt, POST til OPS_ALERT_WEBHOOK_URL (Slack-kompatibel `{ text }`).
+ * Kaster aldri — et feilet varsel skal ikke velte flyten som utløste det.
+ */
+export async function sendOpsAlert(subject: string, body: string): Promise<MailResult> {
+  const webhook = env.OPS_ALERT_WEBHOOK_URL;
+  if (webhook) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8_000);
+    fetch(webhook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: `*[HelloSky drift] ${subject}*\n${body}`.slice(0, 3000) }),
+      signal: controller.signal,
+    })
+      .catch((err) => log.warn({ err: String(err) }, "[ops-alert] webhook feilet"))
+      .finally(() => clearTimeout(timer));
+  }
+  const to = env.OPS_ALERT_EMAIL ?? env.MAIL_FROM?.match(/<(.+)>/)?.[1] ?? null;
+  if (!to) {
+    log.warn({ subject }, "[ops-alert] ingen mottaker konfigurert");
     return { sent: false, reason: "not_configured" };
   }
   try {
-    await transport.sendMail({
-      from: from(),
-      to: supportCase.customerEmail,
-      subject: `Svar på din henvendelse — ${supportCase.reference} | Roamly`,
-      text: `Hei ${supportCase.customerName ?? ""}!\n\n${message}\n\nSaksreferanse: ${supportCase.reference}\n\nVennlig hilsen\nRoamly kundeservice`,
-    });
-    return { sent: true };
+    return await sendTemplatedEmail("ops_alert", to, "nb", { subject, body });
   } catch (err) {
-    console.error("[mailer] Sending feilet:", err);
+    log.error({ err: String(err), subject }, "[ops-alert] e-post feilet");
     return { sent: false, reason: "failed" };
   }
 }
 
-/** Driftsvarsel til teamet (OPS_ALERT_EMAIL eller fallback til MAIL_FROM). */
-export async function sendOpsAlert(subject: string, body: string): Promise<MailResult> {
-  const to = process.env.OPS_ALERT_EMAIL ?? process.env.MAIL_FROM?.match(/<(.+)>/)?.[1] ?? null;
-  const transport = buildTransport();
-  if (!transport || !to) {
-    console.warn(`[ops-alert] ${subject}\n${body}`);
-    return { sent: false, reason: "not_configured" };
-  }
-  try {
-    await transport.sendMail({ from: from(), to, subject: `[Roamly drift] ${subject}`, text: body });
-    return { sent: true };
-  } catch (err) {
-    console.error("[mailer] Driftsvarsel feilet:", err);
-    return { sent: false, reason: "failed" };
-  }
+export function sendVerifyEmail(input: { email: string; firstName: string; url: string; locale?: string }): Promise<MailResult> {
+  return sendTemplatedEmail("verify_email", input.email, input.locale ?? "nb", { firstName: input.firstName, url: input.url });
+}
+
+export function sendLoginAlertEmail(input: { email: string; firstName: string; ip?: string; userAgent?: string; at?: string; locale?: string }): Promise<MailResult> {
+  return sendTemplatedEmail("login_alert", input.email, input.locale ?? "nb", {
+    firstName: input.firstName,
+    ip: input.ip,
+    userAgent: input.userAgent,
+    at: input.at ?? new Date().toISOString(),
+  });
+}
+
+export function sendPasswordResetEmail(input: { email: string; firstName: string; url: string; locale?: string }): Promise<MailResult> {
+  return sendTemplatedEmail("password_reset", input.email, input.locale ?? "nb", { firstName: input.firstName, url: input.url });
+}
+
+export function sendPriceAlertEmail(input: { email: string; route: string; price: number; targetPrice: number; url: string; currency?: string; locale?: string }): Promise<MailResult> {
+  return sendTemplatedEmail("price_alert", input.email, input.locale ?? "nb", {
+    route: input.route,
+    price: input.price,
+    targetPrice: input.targetPrice,
+    currency: input.currency,
+    url: input.url,
+  });
+}
+
+/** Varsel om forsinkelse/kansellering/ruteendring på kommende reise. */
+export function sendDisruptionAlert(input: {
+  email: string;
+  firstName: string;
+  bookingReference: string;
+  flight: string;
+  message: string;
+  accessUrl?: string;
+  bookingId?: number;
+  locale?: string;
+}): Promise<MailResult> {
+  return sendTemplatedEmail(
+    "schedule_change",
+    input.email,
+    input.locale ?? "nb",
+    {
+      firstName: input.firstName,
+      bookingReference: input.bookingReference,
+      flight: input.flight,
+      note: input.message,
+      accessUrl: input.accessUrl,
+    },
+    { bookingId: input.bookingId },
+  );
 }

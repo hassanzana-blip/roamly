@@ -1,4 +1,4 @@
-// ─── Roamly shared contracts ────────────────────────────────────────────────
+// ─── HelloSky shared contracts ────────────────────────────────────────────────
 // These types mirror the Duffel API v2 data model so the frontend works
 // identically whether responses come from Duffel (live/test) or demo mode.
 
@@ -25,6 +25,8 @@ export interface AirportPoint {
   lat: number;
   lng: number;
   terminal?: string;
+  /** IANA-tidssone (fra Duffel `time_zone`), f.eks. "Europe/Oslo". */
+  timeZone?: string;
 }
 
 export interface Carrier {
@@ -44,6 +46,8 @@ export interface Segment {
   flightNumber: string;
   aircraft: string;
   cabinClass: CabinClass;
+  /** Bagasje for dette segmentet (per passasjer). */
+  baggage?: BaggageAllowance;
 }
 
 export interface OfferSlice {
@@ -72,7 +76,18 @@ export interface OfferServices {
   maxExtraBags: number;
   extraBagPrice?: string; // amount per extra bag, in offer currency
   bagServiceId?: string; // Duffel service id (live mode)
-  seatPrice?: string; // "0" = included; undefined = seat selection unavailable
+}
+
+/** Vilkår for endring/refusjon før avreise (Duffel `conditions`). */
+export interface FareCondition {
+  allowed: boolean;
+  penaltyAmount?: string | null;
+  penaltyCurrency?: string | null;
+}
+
+export interface OfferConditions {
+  refundBeforeDeparture?: FareCondition;
+  changeBeforeDeparture?: FareCondition;
 }
 
 export interface Offer {
@@ -90,6 +105,9 @@ export interface Offer {
   emissionsKg: number;
   refundable: boolean;
   changeable: boolean;
+  conditions?: OfferConditions;
+  /** true når flyselskapet krever pass/ID for denne ruten. */
+  identityDocumentsRequired?: boolean;
   services?: OfferServices;
 }
 
@@ -111,8 +129,8 @@ export type Gender = "m" | "f";
 export interface PassengerDetails {
   id: string; // passenger id from the offer
   type: PassengerType;
-  title: Title;
-  gender: Gender;
+  title?: Title;
+  gender?: Gender;
   givenName: string;
   familyName: string;
   bornOn: string; // YYYY-MM-DD
@@ -127,24 +145,31 @@ export interface PassengerDetails {
   };
 }
 
+/** Tilvalg som faktisk leveres av leverandøren. Seter/forsikring/oppgradering er fjernet
+ *  inntil det finnes en leverandør bak dem. */
 export interface OrderServices {
   extraBags: number;
-  seats: Record<string, string>; // passengerId → seat designation, e.g. "4A"
+  /** Fordeling av ekstra kolli per reisende (sum = extraBags). */
+  bagsByPassenger?: Record<string, number>;
 }
 
-export interface CreateOrderInput {
-  offerId: string;
-  contactEmail: string;
-  contactPhone: string;
-  passengers: PassengerDetails[];
-  services?: OrderServices;
-  card?: {
-    number: string;
-    expiryMonth: string;
-    expiryYear: string;
-    cvc: string;
-    holderName: string;
-  };
+export type PaymentMethod = "card" | "klarna" | "vipps";
+
+export interface Ticket {
+  passengerId: string | null;
+  passengerName: string | null;
+  type: string;
+  uniqueIdentifier: string;
+}
+
+/** Prisoppsett i minste enhet (øre/cent) — server er eneste kilde. */
+export interface PriceBreakdownMinor {
+  currency: string;
+  supplierAmountMinor: number;
+  servicesAmountMinor: number;
+  serviceFeeAmountMinor: number;
+  bonusUsedMinor: number;
+  totalAmountMinor: number;
 }
 
 export interface Order {
@@ -161,8 +186,21 @@ export interface Order {
   contactEmail: string;
   contactPhone: string;
   paymentStatus: "succeeded" | "pending" | "failed";
+  tickets?: Ticket[];
   services?: OrderServices;
   servicesAmount?: string; // extra charged for bags/seats
+  /** HelloSky servicegebyr (8 % + 250 kr) — inkludert i totalAmount. */
+  serviceFeeAmount?: string;
+  /** Leverandørens pris før servicegebyr. */
+  supplierAmount?: string;
+  /** Valgt betalingsmåte. */
+  paymentMethod?: PaymentMethod;
+  /** Bonus trukket fra ved bestilling (hele kroner). */
+  bonusUsedKr?: number;
+  /** Vilkår ved bestilling (kopi fra tilbudet). */
+  conditions?: OfferConditions;
+  /** Kansellert hos leverandør (ISO). */
+  cancelledAt?: string | null;
 }
 
 // ─── Flight status ──────────────────────────────────────────────────────────
@@ -191,6 +229,7 @@ export interface FlightStatus {
   gate?: string;
   aircraft: string;
   progress: number; // 0–1, for the in-flight timeline
+  fetchedAt?: string; // ISO — når statusen sist ble hentet
 }
 
 // ─── Support ────────────────────────────────────────────────────────────────
@@ -209,10 +248,53 @@ export interface SupportMessageReceipt {
   receivedAt: string;
 }
 
+/**
+ * Gjeldende servicegebyr-satser (speiler api/lib/pricing.ts inkl. admin-overstyring).
+ * Klienten bruker dette KUN til forhåndsvisning — serveren priser alltid endelig.
+ */
+export interface FeeConfig {
+  /** Prosentandel som brøk (0.08 = 8 %). */
+  percent: number;
+  /** Fast gebyr i minste enhet per valuta. Ukjent valuta → EUR. */
+  flatMinorByCurrency: Record<string, number>;
+}
+
 export interface ServiceStatus {
   duffelConfigured: boolean;
   demoMode: boolean;
-  paymentMode: "balance" | "card";
+  liveMode: boolean;
+  paymentsConfigured: boolean;
+  instantBookingEnabled: boolean;
+  stripePublishableKey: string | null;
+  /** Valgfri til backend eksponerer den (OTA fee preview). */
+  feeConfig?: FeeConfig;
+}
+
+// ─── Kvittering / faktura (OTA-172) ─────────────────────────────────────────
+
+export interface InvoiceLine {
+  description: string;
+  amountMinor: number;
+  /** Mva-sats som brøk (0, 0.12, 0.25). Beløpet er inkl. mva. */
+  vatRate: number;
+  vatMinor: number;
+}
+
+export interface InvoiceSummary {
+  invoiceNumber: number | string;
+  issuedAt: string;
+  currency: string;
+  totalMinor: number;
+  vatMinor: number;
+  lines: InvoiceLine[];
+}
+
+// ─── Tilbud (checkout-lenke) — passasjerer ──────────────────────────────────
+
+export interface QuotePassengerSlot {
+  id: string;
+  type: PassengerType;
+  age?: number;
 }
 
 export interface PriceHint {

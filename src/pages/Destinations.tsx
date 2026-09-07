@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, Clock3, Luggage, Plane } from "lucide-react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { CONTINENTS, FEATURED } from "@/content/destinations";
+import { PAGE_META, articleJsonLd, breadcrumbJsonLd, itemListJsonLd, usePageMeta } from "@/lib/seo";
 
 function departDate(days: number) {
   return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
@@ -13,18 +14,31 @@ function searchLink(iata: string) {
 }
 
 export default function Destinations() {
+  usePageMeta({
+    ...PAGE_META.destinations,
+    type: "article",
+    jsonLd: [
+      articleJsonLd({ headline: PAGE_META.destinations.title, description: PAGE_META.destinations.description, path: PAGE_META.destinations.canonicalPath }),
+      itemListJsonLd(FEATURED.map((f) => ({ name: f.country, url: `/reisemal#${f.id}`, description: f.headline }))),
+      breadcrumbJsonLd([
+        { name: "Hjem", path: "/" },
+        { name: PAGE_META.destinations.title, path: PAGE_META.destinations.canonicalPath },
+      ]),
+    ],
+  });
   return (
     <div className="relative min-h-screen bg-background">
       <SiteHeader />
+      <main id="main" tabIndex={-1} className="outline-none">
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="aurora-band relative overflow-hidden">
+      <section className="relative overflow-hidden bg-muted/40 border-b border-border">
         <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-32 sm:px-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-skyline">
+          <p className="mb-3 font-mono-label text-[11px] text-skyline">
             Reisemål fra Norge
           </p>
           <h1 className="max-w-3xl font-display text-5xl leading-[1.02] text-balance sm:text-6xl md:text-7xl">
-            Dit hjertet hører hjemme — <span className="text-gold">og resten av verden.</span>
+            Dit hjertet hører hjemme — <span className="text-skyline">og resten av verden.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Vi flyr deg overalt. Men vi kjenner særlig godt rutene hjem — til
@@ -40,7 +54,7 @@ export default function Destinations() {
               <a
                 key={c.id}
                 href={`#${c.id}`}
-                className="rounded-full border hairline glass px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-gold hover:text-gold"
+                className="rounded-full border border-border bg-white px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
               >
                 {c.label}
               </a>
@@ -52,7 +66,7 @@ export default function Destinations() {
       {/* ── Featured: diaspora destinations ──────────────────────── */}
       <section id="hjem" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6">
         <div className="mb-10 max-w-2xl">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-skyline">
+          <p className="mb-2 font-mono-label text-[11px] text-skyline">
             Hjem til familien
           </p>
           <h2 className="font-display text-4xl leading-tight sm:text-5xl">
@@ -109,7 +123,7 @@ export default function Destinations() {
                   <ul className="mt-5 space-y-2.5 border-t hairline pt-5">
                     {d.tips.map((t) => (
                       <li key={t} className="flex gap-3 text-sm leading-relaxed">
-                        <Luggage className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                        <Luggage className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
                         <span className="text-muted-foreground">{t}</span>
                       </li>
                     ))}
@@ -119,21 +133,21 @@ export default function Destinations() {
                 <aside className="h-fit rounded-2xl border hairline bg-card p-6">
                   <dl className="space-y-4 text-sm">
                     <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-skyline">
+                      <dt className="font-mono-label text-[11px] text-skyline">
                         Beste reisetid
                       </dt>
                       <dd className="mt-1 text-muted-foreground">{d.bestTime}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-skyline">
+                      <dt className="font-mono-label text-[11px] text-skyline">
                         Reisetid fra Oslo
                       </dt>
                       <dd className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                        <Clock3 className="h-3.5 w-3.5 text-gold" /> {d.flightTime}
+                        <Clock3 className="h-3.5 w-3.5 text-foreground" /> {d.flightTime}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-skyline">
+                      <dt className="font-mono-label text-[11px] text-skyline">
                         Vanlig rute
                       </dt>
                       <dd className="mt-1 text-muted-foreground">{d.typicalRoute}</dd>
@@ -196,14 +210,14 @@ export default function Destinations() {
       ))}
 
       {/* ── CTA ──────────────────────────────────────────────────── */}
-      <section className="aurora-band relative border-t hairline">
+      <section className="relative border-t border-border bg-muted/40">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6">
           <h2 className="max-w-2xl font-display text-4xl leading-tight sm:text-5xl">
-            Fant du ikke byen din? <span className="text-gold">Vi flyr dit alikevel.</span>
+            Fant du ikke byen din? <span className="text-skyline">Vi flyr dit alikevel.</span>
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Søk mellom over 300 flyselskaper og tusenvis av ruter — eller spør oss
-            direkte på WhatsApp, så finner vi den beste veien sammen.
+            Søk i hele markedet — eller spør oss direkte på WhatsApp, så finner
+            vi den beste veien sammen.
           </p>
           <Link
             to="/"
@@ -213,6 +227,7 @@ export default function Destinations() {
           </Link>
         </div>
       </section>
+      </main>
 
       <SiteFooter />
     </div>

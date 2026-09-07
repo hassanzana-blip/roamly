@@ -3,11 +3,8 @@ import { useNavigate } from "react-router";
 import { ArrowLeftRight, Plus, Search, X } from "lucide-react";
 import AirportField from "./AirportField";
 import DateField from "./DateField";
-import PassengerCabinPicker, {
-  syncAges,
-  type PaxAges,
-  type PaxCount,
-} from "./PassengerCabinPicker";
+import PassengerCabinPicker from "./PassengerCabinPicker";
+import { syncAges, type PaxAges, type PaxCount } from "./paxUtils";
 import { airportByIata, type Airport } from "@contracts/airports";
 import type { CabinClass } from "@contracts/types";
 import { saveRecentSearch } from "@/lib/recentSearches";
@@ -34,7 +31,7 @@ function todayPlus(days: number): string {
   return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
-export function defaultState(): SearchParamsState {
+function defaultState(): SearchParamsState {
   return {
     from: airportByIata("OSL") ?? null,
     to: null,
@@ -51,7 +48,7 @@ export function defaultState(): SearchParamsState {
   };
 }
 
-export function buildSearchQuery(s: SearchParamsState): string {
+function buildSearchQuery(s: SearchParamsState): string {
   const q = new URLSearchParams({
     adults: String(s.pax.adult),
     children: String(s.pax.child),
@@ -142,18 +139,22 @@ export default function SearchWidget({ initial }: { initial?: Partial<SearchPara
     }));
 
   return (
-    <div className="w-full rounded-3xl border hairline glass p-4 shadow-2xl shadow-night/15 sm:p-5">
-      {/* trip type */}
-      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Reisetype">
+    <div className="w-full rounded-2xl border border-border bg-white p-4 shadow-[0_12px_40px_-16px_hsl(var(--night)/0.35)] sm:p-5">
+      {/* trip type — segmentert kontroll */}
+      <div
+        className="mb-4 inline-flex flex-wrap gap-1 rounded-full bg-muted p-1"
+        role="tablist"
+        aria-label="Reisetype"
+      >
         {TRIP_TYPES.map((t) => (
           <button
             key={t.id}
             role="tab"
             aria-selected={state.tripType === t.id}
             onClick={() => setState((s) => ({ ...s, tripType: t.id }))}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-all ${
               state.tripType === t.id
-                ? "bg-gold text-white"
+                ? "bg-white text-primary shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -167,7 +168,7 @@ export default function SearchWidget({ initial }: { initial?: Partial<SearchPara
           {state.legs.map((leg, i) => (
             <div key={i} className="relative grid gap-3 rounded-2xl border hairline bg-muted/50 p-3 sm:grid-cols-[1fr_1fr_1fr]">
               <div className="flex items-center gap-2">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-gold">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-xs font-bold text-foreground">
                   {i + 1}
                 </span>
                 <div className="flex-1">
@@ -230,7 +231,7 @@ export default function SearchWidget({ initial }: { initial?: Partial<SearchPara
                   };
                 })
               }
-              className="flex items-center gap-2 rounded-xl border border-dashed hairline px-4 py-2.5 text-sm font-medium text-skyline transition-colors hover:border-gold hover:text-gold"
+              className="flex items-center gap-2 rounded-xl border border-dashed hairline px-4 py-2.5 text-sm font-medium text-skyline transition-colors hover:border-foreground/30 hover:text-foreground"
             >
               <Plus className="h-4 w-4" /> Legg til strekning
             </button>
@@ -319,10 +320,10 @@ export default function SearchWidget({ initial }: { initial?: Partial<SearchPara
         type="button"
         onClick={submit}
         disabled={!canSubmit}
-        className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-40"
+        className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:brightness-[0.94] active:scale-[0.99] disabled:opacity-40"
       >
         <Search className="h-5 w-5" />
-        Søk blant hundrevis av flyselskaper
+        Søk
       </button>
     </div>
   );

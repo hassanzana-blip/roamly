@@ -76,7 +76,7 @@ export default function DateField({
             error ? "border-primary" : "hairline"
           }`}
         >
-          <CalendarDays className="h-5 w-5 shrink-0 text-gold" />
+          <CalendarDays className="h-5 w-5 shrink-0 text-foreground" />
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               {placeholder}

@@ -1,37 +1,78 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { getDb } from "../queries/connection";
-import { bookings, bookingEvents, bookingSegments, customers, quotes } from "../../db/schema";
-import { duffelConfig, duffelGetOffer, duffelCreateOrder } from "./duffel";
+import { checkoutSessions, quotes } from "../../db/schema";
+import { duffelConfig, getOfferRaw, type BagService } from "./duffel";
 import { demoGetOffer } from "./demo";
 import { enqueueJob } from "./jobs";
 import { logAudit } from "./audit";
-import { humanReference } from "./tokens";
-import type { Order, PassengerDetails } from "../../contracts/types";
+import { toMinor } from "./money";
+import { log } from "./logger";
+import { AppError } from "./errors";
+import { assertQuotePassengersComplete, decryptQuotePassengers, insertSessionDocuments, parseStoredQuotePassengers, stripDocuments } from "./quotePassengers";
+import type { Offer, PriceBreakdownMinor } from "../../contracts/types";
 
 /**
- * Oppretter en ordre fra et betalt tilbud.
- * Tilbudet revalideres ALLTID mot leverandøren før booking — et utløpt
- * eller prisendret tilbud bookes aldri blindt.
+ * Booking fra et betalt tilbud (assisted booking, manuell betaling).
+ * Idempotent: tilbudet låses (paid → booking) før noe annet skjer, og det
+ * opprettes én checkout-sesjon (psp_provider=manual) + ett booking-forsøk
+ * som orkestratoren kjører — samme revalidering og sporbarhet som web-booking.
  */
 export async function createOrderFromQuote(quoteId: number): Promise<void> {
   const db = getDb();
   const [quote] = await db.select().from(quotes).where(eq(quotes.id, quoteId)).limit(1);
   if (!quote) throw new Error(`Tilbud ${quoteId} ikke funnet`);
   if (quote.bookedOrderId) return; // allerede booket — idempotent
-  if (quote.status !== "paid") throw new Error(`Tilbud ${quote.reference} er ikke betalt (status: ${quote.status})`);
 
-  // Revalider tilbudet mot leverandøren
-  let offer;
+  const idempotencyKey = `quote:${quote.id}`;
+  const [existingSession] = await db.select().from(checkoutSessions).where(eq(checkoutSessions.idempotencyKey, idempotencyKey)).limit(1);
+  if (existingSession) {
+    // Sesjon finnes: sørg for at forsøket er i kø (retry-sikkert)
+    const { onPaymentAuthorized } = await import("../checkout");
+    if (!["failed", "expired", "cancelled", "price_changed", "confirmed"].includes(existingSession.status)) {
+      await onPaymentAuthorized(existingSession.id, "quote");
+    }
+    return;
+  }
+
+  // Lås tilbudet: kun ett forsøk får gå videre
+  const locked = await db
+    .update(quotes)
+    .set({ status: "booking" })
+    .where(and(eq(quotes.id, quoteId), eq(quotes.status, "paid")));
+  if (Number(locked[0].affectedRows) === 0) {
+    if (quote.status !== "booking") throw new Error(`Tilbud ${quote.reference} er ikke betalt (status: ${quote.status})`);
+  }
+
+  // Revalider tilbudet mot leverandøren (utløpt → feilet + ops-varsel)
+  let offer: Offer | null = null;
+  let rawServices: BagService[] = [];
   try {
-    offer = duffelConfig.configured ? await duffelGetOffer(quote.offerId) : demoGetOffer(quote.offerId);
-  } catch {
+    if (duffelConfig.configured) {
+      const fresh = await getOfferRaw(quote.offerId);
+      offer = fresh.offer;
+      rawServices = fresh.rawServices;
+    } else {
+      offer = demoGetOffer(quote.offerId) ?? (JSON.parse(quote.offerSnapshot) as Offer);
+      if (!offer.expiresAt || Date.parse(offer.expiresAt) < Date.now()) {
+        // Demo-øyeblikksbilde uten gyldig utløp: forleng slik at orkestratoren godtar det
+        offer = {
+          ...offer,
+          expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+        };
+      }
+    }
+  } catch (err) {
+    log.warn({ err, quoteId }, "Tilbud utløpt før booking");
     offer = null;
   }
   if (!offer) {
     await db.update(quotes).set({ status: "failed" }).where(eq(quotes.id, quoteId));
     await logAudit({
-      actorType: "worker", action: "quote.booking_failed_offer_expired",
-      targetType: "quote", targetId: quote.reference,
+      actorType: "worker",
+      action: "quote.booking_failed_offer_expired",
+      targetType: "quote",
+      targetId: quote.reference,
     });
     await enqueueJob("send_email", {
       kind: "ops_alert",
@@ -41,89 +82,80 @@ export async function createOrderFromQuote(quoteId: number): Promise<void> {
     return;
   }
 
-  const passengers: PassengerDetails[] = quote.passengersJson
-    ? (JSON.parse(quote.passengersJson) as PassengerDetails[])
-    : [];
+  // Passasjerer MÅ finnes og matche tilbudet (B2) — ellers ville leverandøren fått en tom ordre.
+  const stored = parseStoredQuotePassengers(quote.passengersJson);
+  try {
+    assertQuotePassengersComplete(stored, offer);
+  } catch (err) {
+    if (!(err instanceof AppError && err.code === "INVALID_PASSENGER")) throw err;
+    await db.update(quotes).set({ status: "failed" }).where(eq(quotes.id, quoteId));
+    await logAudit({
+      actorType: "worker",
+      action: "quote.booking_failed_missing_passengers",
+      targetType: "quote",
+      targetId: quote.reference,
+      metadata: { expected: offer.passengers.length, got: stored.length },
+    });
+    await enqueueJob("send_email", {
+      kind: "ops_alert",
+      subject: `Booking feilet — passasjerer mangler: ${quote.reference}`,
+      body: `Tilbud ${quote.reference} er betalt, men har ${stored.length} av ${offer.passengers.length} passasjerer registrert. Registrer passasjerene (kunde via tilbudslenken, eller admin) og merk tilbudet som betalt på nytt.`,
+    });
+    return; // ingen retry — krever manuell oppfølging
+  }
+  const passengers = decryptQuotePassengers(stored);
+  const currency = quote.currency.toUpperCase();
+  const supplierMinor = toMinor(offer.totalAmount, offer.totalCurrency);
+  const feeMinor = toMinor(quote.serviceFeeAmount, currency);
+  const totalMinor = toMinor(quote.totalAmount, currency);
+  // Selgeren satte prisen i tilbudet: total = leverandør + gebyr. Avvik → gebyret justeres slik at kundens total står fast.
+  const breakdown: PriceBreakdownMinor = {
+    currency,
+    supplierAmountMinor: supplierMinor,
+    servicesAmountMinor: 0,
+    serviceFeeAmountMinor: Math.max(0, totalMinor - supplierMinor) || feeMinor,
+    bonusUsedMinor: 0,
+    totalAmountMinor: totalMinor,
+  };
 
-  let order: Order;
-  if (duffelConfig.configured) {
-    order = await duffelCreateOrder({
-      offer,
-      passengers,
-      contactEmail: quote.customerEmail,
+  const publicId = randomUUID();
+  const sessionId = await db.transaction(async (tx) => {
+    const res = await tx.insert(checkoutSessions).values({
+      publicId,
+      offerId: offer.id,
+      offerSnapshot: JSON.stringify({ offer, rawServices }),
+      offerExpiresAt: offer.expiresAt ? new Date(offer.expiresAt) : null,
+      searchCtx: `quote:${quote.id}`,
+      passengersJson: JSON.stringify(stripDocuments(passengers)),
+      servicesJson: null,
+      contactEmail: quote.customerEmail.toLowerCase(),
       contactPhone: quote.customerPhone ?? "",
+      locale: "nb",
+      currency,
+      supplierAmountMinor: breakdown.supplierAmountMinor,
+      servicesAmountMinor: 0,
+      serviceFeeAmountMinor: breakdown.serviceFeeAmountMinor,
+      bonusUsedMinor: 0,
+      totalAmountMinor: breakdown.totalAmountMinor,
+      breakdownJson: JSON.stringify(breakdown),
+      status: "authorized",
+      pspProvider: "manual",
+      pspIntentId: null,
+      paymentMethod: "manual",
+      idempotencyKey,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60_000),
     });
-  } else {
-    // Demo-ordre
-    order = {
-      id: `ord_demo_${Date.now().toString(36)}`,
-      bookingReference: humanReference("", 6).replace("-", ""),
-      liveMode: false, demoMode: true,
-      createdAt: new Date().toISOString(),
-      totalAmount: offer.totalAmount, totalCurrency: offer.totalCurrency,
-      cabinClass: offer.cabinClass, slices: offer.slices, passengers,
-      contactEmail: quote.customerEmail, contactPhone: quote.customerPhone ?? "",
-      paymentStatus: "succeeded",
-    };
-  }
-
-  // Opprett/knytt kunde
-  const existing = await db.select().from(customers).where(eq(customers.email, quote.customerEmail)).limit(1);
-  let customerId = existing[0]?.id;
-  if (!customerId) {
-    const result = await db.insert(customers).values({
-      email: quote.customerEmail, name: quote.customerName, phone: quote.customerPhone ?? null,
-    });
-    customerId = Number(result[0].insertId);
-  }
-
-  // Lagre booking i CONFIRMED-tilstand med komplett spor
-  const bookingResult = await db.insert(bookings).values({
-    orderId: order.id,
-    bookingReference: order.bookingReference,
-    contactEmail: order.contactEmail,
-    contactPhone: order.contactPhone,
-    liveMode: order.liveMode,
-    payload: JSON.stringify(order),
-    state: "CONFIRMED",
-    customerId,
-    quoteId,
-    totalAmount: order.totalAmount,
-    totalCurrency: order.totalCurrency,
-    source: "admin_quote",
+    const id = Number(res[0].insertId);
+    await insertSessionDocuments(tx, id, passengers);
+    return id;
   });
-  const bookingId = Number(bookingResult[0].insertId);
-
-  await db.insert(bookingEvents).values([
-    { bookingId, fromState: "QUOTE_SENT", toState: "AWAITING_PAYMENT", actorType: "system", reason: "Tilbud opprettet og sendt" },
-    { bookingId, fromState: "AWAITING_PAYMENT", toState: "PAYMENT_AUTHORIZED", actorType: "staff", reason: "Betaling bekreftet manuelt" },
-    { bookingId, fromState: "PAYMENT_AUTHORIZED", toState: "BOOKING_PROCESSING", actorType: "worker", reason: "Booking startet" },
-    { bookingId, fromState: "BOOKING_PROCESSING", toState: "CONFIRMED", actorType: "worker", reason: "Ordre bekreftet hos leverandør" },
-  ]);
-
-  let segIdx = 0;
-  for (const slice of order.slices) {
-    for (const seg of slice.segments) {
-      await db.insert(bookingSegments).values({
-        bookingId,
-        sliceIndex: order.slices.indexOf(slice),
-        segmentIndex: segIdx++,
-        originIata: seg.origin.iata, destinationIata: seg.destination.iata,
-        carrierIata: seg.carrier.iata, flightNumber: seg.flightNumber,
-        departingAt: seg.departingAt, arrivingAt: seg.arrivingAt,
-        cabinClass: seg.cabinClass,
-      });
-    }
-  }
-
-  await db.update(quotes)
-    .set({ status: "booked", bookedOrderId: order.id })
-    .where(eq(quotes.id, quoteId));
-
-  await enqueueJob("send_email", { kind: "booking_confirmation", bookingId });
+  const { onPaymentAuthorized } = await import("../checkout");
+  const { attemptId } = await onPaymentAuthorized(sessionId, "quote");
   await logAudit({
-    actorType: "worker", action: "booking.created_from_quote",
-    targetType: "booking", targetId: bookingId,
-    metadata: { quoteId, orderId: order.id, reference: order.bookingReference },
+    actorType: "worker",
+    action: "quote.booking_started",
+    targetType: "quote",
+    targetId: quote.reference,
+    metadata: { sessionId, attemptId, totalMinor, currency },
   });
 }

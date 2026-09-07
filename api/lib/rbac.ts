@@ -22,7 +22,14 @@ export type Permission =
   | "staff:read"
   | "staff:manage"
   | "jobs:manage"
-  | "settings:manage";
+  | "settings:manage"
+  | "team:use"
+  | "problems:read"
+  | "problems:write"
+  | "payroll:read"
+  | "payroll:manage"
+  | "partners:read"
+  | "partners:write";
 
 const ADMIN_OPS: Permission[] = [
   "overview:read",
@@ -41,11 +48,16 @@ const ADMIN_OPS: Permission[] = [
   "reports:read",
   "jobs:manage",
   "settings:manage",
+  "team:use",
+  "problems:read",
+  "problems:write",
+  "partners:read",
+  "partners:write",
 ];
 
 export const ROLE_PERMISSIONS: Record<StaffRole, ReadonlySet<Permission>> = {
-  OWNER: new Set<Permission>([...ADMIN_OPS, "audit:read", "staff:read", "staff:manage"]),
-  ADMIN: new Set<Permission>([...ADMIN_OPS, "audit:read", "staff:read"]),
+  OWNER: new Set<Permission>([...ADMIN_OPS, "audit:read", "staff:read", "staff:manage", "payroll:read", "payroll:manage"]),
+  ADMIN: new Set<Permission>([...ADMIN_OPS, "audit:read", "staff:read", "payroll:read"]),
   SUPPORT: new Set<Permission>([
     "overview:read",
     "bookings:read",
@@ -53,6 +65,11 @@ export const ROLE_PERMISSIONS: Record<StaffRole, ReadonlySet<Permission>> = {
     "support:read",
     "support:write",
     "quotes:read",
+    "team:use",
+    "problems:read",
+    "problems:write",
+    "partners:read",
+    "partners:write",
   ]),
   FINANCE: new Set<Permission>([
     "overview:read",
@@ -62,6 +79,9 @@ export const ROLE_PERMISSIONS: Record<StaffRole, ReadonlySet<Permission>> = {
     "refunds:process",
     "reports:read",
     "customers:read",
+    "team:use",
+    "problems:read",
+    "payroll:read",
   ]),
   READ_ONLY: new Set<Permission>([
     "overview:read",
@@ -71,6 +91,8 @@ export const ROLE_PERMISSIONS: Record<StaffRole, ReadonlySet<Permission>> = {
     "payments:read",
     "support:read",
     "reports:read",
+    "problems:read",
+    "partners:read",
   ]),
 };
 

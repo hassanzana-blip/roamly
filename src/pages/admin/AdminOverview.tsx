@@ -9,9 +9,18 @@ import {
   ServerCrash,
   Webhook,
   ChevronRight,
+  PlusCircle,
+  MessagesSquare,
+  BedDouble,
+  StickyNote,
+  ScanSearch,
+  CalendarClock,
+  ShieldAlert,
 } from "lucide-react";
 import { trpc } from "@/providers/trpc";
-import { Card, EmptyState, ErrorState, LoadingRows, PageHeader, Pill, formatDateTime, formatMoney } from "./ui";
+import { Card, EmptyState, ErrorState, LoadingRows, PageHeader, Pill } from "./ui";
+import { formatDateTime, formatMoney } from "./helpers";
+import { PAGE_META, usePageMeta } from "@/lib/seo";
 
 function StatCard({
   icon: Icon,
@@ -31,7 +40,7 @@ function StatCard({
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+          <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
           <p className="font-display text-2xl font-bold leading-tight text-night">{value}</p>
         </div>
       </div>
@@ -64,7 +73,7 @@ function AttentionItem({
           danger ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-700"
         }`}
       >
-        <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+        <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
       </span>
       <span className="flex-1">
         <span className="block text-sm font-semibold text-night">{label}</span>
@@ -76,12 +85,13 @@ function AttentionItem({
 }
 
 export function AdminOverview() {
+  usePageMeta({ ...PAGE_META.admin, title: "Oversikt" });
   const dash = trpc.admin.dashboard.useQuery(undefined, { refetchInterval: 60_000, retry: false });
 
   if (dash.isLoading) {
     return (
       <div>
-        <PageHeader title="Oversikt" description="Sanntidsstatus for Roamly" />
+        <PageHeader title="Oversikt" description="Status for HelloSky akkurat nå" />
         <LoadingRows rows={5} />
       </div>
     );
@@ -90,7 +100,7 @@ export function AdminOverview() {
     return (
       <div>
         <PageHeader title="Oversikt" />
-        <ErrorState message={dash.error?.message} />
+        <ErrorState error={dash.error} onRetry={() => dash.refetch()} />
       </div>
     );
   }
@@ -98,7 +108,11 @@ export function AdminOverview() {
   const d = dash.data;
   const attentionCount =
     d.awaitingPayment + d.processing + d.reconciliation + d.failed +
-    d.unassignedCases + d.pendingRefunds + d.deadJobs + d.failedWebhooks;
+    d.reviewQueue + d.openScheduleChanges + d.openFraudFlags +
+    d.unassignedCases + d.pendingRefunds + d.deadJobs + d.failedWebhooks +
+    d.openProblems + d.newPartnerRequests;
+  const sales = d.confirmedSalesWeekByCurrency.length > 0 ? d.confirmedSalesWeekByCurrency : [{ currency: "NOK", total: "0" }];
+  const [primarySales, ...otherSales] = [...sales].sort((a, b) => (a.currency === "NOK" ? -1 : b.currency === "NOK" ? 1 : 0));
 
   return (
     <div>
@@ -116,9 +130,9 @@ export function AdminOverview() {
         />
         <StatCard
           icon={Wallet}
-          label="Bekreftet salg (7 dager)"
-          value={formatMoney(d.confirmedSalesWeek)}
-          sub="Kun bekreftede bestillinger"
+          label={`Bekreftet salg (7 dager, ${primarySales.currency})`}
+          value={formatMoney(primarySales.total, primarySales.currency)}
+          sub={otherSales.length > 0 ? otherSales.map((s) => formatMoney(s.total, s.currency)).join(" · ") : "Kun bekreftede bestillinger"}
         />
         <StatCard
           icon={PlaneTakeoff}
@@ -132,6 +146,25 @@ export function AdminOverview() {
           value={String(d.unassignedCases)}
           sub="Åpne eller venter på kunde"
         />
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2.5">
+        {[
+          { to: "/admin/ny-bestilling", label: "Ny manuell bestilling", icon: PlusCircle },
+          { to: "/admin/gjennomgang", label: "Gjennomgangskø", icon: ScanSearch },
+          { to: "/admin/meldinger", label: "Teamchat", icon: MessagesSquare },
+          { to: "/admin/notater", label: "Notattavle", icon: StickyNote },
+          { to: "/admin/hotell-bil", label: "Hotell og bil", icon: BedDouble },
+        ].map((q) => (
+          <Link
+            key={q.to}
+            to={q.to}
+            className="flex min-h-11 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-bold text-night shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow"
+          >
+            <q.icon className="h-4 w-4 text-primary" aria-hidden="true" />
+            {q.label}
+          </Link>
+        ))}
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -157,8 +190,13 @@ export function AdminOverview() {
               <AttentionItem icon={Ticket} label="Bestilling under behandling" count={d.processing} to="/admin/bestillinger?state=BOOKING_PROCESSING" />
               <AttentionItem icon={AlertTriangle} label="Trenger avstemming mot Duffel" count={d.reconciliation} to="/admin/bestillinger?state=AWAITING_RECONCILIATION" />
               <AttentionItem icon={AlertTriangle} label="Bestilling feilet" count={d.failed} to="/admin/bestillinger?state=BOOKING_FAILED" danger />
+              <AttentionItem icon={ScanSearch} label="Gjennomgangskø (bookinger og forsøk)" count={d.reviewQueue} to="/admin/gjennomgang" danger />
+              <AttentionItem icon={CalendarClock} label="Uløste ruteendringer" count={d.openScheduleChanges} to="/admin/ruteendringer" />
+              <AttentionItem icon={ShieldAlert} label="Åpne svindelflagg" count={d.openFraudFlags} to="/admin/svindel" danger />
               <AttentionItem icon={ArrowLeftRight} label="Refusjoner til behandling" count={d.pendingRefunds} to="/admin/refusjoner" danger />
               <AttentionItem icon={MessageSquare} label="Saker uten ansvarlig" count={d.unassignedCases} to="/admin/kundeservice?queue=unassigned" />
+              <AttentionItem icon={BedDouble} label="Nye hotell/bil-forespørsler" count={d.newPartnerRequests} to="/admin/hotell-bil" />
+              <AttentionItem icon={AlertTriangle} label="Åpne problemmeldinger" count={d.openProblems} to="/admin/problemer" danger />
               <AttentionItem icon={ServerCrash} label="Døde jobber i køen" count={d.deadJobs} to="/admin/innstillinger" danger />
               <AttentionItem icon={Webhook} label="Feilede webhooks" count={d.failedWebhooks} to="/admin/innstillinger" danger />
             </div>

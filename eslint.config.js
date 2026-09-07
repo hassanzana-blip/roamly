@@ -20,4 +20,12 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // shadcn-primitiver og i18n-modulen eksporterer bevisst både komponenter og
+    // hjelpere/konstanter fra samme fil — Fast Refresh-regelen gir ingen mening der.
+    files: ['src/components/ui/**/*.{ts,tsx}', 'src/lib/i18n.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

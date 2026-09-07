@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { createRequire } from "module";
 
 // Pakk @node-rs/argon2 inkl. native .node-binær inn i bygget:
 // 1. .node-filer som finnes på disken kopieres til dist/native og lastes
@@ -10,8 +11,8 @@ import path from "path";
 //
 // Delt register på tvers av bundles (boot.js + worker.js deler dist/native).
 function registry() {
-  globalThis.__roamlyNativeCopies ??= new Map();
-  return globalThis.__roamlyNativeCopies;
+  globalThis.__helloskyNativeCopies ??= new Map();
+  return globalThis.__helloskyNativeCopies;
 }
 
 export function nativeNodePlugin(outdir) {
@@ -28,8 +29,29 @@ export function nativeNodePlugin(outdir) {
             copies.set(args.path, `${path.basename(args.path, ".node")}-${copies.size}.node`);
           }
           const name = copies.get(args.path);
+          // napi-rs-limkoden forventer at modulens eksport ER selve bindingen
+          // (binding.hash, binding.verify …). Last derfor .node-filen her i
+          // byggeprosessen (samme plattform) og re-eksporter alle navngitte
+          // funksjoner, slik at __toCommonJS(shim) får riktig form.
+          let keys = [];
+          try {
+            keys = Object.keys(createRequire(import.meta.url)(args.path)).filter(
+              (k) => /^[A-Za-z_$][\w$]*$/.test(k),
+            );
+          } catch {
+            // Kunne ikke lastes i byggeprosessen — default-eksport alene.
+          }
+          const named = keys
+            .map((k) => `export const ${k} = __binding[${JSON.stringify(k)}];`)
+            .join("\n");
           return {
-            contents: `import { createRequire as __cr } from "module"; const __req = __cr(import.meta.url); export default __req.resolve("./native/${name}");`,
+            contents: [
+              `import { createRequire as __cr } from "module";`,
+              `const __req = __cr(import.meta.url);`,
+              `const __binding = __req("./native/${name}");`,
+              `export default __binding;`,
+              named,
+            ].join("\n"),
             loader: "js",
           };
         }
@@ -44,6 +66,12 @@ export function nativeNodePlugin(outdir) {
         for (const [src, name] of copies) {
           const dest = path.join(outdir, "native", name);
           if (!fs.existsSync(dest)) fs.copyFileSync(src, dest);
+          // napi-rs-limkoden prøver først './<originalt navn>' relativt til
+          // bundle-filen (via Node sin egen require). Kopien her gjør at den
+          // får den ekte, mutable bindingen direkte fra .node-lasteren —
+          // shim-modulen i dist/native er kun reserve.
+          const sibling = path.join(outdir, path.basename(src));
+          if (!fs.existsSync(sibling)) fs.copyFileSync(src, sibling);
         }
         console.log(`[native-node] totalt ${copies.size} native filer i ${outdir}/native`);
       });

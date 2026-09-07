@@ -1,71 +1,118 @@
 import { Link } from "react-router";
-import { Mail, Phone, ShieldCheck } from "lucide-react";
-import RoamlyMark from "@/components/brand/RoamlyMark";
+import { CreditCard, Facebook, Mail, Phone, ShieldCheck } from "lucide-react";
+import SkyMark from "@/components/brand/SkyMark";
 import { WhatsAppIcon, WHATSAPP_LINK, WHATSAPP_DISPLAY } from "@/components/WhatsAppFab";
+import { useT, type I18nKey } from "@/lib/i18n";
+import { COMPANY } from "@/pages/content/company";
+
+export const FACEBOOK_LINK = "https://www.facebook.com/share/1Etw1nFpKH/?mibextid=wwXIfr";
+
+const SHORTCUTS: { to: string; label: I18nKey }[] = [
+  { to: "/", label: "footer.searchtickets" },
+  { to: "/reisemal", label: "footer.destinations" },
+  { to: "/hotell-bil", label: "footer.hotelcar" },
+  { to: "/quiz", label: "footer.quiz" },
+  { to: "/reise", label: "footer.findbooking" },
+  { to: "/flystatus", label: "footer.track" },
+  { to: "/hjelp", label: "nav.support" },
+  { to: "/samfunn", label: "footer.community" },
+  { to: "/om-oss", label: "footer.about" },
+];
+
+const LEGAL: { to: string; label: I18nKey }[] = [
+  { to: "/vilkar", label: "footer.terms" },
+  { to: "/personvern", label: "footer.privacy" },
+  { to: "/bagasje", label: "footer.baggage" },
+  { to: "/visum", label: "footer.visa" },
+];
+
+const linkCls = "nav-underline inline-flex min-h-8 items-center text-muted-foreground transition-colors hover:text-foreground";
 
 export default function SiteFooter() {
+  const t = useT();
   return (
-    <footer className="relative bg-night text-white">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className="relative overflow-hidden border-t border-border bg-muted/40">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 pt-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-2">
-            <RoamlyMark className="h-8 w-8 text-[#5B8CFF]" />
-            <span className="text-[22px] font-extrabold lowercase tracking-tight text-white">roamly</span>
+            <SkyMark className="h-8 w-8 text-foreground" />
+            <span className="text-[22px] font-extrabold lowercase tracking-tight">hellosky</span>
           </div>
-          <p className="mt-3 text-sm font-medium text-[#9DB9F5]">Hele verden. Nærmere.</p>
-          <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/60">
-            Vi gjør det like enkelt å fly som å drømme om det. Sammenlign
-            hundrevis av flyselskaper, book på under to minutter og få hjelp av
-            ekte mennesker når du trenger det.
-          </p>
-          <div className="mt-5 flex items-center gap-2 text-xs text-white/60">
-            <ShieldCheck className="h-4 w-4 text-[#5B8CFF]" />
-            Sikker betaling · Øyeblikkelig bekreftelse · Norsk kundeservice
+          <p className="font-display mt-4 text-xl text-foreground/90">{t("footer.tagline")}</p>
+          <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">{t("footer.blurb")}</p>
+          <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-foreground/70" aria-hidden="true" />
+            {t("footer.trust")}
           </div>
+          {/* Betalingsmåter via Stripe: kort og Klarna */}
+          <div className="mt-5 flex flex-wrap items-center gap-2.5">
+            <span className="w-full text-[12px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {t("footer.paywith")}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1 text-[12px] font-bold">
+              <CreditCard className="h-4 w-4" aria-hidden="true" /> {t("footer.card")}
+            </span>
+            <img src="/brand/klarna.jpg" alt="Klarna" className="h-7 rounded-md" loading="lazy" width="70" height="28" />
+            <span className="rounded-md bg-night px-2.5 py-1 text-[12px] font-semibold text-white">Stripe</span>
+          </div>
+          <a
+            href={FACEBOOK_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-white px-4 text-[13px] font-semibold transition-colors hover:border-foreground/30"
+          >
+            <Facebook className="h-4 w-4" aria-hidden="true" /> {t("footer.facebook")}
+          </a>
         </div>
-        <div>
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#9DB9F5]">
-            Snarveier
-          </h3>
-          <ul className="space-y-2.5 text-sm">
-            <li><Link className="text-white/60 transition-colors hover:text-white" to="/">Søk flybilletter</Link></li>
-            <li><Link className="text-white/60 transition-colors hover:text-white" to="/reisemal">Reisemål over hele verden</Link></li>
-            <li><Link className="text-white/60 transition-colors hover:text-white" to="/reise">Finn bestillingen din</Link></li>
-            <li><Link className="text-white/60 transition-colors hover:text-white" to="/flystatus">Spor et fly</Link></li>
-            <li><Link className="text-white/60 transition-colors hover:text-white" to="/hjelp">Kundeservice</Link></li>
+        <nav aria-label={t("footer.shortcuts")}>
+          <h2 className="font-mono-label mb-4 text-[12px] text-muted-foreground">{t("footer.shortcuts")}</h2>
+          <ul className="space-y-1.5 text-sm">
+            {SHORTCUTS.map((s) => (
+              <li key={s.to}>
+                <Link className={linkCls} to={s.to}>
+                  {t(s.label)}
+                </Link>
+              </li>
+            ))}
           </ul>
-        </div>
+        </nav>
         <div>
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#9DB9F5]">
-            Kontakt oss
-          </h3>
-          <ul className="space-y-3 text-sm text-white/60">
-            <li className="flex items-center gap-2.5">
-              <Mail className="h-4 w-4 text-[#5B8CFF]" /> hei@roamly.no
-            </li>
-            <li className="flex items-center gap-2.5">
-              <Phone className="h-4 w-4 text-[#5B8CFF]" /> 22 41 00 00
-            </li>
+          <h2 className="font-mono-label mb-4 text-[12px] text-muted-foreground">{t("footer.contact")}</h2>
+          <ul className="space-y-2 text-sm text-muted-foreground">
             <li>
-              <a
-                href={WHATSAPP_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 transition-colors hover:text-white"
-              >
-                <WhatsAppIcon className="h-4 w-4 text-[#5B8CFF]" /> WhatsApp {WHATSAPP_DISPLAY}
+              <a href={`mailto:${COMPANY.supportEmail}`} className={`${linkCls} gap-2.5`}>
+                <Mail className="h-4 w-4 text-foreground/70" aria-hidden="true" /> {COMPANY.supportEmail}
               </a>
             </li>
-            <li className="text-xs leading-relaxed">
-              Alle dager 06–24. Svar på e-post innen 2 timer i åpningstiden.
+            <li>
+              <a href={`tel:${COMPANY.supportPhoneTel}`} className={`${linkCls} gap-2.5`}>
+                <Phone className="h-4 w-4 text-foreground/70" aria-hidden="true" /> {COMPANY.supportPhone}
+              </a>
             </li>
+            <li>
+              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className={`${linkCls} gap-2.5`}>
+                <WhatsAppIcon className="h-4 w-4 text-foreground/70" /> WhatsApp {WHATSAPP_DISPLAY}
+              </a>
+            </li>
+            <li className="text-xs leading-relaxed text-muted-foreground">{t("footer.hours")}</li>
+          </ul>
+          <h2 className="font-mono-label mb-3 mt-6 text-[12px] text-muted-foreground">{t("footer.legal")}</h2>
+          <ul className="space-y-1.5 text-sm">
+            {LEGAL.map((l) => (
+              <li key={l.to}>
+                <Link className={linkCls} to={l.to}>
+                  {t(l.label)}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/10 py-5 text-center text-xs text-white/50">
-        © {new Date().getFullYear()} Roamly AS · Oslo, Norge · Flyinnhold levert via Duffel
-        <span className="mx-2 text-white/25">·</span>
-        Foto: Unsplash- og Pexels-fotografer
+
+      <div className="mt-10 border-t border-border px-4 py-5 text-center text-xs text-muted-foreground">
+        © {new Date().getFullYear()} {COMPANY.legalName} · {COMPANY.orgNumberLabel} · {COMPANY.address} · {t("footer.copy")}
+        <span className="mx-2 text-muted-foreground/60">·</span>
+        {t("footer.photo")}
       </div>
     </footer>
   );

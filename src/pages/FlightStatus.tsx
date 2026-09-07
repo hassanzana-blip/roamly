@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { ArrowRight, Clock, DoorOpen, Plane, Radar, TriangleAlert } from "lucide-react";
+import { ArrowRight, Clock, DoorOpen, ExternalLink, Plane, Radar, TriangleAlert } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -8,22 +8,76 @@ import DateField from "@/components/search/DateField";
 import { TRACKABLE_CARRIERS } from "@contracts/carriers";
 import type { FlightStatus as FlightStatusType } from "@contracts/types";
 import { STATUS_LABELS, formatClock, formatDateLong } from "@/lib/format";
+import { humanMessage } from "@/lib/apiError";
+import { PAGE_META, usePageMeta } from "@/lib/seo";
+
+/** Flyselskapenes egne statussider — brukes når vi ikke har en datakilde selv. */
+const CARRIER_STATUS_LINKS: Record<string, string> = {
+  DY: "https://www.norwegian.com/no/reiseinformasjon/flystatus/",
+  SK: "https://www.flysas.com/no-no/flystatus/",
+  WF: "https://www.wideroe.no/flystatus",
+  KL: "https://www.klm.com/information/flight-status",
+  LH: "https://www.lufthansa.com/no/no/flystatus",
+  BA: "https://www.britishairways.com/travel/flightstatus/public/en_gb",
+  AF: "https://wwws.airfrance.no/flight-status",
+  AY: "https://www.finnair.com/no-no/flystatus",
+  FI: "https://www.icelandair.com/flight-status/",
+  TK: "https://www.turkishairlines.com/en-int/flights/flight-status/",
+  EK: "https://www.emirates.com/no/norwegian/travel/flight-status/",
+  QR: "https://www.qatarairways.com/en/flight-status.html",
+  SQ: "https://www.singaporeair.com/en_UK/no/plan-travel/flight-status/",
+  FR: "https://www.ryanair.com/no/no/flight-info",
+  U2: "https://www.easyjet.com/no/flight-tracker",
+  DL: "https://www.delta.com/flightstatus/",
+  UA: "https://www.united.com/en/us/flightstatus",
+};
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: "text-skyline border-skyline/40 bg-skyline/10",
-  boarding: "text-gold border-gold/40 bg-gold/10",
-  departed: "text-gold border-gold/40 bg-gold/10",
-  in_air: "text-gold border-gold/40 bg-gold/10",
+  boarding: "text-skyline border-skyline/40 bg-skyline/10",
+  departed: "text-skyline border-skyline/40 bg-skyline/10",
+  in_air: "text-skyline border-skyline/40 bg-skyline/10",
   landed: "text-emerald-300 border-emerald-300/40 bg-emerald-300/10",
   delayed: "text-primary border-primary/40 bg-primary/10",
   cancelled: "text-primary border-primary/40 bg-primary/10",
 };
 
-function StatusCard({ status }: { status: FlightStatusType }) {
+function UnavailablePanel({ reason, carrier }: { reason: string; carrier: string }) {
+  const own = CARRIER_STATUS_LINKS[carrier];
+  const name = TRACKABLE_CARRIERS.find((c) => c.iata === carrier)?.name ?? carrier;
+  return (
+    <section role="status" className="fade-up rounded-3xl border hairline bg-card p-6 sm:p-8">
+      <h2 className="font-display text-2xl">Flystatus er ikke tilgjengelig ennå</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{reason}</p>
+      <p className="mt-3 text-sm text-muted-foreground">Sjekk flyselskapets egen nettside eller flyplassens avgangstavle — de har alltid siste informasjon om gate, forsinkelser og kanselleringer.</p>
+      <ul className="mt-4 space-y-2 text-sm">
+        {own && (
+          <li>
+            <a href={own} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 font-bold text-primary-foreground">
+              Flystatus hos {name} <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </li>
+        )}
+        <li>
+          <a href="https://avinor.no/flyplass/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full border hairline px-5 font-medium">
+            Avinor — avganger og ankomster <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          </a>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
+function StatusCard({ status, demo }: { status: FlightStatusType; demo?: boolean }) {
   const airborne = status.status === "in_air" || status.status === "departed";
   const pct = Math.round(status.progress * 100);
   return (
     <section className="fade-up rounded-3xl border hairline bg-card p-6 sm:p-8">
+      {demo && (
+        <p className="mb-4 inline-block rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold text-foreground">
+          Demodata — ikke reell flystatus
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -51,13 +105,13 @@ function StatusCard({ status }: { status: FlightStatusType }) {
             style={{ width: `${Math.max(2, pct)}%` }}
           />
           <Plane
-            className="absolute top-1/2 h-5 w-5 -translate-y-1/2 rotate-45 text-gold transition-all duration-1000"
+            className="absolute top-1/2 h-5 w-5 -translate-y-1/2 rotate-45 text-skyline transition-all duration-1000"
             style={{ left: `calc(${Math.max(2, Math.min(96, pct))}% - 10px)` }}
           />
         </div>
         <div className="mt-2 flex justify-between text-xs text-muted-foreground">
           <span>{status.origin.iata}</span>
-          {airborne && <span className="font-medium text-gold">{pct}% av flyturen</span>}
+          {airborne && <span className="font-medium text-skyline">{pct}% av flyturen</span>}
           <span>{status.destination.iata}</span>
         </div>
       </div>
@@ -87,13 +141,19 @@ function StatusCard({ status }: { status: FlightStatusType }) {
 
       <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 border-t hairline pt-5 text-sm text-muted-foreground">
         <span className="flex items-center gap-2">
-          <DoorOpen className="h-4 w-4 text-gold" /> Gate {status.gate ?? "annonseres"}
+          <DoorOpen className="h-4 w-4 text-foreground" /> Gate {status.gate ?? "annonseres"}
         </span>
         <span className="flex items-center gap-2">
-          <Plane className="h-4 w-4 text-gold" /> {status.aircraft}
+          <Plane className="h-4 w-4 text-foreground" /> {status.aircraft}
         </span>
         <span className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-gold" /> Oppdatert akkurat nå
+          <Clock className="h-4 w-4 text-foreground" />
+          {status.fetchedAt
+            ? `Sist oppdatert ${new Date(status.fetchedAt).toLocaleTimeString("nb-NO", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`
+            : "Hentet akkurat nå"}
         </span>
       </div>
     </section>
@@ -101,6 +161,7 @@ function StatusCard({ status }: { status: FlightStatusType }) {
 }
 
 export default function FlightStatus() {
+  usePageMeta(PAGE_META.flightStatus);
   const [params] = useSearchParams();
   const [carrier, setCarrier] = useState(params.get("carrier") ?? "DY");
   const [flight, setFlight] = useState(params.get("flight") ?? "");
@@ -112,7 +173,9 @@ export default function FlightStatus() {
   );
 
   const status = trpc.flights.flightStatus.useQuery(
-    { carrier: submitted!.c, flightNumber: submitted!.f, date: submitted!.d },
+    submitted
+      ? { carrier: submitted.c, flightNumber: submitted.f, date: submitted.d }
+      : { carrier: "DY", flightNumber: "0", date: "2000-01-01" },
     { enabled: Boolean(submitted), retry: 1 },
   );
 
@@ -123,15 +186,15 @@ export default function FlightStatus() {
     <div className="relative min-h-screen bg-background">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-28 sm:px-6">
-        <div className="aurora-band -mx-4 -mt-28 mb-8 px-4 pb-10 pt-32 sm:-mx-6 sm:px-6">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-skyline">
-            <Radar className="h-4 w-4 text-gold" /> Flyradar
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 pb-20 pt-28 outline-none sm:px-6">
+        <div className="bg-muted/40 border-b border-border -mx-4 -mt-28 mb-8 px-4 pb-10 pt-32 sm:-mx-6 sm:px-6">
+          <p className="flex items-center gap-2 font-mono-label text-[11px] text-skyline">
+            <Radar className="h-4 w-4 text-foreground" aria-hidden="true" /> Flystatus
           </p>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl">Hvor er flyet?</h1>
           <p className="mt-3 max-w-lg text-muted-foreground">
-            Følg avganger og ankomster i sanntid — enten du skal ut å fly selv
-            eller hente noen du er glad i.
+            Slå opp et flightnummer for å se planlagte tider. Vi henviser til flyselskapet for
+            oppdatert status når vi ikke har egne data.
           </p>
         </div>
 
@@ -140,13 +203,13 @@ export default function FlightStatus() {
             e.preventDefault();
             if (flight.trim()) setSubmitted({ c: carrier, f: flight.trim(), d: date });
           }}
-          className="grid gap-3 rounded-3xl border hairline glass p-5 sm:grid-cols-[1fr_1fr_1fr_auto]"
+          className="grid gap-3 rounded-3xl border border-border bg-white shadow-soft p-5 sm:grid-cols-[1fr_1fr_1fr_auto]"
         >
           <label className="block">
             <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Flyselskap
             </span>
-            <select value={carrier} onChange={(e) => setCarrier(e.target.value)} className={inputCls}>
+            <select value={carrier} onChange={(e) => setCarrier(e.target.value)} className={inputCls + " min-h-11"}>
               {TRACKABLE_CARRIERS.map((c) => (
                 <option key={c.iata} value={c.iata}>
                   {c.name}
@@ -163,7 +226,7 @@ export default function FlightStatus() {
               placeholder="f.eks. 452"
               value={flight}
               onChange={(e) => setFlight(e.target.value.replace(/\D/g, "").slice(0, 5))}
-              className={inputCls}
+              className={inputCls + " min-h-11"}
             />
           </label>
           <div>
@@ -172,22 +235,23 @@ export default function FlightStatus() {
           <button
             type="submit"
             disabled={!flight.trim()}
-            className="flex items-center justify-center gap-2 self-end rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-40"
+            className="flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-all hover:brightness-110 disabled:opacity-40"
           >
-            Spor fly <ArrowRight className="h-4 w-4" />
+            Sjekk fly <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
         </form>
 
         <div className="mt-6">
           {status.isLoading && <div className="shimmer h-72 rounded-3xl" />}
           {status.isError && (
-            <div className="rounded-3xl border border-primary/40 bg-card p-8 text-center">
-              <TriangleAlert className="mx-auto h-8 w-8 text-primary" />
+            <div role="alert" className="rounded-3xl border border-primary/40 bg-card p-8 text-center">
+              <TriangleAlert className="mx-auto h-8 w-8 text-primary" aria-hidden="true" />
               <p className="mt-3 font-display text-2xl">Fant ikke flyvningen</p>
-              <p className="mt-2 text-sm text-muted-foreground">{status.error.message}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{humanMessage(status.error)}</p>
             </div>
           )}
-          {status.data && <StatusCard status={status.data} />}
+          {status.data && "unavailable" in status.data && <UnavailablePanel reason={status.data.reason} carrier={submitted?.c ?? carrier} />}
+          {status.data && !("unavailable" in status.data) && <StatusCard status={status.data} demo={status.data.demo} />}
           {!submitted && (
             <div className="rounded-3xl border hairline bg-card p-8 text-center text-sm text-muted-foreground">
               Skriv inn flightnummeret — det står på billetten din, f.eks.{" "}

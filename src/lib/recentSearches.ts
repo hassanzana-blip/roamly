@@ -17,7 +17,7 @@ export type RecentSearch = {
   at: number;
 };
 
-const KEY = "roamly:recent-searches";
+const KEY = "hellosky:recent-searches";
 const MAX = 4;
 
 export function saveRecentSearch(entry: Omit<RecentSearch, "at">): void {

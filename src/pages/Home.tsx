@@ -1,217 +1,254 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
-import { motion } from "motion/react";
-import { ArrowRight, CalendarDays, Clock3, HeartHandshake, Radar } from "lucide-react";
-import GlobeSafe from "@/components/globe/GlobeSafe";
-import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
+import { useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { ArrowRight, BedDouble, Building2, Car, Clock3, MapPin, Plane, Users } from "lucide-react";
+import AppShell, { SectionHeader } from "@/components/app/AppShell";
+import { GreetingBar } from "@/components/app/TopBar";
+import PillTabs from "@/components/app/PillTabs";
 import SearchWidget from "@/components/search/SearchWidget";
-import DestinationCarousel from "@/components/travel/DestinationCarousel";
-import VideoHero from "@/components/travel/VideoHero";
-import { FAMILY_DESTINATIONS, POPULAR_DESTINATIONS } from "@/content/discover";
+import DestinationSheet from "@/components/app/DestinationSheet";
+import DestinationCard from "@/components/travel/DestinationCard";
+import DealCard from "@/components/app/DealCard";
+import Icon from "@/components/app/Icon";
+import SiteFooter from "@/components/layout/SiteFooter";
+import { useFavourites } from "@/lib/favourites";
 import { loadRecentSearches, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
-import { airportByIata } from "@contracts/airports";
+import { useRoutePrice } from "@/lib/useRoutePrice";
+import { useT, type I18nKey } from "@/lib/i18n";
+import { PAGE_META, usePageMeta } from "@/lib/seo";
+import { DEAL_ROUTES, RECOMMENDED_DESTINATIONS, type DiscoverDestination } from "@/content/discover";
 
-const AIRLINES = [
-  "SAS", "Norwegian", "Widerøe", "KLM", "Lufthansa", "British Airways",
-  "Air France", "Finnair", "Icelandair", "Turkish Airlines", "Emirates", "Qatar Airways",
+const TABS: { id: string; label: I18nKey; icon: typeof Plane }[] = [
+  { id: "fly", label: "home.tab.flight", icon: Plane },
+  { id: "hotell", label: "home.tab.hotel", icon: Building2 },
+  { id: "leiebil", label: "home.tab.car", icon: Car },
 ];
 
-function formatDepart(iso: string): string {
-  const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+const fieldCls =
+  "w-full rounded-xl border border-border bg-white px-4 py-3 text-[14px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground/40";
+const labelCls =
+  "mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground";
+
+function inDays(n: number) {
+  return new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 }
 
-function RecentSearches() {
-  const [items, setItems] = useState<RecentSearch[]>([]);
-  useEffect(() => setItems(loadRecentSearches()), []);
-  if (items.length === 0) return null;
+/** Hotell/Leiebil-skjema på forsiden — viderefører til bestillingsskjemaet. */
+function HotelCarSearch({ kind }: { kind: "hotell" | "leiebil" }) {
+  const navigate = useNavigate();
+  const [place, setPlace] = useState("");
+  const [from, setFrom] = useState(inDays(21));
+  const [to, setTo] = useState(inDays(25));
+  const [count, setCount] = useState("2");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = new URLSearchParams({
+      type: kind === "hotell" ? "hotell" : "bil",
+      sted: place.trim(),
+      fra: from,
+      til: to,
+      antall: count,
+    });
+    navigate(`/overnatting-bil?${q.toString()}`);
+  };
+
   return (
-    <section aria-label="Fortsett planleggingen" className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className="text-sm font-semibold text-muted-foreground">Fortsett planleggingen:</span>
-        {items.map((s) => (
-          <Link
-            key={`${s.from}-${s.to}-${s.depart}-${s.ret ?? ""}`}
-            to={recentSearchHref(s)}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
-          >
-            <CalendarDays className="h-4 w-4 text-primary" />
-            {s.fromLabel} → {s.toLabel}
-            <span className="text-muted-foreground">· {formatDepart(s.depart)}</span>
-          </Link>
-        ))}
+    <form
+      onSubmit={submit}
+      className="mt-4 w-full rounded-2xl border border-border bg-white p-4 shadow-[0_12px_40px_-16px_hsl(var(--night)/0.35)] sm:p-5"
+    >
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr]">
+        <label className="block">
+          <span className={labelCls}>
+            <Icon icon={MapPin} size={16} className="mr-1 inline-block -translate-y-px" />
+            {kind === "hotell" ? "Hvor vil du bo?" : "Hvor hentes bilen?"}
+          </span>
+          <input
+            value={place}
+            onChange={(e) => setPlace(e.target.value)}
+            placeholder={kind === "hotell" ? "F.eks. Barcelona" : "F.eks. Oslo lufthavn"}
+            required
+            className={fieldCls}
+          />
+        </label>
+        <label className="block">
+          <span className={labelCls}>{kind === "hotell" ? "Innsjekk" : "Hentes"}</span>
+          <input
+            type="date"
+            value={from}
+            min={inDays(0)}
+            onChange={(e) => {
+              setFrom(e.target.value);
+              if (to < e.target.value) setTo(e.target.value);
+            }}
+            required
+            className={fieldCls}
+          />
+        </label>
+        <label className="block">
+          <span className={labelCls}>{kind === "hotell" ? "Utsjekk" : "Leveres"}</span>
+          <input
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => setTo(e.target.value)}
+            required
+            className={fieldCls}
+          />
+        </label>
+        <label className="block">
+          <span className={labelCls}>
+            <Icon icon={Users} size={16} className="mr-1 inline-block -translate-y-px" />
+            {kind === "hotell" ? "Gjester" : "Sjåfører"}
+          </span>
+          <select value={count} onChange={(e) => setCount(e.target.value)} className={fieldCls}>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
-    </section>
+      <button
+        type="submit"
+        className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:brightness-[0.94] active:scale-[0.99]"
+      >
+        <Icon icon={kind === "hotell" ? BedDouble : Car} size={20} />
+        {kind === "hotell" ? "Finn hotell" : "Finn leiebil"}
+      </button>
+    </form>
+  );
+}
+
+/** Recommended card with a live «fra»-price line (null-safe: hides when absent). */
+function RecommendedCard({
+  d,
+  favs,
+  toggle,
+  onOpen,
+}: {
+  d: DiscoverDestination;
+  favs: Set<string>;
+  toggle: (id: string) => void;
+  onOpen: (d: DiscoverDestination) => void;
+}) {
+  const price = useRoutePrice("OSL", d.iata);
+  return (
+    <DestinationCard
+      destination={d}
+      isFavourite={favs.has(d.id)}
+      onToggleFavourite={toggle}
+      onOpen={onOpen}
+      price={price}
+    />
   );
 }
 
 export default function Home() {
+  usePageMeta(PAGE_META.home);
+  const t = useT();
+  const [tab, setTab] = useState("fly");
+  const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
+  const [favs, toggleFav] = useFavourites();
+  const [recent] = useState<RecentSearch[]>(() => loadRecentSearches());
+  const searchRef = useRef<HTMLDivElement>(null);
+
+
+  /** Søkeknappen i toppfeltet: vis flysøket og flytt fokus dit. */
+  const focusSearch = () => {
+    setTab("fly");
+    requestAnimationFrame(() => {
+      const el = searchRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      const first = el.querySelector<HTMLElement>("button, input, [tabindex]:not([tabindex='-1'])");
+      first?.focus({ preventScroll: true });
+    });
+  };
+
   return (
-    <div className="relative min-h-screen bg-background">
-      <SiteHeader />
-
-      {/* ── 1–3. Hero: levende hav + løfte + umiddelbart søk ───────── */}
-      <VideoHero>
-        <motion.div
-          initial={{ opacity: 0, y: 34 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.26, ease: "easeOut" }}
-          className="relative"
-        >
-          <SearchWidget initial={{ from: airportByIata("OSL") ?? null }} />
-        </motion.div>
-      </VideoHero>
-
-      {/* stat strip — plasseres under det svevende søkeskjemaet */}
-      <div className="mx-auto w-full max-w-6xl px-4 pt-36 sm:px-6 sm:pt-40">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-3 gap-3 border-t hairline pt-6 text-center sm:text-left"
-        >
-          {[
-            { n: "300+", l: "flyselskaper" },
-            { n: "< 2 min", l: "fra søk til billett" },
-            { n: "06–24", l: "norsk kundeservice" },
-          ].map((s) => (
-            <div key={s.l}>
-              <p className="font-display text-2xl text-primary sm:text-3xl">{s.n}</p>
-              <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground sm:text-xs">
-                {s.l}
-              </p>
-            </div>
-          ))}
-        </motion.div>
-      </div>
-
-      {/* ── 4. Recent searches ─────────────────────────────────────── */}
-      <RecentSearches />
-
-      {/* ── 5. Destination discovery ───────────────────────────────── */}
-      <div className="mt-14 space-y-16 sm:mt-20">
-        <DestinationCarousel
-          eyebrow="Hjem til dine"
-          title="Hjem til familien"
-          description="Rutene vi kan best — dit hjertet hører hjemme. Vi kjenner sesongene, mellomlandingene og hva som betyr noe når du reiser hjem."
-          destinations={FAMILY_DESTINATIONS}
-          viewAllHref="/reisemal"
-        />
-        <DestinationCarousel
-          eyebrow="Utvalgt denne uken"
-          title="Populære reisemål"
-          description="Fra helgeturer i Europa til storbyer lengre unna — søk direkte fra kortet."
-          destinations={POPULAR_DESTINATIONS}
-          viewAllHref="/reisemal"
-        />
-      </div>
-
-      {/* ── Airline marquee ────────────────────────────────────────── */}
-      <section className="mt-16 overflow-hidden border-y hairline py-6" aria-label="Flyselskaper vi sammenligner">
-        <div className="marquee-track">
-          {[...AIRLINES, ...AIRLINES].map((a, i) => (
-            <span
-              key={i}
-              className="mx-6 whitespace-nowrap text-lg font-bold tracking-tight text-muted-foreground/70"
-            >
-              {a} <span className="ml-6 text-primary/50">✦</span>
-            </span>
-          ))}
+    <div className="min-h-[100dvh] bg-background">
+      <AppShell>
+        <div className="lg:hidden">
+          <GreetingBar onSearch={focusSearch} />
         </div>
-      </section>
 
-      {/* ── Signature 3D: route explorer (lazy, pauses off-screen) ─── */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-        <div className="overflow-hidden rounded-3xl bg-night">
-          <div className="grid items-center gap-6 p-8 sm:p-12 lg:grid-cols-[1fr_1.2fr]">
-            <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-white/60">
-                Én verden. Én søkeknapp.
-              </p>
-              <h2 className="font-display text-3xl leading-tight text-white sm:text-4xl">
-                Se hvor langt du kan komme fra Oslo
-              </h2>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70">
-                Utforsk rutene våre på globen — fra korte helgeturer i Europa
-                til familiereiser over tre kontinenter. Illustrerte ruter,
-                ikke sanntidsradar.
-              </p>
-              <Link
-                to="/reisemal"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:brightness-110"
-              >
-                Utforsk reisemål <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <div className="relative h-[320px] sm:h-[420px]">
-              <GlobeSafe className="absolute inset-0 h-full w-full" />
-            </div>
+        {/* Editorial headline — accent-highlighted key word, no paragraph */}
+        <h1 className="font-display text-balance text-[38px] leading-[1.04] tracking-tight sm:text-6xl">
+          {t("home.title1")} <span className="hl">{t("home.title2")}</span> {t("home.title3")}
+        </h1>
+
+        <div className="mt-6">
+          <PillTabs tabs={TABS.map((x) => ({ ...x, label: t(x.label) }))} active={tab} onChange={setTab} />
+        </div>
+
+        {/* Søkeskjema direkte på forsiden — fly / hotell / leiebil */}
+        {tab === "fly" && (
+          <div className="mt-4 scroll-mt-24" ref={searchRef}>
+            <SearchWidget />
           </div>
-        </div>
-      </section>
+        )}
+        {tab === "hotell" && <HotelCarSearch kind="hotell" />}
+        {tab === "leiebil" && <HotelCarSearch kind="leiebil" />}
 
-      {/* ── 6. Why Roamly ──────────────────────────────────────────── */}
-      <section className="mx-auto w-full max-w-6xl px-4 pb-4 sm:px-6">
-        <div className="mb-10 max-w-xl">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">
-            Derfor velger folk Roamly
+        {recent.length > 0 && (
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+              <Icon icon={Clock3} size={16} /> {t("home.recent")}:
+            </span>
+            {recent.slice(0, 3).map((s) => (
+              <Link
+                key={`${s.from}-${s.to}-${s.depart}`}
+                to={recentSearchHref(s)}
+                className="inline-flex min-h-9 items-center rounded-full border border-border bg-white px-3.5 text-[13px] font-semibold transition-colors hover:border-foreground/25"
+              >
+                {s.fromLabel} → {s.toLabel}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Anbefalt for deg */}
+        <section className="mt-10">
+          <SectionHeader
+            title={t("home.recommended")}
+            action={
+              <Link
+                to="/utforsk"
+                className="inline-flex min-h-9 items-center gap-1 text-[14px] font-semibold text-[hsl(var(--skyline))]"
+              >
+                {t("home.seeall")} <Icon icon={ArrowRight} size={16} />
+              </Link>
+            }
+          />
+          <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
+            {RECOMMENDED_DESTINATIONS.map((d) => (
+              <RecommendedCard key={d.id} d={d} favs={favs} toggle={toggleFav} onOpen={setQuickView} />
+            ))}
+          </div>
+        </section>
+
+        {/* Gode tilbud — veiledende priser fra prissøket, aldri fabrikkert */}
+        <section className="mt-10">
+          <SectionHeader title={t("home.deals")} />
+          <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
+            {DEAL_ROUTES.map((deal) => (
+              <DealCard key={deal.id} deal={deal} onOpen={setQuickView} />
+            ))}
+          </div>
+          <p className="mt-2 px-0.5 text-[12px] text-muted-foreground">
+            «Fra»-priser hentes fra vårt eget prissøk og er veiledende — endelig
+            pris ser du i søkeresultatet.
           </p>
-          <h2 className="font-display text-3xl leading-tight tracking-tight sm:text-4xl">
-            Bygget for deg som vil fly uten friksjon
-          </h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              icon: Clock3,
-              title: "Bestill på under to minutter",
-              body: "Søk, sammenlign og betal i én sammenhengende flyt — like raskt på mobilen i sofaen som på jobb-PC-en. Billetten lander i innboksen med én gang.",
-            },
-            {
-              icon: HeartHandshake,
-              title: "Ekte mennesker, ekte hjelp",
-              body: "Vår norske kundeservice svarer alle dager 06–24. Forsinkelse, ombestigning eller bare et spørsmål om bagasje? Du når oss alltid — med navnet ditt og reisen din for hånden.",
-            },
-            {
-              icon: Radar,
-              title: "Følg flyet ditt i sanntid",
-              body: "Se gate, forsinkelser og hvor flyet befinner seg — for egen reise eller for å hente noen på flyplassen. Roamly holder deg oppdatert fra avgang til landing.",
-            },
-          ].map((f) => (
-            <article
-              key={f.title}
-              className="card-lift rounded-3xl border border-border bg-card p-7"
-            >
-              <f.icon className="h-7 w-7 text-primary" strokeWidth={1.8} />
-              <h3 className="mt-5 text-xl font-extrabold leading-snug tracking-tight">{f.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+        </section>
+      </AppShell>
 
-      {/* ── 7. CTA band ────────────────────────────────────────────── */}
-      <section className="aurora-band relative mt-16 border-t hairline">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6">
-          <h2 className="max-w-2xl font-display text-4xl leading-tight tracking-tight sm:text-5xl">
-            Neste reise begynner med <span className="text-primary">én dato</span>
-          </h2>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:brightness-110"
-          >
-            Søk etter fly nå <ArrowRight className="h-5 w-5" />
-          </a>
-        </div>
-      </section>
+      <div className="mt-14">
+        <SiteFooter />
+      </div>
 
-      <SiteFooter />
+      <DestinationSheet destination={quickView} onClose={() => setQuickView(null)} />
     </div>
   );
 }

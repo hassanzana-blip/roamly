@@ -2,17 +2,7 @@ import { Minus, Plus, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CABIN_LABELS, PAX_LABELS } from "@/lib/format";
 import type { CabinClass, PassengerType } from "@contracts/types";
-
-export interface PaxCount {
-  adult: number;
-  child: number;
-  infant_without_seat: number;
-}
-
-export interface PaxAges {
-  children: number[];
-  infants: number[];
-}
+import { paxSummary, syncAges, type PaxAges, type PaxCount } from "./paxUtils";
 
 interface Props {
   pax: PaxCount;
@@ -28,23 +18,6 @@ const ROWS: { type: PassengerType; hint: string }[] = [
   { type: "child", hint: "2–11 år" },
   { type: "infant_without_seat", hint: "Under 2 år, uten eget sete" },
 ];
-
-export function syncAges(pax: PaxCount, ages: PaxAges): PaxAges {
-  const grow = (arr: number[], n: number, def: number) => {
-    const next = arr.slice(0, n);
-    while (next.length < n) next.push(def);
-    return next;
-  };
-  return {
-    children: grow(ages.children, pax.child, 8),
-    infants: grow(ages.infants, pax.infant_without_seat, 1),
-  };
-}
-
-export function paxSummary(p: PaxCount): string {
-  const total = p.adult + p.child + p.infant_without_seat;
-  return `${total} reisende`;
-}
 
 function AgeSelect({
   value,
@@ -101,7 +74,7 @@ export default function PassengerCabinPicker({
           type="button"
           className="flex w-full items-center gap-3 rounded-2xl border hairline bg-card px-4 py-3 text-left transition-colors hover:border-accent/60 focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <Users className="h-5 w-5 shrink-0 text-gold" />
+          <Users className="h-5 w-5 shrink-0 text-foreground" />
           <span className="min-w-0 flex-1">
             <span className="block text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Reisende og klasse
@@ -193,7 +166,7 @@ export default function PassengerCabinPicker({
                   onClick={() => onCabinChange(c)}
                   className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
                     cabin === c
-                      ? "border-gold bg-gold/10 text-gold"
+                      ? "border-foreground/40 bg-muted text-foreground"
                       : "hairline text-muted-foreground hover:border-accent/60 hover:text-foreground"
                   }`}
                 >

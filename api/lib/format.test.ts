@@ -7,7 +7,7 @@ import {
   formatPrice,
 } from "@/lib/format";
 
-const tidy = (s: string) => s.replace(/[  ]/g, " ");
+const tidy = (s: string) => s.replace(/[\u00a0\u202f]/g, " ");
 
 describe("formatPrice", () => {
   it("formats NOK with no decimals and Norwegian grouping", () => {

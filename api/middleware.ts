@@ -1,44 +1,152 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
-import { hasPermission, type Permission } from "./lib/rbac";
+import { hasPermission, REAUTH_ACTIONS, type Permission } from "./lib/rbac";
+import { AppError, toTRPCError } from "./lib/errors";
+import { sessionIsFresh } from "./lib/sessions";
+import { log } from "./lib/logger";
+import { captureException } from "./lib/monitoring";
+
+// ─── tRPC-oppsett ────────────────────────────────────────────────────────────
+// errorFormatter eksponerer stabil `appCode` + `retryable` i `shape.data` slik
+// at klienten kan oversette/reagere uten å parse meldinger (OTA-100/101).
+
+type ErrorCause = { appCode?: string; retryable?: boolean } & Record<string, unknown>;
+
+function causeOf(err: TRPCError): ErrorCause | null {
+  const c = err.cause;
+  if (c instanceof AppError) return { appCode: c.code, retryable: c.retryable, ...(c.data ?? {}) };
+  if (c && typeof c === "object" && "appCode" in c) return c as ErrorCause;
+  return null;
+}
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter({ shape, error, ctx }) {
+    const cause = causeOf(error);
+    const { appCode, retryable, ...rest } = cause ?? {};
+    // Interne feil skal aldri lekke stack/DB-detaljer til klienten
+    const isInternal = error.code === "INTERNAL_SERVER_ERROR";
+    if (isInternal) {
+      log.error({ err: error.cause ?? error, path: shape.data?.path }, "uventet feil i tRPC");
+      captureException(error.cause ?? error, { tags: { source: "trpc", path: shape.data?.path ?? "unknown" }, extra: { requestId: ctx?.requestId } });
+    }
+    const safeData = { ...shape.data, stack: undefined }; // aldri stack til klient
+    delete safeData.stack;
+    return {
+      ...shape,
+      message: isInternal && !appCode ? "Noe gikk galt hos oss. Prøv igjen, eller kontakt oss hvis det fortsetter." : shape.message,
+      data: {
+        ...safeData,
+        appCode: appCode ?? (isInternal ? "INTERNAL" : undefined),
+        retryable: retryable ?? false,
+        requestId: ctx?.requestId,
+        ...(Object.keys(rest).length ? { details: rest } : {}),
+      },
+    };
+  },
 });
 
 export const createRouter = t.router;
-export const publicQuery = t.procedure;
+export const createCallerFactory = t.createCallerFactory;
+export const mergeRouters = t.mergeRouters;
+
+/** Fanger AppError (og alt annet) og oversetter til TRPCError med appCode i cause. */
+const errorBoundary = t.middleware(async ({ next }) => {
+  const result = await next();
+  if (!result.ok) {
+    const err = result.error;
+    const cause = err.cause;
+    if (cause instanceof AppError) {
+      // tRPC har allerede pakket AppError inn i en TRPCError(INTERNAL) — pakk ut riktig kode
+      throw toTRPCError(cause);
+    }
+    throw err;
+  }
+  return result;
+});
+
+/** Basisprosedyre — alle prosedyrer bruker denne (feilhåndtering inkludert). */
+export const publicQuery = t.procedure.use(errorBoundary);
+export const baseProcedure = publicQuery;
+
+const unauthorized = (message = "Du må være logget inn.") => new TRPCError({ code: "UNAUTHORIZED", message, cause: new AppError("UNAUTHORIZED", { message }) });
+
+/** Krever innlogget kunde. */
+export const customerProcedure = publicQuery.use(({ ctx, next }) => {
+  if (!ctx.customer) throw unauthorized();
+  return next({ ctx: { ...ctx, customer: ctx.customer } });
+});
+
+/** Krever innlogget kunde MED bekreftet e-post (OTA-060: reiser/saker på e-post). */
+export const verifiedCustomerProcedure = publicQuery.use(({ ctx, next }) => {
+  if (!ctx.customer) throw unauthorized();
+  if (!ctx.customer.emailVerified) {
+    throw new AppError("EMAIL_NOT_VERIFIED").toTRPC();
+  }
+  return next({ ctx: { ...ctx, customer: ctx.customer } });
+});
+
+/**
+ * MFA er obligatorisk for alle staff (OTA-074): konto uten TOTP må fullføre
+ * beginMfaSetup/completeMfaSetup før noe annet; konto med TOTP må ha
+ * bekreftet koden i denne sesjonen.
+ */
+function assertStaffMfa(ctx: TrpcContext) {
+  if (!ctx.staff) throw unauthorized();
+  if (!ctx.staff.mfaEnabled) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Tofaktor må settes opp før du kan bruke admin.",
+      cause: new AppError("UNAUTHORIZED", { message: "Tofaktor må settes opp.", data: { reason: "mfa_setup_required" } }),
+    });
+  }
+  if (!ctx.staff.mfaVerified) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "MFA må bekreftes.",
+      cause: new AppError("UNAUTHORIZED", { message: "MFA må bekreftes.", data: { reason: "mfa_required" } }),
+    });
+  }
+  return ctx.staff;
+}
 
 /** Krever innlogget staff-bruker med bekreftet MFA. */
-export const staffProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.staff) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Du må være logget inn." });
-  }
-  if (ctx.staff.mfaEnabled && !ctx.staff.mfaVerified) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "MFA må bekreftes." });
-  }
-  return next({ ctx: { ...ctx, staff: ctx.staff } });
+export const staffProcedure = publicQuery.use(({ ctx, next }) => {
+  const staff = assertStaffMfa(ctx);
+  return next({ ctx: { ...ctx, staff } });
 });
 
 /** Krever en spesifikk tillatelse — håndheves alltid på serveren. */
 export function requirePermission(permission: Permission) {
   return t.middleware(({ ctx, next }) => {
-    if (!ctx.staff) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Du må være logget inn." });
-    }
-    if (ctx.staff.mfaEnabled && !ctx.staff.mfaVerified) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "MFA må bekreftes." });
-    }
-    if (!hasPermission(ctx.staff.role, permission)) {
+    const staff = assertStaffMfa(ctx);
+    if (!hasPermission(staff.role, permission)) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "Du har ikke tilgang til denne handlingen.",
+        cause: new AppError("FORBIDDEN"),
       });
     }
-    return next({ ctx: { ...ctx, staff: ctx.staff } });
+    return next({ ctx: { ...ctx, staff } });
   });
 }
 
 export const permittedProcedure = (permission: Permission) =>
-  t.procedure.use(requirePermission(permission));
+  publicQuery.use(requirePermission(permission));
+
+/**
+ * Kritiske handlinger (REAUTH_ACTIONS) krever i tillegg fersk sesjon (< 15 min).
+ * For andre tillatelser er dette identisk med permittedProcedure.
+ */
+export const freshSessionProcedure = (permission: Permission) =>
+  permittedProcedure(permission).use(({ ctx, next }) => {
+    if (REAUTH_ACTIONS.has(permission) && !sessionIsFresh(ctx.staff)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Krever nylig innlogging. Logg inn igjen og prøv på nytt.",
+        cause: new AppError("FORBIDDEN", { message: "Krever nylig innlogging.", data: { reason: "reauth_required" } }),
+      });
+    }
+    return next({ ctx });
+  });

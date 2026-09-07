@@ -1,7 +1,9 @@
-const WHATSAPP_NUMBER = "4797917976";
+import { useLocation } from "react-router";
+
+export const WHATSAPP_NUMBER = "4797917976";
 export const WHATSAPP_DISPLAY = "979 17 976";
 export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-  "Hei Roamly! Jeg trenger hjelp med en reise.",
+  "Hei HelloSky! Jeg trenger hjelp med en reise.",
 )}`;
 
 export function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) {
@@ -12,24 +14,30 @@ export function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) 
   );
 }
 
+/** Stier der boblen skjules: betalingsfokus (checkout og tilbudslenke). */
+const HIDDEN_PREFIXES = ["/bestill", "/tilbud"];
+
 /**
  * Floating WhatsApp button — opens the WhatsApp app/chat directly.
- * Rendered once in the app layout, visible on every page.
+ * Rendered once in the app layout; hidden on payment pages so it never
+ * overlaps the fixed price bar or the Stripe element.
  */
 export default function WhatsAppFab() {
+  const { pathname } = useLocation();
+  if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
   return (
     <a
       href={WHATSAPP_LINK}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Chat med oss på WhatsApp – ${WHATSAPP_DISPLAY}`}
-      className="group fixed bottom-5 right-5 z-50 flex items-center gap-0 rounded-full bg-[#25D366] p-3.5 text-white shadow-xl shadow-black/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl focus-visible:outline-2 focus-visible:outline-offset-2 sm:bottom-6 sm:right-6"
+      className="group fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-0 rounded-full bg-night p-3 text-white shadow-lift transition-all duration-300 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 md:right-6 lg:bottom-6"
     >
-      <WhatsAppIcon className="h-6 w-6" />
+      <WhatsAppIcon className="h-5 w-5" />
       <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold transition-all duration-300 group-hover:ml-2 group-hover:max-w-[160px]">
         WhatsApp
       </span>
-      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-gold" aria-hidden="true" />
+      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" aria-hidden="true" />
     </a>
   );
 }

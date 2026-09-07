@@ -1,106 +1,66 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { useNavigate } from "react-router";
+import { LockKeyhole, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/providers/trpc";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  ATTEMPT_STATE_LABELS,
+  ATTEMPT_TONES,
+  BOOKING_STATE_LABELS,
+  BTN_CLASSES,
+  REFUND_STATE_LABELS,
+  REFUND_TONES,
+  STATE_TONES,
+  TONE_CLASSES,
+  errorMessage,
+  formatDateTime,
+  labelCls,
+  type BtnTone,
+  type PillTone,
+  type TrpcErrorLike,
+} from "./helpers";
 
-/* ── Formatters ─────────────────────────────────────────────────────────── */
+/* Komponenter for admin. Hjelpere/etiketter ligger i ./helpers, feilhåndtering i ./useActionFeedback. */
 
-export function formatMoney(amount: string | number | null | undefined, currency = "NOK"): string {
-  const n = typeof amount === "string" ? Number(amount) : (amount ?? 0);
-  if (!Number.isFinite(n)) return "–";
-  return new Intl.NumberFormat("nb-NO", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(n);
+/** Dialog som tilbys når en handling krever fersk sesjon. */
+export function ReauthDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate();
+  const utils = trpc.useUtils();
+  const logout = trpc.staffAuth.logout.useMutation({
+    onSettled: () => {
+      utils.staffAuth.me.reset();
+      navigate(`/admin/logg-inn?next=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
+    },
+  });
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <LockKeyhole className="h-5 w-5 text-primary" aria-hidden="true" /> Krever nylig innlogging
+          </DialogTitle>
+          <DialogDescription>
+            Denne handlingen er sensitiv og krever at du har logget inn i løpet av de siste 15 minuttene. Logg inn
+            på nytt, så kommer du tilbake hit.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Btn tone="ghost" onClick={onClose}>Avbryt</Btn>
+          <Btn tone="night" onClick={() => logout.mutate()} disabled={logout.isPending}>
+            {logout.isPending ? "Logger ut …" : "Logg inn på nytt"}
+          </Btn>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
-
-export function formatDateTime(value: string | Date | null | undefined): string {
-  if (!value) return "–";
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return "–";
-  return new Intl.DateTimeFormat("nb-NO", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
-}
-
-export function formatDate(value: string | Date | null | undefined): string {
-  if (!value) return "–";
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return "–";
-  return new Intl.DateTimeFormat("nb-NO", { day: "2-digit", month: "short", year: "numeric" }).format(d);
-}
-
-/* ── Booking state labels (speiler api/lib/statemachine.ts) ─────────────── */
-
-export const BOOKING_STATE_LABELS: Record<string, string> = {
-  DRAFT: "Utkast",
-  QUOTE_SENT: "Tilbud sendt",
-  AWAITING_PAYMENT: "Venter på betaling",
-  PAYMENT_AUTHORIZED: "Betaling autorisert",
-  BOOKING_PROCESSING: "Bookes hos leverandør",
-  AWAITING_RECONCILIATION: "Avventer avstemming",
-  CONFIRMED: "Bekreftet",
-  BOOKING_FAILED: "Booking feilet",
-  CHANGE_REQUESTED: "Endring forespurt",
-  CANCELLATION_REQUESTED: "Kansellering forespurt",
-  REFUND_PENDING: "Refusjon pågår",
-  CANCELLED: "Kansellert",
-  PARTIALLY_REFUNDED: "Delvis refundert",
-  REFUNDED: "Refundert",
-};
-
-/** Speiler TRANSITIONS i api/lib/statemachine.ts (kun personal-styrbare måltilstander). */
-export const STAFF_TRANSITION_TARGETS: Record<string, string[]> = {
-  DRAFT: ["CANCELLED"],
-  QUOTE_SENT: ["CANCELLED"],
-  AWAITING_PAYMENT: ["CANCELLED"],
-  PAYMENT_AUTHORIZED: ["CANCELLED"],
-  BOOKING_PROCESSING: ["CONFIRMED"],
-  AWAITING_RECONCILIATION: ["CONFIRMED"],
-  CONFIRMED: ["CHANGE_REQUESTED", "CANCELLATION_REQUESTED", "REFUND_PENDING", "CANCELLED"],
-  BOOKING_FAILED: ["CANCELLED", "REFUND_PENDING"],
-  CHANGE_REQUESTED: ["CONFIRMED", "CANCELLATION_REQUESTED"],
-  CANCELLATION_REQUESTED: ["CANCELLED", "REFUND_PENDING", "CONFIRMED"],
-  REFUND_PENDING: ["CANCELLED"],
-  CANCELLED: ["REFUND_PENDING"],
-  PARTIALLY_REFUNDED: ["REFUND_PENDING"],
-  REFUNDED: [],
-};
-
-export type PillTone = "neutral" | "info" | "success" | "warning" | "danger";
-
-const STATE_TONES: Record<string, PillTone> = {
-  DRAFT: "neutral",
-  QUOTE_SENT: "info",
-  AWAITING_PAYMENT: "warning",
-  PAYMENT_AUTHORIZED: "info",
-  BOOKING_PROCESSING: "info",
-  AWAITING_RECONCILIATION: "warning",
-  CONFIRMED: "success",
-  BOOKING_FAILED: "danger",
-  CHANGE_REQUESTED: "warning",
-  CANCELLATION_REQUESTED: "warning",
-  REFUND_PENDING: "warning",
-  CANCELLED: "neutral",
-  PARTIALLY_REFUNDED: "info",
-  REFUNDED: "neutral",
-};
-
-const TONE_CLASSES: Record<PillTone, string> = {
-  neutral: "bg-night/5 text-night/70",
-  info: "bg-primary/10 text-primary",
-  success: "bg-emerald-100 text-emerald-700",
-  warning: "bg-amber-100 text-amber-800",
-  danger: "bg-rose-100 text-rose-700",
-};
 
 export function Pill({ tone = "neutral", children, className }: { tone?: PillTone; children: ReactNode; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-bold",
         TONE_CLASSES[tone],
         className,
       )}
@@ -114,58 +74,199 @@ export function BookingStatePill({ state }: { state: string }) {
   return <Pill tone={STATE_TONES[state] ?? "neutral"}>{BOOKING_STATE_LABELS[state] ?? state}</Pill>;
 }
 
+export function RefundStatePill({ state }: { state: string }) {
+  return <Pill tone={REFUND_TONES[state] ?? "neutral"}>{REFUND_STATE_LABELS[state] ?? state}</Pill>;
+}
+
+export function AttemptStatePill({ state }: { state: string }) {
+  return <Pill tone={ATTEMPT_TONES[state] ?? "neutral"}>{ATTEMPT_STATE_LABELS[state] ?? state}</Pill>;
+}
+
 /* ── Layout pieces ──────────────────────────────────────────────────────── */
 
-export function PageHeader({
-  title,
-  description,
-  actions,
-}: {
-  title: string;
-  description?: string;
-  actions?: ReactNode;
-}) {
+export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
+      <div className="min-w-0">
         <h1 className="font-display text-2xl font-bold text-night sm:text-3xl">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={cn("rounded-2xl border border-border bg-white p-5 shadow-sm", className)}>{children}</div>
-  );
+  return <div className={cn("rounded-2xl border border-border bg-white p-5 shadow-sm", className)}>{children}</div>;
 }
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
     <div className="rounded-2xl border border-dashed border-border bg-white/60 px-6 py-12 text-center">
       <p className="font-semibold text-night">{title}</p>
       {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
+      {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
   );
 }
 
-export function ErrorState({ message }: { message?: string }) {
+export function ErrorState({ message, error, onRetry }: { message?: string; error?: TrpcErrorLike; onRetry?: () => void }) {
+  const text = message ?? (error ? errorMessage(error, "Kunne ikke laste data. Prøv å laste siden på nytt.") : "Kunne ikke laste data. Prøv å laste siden på nytt.");
   return (
-    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-8 text-center">
+    <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-8 text-center">
       <p className="font-semibold text-rose-700">Noe gikk galt</p>
-      <p className="mt-1 text-sm text-rose-600/80">{message ?? "Kunne ikke laste data. Prøv å laste siden på nytt."}</p>
+      <p className="mt-1 text-sm text-rose-700/90">{text}</p>
+      {error?.data?.appCode && <p className="mt-1 font-mono text-[11px] text-rose-700/70">{error.data.appCode}</p>}
+      {onRetry && (
+        <Btn tone="ghost" className="mt-4" onClick={onRetry}>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" /> Prøv igjen
+        </Btn>
+      )}
     </div>
   );
 }
 
 export function LoadingRows({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="space-y-3" aria-label="Laster">
+    <div className="space-y-3" role="status" aria-label="Laster" aria-busy="true">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="h-16 animate-pulse rounded-2xl bg-night/5" />
       ))}
     </div>
+  );
+}
+
+/** Tabell-ramme med horisontal scroll. `minWidth` holder kolonnene lesbare på mobil. */
+export function TableCard({ children, minWidth = 720, caption }: { children: ReactNode; minWidth?: number; caption?: string }) {
+  return (
+    <Card className="overflow-x-auto p-0">
+      <table className="w-full text-left text-sm" style={{ minWidth }}>
+        {caption && <caption className="sr-only">{caption}</caption>}
+        {children}
+      </table>
+    </Card>
+  );
+}
+
+/** Tastaturfokuserbar rad: Enter/Space aktiverer onClick. */
+export function ClickableRow({ onClick, children, className, selected }: { onClick: () => void; children: ReactNode; className?: string; selected?: boolean }) {
+  return (
+    <tr
+      tabIndex={0}
+      role="button"
+      aria-selected={selected}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={cn(
+        "cursor-pointer transition-colors hover:bg-primary/[0.04] focus-visible:bg-primary/[0.06] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary",
+        selected && "bg-primary/[0.06]",
+        className,
+      )}
+    >
+      {children}
+    </tr>
+  );
+}
+
+export function Pager({ page, total, pageSize, onPage }: { page: number; total: number; pageSize: number; onPage: (p: number) => void }) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (total <= pageSize) return null;
+  return (
+    <nav className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground" aria-label="Paginering">
+      <p>
+        Side {page} av {totalPages} · {total} totalt
+      </p>
+      <div className="flex gap-2">
+        <Btn tone="ghost" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1}>
+          Forrige
+        </Btn>
+        <Btn tone="ghost" onClick={() => onPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
+          Neste
+        </Btn>
+      </div>
+    </nav>
+  );
+}
+
+export function Btn({ tone = "primary", className, type = "button", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: BtnTone }) {
+  return (
+    <button
+      type={type}
+      className={cn(
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+        BTN_CLASSES[tone],
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Field({ label, htmlFor, hint, children }: { label: string; htmlFor?: string; hint?: string; children: ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className={labelCls}>
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+/** Nøkkel/verdi-liste for detaljpaneler. */
+export function KV({ items }: { items: { k: string; v: ReactNode }[] }) {
+  return (
+    <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+      {items.map((it) => (
+        <div key={it.k} className="min-w-0">
+          <dt className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">{it.k}</dt>
+          <dd className="mt-0.5 break-words text-night">{it.v ?? "–"}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Tidslinje (hendelser). */
+export function Timeline({ items }: { items: { id: number | string; title: ReactNode; sub?: ReactNode; at: string | Date | null | undefined }[] }) {
+  if (items.length === 0) return <p className="text-sm text-muted-foreground">Ingen hendelser registrert.</p>;
+  return (
+    <ol className="relative space-y-4 border-l-2 border-border pl-5">
+      {items.map((e) => (
+        <li key={e.id} className="relative">
+          <span className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-primary" aria-hidden="true" />
+          <p className="text-sm text-night">{e.title}</p>
+          {e.sub && <p className="mt-0.5 whitespace-pre-wrap text-xs text-muted-foreground">{e.sub}</p>}
+          <time className="mt-0.5 block text-xs text-muted-foreground">{formatDateTime(e.at)}</time>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Kopier tekst til utklippstavlen med tilbakemelding. */
+export function CopyButton({ text, label = "Kopier" }: { text: string; label?: string }) {
+  const [done, setDone] = useState(false);
+  return (
+    <Btn
+      tone="ghost"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setDone(true);
+          setTimeout(() => setDone(false), 1800);
+        } catch {
+          /* utklippstavle utilgjengelig */
+        }
+      }}
+    >
+      {done ? "Kopiert" : label}
+    </Btn>
   );
 }

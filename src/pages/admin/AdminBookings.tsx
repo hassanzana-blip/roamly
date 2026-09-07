@@ -2,18 +2,8 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Search, ChevronLeft, ChevronRight, FlaskConical } from "lucide-react";
 import { trpc } from "@/providers/trpc";
-import {
-  BOOKING_STATE_LABELS,
-  BookingStatePill,
-  Card,
-  EmptyState,
-  ErrorState,
-  LoadingRows,
-  PageHeader,
-  Pill,
-  formatDateTime,
-  formatMoney,
-} from "./ui";
+import { BookingStatePill, Card, EmptyState, ErrorState, LoadingRows, PageHeader, Pill } from "./ui";
+import { BOOKING_STATE_LABELS, formatDateTime, formatMoney } from "./helpers";
 
 const PAGE_SIZE = 25;
 

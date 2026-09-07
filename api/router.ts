@@ -1,15 +1,29 @@
 import { createRouter, publicQuery } from "./middleware";
 import { flightsRouter } from "./flights";
+import { checkoutRouter } from "./checkout";
+import { ordersRouter } from "./orders";
 import { staffAuthRouter } from "./staffAuth";
+import { customerAuthRouter } from "./customerAuth";
+import { extrasRouter } from "./extras";
+import { teamRouter } from "./team";
+import { partnersRouter } from "./partners";
 import { adminRouter } from "./admin";
 import { quotesPublicRouter } from "./quotesPublic";
+import { communityRouter } from "./community";
 
 export const appRouter = createRouter({
   ping: publicQuery.query(() => ({ ok: true, ts: Date.now() })),
   flights: flightsRouter,
+  checkout: checkoutRouter,
+  orders: ordersRouter,
   staffAuth: staffAuthRouter,
+  customerAuth: customerAuthRouter,
+  extras: extrasRouter,
+  team: teamRouter,
+  partners: partnersRouter,
   admin: adminRouter,
   quotesPublic: quotesPublicRouter,
+  community: communityRouter,
 });
 
 export type AppRouter = typeof appRouter;
