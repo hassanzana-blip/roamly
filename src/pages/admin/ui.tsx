@@ -104,6 +104,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
 export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-white/60 px-6 py-12 text-center">
+      <EmptyTableSpot className="mx-auto mb-3 h-16 w-24" />
       <p className="font-semibold text-foreground">{title}</p>
       {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
