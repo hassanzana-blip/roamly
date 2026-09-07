@@ -198,10 +198,6 @@ export function AdminLayout() {
   if (!me.data?.authenticated) {
     return <Navigate to={`/admin/logg-inn?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
-  // Konto uten MFA må fullføre oppsettet før admin åpnes (OTA-074).
-  if (me.data.mfaSetupRequired || (me.data.mfaEnabled && !me.data.mfaVerified)) {
-    return <Navigate to="/admin/logg-inn?mfa=1" replace />;
-  }
 
   const user = me.data;
   const isProduction = me.data.environment === "production";
@@ -256,7 +252,7 @@ export function AdminLayout() {
                 <button type="button" aria-label="Lukk brukermeny" className="fixed inset-0 z-10 cursor-default" onClick={() => setUserMenuOpen(false)} />
                 <div role="menu" className="absolute right-0 z-20 mt-2 w-60 rounded-lg border border-border bg-card p-2 shadow-xl">
                   <p className="truncate px-3 py-2 text-xs text-muted-foreground">{user.email}</p>
-                  <p className="px-3 pb-2 text-xs text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role} · MFA {user.mfaEnabled ? "på" : "av"}</p>
+                  <p className="px-3 pb-2 text-xs text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role}</p>
                   <button
                     type="button"
                     role="menuitem"

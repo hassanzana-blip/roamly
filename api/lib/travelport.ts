@@ -7,11 +7,11 @@ import { airportByIata } from "@contracts/airports";
 /**
  * Travelport JSON API (v11) — søk.
  *
- * VIKTIG: kartleggingen under er skrevet mot Travelports publiserte skjema for
- * CatalogProductOfferings, men er ALDRI kjørt mot det ekte API-et herfra
- * (utviklingsmiljøet har ikke nettverkstilgang til travelport.com). Behandle
- * den som uverifisert til noen har kjørt `npm run travelport:probe` mot
- * pre-production og sammenlignet svaret med fixturen i travelport.test.ts.
+ * Forespørsel, headere og kartlegging er rettet etter Travelports egen DevKit
+ * (v11 GDS Full Payload, v26.11.1), og testene kjører mot et ekte lagret
+ * 200-svar derfra. Selve nettverkskallet er fortsatt ikke kjørt herfra —
+ * utviklingsmiljøet når ikke travelport.com — så første ekte søk kan avdekke
+ * felter DevKit-eksempelet ikke inneholdt.
  *
  * Adapteret gjør kun søk. Booking går fortsatt via Duffel: et Travelport-tilbud
  * har id-prefiks `tp_` og avvises eksplisitt i checkout, slik at en tilbuds-id
@@ -25,7 +25,10 @@ export const TRAVELPORT_OFFER_PREFIX = "tp_";
 
 export const travelportConfig = {
   get authUrl(): string {
-    return (env.TRAVELPORT_AUTH_URL ?? "https://auth.pp.travelport.com/oauth/token").replace(/\/$/, "");
+    // DevKit-en (v11 GDS) autentiserer mot .net med form-encoding. Hurtigstart-
+    // siden i MyTravelport peker på .com med JSON; den gir også en token, men
+    // søke-gatewayen avviste den som «Invalid token».
+    return (env.TRAVELPORT_AUTH_URL ?? "https://auth.pp.travelport.net/oauth/token").replace(/\/$/, "");
   },
   get baseUrl(): string {
     return (env.TRAVELPORT_BASE_URL ?? "https://api.pp.travelport.com").replace(/\/$/, "");
@@ -91,16 +94,18 @@ export async function travelportToken(now: number = Date.now()): Promise<string>
     throw new TravelportError(authFailure.message, { status: authFailure.status, retryable: true });
   }
 
+  // Form-encoding, ikke JSON — slik DevKit-en gjør det.
+  const form = new URLSearchParams({
+    grant_type: "password",
+    username: env.TRAVELPORT_USERNAME ?? "",
+    password: env.TRAVELPORT_PASSWORD ?? "",
+    client_id: env.TRAVELPORT_CLIENT_ID ?? "",
+    client_secret: env.TRAVELPORT_CLIENT_SECRET ?? "",
+  });
   const res = await fetch(travelportConfig.authUrl, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({
-      client_id: env.TRAVELPORT_CLIENT_ID,
-      client_secret: env.TRAVELPORT_CLIENT_SECRET,
-      username: env.TRAVELPORT_USERNAME,
-      password: env.TRAVELPORT_PASSWORD,
-      grant_type: "password",
-    }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "Cache-Control": "no-cache", Accept: "application/json" },
+    body: form.toString(),
   });
 
   if (!res.ok) {
@@ -197,28 +202,29 @@ export function buildSearchRequest(input: TravelportSearchInput): Record<string,
     counts.set(code, entry);
   }
 
+  // Nøstingen følger DevKit-en: «@type» på toppnivå og nøkkelen
+  // CatalogProductOfferingsRequest (ikke …RequestAir) rundt selve forespørselen.
   return {
-    CatalogProductOfferingsQueryRequest: {
-      CatalogProductOfferingsRequestAir: {
-        "@type": "CatalogProductOfferingsRequestAir",
-        maxNumberOfUpsellsToReturn: 4,
-        contentSourceList: ["GDS"],
-        PassengerCriteria: [...counts.values()].map((p) => ({
-          "@type": "PassengerCriteria",
-          number: p.number,
-          passengerTypeCode: p.code,
-          ...(p.ages.length ? { age: Math.min(...p.ages) } : {}),
-        })),
-        SearchCriteriaFlight: input.slices.map((s) => ({
-          "@type": "SearchCriteriaFlight",
-          departureDate: s.departureDate,
-          From: { value: s.origin.toUpperCase() },
-          To: { value: s.destination.toUpperCase() },
-        })),
-        SearchModifiersAir: {
-          "@type": "SearchModifiersAir",
-          CabinPreference: [{ "@type": "CabinPreference", preferenceType: "Preferred", cabins: [CABIN_PREFERENCE[input.cabinClass]] }],
-        },
+    "@type": "CatalogProductOfferingsQueryRequest",
+    CatalogProductOfferingsRequest: {
+      "@type": "CatalogProductOfferingsRequestAir",
+      maxNumberOfUpsellsToReturn: 4,
+      contentSourceList: ["GDS"],
+      PassengerCriteria: [...counts.values()].map((p) => ({
+        "@type": "PassengerCriteria",
+        number: p.number,
+        passengerTypeCode: p.code,
+        ...(p.ages.length ? { age: Math.min(...p.ages) } : {}),
+      })),
+      SearchCriteriaFlight: input.slices.map((s) => ({
+        "@type": "SearchCriteriaFlight",
+        departureDate: s.departureDate,
+        From: { value: s.origin.toUpperCase() },
+        To: { value: s.destination.toUpperCase() },
+      })),
+      SearchModifiersAir: {
+        "@type": "SearchModifiersAir",
+        CabinPreference: [{ "@type": "CabinPreference", preferenceType: "Preferred", cabins: [CABIN_PREFERENCE[input.cabinClass]] }],
       },
     },
   };
@@ -235,11 +241,10 @@ type TpFlight = TpReferenceable & {
   Departure?: { location?: string; date?: string; time?: string; terminal?: string };
   Arrival?: { location?: string; date?: string; time?: string; terminal?: string };
   duration?: string;
+  distance?: number;
   equipment?: string;
   operatingCarrier?: string;
   operatingCarrierName?: string;
-  carrierName?: string;
-  CabinClass?: string;
 };
 
 const CABIN_FROM_TP: Record<string, CabinClass> = {
@@ -280,6 +285,8 @@ function point(iata: string | undefined, terminal?: string) {
 
 function mapSegment(f: TpFlight, cabin: CabinClass): Segment {
   const carrier = (f.carrier ?? "").toUpperCase();
+  // Svaret har ikke noe eget navnefelt for markedsførende selskap — bare
+  // operatingCarrierName. Uten et navn viser vi koden framfor å finne på et.
   return {
     id: String(f.id ?? `${carrier}${f.number ?? ""}`),
     origin: point(f.Departure?.location, f.Departure?.terminal),
@@ -287,13 +294,13 @@ function mapSegment(f: TpFlight, cabin: CabinClass): Segment {
     departingAt: toIso(f.Departure?.date, f.Departure?.time),
     arrivingAt: toIso(f.Arrival?.date, f.Arrival?.time),
     durationMinutes: isoDurationToMinutes(f.duration),
-    carrier: { iata: carrier, name: f.carrierName ?? carrier },
+    carrier: { iata: carrier, name: carrier },
     ...(f.operatingCarrier && f.operatingCarrier.toUpperCase() !== carrier
       ? { operatingCarrier: { iata: f.operatingCarrier.toUpperCase(), name: f.operatingCarrierName ?? f.operatingCarrier.toUpperCase() } }
       : {}),
     flightNumber: `${carrier}${f.number ?? ""}`,
     aircraft: f.equipment ?? "",
-    cabinClass: CABIN_FROM_TP[(f.CabinClass ?? "").toLowerCase().replace(/[^a-z]/g, "")] ?? cabin,
+    cabinClass: cabin,
   };
 }
 
@@ -313,23 +320,43 @@ function sliceFrom(segments: Segment[], index: number): OfferSlice {
   };
 }
 
+/** Prisblokken heter BestCombinablePrice i GDS-svaret; Price finnes i andre varianter. */
+type TpPrice = {
+  TotalPrice?: number;
+  Base?: number;
+  TotalTaxes?: number;
+  TotalFees?: number;
+  CurrencyCode?: { value?: string; decimalPlace?: number };
+};
+
+/** ProductAir i ReferenceListProduct — bærer kabin og total reisetid. */
+type TpProduct = {
+  id?: string;
+  totalDuration?: string;
+  PassengerFlight?: Array<{ FlightProduct?: Array<{ cabin?: string; classOfService?: string }> }>;
+};
+
 type TpResponse = {
   CatalogProductOfferingsResponse?: {
+    transactionId?: string;
     CatalogProductOfferings?: {
       Identifier?: { value?: string };
       CatalogProductOffering?: Array<{
         id?: string;
+        sequence?: number;
         ProductBrandOptions?: Array<{
           flightRefs?: string[];
           ProductBrandOffering?: Array<{
             id?: string;
-            Price?: { TotalPrice?: number; Base?: number; TotalTaxes?: number; CurrencyCode?: { value?: string } };
-            Brand?: { BrandID?: string; name?: string };
+            BestCombinablePrice?: TpPrice;
+            Price?: TpPrice;
+            Product?: Array<{ productRef?: string }>;
+            Brand?: { BrandRef?: string };
           }>;
         }>;
       }>;
     };
-    ReferenceList?: Array<{ "@type"?: string; Flight?: TpFlight[] }>;
+    ReferenceList?: Array<{ "@type"?: string; Flight?: TpFlight[]; Product?: TpProduct[] }>;
   };
 };
 
@@ -343,34 +370,52 @@ function flightIndex(body: TpResponse): Map<string, TpFlight> {
   return index;
 }
 
+/** Indekserer ReferenceListProduct — der kabinen faktisk står. */
+function productIndex(body: TpResponse): Map<string, TpProduct> {
+  const list = body.CatalogProductOfferingsResponse?.ReferenceList ?? [];
+  const index = new Map<string, TpProduct>();
+  for (const ref of list) {
+    for (const p of ref.Product ?? []) if (p.id) index.set(String(p.id), p);
+  }
+  return index;
+}
+
+/** Kabinen ligger på produktet, ikke på flygningen. */
+function cabinOfProduct(product: TpProduct | undefined, fallback: CabinClass): CabinClass {
+  const raw = product?.PassengerFlight?.[0]?.FlightProduct?.[0]?.cabin ?? "";
+  return CABIN_FROM_TP[raw.toLowerCase().replace(/[^a-z]/g, "")] ?? fallback;
+}
+
 /**
  * Mapper svaret til Offer[]. Alt som mangler pris, valuta eller segmenter
  * hoppes over i stedet for å bli fylt inn med gjetninger.
  */
 export function mapSearchResponse(body: TpResponse, input: TravelportSearchInput): Offer[] {
   const flights = flightIndex(body);
+  const products = productIndex(body);
   const offerings = body.CatalogProductOfferingsResponse?.CatalogProductOfferings?.CatalogProductOffering ?? [];
   const offers: Offer[] = [];
 
   for (const offering of offerings) {
     for (const option of offering.ProductBrandOptions ?? []) {
-      const segments = (option.flightRefs ?? [])
-        .map((ref) => flights.get(String(ref)))
-        .filter((f): f is TpFlight => Boolean(f))
-        .map((f) => mapSegment(f, input.cabinClass));
-      if (segments.length === 0) continue;
+      const rawFlights = (option.flightRefs ?? []).map((ref) => flights.get(String(ref))).filter((f): f is TpFlight => Boolean(f));
+      if (rawFlights.length === 0) continue;
 
       for (const brand of option.ProductBrandOffering ?? []) {
-        const price = brand.Price;
+        // GDS-svaret legger prisen i BestCombinablePrice; Price finnes i andre varianter.
+        const price = brand.BestCombinablePrice ?? brand.Price;
         const currency = price?.CurrencyCode?.value;
         if (!price || typeof price.TotalPrice !== "number" || !currency) continue;
 
         const base = typeof price.Base === "number" ? price.Base : price.TotalPrice;
-        const tax = typeof price.TotalTaxes === "number" ? price.TotalTaxes : Math.max(0, price.TotalPrice - base);
-        const cabin = segments[0].cabinClass;
+        const fees = typeof price.TotalFees === "number" ? price.TotalFees : 0;
+        const tax = typeof price.TotalTaxes === "number" ? price.TotalTaxes + fees : Math.max(0, price.TotalPrice - base);
+        const product = products.get(String(brand.Product?.[0]?.productRef ?? ""));
+        const cabin = cabinOfProduct(product, input.cabinClass);
+        const segments = rawFlights.map((f) => mapSegment(f, cabin));
 
         offers.push({
-          id: `${TRAVELPORT_OFFER_PREFIX}${brand.id ?? offering.id ?? segments[0].id}`,
+          id: `${TRAVELPORT_OFFER_PREFIX}${offering.id ?? ""}_${brand.id ?? brand.Product?.[0]?.productRef ?? segments[0].id}`,
           totalAmount: price.TotalPrice.toFixed(2),
           totalCurrency: currency,
           baseAmount: base.toFixed(2),
@@ -402,16 +447,16 @@ export async function travelportSearch(input: TravelportSearchInput): Promise<Se
   if (!travelportConfig.searchEnabled) throw new TravelportError("Travelport-søk er ikke slått på.");
   const token = await travelportToken();
 
-  // Headerne følger Travelports egen curl-oppskrift nøyaktig. Ekstra headere
-  // (Accept-Version, XAUTH_TRAVELPORT_ACCESSGROUP) ga 401 fra gatewayen.
+  // Headerne følger DevKit-en (v11 GDS): tilgangsgruppe + Accept/Content-Version.
   const res = await fetch(`${travelportConfig.baseUrl}/11/air/catalog/search/catalogproductofferings`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       Accept: "application/json",
-      "Accept-Encoding": "gzip, deflate",
-      "TVP-PCC-Core": travelportConfig.pcc,
+      XAUTH_TRAVELPORT_ACCESSGROUP: travelportConfig.pcc,
+      "Accept-Version": "11",
+      "Content-Version": "11",
       TraceId: `hellosky-${Date.now().toString(36)}`,
     },
     body: JSON.stringify(buildSearchRequest(input)),
@@ -482,24 +527,21 @@ export async function travelportProbeVariants(): Promise<void> {
 
   const base = travelportConfig.baseUrl;
   const pcc = travelportConfig.pcc;
-  const common: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
+  const common: Record<string, string> = { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" };
+  const url = `${base}/11/air/catalog/search/catalogproductofferings`;
 
-  const variants: Array<{ name: string; url: string; headers: Record<string, string> }> = [
-    { name: "docs-exact", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, "Accept-Encoding": "gzip, deflate", "TVP-PCC-Core": pcc, TraceId: "hellosky-probe" } },
-    { name: "accessgroup", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, "TVP-PCC-Core": pcc, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, TraceId: "hellosky-probe" } },
-    { name: "accept-version", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, "Accept-Version": "11", "TVP-PCC-Core": pcc, TraceId: "hellosky-probe" } },
-    { name: "no-pcc", url: `${base}/11/air/catalog/search/catalogproductofferings`, headers: { ...common, TraceId: "hellosky-probe" } },
-    { name: "path-uppercase", url: `${base}/11/air/catalog/search/CatalogProductOfferings`, headers: { ...common, "TVP-PCC-Core": pcc, TraceId: "hellosky-probe" } },
+  // Tilgangsgruppa er ikke nødvendigvis identisk med PCC-en; prøv begge former.
+  const variants: Array<{ name: string; headers: Record<string, string> }> = [
+    { name: "devkit", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, "Accept-Version": "11", "Content-Version": "11" } },
+    { name: "devkit+pcc-header", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc, "TVP-PCC-Core": pcc, "Accept-Version": "11", "Content-Version": "11" } },
+    { name: "accessgroup-uten-suffiks", headers: { ...common, XAUTH_TRAVELPORT_ACCESSGROUP: pcc.split("_")[0], "Accept-Version": "11", "Content-Version": "11" } },
+    { name: "uten-accessgroup", headers: { ...common, "Accept-Version": "11", "Content-Version": "11" } },
   ];
 
   for (const v of variants) {
     try {
-      const res = await fetch(v.url, { method: "POST", headers: v.headers, body });
-      const detail = (await res.text()).slice(0, 200);
+      const res = await fetch(url, { method: "POST", headers: v.headers, body });
+      const detail = (await res.text()).slice(0, 300);
       log.info({ variant: v.name, status: res.status, detail }, "Travelport-variant");
       if (res.ok) return;
     } catch (err) {
@@ -507,3 +549,4 @@ export async function travelportProbeVariants(): Promise<void> {
     }
   }
 }
+

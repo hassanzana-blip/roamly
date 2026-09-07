@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, CircleAlert, KeyRound, RefreshCw, Send, ShieldOff, UserPlus, UserX } from "lucide-react";
+import { CheckCircle2, CircleAlert, KeyRound, RefreshCw, Send, UserPlus, UserX } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import { Btn, Card, ErrorState, Field, PageHeader, Pill } from "../ui";
 import { formatDateTime, inputCls, selectCls } from "../helpers";
@@ -201,7 +201,7 @@ function StaffCard() {
   const [inviteName, setInviteName] = useState("");
   const [inviteRole, setInviteRole] = useState("SUPPORT");
   const [inviteResult, setInviteResult] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{ kind: "disable" | "enable" | "resetMfa"; userId: number; name: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ kind: "disable" | "enable"; userId: number; name: string } | null>(null);
 
   const refresh = () => utils.staffAuth.listStaff.invalidate();
   const invite = trpc.staffAuth.createInvite.useMutation({
@@ -210,7 +210,6 @@ function StaffCard() {
   });
   const updateRole = trpc.staffAuth.updateRole.useMutation({ onSuccess: () => { fb.flash("Rolle endret – brukeren må logge inn på nytt."); refresh(); }, onError: fb.fail });
   const setStatus = trpc.staffAuth.setStatus.useMutation({ onSuccess: () => { fb.flash("Status endret."); refresh(); }, onError: fb.fail });
-  const resetMfa = trpc.staffAuth.resetMfa.useMutation({ onSuccess: () => { fb.flash("MFA nullstilt – brukeren settes opp på nytt ved neste innlogging."); refresh(); }, onError: fb.fail });
 
   const myId = me.data?.authenticated ? me.data.userId : null;
 
@@ -231,7 +230,7 @@ function StaffCard() {
                 <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                   <div className="min-w-0">
                     <p className="font-semibold text-foreground">{s.name}{isMe && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(deg)</span>}</p>
-                    <p className="truncate text-xs text-muted-foreground">{s.email} · {s.mfaEnabled ? "MFA på" : "MFA mangler"} · sist innlogget {formatDateTime(s.lastLoginAt)}</p>
+                    <p className="truncate text-xs text-muted-foreground">{s.email} · sist innlogget {formatDateTime(s.lastLoginAt)}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {canManage && !isMe ? (
@@ -255,9 +254,6 @@ function StaffCard() {
                         ) : s.status === "disabled" ? (
                           <Btn tone="ghost" onClick={() => setConfirm({ kind: "enable", userId: s.id, name: s.name })}>Aktiver</Btn>
                         ) : null}
-                        {s.mfaEnabled && (
-                          <Btn tone="ghost" onClick={() => setConfirm({ kind: "resetMfa", userId: s.id, name: s.name })} aria-label={`Nullstill MFA for ${s.name}`}><ShieldOff className="h-4 w-4" aria-hidden="true" /></Btn>
-                        )}
                       </>
                     )}
                   </div>
@@ -291,7 +287,7 @@ function StaffCard() {
                   <p className="mt-1.5 select-all break-all rounded-lg bg-card px-3 py-2 font-mono text-xs text-foreground">{inviteResult}</p>
                 </div>
               )}
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" /> Invitasjon, rolleendring, deaktivering og MFA-nullstilling krever nylig innlogging.</p>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" /> Invitasjon, rolleendring og deaktivering krever nylig innlogging.</p>
             </form>
           )}
         </>
@@ -300,14 +296,12 @@ function StaffCard() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirm?.kind === "disable" ? `Deaktivere ${confirm.name}?` : confirm?.kind === "enable" ? `Aktivere ${confirm?.name}?` : `Nullstille MFA for ${confirm?.name}?`}
+              {confirm?.kind === "disable" ? `Deaktivere ${confirm.name}?` : `Aktivere ${confirm?.name}?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.kind === "disable"
                 ? "Alle aktive sesjoner logges ut umiddelbart, og brukeren kan ikke logge inn før kontoen aktiveres igjen."
-                : confirm?.kind === "enable"
-                  ? "Brukeren kan logge inn igjen med samme passord og MFA."
-                  : "Brukeren logges ut overalt og må sette opp autentikator-app på nytt ved neste innlogging. Gjør dette kun etter å ha verifisert identiteten."}
+                : "Brukeren kan logge inn igjen med samme passord."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -315,8 +309,7 @@ function StaffCard() {
             <AlertDialogAction
               onClick={() => {
                 if (!confirm) return;
-                if (confirm.kind === "resetMfa") resetMfa.mutate({ userId: confirm.userId, confirmFreshSession: true });
-                else setStatus.mutate({ userId: confirm.userId, status: confirm.kind === "disable" ? "disabled" : "active", confirmFreshSession: true });
+                setStatus.mutate({ userId: confirm.userId, status: confirm.kind === "disable" ? "disabled" : "active", confirmFreshSession: true });
                 setConfirm(null);
               }}
             >

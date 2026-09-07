@@ -104,39 +104,25 @@ export const verifiedCustomerProcedure = publicQuery.use(({ ctx, next }) => {
 });
 
 /**
- * MFA er obligatorisk for alle staff (OTA-074): konto uten TOTP må fullføre
- * beginMfaSetup/completeMfaSetup før noe annet; konto med TOTP må ha
- * bekreftet koden i denne sesjonen.
+ * Staff-pålogging er e-post + passord. Tofaktor er avslått etter eiers
+ * beslutning; kolonnene i databasen er beholdt slik at det kan slås på igjen
+ * uten migrering.
  */
-function assertStaffMfa(ctx: TrpcContext) {
+function assertStaff(ctx: TrpcContext) {
   if (!ctx.staff) throw unauthorized();
-  if (!ctx.staff.mfaEnabled) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "Tofaktor må settes opp før du kan bruke admin.",
-      cause: new AppError("UNAUTHORIZED", { message: "Tofaktor må settes opp.", data: { reason: "mfa_setup_required" } }),
-    });
-  }
-  if (!ctx.staff.mfaVerified) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "MFA må bekreftes.",
-      cause: new AppError("UNAUTHORIZED", { message: "MFA må bekreftes.", data: { reason: "mfa_required" } }),
-    });
-  }
   return ctx.staff;
 }
 
-/** Krever innlogget staff-bruker med bekreftet MFA. */
+/** Krever innlogget staff-bruker. */
 export const staffProcedure = publicQuery.use(({ ctx, next }) => {
-  const staff = assertStaffMfa(ctx);
+  const staff = assertStaff(ctx);
   return next({ ctx: { ...ctx, staff } });
 });
 
 /** Krever en spesifikk tillatelse — håndheves alltid på serveren. */
 export function requirePermission(permission: Permission) {
   return t.middleware(({ ctx, next }) => {
-    const staff = assertStaffMfa(ctx);
+    const staff = assertStaff(ctx);
     if (!hasPermission(staff.role, permission)) {
       throw new TRPCError({
         code: "FORBIDDEN",
