@@ -4,7 +4,6 @@ import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import FieldButton from "./FieldButton";
 import PickerSurface from "./PickerSurface";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useT } from "@/lib/i18n";
 import { dateLabel, toDate, toIso } from "./dateUtils";
 
@@ -101,7 +100,6 @@ interface RangeProps {
 export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid, joined }: RangeProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const isMobile = useIsMobile();
   const from = toDate(depart);
   const to = roundtrip ? toDate(ret) : undefined;
   const minDate = toDate(min ?? "") ?? new Date();
@@ -166,7 +164,7 @@ export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid,
           <Calendar
             mode="range"
             weekStartsOn={1}
-            numberOfMonths={isMobile ? 1 : 2}
+            numberOfMonths={2}
             selected={{ from, to }}
             onSelect={onSelect}
             defaultMonth={from ?? minDate}
@@ -176,7 +174,7 @@ export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid,
           <Calendar
             mode="single"
             weekStartsOn={1}
-            numberOfMonths={isMobile ? 1 : 2}
+            numberOfMonths={2}
             selected={from}
             onSelect={(d) => d && onSelect(undefined, d)}
             defaultMonth={from ?? minDate}

@@ -7,7 +7,6 @@ import { GreetingBar } from "@/components/app/TopBar";
 import PillTabs from "@/components/app/PillTabs";
 import SearchWidget from "@/components/search/SearchWidget";
 import DestinationSheet from "@/components/app/DestinationSheet";
-import DestinationCard from "@/components/travel/DestinationCard";
 import DealCard from "@/components/app/DealCard";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -20,9 +19,9 @@ import { loadRecentSearches, recentSearchHref, type RecentSearch } from "@/lib/r
 import { useT, type I18nKey } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { useCustomer } from "@/lib/useCustomer";
-import { useAccountHub, useSavedDestinations } from "@/lib/useAccount";
+import { useAccountHub } from "@/lib/useAccount";
 import { formatDateShort, formatMinor } from "@/lib/format";
-import { DEAL_ROUTES, POPULAR_DESTINATIONS, RECOMMENDED_DESTINATIONS, imageSrcSet, searchHref, type DiscoverDestination } from "@/content/discover";
+import { DEAL_ROUTES, POPULAR_DESTINATIONS, imageSrcSet, type DiscoverDestination } from "@/content/discover";
 import { WHATSAPP_DISPLAY, WHATSAPP_LINK, WhatsAppIcon } from "@/components/WhatsAppFab";
 import { trpc } from "@/providers/trpc";
 import ArticleCard from "@/components/journal/ArticleCard";
@@ -31,10 +30,11 @@ import { featured } from "@/content/journal";
 import { cn } from "@/lib/utils";
 
 /**
- * Forsiden. Rytme, ikke liste: foto + søk → (ditt, hvis du har noe) → reisemål →
- * anledninger som bilder → ett fullbredde-øyeblikk → ruter med ekte fra-priser →
- * prisovervåking → familie/bagasje → helg → ReiseMatch → bonus → mennesker.
- * Ingen seksjon vises uten innhold; ingen tall som ikke er ekte.
+ * Forsiden. Tre hensikter, én rytme: «jeg vet hvor» (søket), «hjelp meg å velge»
+ * (anledninger, ruter, ReiseMatch) og «jeg har allerede noe» (ditt, øverst).
+ * Foto + søk → ditt → anledninger → ruter med ekte fra-priser → ett mørkt
+ * øyeblikk → prisovervåking → det vi gjør annerledes → journalen → ReiseMatch →
+ * bonus → tillit → bunntekst. Ingen seksjon uten innhold; ingen tall som ikke er ekte.
  */
 
 const TABS: { id: string; label: I18nKey; icon: typeof Plane }[] = [
@@ -59,23 +59,12 @@ function inDays(n: number) {
   return new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 }
 
-/** Neste fredag (minst 10 dager fram) — for helgeideene. */
-function nextFridayOffset(): number {
-  const d = new Date(Date.now() + 10 * 86_400_000);
-  const add = (5 - d.getUTCDay() + 7) % 7;
-  return 10 + add;
-}
-
-/**
- * Seksjonene rendres statisk. Inntoning ved scrolling ble prøvd og fjernet:
- * innholdet må finnes uten JS-observatører (skjermlesere, utskrift, fullside-
- * bilder), og bevegelsesbudsjettet brukes på ett sted: åpningen.
- */
+/** Seksjonene rendres statisk; bevegelsesbudsjettet brukes på ett sted: åpningen. */
 function Reveal({ children, className }: { children: ReactNode; className?: string }) {
   return <section className={className}>{children}</section>;
 }
 
-/** Ordvis inntoning av tittelen — forsidens ene bevegelsesøyeblikk. */
+/** Ordvis inntoning av tittelen: forsidens ene bevegelsesøyeblikk. */
 function Words({ text, from = 0 }: { text: string; from?: number }) {
   return (
     <>
@@ -148,23 +137,23 @@ function PersonalStrip() {
   if (!h.nextTrip && !watch && h.routes.length === 0) return null;
   return (
     <Reveal className="container-x mt-10">
-      <h2 className="mb-3 text-[13px] font-semibold text-muted-foreground">{t("home.personal.foryou")}</h2>
+      <h2 className="t-label mb-3">{t("home.personal.foryou")}</h2>
       <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
         {h.nextTrip && (
           <Link to={`/bekreftelse/${encodeURIComponent(h.nextTrip.orderId)}`} className="press flex min-h-[96px] w-[240px] shrink-0 flex-col justify-between rounded-xl bg-primary-soft p-4 transition-colors hover:bg-primary/30">
-            <span className="flex items-center justify-between"><span className="eyebrow">{t("home.personal.nexttrip")}</span><Icon icon={Plane} size={16} className="text-accent-foreground" /></span>
+            <span className="flex items-center justify-between"><span className="t-label">{t("home.personal.nexttrip")}</span><Icon icon={Plane} size={16} className="text-accent-foreground" /></span>
             <span><span className="block truncate text-[16px] font-semibold">{h.nextTrip.originCity || h.nextTrip.originIata} → {h.nextTrip.destinationCity || h.nextTrip.destinationIata}</span><span className="block text-[12px] text-muted-foreground">{formatDateShort(h.nextTrip.departingAt)}</span></span>
           </Link>
         )}
         {watch && (
           <Link to="/profil/prisovervaking" className="press flex min-h-[96px] w-[240px] shrink-0 flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/25">
-            <span className="flex items-center justify-between"><span className="eyebrow">{t("home.personal.watch")}</span><Icon icon={TrendingDown} size={16} className="text-muted-foreground" /></span>
+            <span className="flex items-center justify-between"><span className="t-label">{t("home.personal.watch")}</span><Icon icon={TrendingDown} size={16} className="text-muted-foreground" /></span>
             <span><span className="block truncate text-[16px] font-semibold">{watch.originIata} → {watch.destinationCity}</span><span className="block text-[12px] text-muted-foreground">{res?.live && res.priceMinor ? t("acct.hub.watchfound", { price: formatMinor(res.priceMinor, res.currency ?? "NOK") }) : t("acct.hub.watchchecking")}</span></span>
           </Link>
         )}
         {h.routes.slice(0, 3).map((r) => (
           <Link key={`${r.originIata}-${r.destinationIata}`} to={`/sok?from=${r.originIata}&to=${r.destinationIata}&depart=${inDays(30)}&adults=1&children=0&infants=0&cabin=economy`} className="press flex min-h-[96px] w-[200px] shrink-0 flex-col justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/25">
-            <span className="eyebrow">{t("home.personal.routes")}</span>
+            <span className="t-label">{t("home.personal.routes")}</span>
             <span className="flex items-center gap-1.5 text-[16px] font-semibold">{r.originCity} <Icon icon={ArrowRight} size={14} className="text-muted-foreground" /> {r.destinationCity}</span>
           </Link>
         ))}
@@ -173,31 +162,24 @@ function PersonalStrip() {
   );
 }
 
+const SeeAll = ({ to, label }: { to: string; label: string }) => (
+  <Link to={to} className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">
+    {label} <Icon icon={ArrowRight} size={16} />
+  </Link>
+);
+
 export default function Home() {
   usePageMeta(PAGE_META.home);
   const t = useT();
   const reduce = useReducedMotion();
   const { customer } = useCustomer();
-  const { ids: favs, toggle: toggleFav } = useSavedDestinations();
   const rewards = trpc.account.rewardsPublic.useQuery(undefined, { staleTime: 600_000, retry: false });
   const status = trpc.flights.status.useQuery(undefined, { staleTime: 300_000, retry: false });
   const [tab, setTab] = useState("fly");
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
   const [recent] = useState<RecentSearch[]>(() => loadRecentSearches());
-  const [fridayOffset] = useState(nextFridayOffset);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const focusSearch = () => {
-    setTab("fly");
-    requestAnimationFrame(() => {
-      const el = searchRef.current;
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      el.querySelector<HTMLElement>("button, input, [tabindex]:not([tabindex='-1'])")?.focus({ preventScroll: true });
-    });
-  };
-
-  const weekend = POPULAR_DESTINATIONS.filter((d) => ["london", "paris", "barcelona", "lisboa", "rome", "athens", "malaga"].includes(d.id));
   const rw = rewards.data;
   const tabs = <PillTabs tabs={TABS.map((x) => ({ ...x, label: t(x.label) }))} active={tab} onChange={setTab} />;
   const title1 = t("home.title1");
@@ -222,11 +204,11 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-night/55 via-night/25 to-night/70" aria-hidden="true" />
           <div className="absolute inset-0 bg-gradient-to-r from-night/45 via-transparent to-transparent" aria-hidden="true" />
           <div className="container-x relative pb-24 sm:pb-32 lg:pb-40 lg:pt-24">
-            <div className="lg:hidden"><GreetingBar onSearch={focusSearch} tone="dark" /></div>
-            <h1 className="font-display max-w-3xl text-balance text-[40px] leading-[1.02] sm:text-[56px] lg:text-[68px]">
+            <div className="lg:hidden"><GreetingBar tone="dark" /></div>
+            <h1 className="t-display max-w-3xl">
               <Words text={title1} /> <span className="wr"><span className="wr-i hl" style={{ ["--wr-delay" as string]: `${title1.split(" ").length * 70}ms` }}>{t("home.title2")}</span></span> <Words text={title3} from={title1.split(" ").length + 1} />
             </h1>
-            <p className="fade-up fade-up-3 mt-4 max-w-xl text-[16px] leading-relaxed text-white/85 sm:text-lg">{t("home.sub")}</p>
+            <p className="fade-up fade-up-3 t-lead mt-4 max-w-xl text-white/85">{t("home.sub")}</p>
           </div>
         </section>
 
@@ -245,7 +227,7 @@ export default function Home() {
           </motion.div>
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
             {/* Én tillitslinje, kun fakta: betalingspåstanden vises bare når Stripe faktisk er satt opp. */}
-            <p className="text-sm text-muted-foreground">{status.data?.paymentsConfigured ? t("home.trust") : t("home.trust.nopay")}</p>
+            <p className="t-caption">{status.data?.paymentsConfigured ? t("home.trust") : t("home.trust.nopay")}</p>
             {recent.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Icon icon={Clock3} size={16} /> {t("home.recent")}:</span>
@@ -257,27 +239,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 2 · Ditt — kun innlogget, kun med data. */}
+        {/* 2 · Ditt: kun innlogget, kun med data. */}
         {customer && <PersonalStrip />}
         {customer && <ForYou />}
 
-        {/* 3 · Reisemål vi kan godt — bildeledet rekke. */}
-        <Reveal className="container-x mt-14">
-          <SectionHeader
-            title={t("home.recommended")}
-            action={<Link to="/utforsk" className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">{t("home.seeall")} <Icon icon={ArrowRight} size={16} /></Link>}
-          />
-          <p className="-mt-2 mb-4 text-sm text-muted-foreground">{t("home.recommended.sub")}</p>
-          <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
-            {RECOMMENDED_DESTINATIONS.map((d) => (
-              <DestinationCard key={d.id} destination={d} isFavourite={favs.has(d.id)} onToggleFavourite={toggleFav} onOpen={setQuickView} />
-            ))}
-          </div>
-        </Reveal>
-
-        {/* 4 · Anledninger — seks dører med ekte foto. Den du peker på trer fram, resten trer tilbake. */}
-        <Reveal className="container-x mt-14">
-          <h2 className="mb-4 font-display text-[26px] leading-tight sm:text-[30px]">{t("home.occasions")}</h2>
+        {/* 3 · Anledninger: seks dører med ekte foto. Den du peker på trer fram, resten trer tilbake. */}
+        <Reveal className="container-x mt-14 sm:mt-16">
+          <h2 className="t-h2 mb-4">{t("home.occasions")}</h2>
           <ul className="group/occ grid auto-rows-[150px] grid-cols-2 gap-2.5 sm:auto-rows-[170px] md:auto-rows-[190px] md:grid-cols-3 md:gap-3">
             {OCCASIONS.map((o) => (
               <li key={o.id} className={cn("min-w-0", o.span)}>
@@ -297,128 +265,119 @@ export default function Home() {
           </ul>
         </Reveal>
 
-        {/* 5 · Ett fullbredde-øyeblikk: identiteten. Ekte foto, ingen påstander. */}
-        <Reveal className="mt-16">
+        {/* 4 · Ruter fra Norge: den ene fotorekken, fordi den bærer ekte «fra»-priser. */}
+        <Reveal className="container-x mt-14 sm:mt-16">
+          <SectionHeader title={t("home.deals")} action={<SeeAll to="/utforsk" label={t("home.seeall")} />} />
+          <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
+            {DEAL_ROUTES.map((deal) => <DealCard key={deal.id} deal={deal} onOpen={setQuickView} />)}
+          </div>
+          <p className="t-caption mt-3">«Fra»-priser hentes fra vårt eget prissøk og er veiledende. Endelig pris, bagasje og gebyrer ser du i søkeresultatet.</p>
+        </Reveal>
+
+        {/* 5 · Ett mørkt øyeblikk: identiteten. Ekte foto, ingen påstander. */}
+        <Reveal className="mt-16 sm:mt-20">
           <Link to="/reisemal#hjem" className="group relative block min-h-[440px] overflow-hidden bg-night text-white sm:min-h-[540px]">
             <img src="/destinations/istanbul.jpg" srcSet="/destinations/istanbul-640.jpg 640w, /destinations/istanbul.jpg 1024w" sizes="100vw" alt="Galatatårnet over Istanbuls tak" loading="lazy" decoding="async" width={1024} height={640} className="absolute inset-0 h-full w-full object-cover opacity-75 transition-transform duration-[1200ms] ease-out group-hover:scale-[1.03]" />
             <div className="absolute inset-0 bg-gradient-to-t from-night via-night/45 to-night/10" aria-hidden="true" />
             <div className="container-x relative flex h-full min-h-[440px] flex-col justify-end pb-12 pt-24 sm:min-h-[540px] sm:pb-16">
-              <h2 className="max-w-2xl font-display text-[38px] leading-[1.02] sm:text-[60px]">{t("home.hero.title")}</h2>
-              <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/85 sm:text-[17px]">{t("home.hero.body")}</p>
+              <h2 className="t-display max-w-2xl">{t("home.hero.title")}</h2>
+              <p className="t-lead mt-4 max-w-xl text-white/85">{t("home.hero.body")}</p>
               <span className="mt-7 inline-flex min-h-12 w-fit items-center gap-2 rounded-lg bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-transform duration-base ease-out group-hover:translate-x-0.5">{t("home.hero.cta")} <Icon icon={ArrowRight} size={16} /></span>
             </div>
           </Link>
         </Reveal>
 
         <div className="container-x">
-          {/* 6 · Ruter fra Norge — ekte «fra»-priser fra prissøket. */}
-          <Reveal className="mt-16">
-            <SectionHeader title={t("home.deals")} action={<Link to="/utforsk" className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">{t("home.seeall")} <Icon icon={ArrowRight} size={16} /></Link>} />
-            <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
-              {DEAL_ROUTES.map((deal) => <DealCard key={deal.id} deal={deal} onOpen={setQuickView} />)}
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">«Fra»-priser hentes fra vårt eget prissøk og er veiledende. Endelig pris, bagasje og gebyrer ser du i søkeresultatet.</p>
-          </Reveal>
-
-          {/* 7 · Prisovervåking — ett mørkt bånd. */}
-          <Reveal className="mt-14">
-            <div className="grid gap-6 rounded-2xl bg-night p-6 text-white sm:grid-cols-[1fr_auto] sm:items-center sm:p-9">
+          {/* 6 · Prisovervåking: lys flate, mørk handling. Ett mørkt øyeblikk holder. */}
+          <Reveal className="mt-16 sm:mt-20">
+            <div className="surface grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-9">
               <div>
-                <h2 className="font-display text-[28px] leading-tight sm:text-[34px]">{t("home.watch.title")}</h2>
-                <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-white/75">{t("home.watch.body")}</p>
+                <h2 className="t-h2">{t("home.watch.title")}</h2>
+                <p className="t-body mt-3 max-w-lg text-muted-foreground">{t("home.watch.body")}</p>
               </div>
-              <Link to={customer ? "/profil/prisovervaking" : "/logg-inn?next=/profil/prisovervaking"} className="press inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-[15px] font-semibold text-primary-foreground">
-                <Icon icon={TrendingDown} size={20} /> {t("home.watch.cta")}
-              </Link>
-            </div>
-          </Reveal>
-
-          {/* 8 · Familie + bagasje — to like kort, det vi faktisk gjør annerledes. */}
-          <Reveal className="mt-14">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Link to="/reisemal#hjem" className="press surface flex flex-col justify-between p-6 transition-colors hover:border-foreground/25 sm:p-7">
-                <FamilyGlyph size={28} className="text-foreground" />
-                <div className="mt-8">
-                  <h3 className="font-display text-[24px]">{t("home.family.title")}</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{t("home.family.body")}</p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-[14px] font-semibold">{t("home.family.cta")} <Icon icon={ArrowRight} size={16} /></span>
-                </div>
-              </Link>
-              <Link to="/bagasje" className="press surface flex flex-col justify-between p-6 transition-colors hover:border-foreground/25 sm:p-7">
-                <BaggageVisual kind="checked" count={2} size={28} label={t("home.bags.title")} />
-                <div className="mt-8">
-                  <h3 className="font-display text-[24px]">{t("home.bags.title")}</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{t("home.bags.body")}</p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-[14px] font-semibold">{t("home.bags.cta")} <Icon icon={ArrowRight} size={16} /></span>
-                </div>
-              </Link>
-            </div>
-          </Reveal>
-
-          {/* 9 · Helgeideer — rekke, med søk satt til neste fredag. */}
-          <Reveal className="mt-14">
-            <SectionHeader title={t("home.weekend")} action={<Link to="/utforsk?k=helg" className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">{t("home.seeall")} <Icon icon={ArrowRight} size={16} /></Link>} />
-            <p className="-mt-2 mb-4 text-sm text-muted-foreground">{t("home.weekend.sub")}</p>
-            <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
-              {weekend.map((d) => (
-                <Link key={d.id} to={searchHref(d.iata, fridayOffset)} className="hover-lift press group block w-[196px] shrink-0 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-[228px]" aria-label={`${t("home.occ.weekend")}: ${d.city}`}>
-                  <span className="relative block aspect-[4/5] overflow-hidden rounded-xl bg-muted">
-                    {d.image && <img src={d.image} srcSet={imageSrcSet(d.image)} alt={d.imageAlt} loading="lazy" decoding="async" width={1024} height={1280} sizes="(max-width: 640px) 196px, 228px" className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]" />}
-                  </span>
-                  <span className="block px-1.5 pt-3"><span className="block text-[16px] font-semibold leading-tight">{d.city}</span><span className="block text-[13px] text-muted-foreground">{d.tagline}</span></span>
+              <Button asChild variant="dark" size="lg">
+                <Link to={customer ? "/profil/prisovervaking" : "/logg-inn?next=/profil/prisovervaking"}>
+                  <Icon icon={TrendingDown} size={20} /> {t("home.watch.cta")}
                 </Link>
-              ))}
+              </Button>
             </div>
           </Reveal>
 
-          {/* 9b · Journalen — tre artikler, håndplukket. */}
-          <Reveal className="mt-14">
-            <SectionHeader title={t("home.journal")} action={<Link to="/journal" className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">{t("home.journal.all")} <Icon icon={ArrowRight} size={16} /></Link>} />
-            <p className="-mt-2 mb-4 text-sm text-muted-foreground">{t("home.journal.sub")}</p>
+          {/* 7 · Det vi gjør annerledes: familie og bagasje, én flate, to spor. */}
+          <Reveal className="mt-14 sm:mt-16">
+            <h2 className="t-h2 mb-5">{t("home.different")}</h2>
+            <div className="grid gap-8 border-t border-border pt-6 md:grid-cols-2 md:gap-10">
+              <Link to="/reisemal#hjem" className="group flex gap-4">
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-muted text-foreground"><FamilyGlyph size={26} /></span>
+                <span className="min-w-0">
+                  <span className="t-h3 block">{t("home.family.title")}</span>
+                  <span className="t-body mt-1.5 block text-muted-foreground">{t("home.family.body")}</span>
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold transition-transform duration-base ease-out group-hover:translate-x-0.5">{t("home.family.cta")} <Icon icon={ArrowRight} size={16} /></span>
+                </span>
+              </Link>
+              <Link to="/bagasje" className="group flex gap-4">
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-muted text-foreground"><BaggageVisual kind="checked" count={2} size={26} label={t("home.bags.title")} /></span>
+                <span className="min-w-0">
+                  <span className="t-h3 block">{t("home.bags.title")}</span>
+                  <span className="t-body mt-1.5 block text-muted-foreground">{t("home.bags.body")}</span>
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold transition-transform duration-base ease-out group-hover:translate-x-0.5">{t("home.bags.cta")} <Icon icon={ArrowRight} size={16} /></span>
+                </span>
+              </Link>
+            </div>
+          </Reveal>
+
+          {/* 8 · Journalen: tre artikler, håndplukket. */}
+          <Reveal className="mt-14 sm:mt-16">
+            <SectionHeader title={t("home.journal")} action={<SeeAll to="/journal" label={t("home.journal.all")} />} />
+            <p className="t-caption -mt-2 mb-4">{t("home.journal.sub")}</p>
             <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0">
               {featured().slice(0, 3).map((a) => <ArticleCard key={a.slug} a={a} className="w-[280px] shrink-0 md:w-auto" />)}
             </div>
           </Reveal>
 
-          {/* 10 · ReiseMatch — invitasjon, ikke i veien. */}
-          <Reveal className="mt-14">
-            <div className="surface flex flex-wrap items-center justify-between gap-4 p-6 sm:p-7">
+          {/* 9 · ReiseMatch: invitasjon, ikke i veien. */}
+          <Reveal className="mt-14 sm:mt-16">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
               <div className="min-w-0">
-                <h2 className="font-display text-[24px] text-foreground">{t("home.quiz.title")}</h2>
-                <p className="mt-1 max-w-md text-[15px] text-muted-foreground">{t("home.quiz.body")}</p>
+                <h2 className="t-h2">{t("home.quiz.title")}</h2>
+                <p className="t-body mt-1 max-w-md text-muted-foreground">{t("home.quiz.body")}</p>
               </div>
-              <Link to="/quiz" className="press inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-semibold text-background transition-opacity hover:opacity-90">{t("home.quiz.cta")} <Icon icon={ArrowRight} size={16} /></Link>
+              <Button asChild variant="dark" size="md">
+                <Link to="/quiz">{t("home.quiz.cta")} <Icon icon={ArrowRight} size={16} /></Link>
+              </Button>
             </div>
           </Reveal>
 
-          {/* 11 · Bonus — bare med regler fra admin; tallene er de som gjelder. */}
+          {/* 10 · Bonus: bare med regler fra admin; tallene er de som gjelder. */}
           {rw && (
-            <Reveal className="mt-14">
+            <Reveal className="mt-14 sm:mt-16">
               <div className="grid gap-5 rounded-2xl bg-primary-soft p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-9">
                 <div>
-                  <h2 className="font-display text-[26px] leading-tight text-foreground sm:text-[30px]">{t("home.rewards.title", { program: rw.programName })}</h2>
-                  <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-accent-foreground/90">{t("home.rewards.body", { pct: Math.round(rw.earnFraction * 1000) / 10, kr: rw.referrerKr })}</p>
+                  <h2 className="t-h2 text-foreground">{t("home.rewards.title", { program: rw.programName })}</h2>
+                  <p className="t-body mt-3 max-w-xl text-accent-foreground/90">{t("home.rewards.body", { pct: Math.round(rw.earnFraction * 1000) / 10, kr: rw.referrerKr })}</p>
                 </div>
-                <Link to={customer ? "/profil/bonus" : "/logg-inn?modus=registrer"} className="press inline-flex min-h-12 items-center justify-center rounded-lg bg-foreground px-5 text-[15px] font-semibold text-background">{customer ? t("home.rewards.ctain") : t("home.rewards.cta")}</Link>
+                <Button asChild variant="dark" size="lg">
+                  <Link to={customer ? "/profil/bonus" : "/logg-inn?modus=registrer"}>{customer ? t("home.rewards.ctain") : t("home.rewards.cta")}</Link>
+                </Button>
               </div>
             </Reveal>
           )}
 
-          {/* 12 · Tillit + mennesker — fakta, ikke merker. */}
-          <Reveal className="mt-14">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="surface p-6 sm:p-7">
-                <h2 className="font-display text-[24px]">{t("home.trust.title")}</h2>
+          {/* 11 · Tillit + mennesker: fakta, ikke merker. Ingen kort, én linje. */}
+          <Reveal className="mt-14 sm:mt-16">
+            <div className="grid gap-8 border-t border-border pt-8 md:grid-cols-2 md:gap-12">
+              <div>
+                <h2 className="t-h2">{t("home.trust.title")}</h2>
                 <ul className="mt-4 space-y-3">
                   {(["home.trust.1", "home.trust.2", "home.trust.3", "home.trust.4"] as I18nKey[]).map((k) => (
-                    <li key={k} className="flex items-start gap-2.5 text-[15px]"><Icon icon={Check} size={16} className="mt-1 shrink-0 text-success" /> {t(k)}</li>
+                    <li key={k} className="t-body flex items-start gap-2.5"><Icon icon={Check} size={16} className="mt-1 shrink-0 text-success" /> {t(k)}</li>
                   ))}
                 </ul>
               </div>
-              <div className="rounded-2xl bg-muted/60 p-6 sm:p-7">
-                <h2 className="font-display text-[24px] text-foreground">{t("home.help.title")}</h2>
-                <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">{t("home.help.body")}</p>
-                <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="press mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-card px-4 text-sm font-semibold shadow-sm transition-colors hover:bg-card/80">
+              <div>
+                <h2 className="t-h2">{t("home.help.title")}</h2>
+                <p className="t-body mt-2 max-w-lg text-muted-foreground">{t("home.help.body")}</p>
+                <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="press mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold transition-colors hover:border-foreground/30">
                   <WhatsAppIcon className="h-4 w-4" /> WhatsApp {WHATSAPP_DISPLAY}
                 </a>
               </div>
@@ -427,7 +386,7 @@ export default function Home() {
         </div>
       </AppShell>
 
-      <div className="mt-20"><SiteFooter /></div>
+      <div className="mt-16 sm:mt-20"><SiteFooter /></div>
       <DestinationSheet destination={quickView} onClose={() => setQuickView(null)} />
     </div>
   );

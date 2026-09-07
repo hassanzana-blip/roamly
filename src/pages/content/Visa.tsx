@@ -16,11 +16,11 @@ export default function Visa() {
     <ContentPage
       eyebrow="Reiseinfo"
       title="Visumguiden"
-      intro="Det er den reisendes eget ansvar å ha gyldige reisedokumenter. Her er generell veiledning for norske pass — endelige krav får du alltid fra ambassaden eller UDI."
+      intro="Det er den reisendes eget ansvar å ha gyldige reisedokumenter. Her er generell veiledning for norske pass – endelige krav får du alltid fra ambassaden eller UDI."
     >
       <Section title="Det viktigste først">
         <ul className="list-disc space-y-1.5 pl-5">
-          <li>Sjekk at passet er gyldig — mange land krever 6 måneders gyldighet etter planlagt hjemreise.</li>
+          <li>Sjekk at passet er gyldig – mange land krever 6 måneders gyldighet etter planlagt hjemreise.</li>
           <li>Visumregler avhenger av hvilket pass du reiser med, ikke hvor du bor.</li>
           <li>Opppholdstillatelse i Norge gir ikke automatisk innreise til andre land.</li>
           <li>Husk transitt: noen land krever visum eller reisetillatelse selv om du bare skifter fly der (blant annet USA og Storbritannia).</li>
@@ -66,7 +66,7 @@ export default function Visa() {
             >
               UD sine reiseråd
             </a>{" "}
-            — sikkerhet og innreise for nordmenn.
+            – sikkerhet og innreise for nordmenn.
           </li>
           <li>
             <a
@@ -77,16 +77,16 @@ export default function Visa() {
             >
               UDI
             </a>{" "}
-            — visum til Norge og informasjon for ikke-norske statsborgere bosatt i Norge.
+            – visum til Norge og informasjon for ikke-norske statsborgere bosatt i Norge.
           </li>
-          <li>Landets ambassade eller offisielle visumportal — endelig fasit for innreisekrav.</li>
+          <li>Landets ambassade eller offisielle visumportal – endelig fasit for innreisekrav.</li>
         </ul>
       </Section>
 
       <Section title="Vi hjelper deg">
         <p>
           Usikker på hva som gjelder for reisen din? Kontakt oss på {COMPANY.supportEmail} eller{" "}
-          {COMPANY.supportPhone} — vi hjelper deg med å finne riktig informasjon for ruten og passet ditt.
+          {COMPANY.supportPhone} – vi hjelper deg med å finne riktig informasjon for ruten og passet ditt.
         </p>
       </Section>
     </ContentPage>

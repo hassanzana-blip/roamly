@@ -16,13 +16,13 @@ export default function Terms() {
     <ContentPage
       eyebrow="Juridisk"
       title="Reisevilkår"
-      intro="Disse vilkårene gjelder når du søker etter og bestiller flyreiser gjennom HelloSky. Les dem gjerne før du bestiller — og ta kontakt om noe er uklart."
+      intro="Disse vilkårene gjelder når du søker etter og bestiller flyreiser gjennom HelloSky. Les dem gjerne før du bestiller – og ta kontakt om noe er uklart."
       updated={UPDATED}
     >
       <Section title="1. Hvem du inngår avtale med" id="avtalepart">
         <p>
           {COMPANY.identityLine} er et norsk reisebyrå som formidler
-          flybilletter. Når du bestiller hos oss, kjøper du billetten gjennom oss som mellommann — selve flyreisen
+          flybilletter. Når du bestiller hos oss, kjøper du billetten gjennom oss som mellommann – selve flyreisen
           utføres av flyselskapet, og flyselskapets befordringsvilkår gjelder for gjennomføringen av reisen.
           Flyinnhold og utstedelse leveres teknisk via vår leverandør Duffel.
         </p>
@@ -39,7 +39,7 @@ export default function Terms() {
         </p>
         <p>
           Priser fra flyselskapene kan endre seg frem til betalingen er fullført. Endrer prisen seg mens du holder
-          på, får du beskjed og må godkjenne den nye prisen før du betaler — vi belaster aldri et høyere beløp enn
+          på, får du beskjed og må godkjenne den nye prisen før du betaler – vi belaster aldri et høyere beløp enn
           det du har godkjent. Vi holder ikke av plasser uten betaling.
         </p>
       </Section>
@@ -48,7 +48,7 @@ export default function Terms() {
         <p>
           Betalingen håndteres av Stripe. Du kan betale med bankkort (Visa, Mastercard) eller med Klarna der det
           er tilgjengelig. Velger du en kredittløsning fra Klarna, gjelder Klarnas egne vilkår, kredittvurdering
-          og eventuelle kostnader. HelloSky mottar eller lagrer aldri kortnummer eller sikkerhetskode — dette
+          og eventuelle kostnader. HelloSky mottar eller lagrer aldri kortnummer eller sikkerhetskode – dette
           skjer utelukkende hos Stripe.
         </p>
         <p>
@@ -61,7 +61,7 @@ export default function Terms() {
         <p>
           Når betalingen er fullført og flyselskapet har bekreftet, får du en bekreftelse med bookingreferanse
           og billettnummer på e-post. Bestillingen er ikke bindende for HelloSky før denne bekreftelsen er sendt.
-          Sjekk at navnet er stavet nøyaktig som i passet — navneendringer etter utstedelse kan være kostbare
+          Sjekk at navnet er stavet nøyaktig som i passet – navneendringer etter utstedelse kan være kostbare
           eller umulige. Kontakt oss med en gang dersom du oppdager en feil.
         </p>
         <p>
@@ -106,7 +106,7 @@ export default function Terms() {
           <Link to="/visum" className="font-semibold text-foreground underline underline-offset-2">
             visumguide
           </Link>{" "}
-          for generell veiledning — endelige krav får du fra ambassaden eller UDI.
+          for generell veiledning – endelige krav får du fra ambassaden eller UDI.
         </p>
       </Section>
 
@@ -116,12 +116,12 @@ export default function Terms() {
           gitt. Vi er ikke ansvarlige for flyselskapets gjennomføring av reisen, for tap som skyldes feil i
           opplysninger du selv har oppgitt, eller for forhold utenfor vår kontroll.
         </p>
-        <LegalNote>ansvarsbegrensning — vurder mot forbrukerkjøpsloven og markedsføringsloven</LegalNote>
+        <LegalNote>ansvarsbegrensning – vurder mot forbrukerkjøpsloven og markedsføringsloven</LegalNote>
       </Section>
 
       <Section title="9. Tvister" id="tvister">
         <p>
-          Norsk rett gjelder. Uenigheter forsøkes løst i minnelighet — kontakt oss først på{" "}
+          Norsk rett gjelder. Uenigheter forsøkes løst i minnelighet – kontakt oss først på{" "}
           {COMPANY.supportEmail} eller {COMPANY.supportPhone}. Du kan også bringe saken inn for Forbrukertilsynet
           eller Transportklagenemnda (fly), eller for de ordinære domstolene med Oslo tingrett som
           verneting.

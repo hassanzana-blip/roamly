@@ -147,7 +147,7 @@ export default function SearchResults() {
   const [originAirports, setOriginAirports] = useState<string[]>([]);
   const [destAirports, setDestAirports] = useState<string[]>([]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
-  const [calOpen, setCalOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(() => params.get("flex") === "1");
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertEmail, setAlertEmail] = useState("");
   const [alertTarget, setAlertTarget] = useState("");
@@ -213,6 +213,7 @@ export default function SearchResults() {
       ages: { children: childAges, infants: infantAges },
       cabin,
       pref: isPreference(sortParam) ? sortParam : "best",
+      flex: params.get("flex") === "1",
     }),
     [from, to, depart, ret, isMulti, legs, params, childAges, infantAges, cabin, sortParam],
   );
@@ -477,16 +478,27 @@ export default function SearchResults() {
     </div>
   );
 
-  const summaryCards = summary
-    ? (
-        [
-          { key: "best" as SortKey, label: t("pref.best"), offer: summary.best },
-          { key: "cheapest" as SortKey, label: t("pref.cheapest"), offer: summary.cheapest },
-          { key: "fastest" as SortKey, label: t("pref.fastest"), offer: summary.fastest },
-          ...(summary.family ? [{ key: "family" as SortKey, label: t("pref.family"), offer: summary.family }] : []),
-        ] as { key: SortKey; label: string; offer: Offer }[]
-      )
-    : [];
+  // One card per distinct offer: when best, cheapest and fastest are the same
+  // flight the labels merge instead of repeating one price three times.
+  const summaryCards = useMemo(() => {
+    if (!summary) return [] as { key: SortKey; keys: SortKey[]; label: string; offer: Offer }[];
+    const raw: { key: SortKey; label: string; offer: Offer }[] = [
+      { key: "best", label: t("pref.best"), offer: summary.best },
+      { key: "cheapest", label: t("pref.cheapest"), offer: summary.cheapest },
+      { key: "fastest", label: t("pref.fastest"), offer: summary.fastest },
+      ...(summary.family ? [{ key: "family" as SortKey, label: t("pref.family"), offer: summary.family }] : []),
+    ];
+    const out: { key: SortKey; keys: SortKey[]; label: string; offer: Offer }[] = [];
+    for (const c of raw) {
+      const hit = out.find((o) => o.offer.id === c.offer.id);
+      if (hit) {
+        hit.keys.push(c.key);
+        hit.label = `${hit.label} · ${c.label}`;
+      } else out.push({ ...c, keys: [c.key] });
+    }
+    return out;
+  }, [summary, t]);
+  const summaryKeys = new Set(summaryCards.flatMap((c) => c.keys));
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -664,20 +676,20 @@ export default function SearchResults() {
                   key={s.key}
                   type="button"
                   role="radio"
-                  aria-checked={sort === s.key}
+                  aria-checked={s.keys.includes(sort)}
                   onClick={() => setSort(s.key)}
                   aria-label={t("sr.summary.aria", { label: s.label, price: formatMinor(totalOf(s.offer), s.offer.totalCurrency) })}
                   className={cn(
                     "relative -mb-px min-w-0 shrink-0 px-3 py-3 text-left transition-colors duration-fast first:pl-0 sm:px-4",
-                    sort === s.key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    s.keys.includes(sort) ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <span className="block text-xs font-medium">{s.label}</span>
-                  <span className="mt-0.5 block text-lg font-semibold tabular leading-tight">{formatMinor(totalOf(s.offer), s.offer.totalCurrency)}</span>
+                  <span className="t-num mt-0.5 block text-lg font-semibold leading-tight">{formatMinor(totalOf(s.offer), s.offer.totalCurrency)}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {formatDuration(sliceDuration(s.offer))} · {s.offer.owner.name}
                   </span>
-                  {sort === s.key && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary first:inset-x-0" aria-hidden="true" />}
+                  {s.keys.includes(sort) && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary first:inset-x-0" aria-hidden="true" />}
                 </button>
               ))}
             </div>
@@ -688,7 +700,8 @@ export default function SearchResults() {
           {/* sort + mobile filter row */}
           <div className="mb-5 flex items-center gap-2">
             <div role="radiogroup" aria-label={t("sr.sorting")} className="no-scrollbar -ml-5 flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto py-1 pl-5 pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] sm:-ml-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:pl-0 lg:pr-0 lg:[mask-image:none]">
-              {PREFERENCES.map((p) => (
+              {/* The summary cards above already carry best/cheapest/fastest (and family); the chips only add what they don't. */}
+              {PREFERENCES.filter((p) => !summaryKeys.has(p.key)).map((p) => (
                 <Chip
                   key={p.key}
                   role="radio"
@@ -696,6 +709,7 @@ export default function SearchResults() {
                   selected={sort === p.key}
                   onClick={() => setSort(p.key)}
                   title={t(p.hint)}
+                  icon={<p.icon aria-hidden="true" />}
                   className="shrink-0 snap-start"
                 >
                   {t(p.label)}

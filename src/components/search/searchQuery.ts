@@ -22,6 +22,8 @@ export interface SearchParamsState {
   ages: PaxAges;
   cabin: CabinClass;
   pref: Preference;
+  /** Open the price strip/calendar on the results page */
+  flex: boolean;
 }
 
 export function todayPlus(days: number): string {
@@ -43,6 +45,7 @@ export function defaultState(): SearchParamsState {
     ages: { children: [], infants: [] },
     cabin: "economy",
     pref: "best",
+    flex: false,
   };
 }
 
@@ -64,5 +67,6 @@ export function buildSearchQuery(s: SearchParamsState): string {
     if (s.tripType === "roundtrip" && s.ret) q.set("ret", s.ret);
   }
   if (s.pref !== "best") q.set("sort", s.pref);
+  if (s.flex && s.tripType !== "multicity") q.set("flex", "1");
   return q.toString();
 }

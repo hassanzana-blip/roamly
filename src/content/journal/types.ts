@@ -1,8 +1,8 @@
 /**
- * HelloSky Journal — artikkelmodellen.
+ * HelloSky Journal – artikkelmodellen.
  *
  * Alt innhold er skrevet for å være nyttig, ikke for søkemotorer. Ingen
- * artikkel oppgir priser, visumregler eller bagasjegrenser som tall — slike
+ * artikkel oppgir priser, visumregler eller bagasjegrenser som tall – slike
  * ting endres, og vi peker på den offisielle kilden i stedet. Hver artikkel
  * har en «oppdatert»-dato som vises til leseren.
  */
@@ -20,7 +20,7 @@ export type Block =
 export interface Article {
   slug: string;
   title: string;
-  /** Én setning under tittelen — hvorfor lese dette. */
+  /** Én setning under tittelen – hvorfor lese dette. */
   deck: string;
   tags: JournalTag[];
   /** ISO-dato. Vises som «Oppdatert». */

@@ -54,7 +54,7 @@ export function Section({ title, id, children }: { title: string; id?: string; c
 
 /**
  * Notat til juridisk gjennomgang. Dette er en beskjed til advokaten, ikke til
- * kunden — derfor vises den kun utenfor produksjon. I produksjon forsvinner
+ * kunden – derfor vises den kun utenfor produksjon. I produksjon forsvinner
  * den helt, i stedet for å møte kunder med «[JURIST: …]» midt i vilkårene.
  * Punktene forsvinner ikke fra jobben: de står i `data-legal-review` i koden
  * og finnes ved å søke etter LegalNote.

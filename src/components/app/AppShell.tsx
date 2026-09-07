@@ -56,7 +56,7 @@ export default function AppShell({ children, className, bleed = false }: { child
 export function SectionHeader({ title, action, className }: { title: string; action?: ReactNode; className?: string }) {
   return (
     <div className={cn("mb-4 flex items-end justify-between gap-4", className)}>
-      <h2 className="font-display text-[24px] leading-tight sm:text-[28px]">{title}</h2>
+      <h2 className="t-h2">{title}</h2>
       {action}
     </div>
   );

@@ -38,7 +38,7 @@ export const FLIGHT_LABELS: Record<FlightBucket, string> = {
   long: "Lang reise",
 };
 
-/** Forklaring vist ved filteret — ærlig om at det er kategorier, ikke rutetider. */
+/** Forklaring vist ved filteret – ærlig om at det er kategorier, ikke rutetider. */
 export const FLIGHT_HINT: Record<FlightBucket, string> = {
   short: "Direkte fra Oslo på en formiddag",
   medium: "En halv dag, direkte eller med ett bytte",

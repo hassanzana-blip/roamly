@@ -1,10 +1,10 @@
 /**
- * HelloSky destination discovery data — separated from rendering.
+ * HelloSky destination discovery data – separated from rendering.
  *
  * Photography: all images are local, optimised assets in /public/destinations.
  * Sources are licence-safe (Unsplash Licence / Pexels Licence) and every
  * photograph was manually verified to show the actual destination.
- * No ratings, review counts, discounts or scarcity claims — a card shows
+ * No ratings, review counts, discounts or scarcity claims – a card shows
  * “Se flyreiser”, never invented commercial pressure.
  */
 
@@ -18,33 +18,33 @@ export type DiscoverDestination = {
   image?: string;
   imageAlt: string;
   tagline: string;
-  /** Editorial score (HelloSky-kuratert, 1–5) — shown as a rating chip */
+  /** Editorial score (HelloSky-kuratert, 1–5) – shown as a rating chip */
   rating?: number;
 };
 
 /**
- * Visumnotiser per reisemål — generell veiledning for norske pass.
+ * Visumnotiser per reisemål – generell veiledning for norske pass.
  * Ikke juridisk råd: regler endres, og reisende må alltid sjekke
  * ambassaden/UDI før avreise. Vises i reisemålskortet.
  */
 export const VISA_NOTES: Record<string, string> = {
   istanbul: "Nordmenn trenger ikke visum til Tyrkia for opphold inntil 90 dager. Passet må være gyldig minst 150 dager fra innreise.",
-  erbil: "Visum påkrevd for Irak. Kurdistan-regionen tilbyr e-visum — søk i god tid før avreise.",
-  sulaymaniyah: "Visum påkrevd for Irak. Kurdistan-regionen tilbyr e-visum — søk i god tid før avreise.",
+  erbil: "Visum påkrevd for Irak. Kurdistan-regionen tilbyr e-visum – søk i god tid før avreise.",
+  sulaymaniyah: "Visum påkrevd for Irak. Kurdistan-regionen tilbyr e-visum – søk i god tid før avreise.",
   beirut: "Nordmenn får som regel visum ved ankomst for kortere opphold. Sjekk gjeldende regler før avreise.",
   marrakech: "Nordmenn trenger ikke visum til Marokko for opphold inntil 90 dager.",
-  asmara: "Visum påkrevd — må søkes ved Eritreas ambassade i god tid før avreise.",
+  asmara: "Visum påkrevd – må søkes ved Eritreas ambassade i god tid før avreise.",
   kabul: "Visum påkrevd. Norske myndigheter fraråder alle reiser til Afghanistan.",
-  islamabad: "Visum påkrevd for Pakistan — e-visum kan søkes på nett før avreise.",
+  islamabad: "Visum påkrevd for Pakistan – e-visum kan søkes på nett før avreise.",
   delhi: "Visum påkrevd. Indias e-turistvisum søkes på nett minst 4 dager før avreise.",
-  dhaka: "Visum påkrevd for Bangladesh — kan ordnes på forhånd eller ved ankomst.",
-  colombo: "ETA (elektronisk reisetillatelse) påkrevd for Sri Lanka — søkes på nett før avreise.",
-  nyc: "Nordmenn må ha godkjent ESTA før avreise til USA — også ved transitt. Søk i god tid.",
+  dhaka: "Visum påkrevd for Bangladesh – kan ordnes på forhånd eller ved ankomst.",
+  colombo: "ETA (elektronisk reisetillatelse) påkrevd for Sri Lanka – søkes på nett før avreise.",
+  nyc: "Nordmenn må ha godkjent ESTA før avreise til USA – også ved transitt. Søk i god tid.",
   london: "Nordmenn må ha godkjent ETA (elektronisk reisetillatelse) før avreise til Storbritannia.",
   dubai: "Nordmenn får visum ved ankomst i Emiratene for opphold inntil 90 dager.",
   bangkok: "Nordmenn trenger ikke visum til Thailand for opphold inntil 60 dager.",
   tokyo: "Nordmenn trenger ikke visum til Japan for opphold inntil 90 dager.",
-  jeddah: "Visum påkrevd for Saudi-Arabia — turistvisum (e-visum) søkes på nett.",
+  jeddah: "Visum påkrevd for Saudi-Arabia – turistvisum (e-visum) søkes på nett.",
 };
 
 export function departDate(daysAhead: number): string {
@@ -94,7 +94,7 @@ export const FAMILY_DESTINATIONS: DiscoverDestination[] = [
 ];
 
 /**
- * «Anbefalt for deg» — HelloSky-kuratering for den nye app-forsiden.
+ * «Anbefalt for deg» – HelloSky-kuratering for den nye app-forsiden.
  * rating er vår egen redaksjonelle score (ikke brukeranmeldelser).
  */
 export const RECOMMENDED_DESTINATIONS: DiscoverDestination[] = [
@@ -107,7 +107,7 @@ export const RECOMMENDED_DESTINATIONS: DiscoverDestination[] = [
 ];
 
 /**
- * «Gode tilbud» — ruter der vi henter veiledende pris fra pris-API-et.
+ * «Gode tilbud» – ruter der vi henter veiledende pris fra pris-API-et.
  * Ingen rabatter eller tidsfrister er oppgitt her; kortet viser kun
  * reell «fra»-pris slik den returneres av søket (tydelig merket som
  * veiledende). Aldri fabrikkert pågang.
@@ -128,9 +128,11 @@ export const DEAL_ROUTES: DealRoute[] = [
   { id: "deal-istanbul", destination: byId("istanbul"), originIata: "OSL", originCity: "Oslo" },
   { id: "deal-beirut", destination: byId("beirut"), originIata: "OSL", originCity: "Oslo" },
   { id: "deal-sulaymaniyah", destination: byId("sulaymaniyah"), originIata: "OSL", originCity: "Oslo" },
+  { id: "deal-dubai", destination: byId("dubai"), originIata: "OSL", originCity: "Oslo" },
+  { id: "deal-jeddah", destination: byId("jeddah"), originIata: "OSL", originCity: "Oslo" },
 ];
 
-/** Every destination, deduped by id — for resolving saved favourites. */
+/** Every destination, deduped by id – for resolving saved favourites. */
 export const ALL_DESTINATIONS: DiscoverDestination[] = (() => {
   const map = new Map<string, DiscoverDestination>();
   for (const d of [...RECOMMENDED_DESTINATIONS, ...POPULAR_DESTINATIONS, ...FAMILY_DESTINATIONS]) {

@@ -2,7 +2,7 @@ import type { Article } from "./types";
 
 /**
  * Praktiske artikler: bagasje, billetter, pass, rettigheter.
- * Ingen tall for priser, gebyrer, visumkrav eller bagasjegrenser — de
+ * Ingen tall for priser, gebyrer, visumkrav eller bagasjegrenser – de
  * endres, og leseren skal alltid sjekke kilden som faktisk bestemmer.
  */
 export const PRACTICAL: Article[] = [

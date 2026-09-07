@@ -1,9 +1,9 @@
 /**
- * HelloSky reisequiz — spørsmål, destinasjonsprofiler og poengberegning.
+ * HelloSky reisequiz – spørsmål, destinasjonsprofiler og poengberegning.
  *
  * Alt er kuratert innhold: hvert reisemål er tagget for hvem det passer,
  * stemning, vær, hva man ser og budsjett. Romantiske forslag er skrevet
- * for "Vi to"-modus. Ingen priser eller tilgjengelighet er påstått —
+ * for "Vi to"-modus. Ingen priser eller tilgjengelighet er påstått – 
  * resultatet er inspirasjon med lenke til ekte søk.
  */
 
@@ -33,7 +33,7 @@ export const QUESTIONS: QuizQuestion[] = [
     title: "Hvem reiser du med?",
     options: [
       { id: "solo", label: "Bare meg", sub: "Frihet i eget tempo", image: img("tokyo") },
-      { id: "date", label: "Min kjære", sub: "Vi to — date eller overraskelse", image: img("paris") },
+      { id: "date", label: "Min kjære", sub: "Vi to – date eller overraskelse", image: img("paris") },
       { id: "family", label: "Familien", sub: "Trygt og enkelt for alle", image: img("malaga") },
       { id: "friends", label: "Vennegjengen", sub: "Felles minner og sent kveld", image: img("barcelona") },
     ],
