@@ -16,6 +16,7 @@ const base = get("--base", process.env.BASE_URL ?? "http://localhost:3411");
 const widths = get("--widths", "390,1440").split(",").map(Number);
 const full = args.includes("--full") || !args.includes("--fold");
 const dark = args.includes("--dark");
+const auth = get("--auth", null); // storageState file from design-states.mjs register
 const outDir = path.resolve("artifacts/design-review");
 fs.mkdirSync(outDir, { recursive: true });
 
@@ -32,6 +33,7 @@ for (const width of widths) {
     locale: "nb-NO",
     colorScheme: dark ? "dark" : "light",
     reducedMotion: "reduce",
+    ...(auth ? { storageState: path.resolve(auth) } : {}),
   });
   // No egress from the sandbox: third-party requests (analytics, CDNs) would hang and block load.
   const origin = new URL(base).origin;

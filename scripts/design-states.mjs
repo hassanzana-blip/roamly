@@ -47,7 +47,7 @@ const STEPS = {
   "results-filters": async (page) => {
     await page.goto(base + SOK, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3500);
-    const btn = page.getByRole("button", { name: /^Filtre?r/ }).first();
+    const btn = page.getByRole("button", { name: /^Filt/ }).first();
     if (await btn.isVisible().catch(() => false)) { await btn.click(); await page.waitForTimeout(700); }
   },
   "results-details": async (page) => {
@@ -67,7 +67,22 @@ const STEPS = {
     await page.waitForTimeout(2500);
   },
 };
-const FULL = new Set(["checkout"]);
+// Registers a throwaway customer in the local demo DB and stores the session
+// cookie in artifacts/auth.json so design-shots can capture logged-in pages.
+STEPS.register = async (page) => {
+  const stamp = Date.now();
+  await page.goto(base + "/logg-inn?modus=registrer", { waitUntil: "domcontentloaded" });
+  await page.getByLabel(/Fornavn/).fill("Aisha");
+  await page.getByLabel(/Etternavn/).fill("Karim");
+  await page.getByLabel(/E-post/).first().fill(`design-${stamp}@hellosky.test`);
+  await page.getByLabel(/Passord/).first().fill("Sterkt-passord-2026");
+  await page.getByLabel(/Passord/).first().press("Enter");
+  await page.waitForURL(/\/(velkommen|profil)/, { timeout: 20_000 });
+  await page.waitForTimeout(800);
+  await page.context().storageState({ path: path.resolve("artifacts/auth.json") });
+  console.log("saved artifacts/auth.json");
+};
+const FULL = new Set(["checkout", "register"]);
 
 const browser = await chromium.launch();
 for (const width of widths) {

@@ -10,7 +10,7 @@ async function pickAirport(page: Page, label: "Fra" | "Til", query: string, iata
   await page.getByRole("button", { name: new RegExp(`^${label}:`) }).first().click();
   const input = page.getByPlaceholder("Søk by eller flyplass …");
   await input.fill(query);
-  await page.getByRole("button", { name: new RegExp(`\\b${iata}\\b`) }).first().click();
+  await page.getByRole("option", { name: new RegExp(`\\b${iata}\\b`) }).first().click();
   await expect(page.getByRole("button", { name: new RegExp(`^${label}:`) }).first()).toContainText(iata);
 }
 
@@ -18,7 +18,8 @@ async function pickAirport(page: Page, label: "Fra" | "Til", query: string, iata
 async function pickDate(page: Page, triggerName: string, iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   await page.getByRole("button", { name: triggerName }).first().click();
-  const dialog = page.locator("[data-radix-popper-content-wrapper]").last();
+  // Popover på desktop, bunnark på telefon: begge er Radix-dialoger.
+  const dialog = page.locator('[role="dialog"]').last();
   await dialog.locator("select.rdp-years_dropdown").selectOption(String(y));
   await dialog.locator("select.rdp-months_dropdown").selectOption(String(m - 1));
   await dialog.locator(`td[data-day="${iso}"] button, [data-day="${iso}"]`).first().click();
@@ -33,7 +34,7 @@ test.describe("booking (demo)", () => {
 
     // Søk: "Fra" er forhåndsvalgt (OSL), velg "Til"
     await pickAirport(page, "Til", "Bergen", "BGO");
-    await page.getByRole("button", { name: /^Søk$/ }).click();
+    await page.getByRole("button", { name: /^Søk flyreiser$/ }).first().click();
     await expect(page).toHaveURL(/\/sok\?.*from=OSL.*to=BGO/);
 
     // Resultater (demo): velg første tilbud
@@ -43,11 +44,12 @@ test.describe("booking (demo)", () => {
     await expect(page).toHaveURL(/\/bestill\?offer=/);
 
     // Steg 1: reisende
-    await page.getByLabel("Tittel").selectOption("mr");
+    // Tittel og kjønn er ett-trykks valg (radiogrupper), ikke nedtrekk.
+    await page.getByRole("radiogroup", { name: "Tittel" }).first().getByRole("radio", { name: "Mr", exact: true }).click();
     await page.getByLabel("Fornavn (som i passet)").fill("Ola");
     await page.getByLabel("Etternavn (som i passet)").fill("Nordmann");
     await pickDate(page, "Fødselsdato", "1985-04-12");
-    await page.getByLabel("Kjønn").selectOption("m");
+    await page.getByRole("radiogroup", { name: "Kjønn" }).first().getByRole("radio", { name: "Mann" }).click();
     await page.getByRole("button", { name: "Neste: kontakt" }).click();
 
     // Steg 2: kontakt
@@ -61,7 +63,7 @@ test.describe("booking (demo)", () => {
     await page.getByRole("button", { name: "Gå til betaling" }).first().click();
 
     // Steg 4: demobetaling
-    const demoBtn = page.getByRole("button", { name: "Demobestilling — ingen betaling" });
+    const demoBtn = page.getByRole("button", { name: /^Demobestilling/ });
     await expect(demoBtn).toBeVisible({ timeout: 30_000 });
     await demoBtn.click();
 
