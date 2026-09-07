@@ -8,7 +8,6 @@ export const FAMILY: Article[] = [
     deck: "Lengden er ikke det viktigste. Det er om dere må bytte terminal, hente bagasje, eller løpe.",
     tags: ["familie", "mellomlanding"],
     updated: "2026-09-07",
-    hero: "istanbul",
     relatedDestinations: ["istanbul", "erbil", "islamabad"],
     relatedArticles: ["mellomlanding-flyplassbytte", "lang-flytur-med-familien", "istanbul-to-flyplasser"],
     searchIata: "IST",
@@ -164,7 +163,6 @@ export const FAMILY: Article[] = [
     deck: "De ukene alle vil reise samtidig. Slik planlegger du så det ikke koster mer enn det må.",
     tags: ["planlegging", "familie", "kurdistan", "midtosten"],
     updated: "2026-09-07",
-    hero: "erbil",
     relatedDestinations: ["erbil", "sulaymaniyah", "istanbul", "islamabad", "marrakech"],
     relatedArticles: ["nar-bor-du-bestille", "passet-gyldighet-og-barn", "bagasje-slik-leser-du-billetten"],
     blocks: [
