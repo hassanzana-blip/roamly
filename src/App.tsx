@@ -13,6 +13,9 @@ import BottomNav from './components/app/BottomNav'
 // ── Kundesider ──────────────────────────────────────────────────────────────
 const Home = lazy(() => import('./pages/Home'))
 const Explore = lazy(() => import('./pages/Explore'))
+const Journal = lazy(() => import('./pages/Journal'))
+const JournalArticle = lazy(() => import('./pages/JournalArticle'))
+const DestinationPage = lazy(() => import('./pages/DestinationPage'))
 const Saved = lazy(() => import('./pages/Saved'))
 const Profile = lazy(() => import('./pages/Profile'))
 const SearchResults = lazy(() => import('./pages/SearchResults'))
@@ -107,6 +110,9 @@ export default function App() {
             <Route path="/flystatus" element={<FlightStatus />} />
             <Route path="/hjelp" element={<Support />} />
             <Route path="/reisemal" element={<Destinations />} />
+            <Route path="/reisemal/:id" element={<DestinationPage />} />
+            <Route path="/journal" element={<Journal />} />
+            <Route path="/journal/:slug" element={<JournalArticle />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/quiz/:mode" element={<Quiz />} />
             <Route path="/m/:token" element={<MatchSession />} />

@@ -91,6 +91,9 @@ export default function DestinationSheet({
             </div>
             <AddToBoard kind="destination" refId={d.id} className="shrink-0" />
           </div>
+          <Link to={`/reisemal/${d.id}`} onClick={onClose} className="-mt-2 inline-flex min-h-9 w-fit items-center gap-1 text-[14px] font-semibold underline underline-offset-4">
+            Mer om {d.city}
+          </Link>
 
           {VISA_NOTES[d.id] && (
             <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/50 px-4 py-3">
@@ -114,7 +117,7 @@ export default function DestinationSheet({
                 const amount = prices[i]?.amount;
                 return (
                   <li key={offset} className="flex min-h-[52px] items-center justify-between px-4">
-                    <span className="text-[14px] font-medium capitalize">{fmtDay.format(new Date(`${date}T12:00:00`))}</span>
+                    <span className="text-[14px] font-medium first-letter:uppercase">{fmtDay.format(new Date(`${date}T12:00:00`))}</span>
                     {hints.isLoading ? (
                       <span className="h-4 w-16 animate-pulse rounded-full bg-muted" />
                     ) : amount != null ? (

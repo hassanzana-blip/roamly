@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router";
 import { useEffect, useState } from "react";
-import { Plane, Radar, LifeBuoy, Luggage, Map, Menu, Sparkles, BedDouble, Globe } from "lucide-react";
+import { Plane, BookOpen, LifeBuoy, Luggage, Map, Menu, Sparkles, BedDouble, Globe } from "lucide-react";
 import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import SkyMark from "@/components/brand/SkyMark";
@@ -21,10 +21,10 @@ export function Logo({ compact = false, inverted = false }: { compact?: boolean;
 const NAV: { to: string; label: I18nKey; icon: typeof Plane }[] = [
   { to: "/", label: "nav.search", icon: Plane },
   { to: "/reisemal", label: "nav.destinations", icon: Map },
+  { to: "/journal", label: "nav.journal", icon: BookOpen },
   { to: "/quiz", label: "nav.quiz", icon: Sparkles },
   { to: "/hotell-bil", label: "nav.hotelcar", icon: BedDouble },
   { to: "/reise", label: "nav.mytrip", icon: Luggage },
-  { to: "/flystatus", label: "nav.flightstatus", icon: Radar },
   { to: "/hjelp", label: "nav.support", icon: LifeBuoy },
 ];
 

@@ -1,101 +1,98 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
-import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Link, useSearchParams } from "react-router";
+import { ArrowRight, Sparkles } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
+import Icon from "@/components/app/Icon";
 import DestinationCard from "@/components/travel/DestinationCard";
 import DestinationSheet from "@/components/app/DestinationSheet";
 import { EmptyState } from "@/components/app/primitives";
 import { NoSavedSpot } from "@/components/graphics";
+import { Chip } from "@/components/account/AccountRow";
+import { Segmented } from "@/components/ui/segmented";
 import { useSavedDestinations } from "@/lib/useAccount";
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
-import { cn } from "@/lib/utils";
-import {
-  ALL_DESTINATIONS,
-  destinationById,
-  type DiscoverDestination,
-} from "@/content/discover";
+import { ALL_DESTINATIONS, type DiscoverDestination } from "@/content/discover";
+import { FLIGHT_HINT, FLIGHT_LABELS, matches, MOODS, REGION_LABELS, REGION_ORDER, type FlightBucket, type Region } from "@/content/explore";
 
 /**
- * Utforsk — destinations and inspiration. Category pills filter the full
- * curated catalogue (football, romantic, family, weekend, sun, culture).
+ * Utforsk — hele katalogen med tre ærlige filtre: stemning, region og
+ * reisetid som kategori. Alt lever i URL-en, så et utvalg kan deles.
  */
 
-const CATEGORIES: { id: string; label: string; ids?: string[] }[] = [
-  { id: "alle", label: "Alle" },
-  { id: "fotball", label: "Fotball", ids: ["london", "barcelona", "istanbul", "dubai"] },
-  { id: "romantisk", label: "Romantisk", ids: ["paris", "rome", "lisboa", "beirut"] },
-  { id: "familie", label: "Familie", ids: ["istanbul", "erbil", "sulaymaniyah", "beirut", "marrakech", "colombo"] },
-  { id: "helg", label: "Helgtur", ids: ["london", "paris", "warszawa", "lisboa", "barcelona"] },
-  { id: "sol", label: "Sol og varme", ids: ["dubai", "malaga", "marrakech", "bangkok", "colombo", "jeddah"] },
-  { id: "kultur", label: "Kultur", ids: ["istanbul", "erbil", "sulaymaniyah", "rome", "athens", "delhi", "beirut"] },
-];
+const FLIGHTS: (FlightBucket | "alle")[] = ["alle", "short", "medium", "long"];
 
 export default function Explore() {
   usePageMeta(PAGE_META.explore);
   const [params, setParams] = useSearchParams();
-  // Forsiden lenker hit med ?k=familie osv. — kategorien lever i URL-en, så den kan deles.
-  const cat = CATEGORIES.some((c) => c.id === params.get("k")) ? (params.get("k") as string) : "alle";
-  const setCat = (id: string) => setParams(id === "alle" ? {} : { k: id }, { replace: true });
+  const t = useT();
+  const mood = MOODS.some((m) => m.id === params.get("k")) ? (params.get("k") as string) : "alle";
+  const region = (REGION_ORDER as string[]).includes(params.get("r") ?? "") ? (params.get("r") as Region) : "alle";
+  const flight = (FLIGHTS as string[]).includes(params.get("f") ?? "") ? (params.get("f") as FlightBucket | "alle") : "alle";
+  const set = (patch: Partial<{ k: string; r: string; f: string }>) => {
+    const next: Record<string, string> = { k: mood, r: region, f: flight, ...patch };
+    const clean = Object.fromEntries(Object.entries(next).filter(([, v]) => v && v !== "alle"));
+    setParams(clean, { replace: true });
+  };
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
   const { ids: favs, toggle: toggleFav } = useSavedDestinations();
-  const t = useT();
 
-  const list: DiscoverDestination[] = useMemo(() => {
-    const c = CATEGORIES.find((x) => x.id === cat);
-    if (!c?.ids) return ALL_DESTINATIONS;
-    return c.ids.map((id) => destinationById(id)).filter((d): d is DiscoverDestination => Boolean(d));
-  }, [cat]);
+  const list = ALL_DESTINATIONS.filter((d) => matches(d, { mood, region, flight }));
+  const active = [mood, region, flight].filter((v) => v !== "alle").length;
 
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell>
-        <AppHeader title={t("explore.title")} />
+        <AppHeader title={t("explore.title")} as="h1" />
 
-        <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setCat(c.id)}
-              aria-pressed={cat === c.id}
-              className={cn(
-                "min-h-11 shrink-0 rounded-lg border px-4 text-[14px] font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-ring",
-                cat === c.id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {c.id === "alle" ? t("explore.all") : c.label}
-            </button>
+        <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8" role="group" aria-label="Stemning">
+          {MOODS.map((m) => (
+            <Chip key={m.id} active={mood === m.id} onClick={() => set({ k: m.id })} className={mood === m.id ? "border-primary bg-primary text-primary-foreground" : undefined}>
+              {m.id === "alle" ? t("explore.all") : m.label}
+            </Chip>
           ))}
         </div>
 
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label="Region">
+            <Chip active={region === "alle"} onClick={() => set({ r: "alle" })} className="min-h-9 text-[13px]">Alle regioner</Chip>
+            {REGION_ORDER.map((r) => (
+              <Chip key={r} active={region === r} onClick={() => set({ r })} className="min-h-9 text-[13px]">{REGION_LABELS[r]}</Chip>
+            ))}
+          </div>
+          <Segmented
+            aria-label="Reisetid"
+            value={flight}
+            onValueChange={(f) => set({ f })}
+            size="sm"
+            className="sm:shrink-0"
+            options={FLIGHTS.map((f) => ({ value: f, label: f === "alle" ? "All reisetid" : FLIGHT_LABELS[f].replace(" reise", "") }))}
+          />
+        </div>
+        {flight !== "alle" && <p className="mt-2 text-[12px] text-muted-foreground">{FLIGHT_HINT[flight]}. Regnet fra Oslo; faktisk reisetid ser du i søket.</p>}
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <p className="text-[13px] text-muted-foreground">{list.length === 1 ? "1 reisemål" : `${list.length} reisemål`}</p>
+          {active > 0 && <button type="button" onClick={() => setParams({}, { replace: true })} className="text-[13px] font-semibold underline underline-offset-2">Nullstill</button>}
+        </div>
+
         {list.length ? (
-          <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
             {list.map((d) => (
-              <DestinationCard
-                key={d.id}
-                destination={d}
-                isFavourite={favs.has(d.id)}
-                onToggleFavourite={toggleFav}
-                onOpen={setQuickView}
-                fluid
-              />
+              <DestinationCard key={d.id} destination={d} isFavourite={favs.has(d.id)} onToggleFavourite={toggleFav} onOpen={setQuickView} fluid />
             ))}
           </div>
         ) : (
-          <EmptyState
-            illustration={<NoSavedSpot />}
-            title="Ingenting her ennå"
-            body="Vi fyller på med flere reisemål fortløpende."
-          />
+          <div className="mt-4">
+            <EmptyState illustration={<NoSavedSpot />} title="Ingen reisemål passer alle filtrene" body="Prøv å ta bort ett av dem." action={<button type="button" onClick={() => setParams({}, { replace: true })} className="mt-2 inline-flex min-h-11 items-center rounded-lg bg-foreground px-4 text-sm font-semibold text-background">Vis alle</button>} />
+          </div>
         )}
 
-        <p className="mt-8 flex items-center gap-2 text-[12px] text-muted-foreground">
-          <Sparkles size={14} className="shrink-0" />
-          Usikker på hvor du vil dra? Ta reisequizen på profilsiden — den foreslår reisemål ut fra hva du liker.
-        </p>
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-muted/70 p-5">
+          <p className="flex items-center gap-2 text-[14px] text-muted-foreground"><Icon icon={Sparkles} size={16} className="shrink-0" /> Usikker på hvor du vil? ReiseMatch foreslår reisemål ut fra hva du liker.</p>
+          <Link to="/quiz" className="press inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-semibold text-background">ReiseMatch <Icon icon={ArrowRight} size={16} /></Link>
+        </div>
       </AppShell>
       <DestinationSheet destination={quickView} onClose={() => setQuickView(null)} />
     </div>

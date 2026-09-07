@@ -14,6 +14,7 @@ export const FACEBOOK_LINK = "https://www.facebook.com/share/1Etw1nFpKH/?mibexti
 const SHORTCUTS: { to: string; label: I18nKey }[] = [
   { to: "/", label: "footer.searchtickets" },
   { to: "/reisemal", label: "footer.destinations" },
+  { to: "/journal", label: "footer.journal" },
   { to: "/hotell-bil", label: "footer.hotelcar" },
   { to: "/quiz", label: "footer.quiz" },
   { to: "/reise", label: "footer.findbooking" },

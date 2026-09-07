@@ -86,7 +86,7 @@ export function Chip({ active, onClick, children, className }: { active: boolean
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex min-h-11 items-center gap-2 rounded-lg border px-3.5 text-[14px] font-semibold transition-[background-color,border-color,color,transform] duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] motion-reduce:active:scale-100",
+        "inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border px-3.5 text-[14px] font-semibold transition-[background-color,border-color,color,transform] duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-[0.97] motion-reduce:active:scale-100",
         active ? "border-foreground bg-foreground text-background" : "border-border bg-card text-foreground hover:border-foreground/40",
         className,
       )}

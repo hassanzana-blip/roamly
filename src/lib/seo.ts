@@ -188,11 +188,12 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]): JsonL
 export const PAGE_META = {
   home: {
     title: "Flybilletter fra Norge til hele verden",
-    description: "Søk og bestill flyreiser fra Norge. Totalpris opp front, betaling via Stripe (kort og Klarna) og norsk kundeservice 06–24.",
+    description: "Søk og bestill flyreiser fra Norge. Totalpris fra første søk, bagasje per billett og norsk kundeservice 06–24.",
     canonicalPath: "/",
     jsonLd: ORG_JSON_LD,
   },
-  explore: { title: "Utforsk reisemål", description: "Inspirasjon og guidepriser til populære reisemål fra Norge.", canonicalPath: "/utforsk" },
+  explore: { title: "Utforsk reisemål", description: "Reisemål fra Norge etter stemning, region og reisetid. Ekte priser fra vårt eget prissøk.", canonicalPath: "/utforsk" },
+  journal: { title: "HelloSky Journal", description: "Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og rutene hjem. Oppdaterte, nyttige artikler uten priser som tall.", canonicalPath: "/journal" },
   destinations: { title: "Reisemål", description: "Guider til de rutene vi kjenner best — fra Oslo til Istanbul, Erbil, Beirut, Casablanca og resten av verden.", canonicalPath: "/reisemal" },
   support: { title: "Kundeservice", description: "Hjelp med bestilling, endring, refusjon og bagasje. Norsk kundeservice alle dager 06–24.", canonicalPath: "/hjelp" },
   flightStatus: { title: "Flystatus", description: "Sjekk avganger, ankomster og forsinkelser for flyet ditt.", canonicalPath: "/flystatus" },

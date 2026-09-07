@@ -25,6 +25,8 @@ import { formatDateShort, formatMinor } from "@/lib/format";
 import { DEAL_ROUTES, POPULAR_DESTINATIONS, RECOMMENDED_DESTINATIONS, imageSrcSet, searchHref, type DiscoverDestination } from "@/content/discover";
 import { WHATSAPP_DISPLAY, WHATSAPP_LINK, WhatsAppIcon } from "@/components/WhatsAppFab";
 import { trpc } from "@/providers/trpc";
+import ArticleCard from "@/components/journal/ArticleCard";
+import { featured } from "@/content/journal";
 import { cn } from "@/lib/utils";
 
 /**
@@ -364,6 +366,15 @@ export default function Home() {
                   <span className="block px-1.5 pt-3"><span className="block text-[16px] font-semibold leading-tight">{d.city}</span><span className="block text-[13px] text-muted-foreground">{d.tagline}</span></span>
                 </Link>
               ))}
+            </div>
+          </Reveal>
+
+          {/* 9b · Journalen — tre artikler, håndplukket. */}
+          <Reveal className="mt-14">
+            <SectionHeader title={t("home.journal")} action={<Link to="/journal" className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">{t("home.journal.all")} <Icon icon={ArrowRight} size={16} /></Link>} />
+            <p className="-mt-2 mb-4 text-sm text-muted-foreground">{t("home.journal.sub")}</p>
+            <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0">
+              {featured().slice(0, 3).map((a) => <ArticleCard key={a.slug} a={a} className="w-[280px] shrink-0 md:w-auto" />)}
             </div>
           </Reveal>
 
