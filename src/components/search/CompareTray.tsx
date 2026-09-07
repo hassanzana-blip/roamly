@@ -49,11 +49,11 @@ function CompareTable({ offers, onSelect, feeConfig }: { offers: Offer[]; onSele
               <span className="sr-only">Egenskap</span>
             </th>
             {offers.map((o) => (
-              <th key={o.id} scope="col" className="rounded-2xl bg-night p-4 text-left align-top text-white">
+              <th key={o.id} scope="col" className="rounded-lg bg-night p-4 text-left align-top text-white">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">{o.owner.iata}</p>
-                <p className="mt-1 text-xl font-extrabold sm:text-2xl">{totalOf(o, feeConfig)}</p>
+                <p className="mt-1 text-xl font-semibold tabular sm:text-2xl">{totalOf(o, feeConfig)}</p>
                 <p className="text-[11px] text-white/60">ca. inkl. servicegebyr</p>
-                <button type="button" onClick={() => onSelect(o)} className="mt-3 min-h-11 w-full rounded-full bg-primary py-2 text-[13px] font-bold text-primary-foreground transition-colors hover:brightness-95">
+                <button type="button" onClick={() => onSelect(o)} className="mt-3 min-h-11 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
                   Velg denne
                 </button>
               </th>
@@ -97,14 +97,14 @@ export default function CompareTray({
   return (
     <>
       <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-4" style={{ paddingBottom: "max(96px, calc(96px + env(safe-area-inset-bottom)))" }}>
-        <div className="flex flex-wrap items-center justify-center gap-2 rounded-full border border-border bg-white p-1.5 shadow-lift" role="region" aria-label="Sammenlign valgte tilbud">
+        <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-lift" role="region" aria-label="Sammenlign valgte tilbud">
           {offers.map((o) => (
             <button
               key={o.id}
               type="button"
               onClick={() => onRemove(o.id)}
               aria-label={`Fjern ${o.owner.name} ${totalOf(o, feeConfig)} fra sammenligning`}
-              className="group flex min-h-11 items-center gap-1.5 rounded-full bg-muted px-3 text-[12px] font-bold"
+              className="group flex min-h-11 items-center gap-1.5 rounded-lg bg-muted px-3 text-xs font-semibold"
             >
               {o.owner.iata} · {totalOf(o, feeConfig)}
               <Icon icon={X} size={16} className="text-muted-foreground transition-colors group-hover:text-foreground" />
@@ -114,7 +114,7 @@ export default function CompareTray({
             type="button"
             onClick={() => setOpen(true)}
             disabled={offers.length < 2}
-            className="flex min-h-11 items-center gap-1.5 rounded-full bg-night px-4 text-[13px] font-bold text-white transition-colors hover:brightness-125 disabled:opacity-40"
+            className="flex min-h-11 items-center gap-1.5 rounded-lg bg-night px-4 text-sm font-semibold text-white transition-colors hover:bg-night/90 disabled:opacity-40"
           >
             <Icon icon={ArrowLeftRight} size={16} />
             Sammenlign ({offers.length}/3)
@@ -125,7 +125,7 @@ export default function CompareTray({
         </div>
       </div>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[92dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-3xl bg-background p-5 sm:p-7">
+        <DialogContent className="max-h-[92dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-xl bg-background p-5 sm:p-7">
           <DialogTitle className="font-display text-2xl">Sammenlign {offers.length} tilbud</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">Priser vises ca. inkl. servicegebyr. Bagasje per strekning.</DialogDescription>
           <CompareTable

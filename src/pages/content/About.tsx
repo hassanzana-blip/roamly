@@ -44,7 +44,7 @@ export default function About() {
           { icon: LifeBuoy, title: "06–24 alle dager", sub: "Ekte kundeservice, også ved avreise" },
           { icon: Heart, title: "Spesialister på hjemreiser", sub: "Rutene vi kjenner aller best" },
         ].map((c) => (
-          <div key={c.title} className="rounded-2xl border border-border bg-white p-5 shadow-soft">
+          <div key={c.title} className="rounded-lg border border-border bg-card p-5 shadow-soft">
             <Icon icon={c.icon} size={20} className="text-foreground" />
             <p className="mt-3 font-display text-[16px]">{c.title}</p>
             <p className="mt-1 text-[13px] text-muted-foreground">{c.sub}</p>
@@ -59,7 +59,7 @@ export default function About() {
           betaler. Betalingen går trygt gjennom Stripe, med bankkort eller Klarna. Vi lagrer aldri kortopplysninger.
         </p>
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-bold">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-[12px] font-semibold">
             <Icon icon={CreditCard} size={14} /> Kort
           </span>
           <img src="/brand/klarna.jpg" alt="Klarna" className="h-8 rounded-md" width="80" height="32" />
@@ -73,7 +73,7 @@ export default function About() {
           href={FACEBOOK_LINK}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full bg-night px-5 text-[13px] font-bold text-white transition-colors hover:brightness-125"
+          className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg bg-night px-5 text-[13px] font-semibold text-white transition-colors hover:opacity-90"
         >
           <Icon icon={Facebook} size={16} /> HelloSky på Facebook
         </a>
@@ -89,7 +89,7 @@ export default function About() {
         </p>
         <Link
           to="/hjelp"
-          className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13px] font-bold text-primary-foreground transition-colors hover:brightness-95"
+          className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-colors hover:opacity-90"
         >
           Til hjelpesiden <Icon icon={ArrowRight} size={14} />
         </Link>

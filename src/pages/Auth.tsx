@@ -32,7 +32,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+      <span className="mb-1.5 block eyebrow">
         {label}
       </span>
       {children}
@@ -144,7 +144,7 @@ export default function Auth() {
           <button
             onClick={() => navigate(-1)}
             aria-label={t("common.back")}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white transition-colors hover:bg-muted"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card transition-colors hover:bg-muted"
           >
             <Icon icon={ArrowLeft} size={20} />
           </button>
@@ -208,7 +208,7 @@ export default function Auth() {
         {mode === "forgot" && forgotSent ? (
           <div className="mt-10 flex flex-col items-center text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-              <Icon icon={MailCheck} size={24} className="text-night" />
+              <Icon icon={MailCheck} size={24} className="text-foreground" />
             </span>
             <h1 className="mt-5 font-display text-[30px] leading-tight tracking-tight">
               {t("au.checkemail")}
@@ -259,9 +259,9 @@ export default function Auth() {
               </Field>
             ) : mode === "otp" ? (
               <>
-                <div className="flex items-center gap-3 rounded-2xl bg-muted px-4 py-3">
+                <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
-                    <Icon icon={KeyRound} size={20} className="text-night" />
+                    <Icon icon={KeyRound} size={20} className="text-foreground" />
                   </span>
                   <p className="text-[13px] leading-snug text-muted-foreground">
                     {t("au.otp.info")}
@@ -343,7 +343,7 @@ export default function Auth() {
             )}
 
             {error && (
-              <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
+              <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
                 {error}
                 {retryIn > 0 && t("au.retryin", { count: retryIn })}
               </p>

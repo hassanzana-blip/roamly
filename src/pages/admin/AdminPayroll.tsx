@@ -62,26 +62,26 @@ export function AdminPayroll() {
               <Card key={s.id} className="relative overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-night" />
                 <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-base font-semibold text-primary">
                     {s.name.charAt(0).toUpperCase()}
                   </span>
                   <div>
-                    <p className="font-bold text-night">{s.name}</p>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="font-semibold text-foreground">{s.name}</p>
+                    <p className="eyebrow">
                       {ROLE_LABEL[s.role] ?? s.role}
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Utbetalt</p>
-                    <p className="mt-0.5 font-display text-xl font-bold text-emerald-600">
+                    <p className="eyebrow">Utbetalt</p>
+                    <p className="mt-0.5 font-display text-xl font-semibold text-success">
                       {formatMoney(t?.paid ?? "0")}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Planlagt</p>
-                    <p className="mt-0.5 font-display text-xl font-bold text-amber-600">
+                    <p className="eyebrow">Planlagt</p>
+                    <p className="mt-0.5 font-display text-xl font-semibold text-warning">
                       {formatMoney(t?.planned ?? "0")}
                     </p>
                   </div>
@@ -95,7 +95,7 @@ export function AdminPayroll() {
       {/* Skjema */}
       {open && canManage && (
         <Card className="mb-8 border-primary/30">
-          <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-night">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-semibold text-foreground">
             <Banknote className="h-5 w-5 text-primary" /> Ny lønnspost
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -126,7 +126,7 @@ export function AdminPayroll() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-night">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-foreground">
               <input type="checkbox" checked={markPaid} onChange={(e) => setMarkPaid(e.target.checked)} className="h-4 w-4 accent-primary" />
               Allerede utbetalt
             </label>
@@ -142,12 +142,12 @@ export function AdminPayroll() {
               </Btn>
             </div>
           </div>
-          {add.isError && <p className="mt-3 text-sm font-medium text-rose-600">{add.error.message}</p>}
+          {add.isError && <p className="mt-3 text-sm font-medium text-destructive">{add.error.message}</p>}
         </Card>
       )}
 
       {/* Historikk */}
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.14em] text-muted-foreground">
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
         <CalendarClock className="h-4 w-4" /> Historikk
       </h2>
       {data.data?.entries.length === 0 && (
@@ -157,11 +157,11 @@ export function AdminPayroll() {
         {data.data?.entries.map((e) => (
           <Card key={e.id} className="!p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-night/5 text-sm font-bold text-night">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
                 {e.staffName.charAt(0).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-night">
+                <p className="font-semibold text-foreground">
                   {e.staffName} · {e.periodLabel}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
@@ -169,7 +169,7 @@ export function AdminPayroll() {
                   {e.note ? ` · ${e.note}` : ""}
                 </p>
               </div>
-              <p className="font-display text-lg font-bold text-night">{formatMoney(e.amount, e.currency)}</p>
+              <p className="font-display text-xl font-semibold text-foreground">{formatMoney(e.amount, e.currency)}</p>
               {e.status === "paid" ? (
                 <Pill tone="success"><Check className="h-3 w-3" /> Utbetalt {e.paidAt ? formatDateTime(e.paidAt) : ""}</Pill>
               ) : (
@@ -187,7 +187,7 @@ export function AdminPayroll() {
                       type="button"
                       aria-label="Slett"
                       onClick={() => del.mutate({ id: e.id })}
-                      className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"
+                      className="rounded-lg p-2 text-destructive hover:bg-destructive/5"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

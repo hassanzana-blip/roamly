@@ -44,16 +44,16 @@ export default function Confirmation() {
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 pb-20 pt-28 outline-none sm:px-6">
         {order.isLoading && (
           <div className="space-y-4" aria-busy="true">
-            <div className="shimmer h-24 rounded-3xl" />
-            <div className="shimmer h-56 rounded-3xl" />
+            <div className="shimmer h-24 rounded-xl" />
+            <div className="shimmer h-56 rounded-xl" />
           </div>
         )}
 
         {order.isError && (
-          <div role="alert" className="rounded-3xl border hairline bg-card p-8 text-center">
+          <div role="alert" className="rounded-xl border border-border bg-card p-8 text-center">
             <p className="font-display text-2xl">{authErr ? t("cf.err.auth") : t("cf.err.notfound")}</p>
             <p className="mt-2 text-sm text-muted-foreground">{authErr ? t("cf.err.authbody") : humanMessage(order.error)}</p>
-            <Link to="/reise" className="mt-6 inline-block min-h-11 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground">
+            <Link to="/reise" className="mt-6 inline-block min-h-11 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
               {t("cf.find")}
             </Link>
           </div>
@@ -62,9 +62,9 @@ export default function Confirmation() {
         {data && o && (
           <div className="space-y-6">
             {/* hero */}
-            <section className="fade-up rounded-3xl border hairline bg-card p-8 text-center" aria-live="polite">
+            <section className="fade-up rounded-xl border border-border bg-card p-8 text-center" aria-live="polite">
               {processing ? (
-                <Clock className="mx-auto h-14 w-14 text-amber-600" strokeWidth={1.6} aria-hidden="true" />
+                <Clock className="mx-auto h-14 w-14 text-warning" strokeWidth={1.6} aria-hidden="true" />
               ) : (
                 <CheckCircle2 className={`mx-auto h-14 w-14 ${failed ? "text-primary" : "text-foreground"}`} strokeWidth={1.6} aria-hidden="true" />
               )}
@@ -88,7 +88,7 @@ export default function Confirmation() {
                 <button
                   type="button"
                   onClick={() => copyRef(o.bookingReference)}
-                  className="group mx-auto mt-6 flex min-h-11 items-center gap-3 rounded-2xl border border-border bg-muted px-6 py-3 transition-colors hover:bg-primary/20"
+                  className="group mx-auto mt-6 flex min-h-11 items-center gap-3 rounded-lg border border-border bg-muted px-6 py-3 transition-colors hover:bg-primary/20"
                   aria-label={t("cf.copyref", { ref: o.bookingReference })}
                 >
                   <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{t("common.pnr")}</span>
@@ -102,17 +102,17 @@ export default function Confirmation() {
                 </p>
               )}
               {o.demoMode && (
-                <p className="mt-4 inline-block rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold text-foreground">{t("cf.demo")}</p>
+                <p className="mt-4 inline-block rounded-md border border-border bg-muted px-3 py-1 text-xs font-semibold text-foreground">{t("cf.demo")}</p>
               )}
             </section>
 
             <ScheduleChanges changes={data.scheduleChanges} />
 
             {/* itinerary */}
-            <section className="fade-up fade-up-1 rounded-3xl border hairline bg-card p-6 sm:p-8">
+            <section className="fade-up fade-up-1 rounded-xl border border-border bg-card p-6 sm:p-8">
               <h2 className="mb-6 font-display text-2xl">{t("common.itinerary")}</h2>
               <Itinerary order={o} />
-              <div className="mt-6 grid gap-2 border-t hairline pt-5 text-sm sm:grid-cols-2">
+              <div className="mt-6 grid gap-2 border-t border-border pt-5 text-sm sm:grid-cols-2">
                 <p className="text-muted-foreground">
                   {t("common.class")}: <span className="font-medium text-foreground">{cabinLabel(o.cabinClass)}</span>
                 </p>
@@ -128,14 +128,14 @@ export default function Confirmation() {
             </section>
 
             {/* tickets */}
-            <section className="fade-up fade-up-1 rounded-3xl border hairline bg-card p-6 sm:p-8">
+            <section className="fade-up fade-up-1 rounded-xl border border-border bg-card p-6 sm:p-8">
               <h2 className="mb-4 font-display text-2xl">{t("common.tickets")}</h2>
               <TicketList order={o} />
               {processing && <p className="mt-3 text-xs text-muted-foreground">{t("cf.ticketspending")}</p>}
             </section>
 
             {/* price */}
-            <section className="fade-up fade-up-2 rounded-3xl border hairline bg-card p-6 sm:p-8">
+            <section className="fade-up fade-up-2 rounded-xl border border-border bg-card p-6 sm:p-8">
               <h2 className="mb-4 font-display text-2xl">{t("common.price")}</h2>
               <dl className="space-y-1.5 text-sm">
                 {o.supplierAmount && (
@@ -157,24 +157,24 @@ export default function Confirmation() {
                   </div>
                 )}
                 {o.bonusUsedKr ? (
-                  <div className="flex justify-between font-semibold text-emerald-700">
+                  <div className="flex justify-between font-semibold text-success">
                     <dt>{t("common.bonusused")}</dt>
                     <dd>−{formatPrice(o.bonusUsedKr, o.totalCurrency)}</dd>
                   </div>
                 ) : null}
-                <div className="flex justify-between border-t hairline pt-2.5 text-base font-bold">
+                <div className="flex justify-between border-t border-border pt-2.5 text-base font-semibold">
                   <dt>{data.payment?.status === "captured" || data.payment?.status === "succeeded" ? t("common.paid") : t("common.total")}</dt>
                   <dd className="font-display text-xl">{data.payment?.amountMinor != null ? formatMinor(data.payment.amountMinor, currency) : formatMinor(toMinor(o.totalAmount, o.totalCurrency), o.totalCurrency)}</dd>
                 </div>
                 {data.payment && data.payment.refundedMinor > 0 && (
-                  <div className="flex justify-between text-emerald-700">
+                  <div className="flex justify-between text-success">
                     <dt>{t("common.refunded")}</dt>
                     <dd>{formatMinor(data.payment.refundedMinor, currency)}</dd>
                   </div>
                 )}
               </dl>
               {invoice && (
-                <div className="mt-5 rounded-2xl border border-border bg-muted/40 p-4">
+                <div className="mt-5 rounded-lg border border-border bg-muted/40 p-4">
                   <InvoiceSummaryBlock invoice={invoice} pspReference={pspReference} compact />
                   <Link to={`/kvittering/${encodeURIComponent(orderId)}${order.accessToken ? `?t=${encodeURIComponent(order.accessToken)}` : ""}`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-2">
                     {t("rc.view")}
@@ -188,7 +188,7 @@ export default function Confirmation() {
 
             {/* cancel + refund */}
             {(data.actions.canCancel || data.refundCases.length > 0 || data.actions.cancelReason) && !processing && (
-              <section className="fade-up fade-up-2 rounded-3xl border hairline bg-card p-6 sm:p-8">
+              <section className="fade-up fade-up-2 rounded-xl border border-border bg-card p-6 sm:p-8">
                 <h2 className="mb-2 font-display text-2xl">{t("cf.cancel.title")}</h2>
                 <div className="mt-3">
                   <CancelFlow orderId={orderId} accessToken={order.accessToken} data={data} onDone={() => order.refetch()} />
@@ -204,28 +204,28 @@ export default function Confirmation() {
 
             {/* next steps */}
             <section className="fade-up fade-up-2 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl border hairline bg-card p-5">
+              <div className="rounded-xl border border-border bg-card p-5">
                 <Mail className="h-5 w-5 text-foreground" aria-hidden="true" />
-                <h3 className="mt-3 text-sm font-bold">{t("cf.inbox")}</h3>
+                <h3 className="mt-3 text-sm font-semibold">{t("cf.inbox")}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{t("cf.inboxbody")}</p>
               </div>
               <Link
                 to={`/flystatus?carrier=${firstSeg?.carrier.iata ?? ""}&flight=${firstSeg?.flightNumber ?? ""}&date=${o.slices[0]?.departingAt.slice(0, 10) ?? ""}`}
-                className="card-lift rounded-3xl border hairline bg-card p-5"
+                className="card-lift rounded-xl border border-border bg-card p-5"
               >
                 <Radar className="h-5 w-5 text-foreground" aria-hidden="true" />
-                <h3 className="mt-3 text-sm font-bold">{t("cf.flightstatus")}</h3>
+                <h3 className="mt-3 text-sm font-semibold">{t("cf.flightstatus")}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{t("cf.checkflight", { flight: `${firstSeg?.carrier.iata ?? ""} ${firstSeg?.flightNumber ?? ""}`.trim() })}</p>
               </Link>
-              <Link to={`/hjelp?ref=${o.bookingReference}`} className="card-lift rounded-3xl border hairline bg-card p-5">
+              <Link to={`/hjelp?ref=${o.bookingReference}`} className="card-lift rounded-xl border border-border bg-card p-5">
                 <LifeBuoy className="h-5 w-5 text-foreground" aria-hidden="true" />
-                <h3 className="mt-3 text-sm font-bold">{t("cf.help")}</h3>
+                <h3 className="mt-3 text-sm font-semibold">{t("cf.help")}</h3>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{t("cf.helpbody")}</p>
               </Link>
             </section>
 
             <div className="text-center">
-              <Link to="/" className="inline-flex min-h-11 items-center gap-2 rounded-2xl border hairline px-8 py-4 text-sm font-bold transition-colors hover:border-foreground/25 hover:text-foreground">
+              <Link to="/" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-8 py-4 text-sm font-semibold transition-colors hover:border-foreground/40 hover:text-foreground">
                 {t("cf.next")}
               </Link>
             </div>

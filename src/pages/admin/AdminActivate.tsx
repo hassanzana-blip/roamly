@@ -40,7 +40,7 @@ export default function AdminActivate() {
   if (!token) {
     return (
       <main id="main" className="grid min-h-screen place-items-center bg-night px-4 text-center">
-        <div className="max-w-md rounded-3xl bg-card p-8">
+        <div className="max-w-md rounded-xl bg-card p-8">
           <h1 className="font-display text-2xl">Ugyldig lenke</h1>
           <p className="mt-3 text-sm text-muted-foreground">Aktiveringslenken mangler eller er feil. Be om en ny invitasjon.</p>
         </div>
@@ -61,15 +61,15 @@ export default function AdminActivate() {
           <p className="mt-2 text-sm text-white/70">Aktiver kontoen din</p>
         </div>
 
-        <ol className="mb-5 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/60" aria-label="Fremdrift">
+        <ol className="mb-5 flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/60" aria-label="Fremdrift">
           {(["password", "totp", "done"] as Step[]).map((s, i) => (
-            <li key={s} className={`rounded-full px-2.5 py-1 ${step === s ? "bg-primary text-primary-foreground" : ""}`}>
+            <li key={s} className={`rounded-md px-2.5 py-1 ${step === s ? "bg-primary text-primary-foreground" : ""}`}>
               {i + 1}. {s === "password" ? "Passord" : s === "totp" ? "Autentikator" : "Ferdig"}
             </li>
           ))}
         </ol>
 
-        <main id="main" className="rounded-3xl bg-card p-6 shadow-2xl sm:p-8">
+        <main id="main" className="rounded-xl bg-card p-6 shadow-2xl sm:p-8">
           {step === "password" && (
             <>
               <h1 className="flex items-center gap-2.5 font-display text-2xl">
@@ -107,7 +107,7 @@ export default function AdminActivate() {
                 Skann QR-koden i en autentikator-app (1Password, Google Authenticator, Authy …) for <strong className="text-foreground">{setup.email}</strong>, og skriv inn koden appen viser.
               </p>
               <form className="mt-6 space-y-4" onSubmit={(e) => { e.preventDefault(); complete.mutate({ token, totpCode: code.trim() }); }}>
-                <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-white p-4">
+                <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-4">
                   <img src={setup.qrDataUrl} alt={`QR-kode for TOTP-oppsett for ${setup.email}`} width={240} height={240} className="h-60 w-60" />
                   <details className="w-full text-xs text-muted-foreground">
                     <summary className="cursor-pointer font-semibold text-foreground">Kan du ikke skanne? Vis nøkkelen</summary>
@@ -127,13 +127,13 @@ export default function AdminActivate() {
           {step === "done" && (
             <div>
               <div className="text-center">
-                <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" aria-hidden="true" />
+                <CheckCircle2 className="mx-auto h-12 w-12 text-success" aria-hidden="true" />
                 <h1 className="mt-4 font-display text-2xl">Kontoen er klar!</h1>
               </div>
               <div className="mt-5">
                 <RecoveryCodes codes={recoveryCodes} filename="hellosky-gjenopprettingskoder.txt" />
               </div>
-              <Link to="/admin/logg-inn" className="mt-6 block w-full rounded-xl bg-primary px-4 py-3.5 text-center font-bold text-primary-foreground transition-all hover:brightness-110">
+              <Link to="/admin/logg-inn" className="mt-6 block w-full rounded-xl bg-primary px-4 py-3.5 text-center font-semibold text-primary-foreground transition-all hover:opacity-90">
                 Jeg har lagret kodene – gå til innlogging
               </Link>
             </div>

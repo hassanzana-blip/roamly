@@ -116,12 +116,12 @@ export default function Receipt() {
         className="mx-auto w-full max-w-2xl px-4 pb-16 pt-28 outline-none print:max-w-none print:px-0 print:pt-0"
       >
         {order.isLoading && (
-          <div className="shimmer h-96 rounded-3xl" aria-busy="true" />
+          <div className="shimmer h-96 rounded-xl" aria-busy="true" />
         )}
         {order.isError && (
           <div
             role="alert"
-            className="rounded-3xl border border-border bg-white p-8 text-center"
+            className="rounded-xl border border-border bg-card p-8 text-center"
           >
             <p className="font-display text-2xl">Fant ikke kvitteringen</p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -136,17 +136,17 @@ export default function Receipt() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-night px-5 text-[13px] font-bold text-white transition-colors hover:brightness-125"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-night px-5 text-[13px] font-semibold text-white transition-colors hover:opacity-90"
               >
                 <Icon icon={Printer} size={16} /> Skriv ut / lagre som PDF
               </button>
             </div>
 
             <article
-              className="overflow-hidden rounded-3xl border border-border bg-white shadow-soft print:rounded-none print:border-0 print:shadow-none"
+              className="overflow-hidden rounded-xl border border-border bg-card shadow-soft print:rounded-none print:border-0 print:shadow-none"
               aria-label={t("rc.plain")}
             >
-              <header className="flex items-start justify-between gap-4 bg-night p-6 text-white print:bg-white print:text-night">
+              <header className="flex items-start justify-between gap-4 bg-night p-6 text-white print:bg-card print:text-foreground">
                 <div className="flex items-center gap-2.5">
                   <SkyMark className="h-8 w-8 text-primary" />
                   <div>
@@ -161,7 +161,7 @@ export default function Receipt() {
                   </div>
                 </div>
                 <div className="text-right text-[12px]">
-                  <p className="font-mono text-lg font-bold tracking-widest">
+                  <p className="font-mono text-lg font-semibold tracking-widest">
                     {o.bookingReference || "—"}
                   </p>
                   <p className="opacity-70">Ordre {o.id}</p>
@@ -179,7 +179,7 @@ export default function Receipt() {
                 {/* Selger / kjøper */}
                 <section className="grid gap-4 text-[13px] sm:grid-cols-2">
                   <div>
-                    <h2 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <h2 className="mb-1 eyebrow">
                       Selger
                     </h2>
                     <p className="font-semibold">{SELLER.name}</p>
@@ -190,7 +190,7 @@ export default function Receipt() {
                     </p>
                   </div>
                   <div>
-                    <h2 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <h2 className="mb-1 eyebrow">
                       Kjøper
                     </h2>
                     <p className="font-semibold">
@@ -203,14 +203,14 @@ export default function Receipt() {
 
                 {/* Reiserute */}
                 <section>
-                  <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <h2 className="mb-3 eyebrow">
                     Reiserute
                   </h2>
                   <div className="space-y-2">
                     {o.slices.map(s => (
                       <div
                         key={s.id}
-                        className="rounded-2xl border border-border p-3 text-[13px]"
+                        className="rounded-lg border border-border p-3 text-[13px]"
                       >
                         <p className="font-semibold">
                           {s.origin.iata} {formatClock(s.departingAt)} →{" "}
@@ -232,7 +232,7 @@ export default function Receipt() {
 
                 {/* Reisende */}
                 <section>
-                  <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <h2 className="mb-2 eyebrow">
                     Reisende
                   </h2>
                   <ul className="space-y-1 text-[13px]">
@@ -268,7 +268,7 @@ export default function Receipt() {
                       pspReference={pspReference}
                     />
                     {data.payment && data.payment.refundedMinor > 0 && (
-                      <p className="mt-2 text-right text-[13px] text-emerald-700">
+                      <p className="mt-2 text-right text-[13px] text-success">
                         Herav refundert{" "}
                         <span className="font-semibold">
                           {formatMinor(data.payment.refundedMinor, currency)}
@@ -278,7 +278,7 @@ export default function Receipt() {
                   </section>
                 ) : (
                   <section className="border-t border-border pt-4">
-                    <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <h2 className="mb-3 eyebrow">
                       Spesifikasjon
                     </h2>
                     <div className="overflow-x-auto">
@@ -339,7 +339,7 @@ export default function Receipt() {
                             </tr>
                           ))}
                           {bonusMinor > 0 && (
-                            <tr className="border-b border-border/60 text-emerald-700">
+                            <tr className="border-b border-border/60 text-success">
                               <td className="py-2 pr-2">Bonus brukt</td>
                               <td className="py-2 pr-2 text-right">1</td>
                               <td className="py-2 pr-2 text-right">
@@ -356,16 +356,16 @@ export default function Receipt() {
                           <tr>
                             <td
                               colSpan={4}
-                              className="pt-3 text-right font-bold"
+                              className="pt-3 text-right font-semibold"
                             >
                               {paid ? "Totalt betalt" : "Totalt"}
                             </td>
-                            <td className="pt-3 text-right font-display text-lg font-bold">
+                            <td className="pt-3 text-right font-display text-xl font-semibold">
                               {formatMinor(totalMinor, currency)}
                             </td>
                           </tr>
                           {data.payment && data.payment.refundedMinor > 0 && (
-                            <tr className="text-emerald-700">
+                            <tr className="text-success">
                               <td colSpan={4} className="pt-1 text-right">
                                 Herav refundert
                               </td>
@@ -390,7 +390,7 @@ export default function Receipt() {
 
                 {/* Betaling */}
                 <section className="border-t border-border pt-4 text-[13px]">
-                  <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <h2 className="mb-2 eyebrow">
                     Betaling
                   </h2>
                   <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">

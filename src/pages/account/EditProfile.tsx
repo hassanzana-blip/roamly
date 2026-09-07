@@ -126,7 +126,7 @@ export default function EditProfile() {
         <AppHeader title="Rediger profil" back />
 
         {/* Profilbilde */}
-        <section className="mb-6 flex items-center gap-4 rounded-3xl border border-border bg-white p-5 shadow-soft">
+        <section className="mb-6 flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-soft">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -136,7 +136,7 @@ export default function EditProfile() {
             {customer.avatarUrl ? (
               <img src={customer.avatarUrl} alt="Profilbilde" className="h-full w-full object-cover" />
             ) : (
-              <span className="flex h-full w-full items-center justify-center bg-primary text-2xl font-extrabold text-night">
+              <span className="flex h-full w-full items-center justify-center bg-primary text-2xl font-semibold text-primary-foreground">
                 {customer.firstName.charAt(0).toUpperCase()}
                 {customer.lastName.charAt(0).toUpperCase()}
               </span>
@@ -146,7 +146,7 @@ export default function EditProfile() {
             </span>
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold">Profilbilde</p>
+            <p className="text-[15px] font-semibold">Profilbilde</p>
             <p className="text-[12px] text-muted-foreground">
               Vises i samfunnet og på profilen din. Bildet skaleres ned — originalen forlater aldri enheten din.
             </p>
@@ -155,7 +155,7 @@ export default function EditProfile() {
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={setAvatar.isPending}
-                className="min-h-9 rounded-full bg-night px-4 text-[12px] font-bold text-white transition-colors hover:brightness-125 disabled:opacity-50"
+                className="min-h-9 rounded-md bg-night px-4 text-[12px] font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
               >
                 {setAvatar.isPending ? "Laster opp …" : "Last opp bilde"}
               </button>
@@ -163,13 +163,13 @@ export default function EditProfile() {
                 <button
                   type="button"
                   onClick={() => setAvatar.mutate({ dataUrl: "" })}
-                  className="min-h-9 rounded-full border border-border px-4 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                  className="min-h-9 rounded-md border border-border px-4 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Fjern
                 </button>
               )}
             </div>
-            {avatarMsg && <p className="mt-1.5 text-[12px] font-semibold text-emerald-700">{avatarMsg}</p>}
+            {avatarMsg && <p className="mt-1.5 text-[12px] font-semibold text-success">{avatarMsg}</p>}
           </div>
           <input
             ref={fileRef}
@@ -181,8 +181,8 @@ export default function EditProfile() {
         </section>
 
         {/* Navn og kontakt */}
-        <section className="mb-6 rounded-3xl border border-border bg-white p-5 shadow-soft">
-          <h2 className="mb-4 flex items-center gap-2 font-display text-lg">
+        <section className="mb-6 rounded-xl border border-border bg-card p-5 shadow-soft">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-xl">
             <Icon icon={UserRound} size={20} /> Navn og kontakt
           </h2>
           <form
@@ -197,11 +197,11 @@ export default function EditProfile() {
               <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Etternavn" required className={inputCls} />
             </div>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon (+47 …)" type="tel" className={inputCls} />
-            {update.isError && <p className="text-[12px] font-medium text-coral">{humanMessage(update.error)}</p>}
+            {update.isError && <p className="text-[12px] font-medium text-destructive">{humanMessage(update.error)}</p>}
             <button
               type="submit"
               disabled={update.isPending}
-              className="min-h-11 w-full rounded-full bg-night text-[14px] font-bold text-white transition-colors hover:brightness-125 disabled:opacity-50"
+              className="min-h-11 w-full rounded-lg bg-night text-[14px] font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
             >
               {saved ? "Lagret!" : update.isPending ? "Lagrer …" : "Lagre endringer"}
             </button>
@@ -215,8 +215,8 @@ export default function EditProfile() {
         </section>
 
         {/* Passord */}
-        <section className="mb-6 rounded-3xl border border-border bg-white p-5 shadow-soft">
-          <h2 className="mb-4 flex items-center gap-2 font-display text-lg">
+        <section className="mb-6 rounded-xl border border-border bg-card p-5 shadow-soft">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-xl">
             <Icon icon={KeyRound} size={20} /> Bytt passord
           </h2>
           <form
@@ -228,11 +228,11 @@ export default function EditProfile() {
           >
             <input type="password" autoComplete="current-password" value={curPw} onChange={(e) => setCurPw(e.target.value)} placeholder="Nåværende passord" required className={inputCls} />
             <input type="password" autoComplete="new-password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Nytt passord (minst 10 tegn)" minLength={10} required className={inputCls} />
-            {pwMsg && <p className={`text-[12px] font-semibold ${pwMsg === "Passordet er endret." ? "text-emerald-700" : "text-coral"}`}>{pwMsg}</p>}
+            {pwMsg && <p className={`text-[12px] font-semibold ${pwMsg === "Passordet er endret." ? "text-emerald-700" : "text-destructive"}`}>{pwMsg}</p>}
             <button
               type="submit"
               disabled={changePw.isPending || !curPw || !newPw}
-              className="min-h-11 w-full rounded-full bg-night text-[14px] font-bold text-white transition-colors hover:brightness-125 disabled:opacity-50"
+              className="min-h-11 w-full rounded-lg bg-night text-[14px] font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
             >
               {changePw.isPending ? "Endrer …" : "Bytt passord"}
             </button>
@@ -243,8 +243,8 @@ export default function EditProfile() {
         </section>
 
         {/* Sikkerhet */}
-        <section className="mb-6 rounded-3xl border border-border bg-white p-5 shadow-soft">
-          <h2 className="mb-3 flex items-center gap-2 font-display text-lg">
+        <section className="mb-6 rounded-xl border border-border bg-card p-5 shadow-soft">
+          <h2 className="mb-3 flex items-center gap-2 font-display text-xl">
             <Icon icon={LogOut} size={20} /> Økter
           </h2>
           <p className="mb-3 text-[13px] text-muted-foreground">
@@ -253,15 +253,15 @@ export default function EditProfile() {
           <button
             onClick={() => logoutAll.mutate()}
             disabled={logoutAll.isPending}
-            className="min-h-11 w-full rounded-full border border-border text-[14px] font-bold transition-colors hover:bg-muted disabled:opacity-50"
+            className="min-h-11 w-full rounded-lg border border-border text-[14px] font-semibold transition-colors hover:bg-muted disabled:opacity-50"
           >
             {logoutAll.isPending ? "Logger ut …" : "Logg ut alle enheter"}
           </button>
         </section>
 
         {/* Slett konto */}
-        <section className="rounded-3xl border border-coral/30 bg-coral/5 p-5">
-          <h2 className="mb-2 flex items-center gap-2 font-display text-lg text-coral">
+        <section className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+          <h2 className="mb-2 flex items-center gap-2 font-display text-xl text-destructive">
             <Icon icon={TriangleAlert} size={20} /> Slett konto
           </h2>
           <p className="mb-3 text-[13px] text-muted-foreground">
@@ -284,12 +284,12 @@ export default function EditProfile() {
                 required
                 className={inputCls}
               />
-              {del.isError && <p className="text-[12px] font-medium text-coral">{humanMessage(del.error)}</p>}
+              {del.isError && <p className="text-[12px] font-medium text-destructive">{humanMessage(del.error)}</p>}
               <div className="flex gap-2">
                 <button
                   type="submit"
                   disabled={del.isPending || !delPw}
-                  className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-coral text-[14px] font-bold text-white transition-colors hover:brightness-95 disabled:opacity-50"
+                  className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-destructive text-[14px] font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
                 >
                   <Icon icon={Trash2} size={16} />
                   {del.isPending ? "Sletter …" : "Slett kontoen permanent"}
@@ -297,7 +297,7 @@ export default function EditProfile() {
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
-                  className="min-h-11 rounded-full border border-border px-5 text-[14px] font-semibold"
+                  className="min-h-11 rounded-lg border border-border px-5 text-[14px] font-semibold"
                 >
                   Avbryt
                 </button>
@@ -306,7 +306,7 @@ export default function EditProfile() {
           ) : (
             <button
               onClick={() => setConfirmDelete(true)}
-              className="min-h-11 w-full rounded-full border border-coral/40 text-[14px] font-bold text-coral transition-colors hover:bg-coral/10"
+              className="min-h-11 w-full rounded-lg border border-destructive/40 text-[14px] font-semibold text-destructive transition-colors hover:bg-destructive/10"
             >
               Jeg vil slette kontoen min
             </button>

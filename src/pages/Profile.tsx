@@ -55,7 +55,7 @@ function MenuRow({ to, icon, title, sub }: { to: string; icon: LucideIcon; title
     <li>
       <Link
         to={to}
-        className="flex min-h-[68px] items-center gap-3 rounded-2xl border border-border bg-white px-4 transition-colors hover:border-foreground/20"
+        className="flex min-h-[68px] items-center gap-3 rounded-lg border border-border bg-card px-4 transition-colors hover:border-foreground/20"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
           <Icon icon={icon} size={20} />
@@ -119,7 +119,7 @@ export default function Profile() {
         {/* Konto — greeting + logout når innlogget, ellers innloggings-CTA */}
         {!isLoading &&
           (customer ? (
-            <div className="mb-6 rounded-[26px] bg-night p-5 text-white">
+            <div className="mb-6 rounded-xl bg-night p-5 text-white">
               <div className="flex items-center gap-3.5">
                 <Link
                   to="/profil/rediger"
@@ -133,14 +133,14 @@ export default function Profile() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center bg-primary text-[16px] font-extrabold text-night">
+                    <span className="flex h-full w-full items-center justify-center bg-primary text-[16px] font-semibold text-primary-foreground">
                       {customer.firstName.charAt(0).toUpperCase()}
                       {customer.lastName.charAt(0).toUpperCase()}
                     </span>
                   )}
                 </Link>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[17px] font-bold">
+                  <p className="truncate text-[17px] font-semibold">
                     {customer.firstName} {customer.lastName}
                   </p>
                   <p className="truncate text-[13px] text-white/60">
@@ -159,7 +159,7 @@ export default function Profile() {
               </div>
               <button
                 onClick={() => navigate("/reise")}
-                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[14px] font-bold text-night transition-colors hover:brightness-95"
+                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:opacity-90"
               >
                 <Icon icon={Luggage} size={16} />
                 {t("profile.mybookings")}
@@ -168,13 +168,13 @@ export default function Profile() {
           ) : (
             <Link
               to="/logg-inn"
-              className="mb-6 flex items-center gap-3.5 rounded-[26px] bg-night p-5 text-white transition-colors hover:bg-[hsl(240,6%,14%)]"
+              className="mb-6 flex items-center gap-3.5 rounded-xl bg-night p-5 text-white transition-colors hover:bg-[hsl(240,6%,14%)]"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-night">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Icon icon={UserRound} size={20} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[16px] font-bold">{t("profile.login")}</span>
+                <span className="block text-[16px] font-semibold">{t("profile.login")}</span>
                 <span className="block text-[13px] text-white/60">{t("profile.loginsub")}</span>
               </span>
               <Icon icon={ChevronRight} size={20} className="shrink-0 text-white/60" />
@@ -183,15 +183,15 @@ export default function Profile() {
 
         {/* E-post ikke bekreftet — vennlig banner med send-på-nytt */}
         {customer?.email && !customer.emailVerified && (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3.5 dark:border-amber-400/30 dark:bg-amber-400/10">
-            <Icon icon={MailWarning} size={20} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-300" />
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-300/60 bg-warning/10 px-4 py-3.5 dark:border-amber-400/30 dark:bg-amber-400/10">
+            <Icon icon={MailWarning} size={20} className="mt-0.5 shrink-0 text-warning dark:text-amber-300" />
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold text-amber-900 dark:text-amber-200">{t("profile.verify")}</p>
-              <p className="text-[12px] text-amber-800/80 dark:text-amber-200/70">{t("profile.verifysub")}</p>
+              <p className="text-[13px] font-semibold text-warning dark:text-amber-200">{t("profile.verify")}</p>
+              <p className="text-[12px] text-warning/80 dark:text-amber-200/70">{t("profile.verifysub")}</p>
               <button
                 onClick={() => resend.mutate()}
                 disabled={resend.isPending || resend.isSuccess}
-                className="mt-1.5 text-[12px] font-bold text-amber-900 underline underline-offset-2 disabled:opacity-60 dark:text-amber-100"
+                className="mt-1.5 text-[12px] font-semibold text-warning underline underline-offset-2 disabled:opacity-60 dark:text-amber-100"
               >
                 {resend.isSuccess ? t("common.sent") : t("common.resendlink")}
               </button>
@@ -202,21 +202,21 @@ export default function Profile() {
         {/* Bonus + inviter venner — bare for innloggede */}
         {customer && (
           <div className="mb-6 grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border border-border bg-white px-4 py-3.5">
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-lg border border-border bg-card px-4 py-3.5">
+              <p className="flex items-center gap-1.5 eyebrow">
                 <Icon icon={Wallet} size={16} /> {t("profile.bonus")}
               </p>
-              <p className="mt-1 text-[22px] font-extrabold leading-none">{customer.bonusKr ?? 0} kr</p>
+              <p className="mt-1 text-[22px] font-semibold leading-none">{customer.bonusKr ?? 0} kr</p>
               <p className="mt-1 text-[11px] text-muted-foreground">{t("pf.bonusrate")}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-white px-4 py-3.5">
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-lg border border-border bg-card px-4 py-3.5">
+              <p className="flex items-center gap-1.5 eyebrow">
                 <Icon icon={Gift} size={16} /> {t("profile.invite")}
               </p>
               {customer.referralCode ? (
                 <button
                   onClick={() => copyReferral(customer.referralCode!)}
-                  className="mt-1 flex min-h-11 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[14px] font-extrabold tracking-wider transition-colors hover:bg-muted/70"
+                  className="mt-1 flex min-h-11 items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1 text-[14px] font-semibold tracking-wider transition-colors hover:bg-muted/70"
                   aria-label={t("pf.copyreferral", { code: customer.referralCode })}
                 >
                   {customer.referralCode}
@@ -243,10 +243,10 @@ export default function Profile() {
         {customer && (
           <Link
             to="/samfunn"
-            className="mb-6 flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3.5 transition-colors hover:border-foreground/20"
+            className="mb-6 flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5 transition-colors hover:border-foreground/20"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20">
-              <Icon icon={MessagesSquare} size={20} className="text-skyline" />
+              <Icon icon={MessagesSquare} size={20} className="text-primary" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[15px] font-semibold">{t("profile.community")}</span>
@@ -269,7 +269,7 @@ export default function Profile() {
         <p className="mb-2 mt-8 font-mono-label text-[10px] text-muted-foreground">{t("profile.settings")}</p>
         <ul className="flex flex-col gap-2">
           {/* Språk */}
-          <li className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-border bg-white px-4 py-2">
+          <li className="flex min-h-[60px] items-center gap-3 rounded-lg border border-border bg-card px-4 py-2">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
               <Icon icon={Globe} size={20} />
             </span>
@@ -280,7 +280,7 @@ export default function Profile() {
               id="pref-locale"
               value={lang}
               onChange={(e) => setLang(e.target.value as Lang)}
-              className="min-h-11 rounded-full border border-border bg-white px-3 text-[13px] font-bold"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-[13px] font-semibold"
             >
               {LANGS.map((l) => (
                 <option key={l} value={l}>
@@ -290,7 +290,7 @@ export default function Profile() {
             </select>
           </li>
           {/* Valuta */}
-          <li className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-border bg-white px-4 py-2">
+          <li className="flex min-h-[60px] items-center gap-3 rounded-lg border border-border bg-card px-4 py-2">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
               <Icon icon={Wallet} size={20} />
             </span>
@@ -304,7 +304,7 @@ export default function Profile() {
               id="pref-currency"
               value={currency}
               onChange={(e) => setCurrency(e.target.value as Currency)}
-              className="min-h-11 rounded-full border border-border bg-white px-3 text-[13px] font-bold"
+              className="min-h-11 rounded-lg border border-border bg-card px-3 text-[13px] font-semibold"
             >
               {CURRENCIES.map((c) => (
                 <option key={c} value={c}>
@@ -314,7 +314,7 @@ export default function Profile() {
             </select>
           </li>
           {customer && (
-            <li className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-border bg-white px-4 py-2">
+            <li className="flex min-h-[60px] items-center gap-3 rounded-lg border border-border bg-card px-4 py-2">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
                 <Icon icon={Mail} size={20} />
               </span>
@@ -333,12 +333,12 @@ export default function Profile() {
                 onClick={() => prefs.mutate({ marketingConsent: !customer.marketingConsent })}
                 className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60", customer.marketingConsent ? "bg-primary" : "bg-muted")}
               >
-                <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all", customer.marketingConsent ? "left-6" : "left-1")} />
+                <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-card shadow transition-all", customer.marketingConsent ? "left-6" : "left-1")} />
               </button>
             </li>
           )}
           {/* Mørk modus — faktisk bryter */}
-          <li className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-border bg-white px-4">
+          <li className="flex min-h-[60px] items-center gap-3 rounded-lg border border-border bg-card px-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
               <Icon icon={Moon} size={20} />
             </span>
@@ -356,7 +356,7 @@ export default function Profile() {
             >
               <span
                 className={cn(
-                  "absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all",
+                  "absolute top-1 h-5 w-5 rounded-full bg-card shadow transition-all",
                   dark ? "left-6" : "left-1",
                 )}
               />
@@ -372,7 +372,7 @@ export default function Profile() {
         {customer && (
           <>
             <p className="mb-2 mt-8 font-mono-label text-[10px] text-muted-foreground">{t("pf.privacy")}</p>
-            <div className="rounded-2xl border border-border bg-white px-4 py-3.5">
+            <div className="rounded-lg border border-border bg-card px-4 py-3.5">
               <p className="text-[15px] font-semibold">{t("pf.export")}</p>
               <p className="mt-0.5 text-[12px] text-muted-foreground">{t("pf.exportsub")}</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -380,12 +380,12 @@ export default function Profile() {
                   type="button"
                   onClick={downloadData}
                   disabled={exportData.isFetching}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-[13px] font-bold disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-4 text-[13px] font-semibold disabled:opacity-60"
                 >
                   <Icon icon={Download} size={16} /> {exportData.isFetching ? t("pf.fetching") : t("pf.prepare")}
                 </button>
                 {exportUrl && (
-                  <a href={exportUrl} download={`hellosky-mine-data-${new Date().toISOString().slice(0, 10)}.json`} className="inline-flex min-h-11 items-center rounded-full bg-night px-4 text-[13px] font-bold text-white">
+                  <a href={exportUrl} download={`hellosky-mine-data-${new Date().toISOString().slice(0, 10)}.json`} className="inline-flex min-h-11 items-center rounded-lg bg-night px-4 text-[13px] font-semibold text-white">
                     {t("pf.downloadjson")}
                   </a>
                 )}
@@ -399,7 +399,7 @@ export default function Profile() {
           </>
         )}
 
-        <div className="mt-8 flex items-center gap-3 rounded-2xl bg-accent px-4 py-4">
+        <div className="mt-8 flex items-center gap-3 rounded-lg bg-accent px-4 py-4">
           <Icon icon={Plane} size={20} className="shrink-0 text-accent-foreground" />
           <p className="text-[13px] font-medium text-accent-foreground">
             {t("pf.footer")}

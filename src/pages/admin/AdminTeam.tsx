@@ -63,14 +63,14 @@ export function AdminMessages() {
               <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                 <div className={cn("max-w-[80%] sm:max-w-[65%]", mine && "text-right")}>
                   {!mine && (
-                    <p className="mb-1 text-[11px] font-bold text-muted-foreground">{m.senderName}</p>
+                    <p className="mb-1 text-[11px] font-semibold text-muted-foreground">{m.senderName}</p>
                   )}
                   <div
                     className={cn(
-                      "inline-block rounded-2xl px-4 py-2.5 text-left text-sm leading-relaxed shadow-sm",
+                      "inline-block rounded-lg px-4 py-2.5 text-left text-sm leading-relaxed shadow-sm",
                       mine
                         ? "rounded-br-md bg-primary text-white"
-                        : "rounded-bl-md border border-border bg-white text-night",
+                        : "rounded-bl-md border border-border bg-card text-foreground",
                     )}
                   >
                     {m.body}
@@ -113,10 +113,10 @@ export function AdminMessages() {
 
 type NoteColor = "sun" | "sky" | "leaf" | "rose";
 const NOTE_COLORS: Record<NoteColor, { bg: string; border: string; label: string }> = {
-  sun: { bg: "bg-amber-50", border: "border-amber-200", label: "Sol" },
+  sun: { bg: "bg-warning/10", border: "border-warning/30", label: "Sol" },
   sky: { bg: "bg-sky-50", border: "border-sky-200", label: "Himmel" },
-  leaf: { bg: "bg-emerald-50", border: "border-emerald-200", label: "Blad" },
-  rose: { bg: "bg-rose-50", border: "border-rose-200", label: "Rose" },
+  leaf: { bg: "bg-success/5", border: "border-success/30", label: "Blad" },
+  rose: { bg: "bg-destructive/5", border: "border-destructive/30", label: "Rose" },
 };
 
 export function AdminNotes() {
@@ -178,7 +178,7 @@ export function AdminNotes() {
                   />
                 ))}
               </div>
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-night">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-foreground">
                 <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="h-4 w-4 accent-primary" />
                 Fest øverst
               </label>
@@ -209,17 +209,17 @@ export function AdminNotes() {
             <div
               key={n.id}
               className={cn(
-                "group relative rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md",
+                "group relative rounded-lg border p-5 shadow-sm transition-shadow hover:shadow-md",
                 c.bg, c.border,
                 n.pinned && "ring-2 ring-night/10",
               )}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
-                <h3 className="font-display text-lg font-bold leading-snug text-night">{n.title}</h3>
-                {n.pinned && <Pin className="h-4 w-4 shrink-0 rotate-45 text-night/50" />}
+                <h3 className="font-display text-xl font-semibold leading-snug text-foreground">{n.title}</h3>
+                {n.pinned && <Pin className="h-4 w-4 shrink-0 rotate-45 text-muted-foreground" />}
               </div>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-night/80">{n.body}</p>
-              <div className="mt-4 flex items-center justify-between text-[11px] text-night/50">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{n.body}</p>
+              <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <User className="h-3 w-3" /> {n.authorName} · {formatDateTime(n.updatedAt)}
                 </span>
@@ -237,7 +237,7 @@ export function AdminNotes() {
                       type="button"
                       aria-label="Slett"
                       onClick={() => remove.mutate({ id: n.id })}
-                      className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-100"
+                      className="rounded-lg p-1.5 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -301,7 +301,7 @@ export function AdminProblems() {
       />
 
       {open && (
-        <Card className="mb-6 border-rose-200 bg-rose-50/40">
+        <Card className="mb-6 border-destructive/30 bg-destructive/5/40">
           <div className="grid gap-4">
             <div>
               <label className={labelCls}>Hva er problemet?</label>
@@ -319,8 +319,8 @@ export function AdminProblems() {
                     type="button"
                     onClick={() => setSeverity(s)}
                     className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-bold transition-all",
-                      severity === s ? "bg-night text-white" : "bg-night/5 text-night/60 hover:bg-night/10",
+                      "rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
+                      severity === s ? "bg-night text-white" : "bg-muted text-foreground/60 hover:bg-night/10",
                     )}
                   >
                     {SEVERITY[s].label}
@@ -355,19 +355,19 @@ export function AdminProblems() {
                 <div className="flex flex-wrap items-start gap-3">
                   <span className={cn(
                     "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                    p.severity === "critical" ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-700",
+                    p.severity === "critical" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning",
                   )}>
                     <AlertTriangle className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold text-night">{p.title}</h3>
+                      <h3 className="font-semibold text-foreground">{p.title}</h3>
                       <Pill tone={sev.tone}>{sev.label}</Pill>
                       <Pill tone={st.tone}>
                         <st.icon className="h-3 w-3" /> {st.label}
                       </Pill>
                     </div>
-                    <p className="mt-1.5 whitespace-pre-wrap text-sm text-night/75">{p.description}</p>
+                    <p className="mt-1.5 whitespace-pre-wrap text-sm text-foreground/75">{p.description}</p>
                     <p className="mt-2 text-[11px] text-muted-foreground">
                       Meldt av {p.reporterName} · {formatDateTime(p.createdAt)}
                       {p.assignedToId && problems.data?.assignees.find((a) => a.id === p.assignedToId) && (
@@ -398,15 +398,15 @@ export function AdminProblems() {
 
       {resolved.length > 0 && (
         <details className="mt-8">
-          <summary className="cursor-pointer text-sm font-bold text-muted-foreground hover:text-night">
+          <summary className="cursor-pointer text-sm font-semibold text-muted-foreground hover:text-foreground">
             Vis {resolved.length} løste {resolved.length === 1 ? "sak" : "saker"}
           </summary>
           <div className="mt-3 space-y-2 opacity-70">
             {resolved.map((p) => (
               <Card key={p.id} className="!p-4">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                  <p className="flex-1 text-sm font-semibold text-night line-through decoration-night/30">{p.title}</p>
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+                  <p className="flex-1 text-sm font-semibold text-foreground line-through decoration-night/30">{p.title}</p>
                   <p className="text-[11px] text-muted-foreground">
                     Løst {formatDateTime(p.resolvedAt)}
                   </p>

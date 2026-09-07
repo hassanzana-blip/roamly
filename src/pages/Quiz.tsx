@@ -63,7 +63,7 @@ export default function Quiz() {
                 transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 className="flex flex-1 flex-col items-center justify-center py-10 text-center"
               >
-                <p className="font-mono-label inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-[10px] text-white/85">
+                <p className="font-mono-label inline-flex items-center gap-2.5 rounded-md border border-white/20 bg-white/5 px-4 py-2 text-[10px] text-white/85">
                   <Sparkles className="h-3.5 w-3.5" />
                   Reisequizen · 5 spørsmål · 30 sekunder
                 </p>
@@ -81,7 +81,7 @@ export default function Quiz() {
                 <button
                   type="button"
                   onClick={() => setPhase(0)}
-                  className="mt-10 inline-flex items-center gap-2.5 rounded-full bg-white px-9 py-4 text-base font-bold text-night transition-all hover:bg-primary hover:text-white active:scale-[0.98]"
+                  className="mt-10 inline-flex items-center gap-2.5 rounded-lg bg-card px-9 py-4 text-base font-semibold text-primary-foreground transition-all hover:bg-primary hover:text-white active:scale-[0.98]"
                 >
                   Start quizen <ArrowRight className="h-5 w-5" />
                 </button>
@@ -111,7 +111,7 @@ export default function Quiz() {
                   </button>
                   <div className="h-px flex-1 bg-white/15">
                     <motion.div
-                      className="h-px bg-white"
+                      className="h-px bg-card"
                       initial={false}
                       animate={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }}
                       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -135,7 +135,7 @@ export default function Quiz() {
                         type="button"
                         onClick={() => choose(QUESTIONS[step].key, o.id)}
                         aria-pressed={selected}
-                        className={`group relative overflow-hidden rounded-3xl text-left transition-all duration-300 ${
+                        className={`group relative overflow-hidden rounded-xl text-left transition-all duration-300 ${
                           selected
                             ? "ring-2 ring-white ring-offset-2 ring-offset-night"
                             : "hover:-translate-y-1"
@@ -157,7 +157,7 @@ export default function Quiz() {
                           {selected && (
                             <motion.span
                               layoutId="quiz-check"
-                              className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white text-night"
+                              className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-card text-foreground"
                             >
                               ✦
                             </motion.span>
@@ -247,18 +247,18 @@ export default function Quiz() {
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <Link
                     to={searchHref(result.top.iata)}
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-bold text-night transition-colors hover:bg-primary hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-lg bg-card px-7 py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary hover:text-white"
                   >
                     <Plane className="h-4 w-4" /> Søk ekte fly til {result.top.city}
                   </Link>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3.5 text-sm text-white/75">
+                  <span className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-5 py-3.5 text-sm text-white/75">
                     <Camera className="h-4 w-4" />
                     Ta en skjermdump og send den til {result.isCouple ? "hen/ham" : "vennene"}
                   </span>
                   <button
                     type="button"
                     onClick={restart}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3.5 text-sm font-medium text-white/75 transition-colors hover:border-white/60 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-5 py-3.5 text-sm font-medium text-white/75 transition-colors hover:border-white/60 hover:text-white"
                   >
                     <RotateCcw className="h-4 w-4" /> Ta quizen på nytt
                   </button>
@@ -274,7 +274,7 @@ export default function Quiz() {
                       <Link
                         key={alt.id}
                         to={searchHref(alt.iata)}
-                        className="group relative overflow-hidden rounded-3xl"
+                        className="group relative overflow-hidden rounded-xl"
                       >
                         <div className="relative aspect-[16/8]">
                           <img

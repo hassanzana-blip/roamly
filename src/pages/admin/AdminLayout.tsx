@@ -101,8 +101,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex items-center gap-2.5 px-5 pb-5 pt-6">
         <SkyMark className="h-8 w-8 text-primary" />
         <div>
-          <p className="font-display text-lg font-bold leading-none text-night">HelloSky</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Administrator</p>
+          <p className="font-display text-xl font-semibold leading-none text-foreground">HelloSky</p>
+          <p className="mt-1 eyebrow">Administrator</p>
         </div>
       </div>
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-6" aria-label="Adminmeny">
@@ -111,7 +111,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           if (visible.length === 0) return null;
           return (
             <div key={section.label}>
-              <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{section.label}</p>
+              <p className="px-3 pb-1.5 eyebrow">{section.label}</p>
               <ul className="space-y-0.5">
                 {visible.map((item) => (
                   <li key={item.to}>
@@ -122,7 +122,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                       className={({ isActive }) =>
                         cn(
                           "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-primary",
-                          isActive ? "bg-night text-white shadow-sm" : "text-night/80 hover:bg-night/5 hover:text-night",
+                          isActive ? "bg-night text-white shadow-sm" : "text-foreground/80 hover:bg-muted hover:text-foreground",
                         )
                       }
                     >
@@ -138,7 +138,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
       <div className="border-t border-border px-5 py-4">
         <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" /> Beskyttet område · MFA påkrevd
+          <ShieldCheck className="h-3.5 w-3.5 text-success" aria-hidden="true" /> Beskyttet område · MFA påkrevd
         </p>
       </div>
     </div>
@@ -163,8 +163,8 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
       <button type="button" aria-label="Lukk meny" className="absolute inset-0 bg-night/50" onClick={onClose} />
-      <aside ref={ref} role="dialog" aria-modal="true" aria-label="Adminmeny" className="absolute inset-y-0 left-0 w-[min(18rem,88vw)] bg-white shadow-2xl">
-        <button type="button" aria-label="Lukk meny" onClick={onClose} className="absolute right-2 top-3 grid h-11 w-11 place-items-center rounded-full text-night/70 hover:bg-night/5">
+      <aside ref={ref} role="dialog" aria-modal="true" aria-label="Adminmeny" className="absolute inset-y-0 left-0 w-[min(18rem,88vw)] bg-card shadow-2xl">
+        <button type="button" aria-label="Lukk meny" onClick={onClose} className="absolute right-2 top-3 grid h-11 w-11 place-items-center rounded-full text-foreground/70 hover:bg-muted">
           <X className="h-5 w-5" aria-hidden="true" />
         </button>
         <SidebarContent onNavigate={onClose} />
@@ -208,28 +208,28 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      <a href="#admin-main" className="sr-only z-[100] rounded-full bg-night px-4 py-2 text-sm font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
+      <a href="#admin-main" className="sr-only z-[100] rounded-lg bg-night px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         Hopp til innhold
       </a>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-card lg:block">
         <SidebarContent />
       </aside>
 
       <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-white/90 px-3 backdrop-blur sm:gap-3 sm:px-6">
-          <button type="button" aria-label="Åpne meny" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="grid h-11 w-11 place-items-center rounded-full text-night hover:bg-night/5 lg:hidden">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-6">
+          <button type="button" aria-label="Åpne meny" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="grid h-11 w-11 place-items-center rounded-full text-foreground hover:bg-muted lg:hidden">
             <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
 
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em]",
-              isProduction ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-900",
+              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]",
+              isProduction ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning",
             )}
           >
-            <span className={cn("h-1.5 w-1.5 rounded-full", isProduction ? "bg-rose-500" : "bg-amber-500")} aria-hidden="true" />
+            <span className={cn("h-1.5 w-1.5 rounded-full", isProduction ? "bg-destructive" : "bg-warning")} aria-hidden="true" />
             {isProduction ? "Produksjon" : "Staging / test"}
           </span>
           {!user.sessionFresh && (
@@ -242,11 +242,11 @@ export function AdminLayout() {
               onClick={() => setUserMenuOpen((v) => !v)}
               aria-expanded={userMenuOpen}
               aria-haspopup="menu"
-              className="flex min-h-11 items-center gap-2.5 rounded-full border border-border bg-white py-1.5 pl-1.5 pr-3 text-left shadow-sm hover:border-night/30"
+              className="flex min-h-11 items-center gap-2.5 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-3 text-left shadow-sm hover:border-foreground/40"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">{user.name.charAt(0).toUpperCase()}</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{user.name.charAt(0).toUpperCase()}</span>
               <span className="hidden sm:block">
-                <span className="block text-sm font-semibold leading-tight text-night">{user.name}</span>
+                <span className="block text-sm font-semibold leading-tight text-foreground">{user.name}</span>
                 <span className="block text-[11px] leading-tight text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role}</span>
               </span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -254,7 +254,7 @@ export function AdminLayout() {
             {userMenuOpen && (
               <>
                 <button type="button" aria-label="Lukk brukermeny" className="fixed inset-0 z-10 cursor-default" onClick={() => setUserMenuOpen(false)} />
-                <div role="menu" className="absolute right-0 z-20 mt-2 w-60 rounded-2xl border border-border bg-white p-2 shadow-xl">
+                <div role="menu" className="absolute right-0 z-20 mt-2 w-60 rounded-lg border border-border bg-card p-2 shadow-xl">
                   <p className="truncate px-3 py-2 text-xs text-muted-foreground">{user.email}</p>
                   <p className="px-3 pb-2 text-xs text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role} · MFA {user.mfaEnabled ? "på" : "av"}</p>
                   <button
@@ -262,7 +262,7 @@ export function AdminLayout() {
                     role="menuitem"
                     onClick={() => logout.mutate()}
                     disabled={logout.isPending}
-                    className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm font-semibold text-night hover:bg-night/5 disabled:opacity-50"
+                    className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50"
                   >
                     <LogOut className="h-4 w-4" aria-hidden="true" />
                     {logout.isPending ? "Logger ut …" : "Logg ut"}

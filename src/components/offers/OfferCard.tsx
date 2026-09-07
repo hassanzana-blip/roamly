@@ -1,20 +1,14 @@
 import { useId, useState } from "react";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { ArrowLeftRight, Briefcase, ChevronDown, Leaf, Luggage, Moon, Share2 } from "lucide-react";
 import type { Offer, OfferSlice, Segment } from "@contracts/types";
-import {
-  cabinLabel,
-  crossesMidnight,
-  fareConditionLabel,
-  formatClock,
-  formatDuration,
-  formatMinor,
-  layoverInfo,
-  previewTotalMinor,
-  toMinor,
-} from "@/lib/format";
+import { cabinLabel, crossesMidnight, fareConditionLabel, formatClock, formatDuration, formatMinor, layoverInfo, previewTotalMinor, toMinor } from "@/lib/format";
 import Icon from "@/components/app/Icon";
+import { Button } from "@/components/ui/button";
 import { useFeeConfig } from "@/lib/useFeeConfig";
 import { useT } from "@/lib/i18n";
+import { PREFERENCES, highlights, isFamily, payingPassengers, type Preference } from "@/lib/offers";
+import { cn } from "@/lib/utils";
 import { sliceBaggage, sliceLabel } from "./offerUtils";
 
 export function SliceViz({ slice }: { slice: OfferSlice }) {
@@ -22,30 +16,30 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
   const dayShift = crossesMidnight(slice.departingAt, slice.arrivingAt);
   return (
     <div className="flex items-center gap-3">
-      <div className="text-right">
-        <p className="text-lg font-bold leading-none sm:text-xl">{formatClock(slice.departingAt)}</p>
-        <p className="mt-1 text-xs font-semibold tracking-wider text-muted-foreground">{slice.origin.iata}</p>
+      <div className="w-14 shrink-0 text-right sm:w-16">
+        <p className="text-lg font-semibold leading-none tabular sm:text-xl">{formatClock(slice.departingAt)}</p>
+        <p className="mt-1 text-xs font-medium tracking-wider text-muted-foreground">{slice.origin.iata}</p>
       </div>
-      <div className="relative flex-1 px-1">
+      <div className="relative min-w-0 flex-1 px-1">
         <div className="flex items-center">
-          <span className="h-1.5 w-1.5 rounded-full bg-skyline" />
-          <span className="relative h-px flex-1 bg-skyline/40">
+          <span className="size-1.5 rounded-full bg-foreground/70" />
+          <span className="relative h-px flex-1 bg-border">
             {Array.from({ length: slice.stops }).map((_, i) => (
               <span
                 key={i}
-                className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border-2 border-primary bg-card"
+                className="absolute top-1/2 size-2 -translate-y-1/2 rounded-full border-2 border-muted-foreground bg-card"
                 style={{ left: `${((i + 1) / (slice.stops + 1)) * 100}%` }}
                 title={slice.segments[i]?.destination.city}
               />
             ))}
           </span>
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <span className="size-1.5 rounded-full bg-primary" />
         </div>
-        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+        <p className="mt-1.5 truncate text-center text-2xs text-muted-foreground">
           {formatDuration(slice.durationMinutes)}
           {" · "}
           {slice.stops === 0 ? (
-            <span className="font-medium text-foreground">{t("oc.direct")}</span>
+            <span className="font-medium text-success">{t("oc.direct")}</span>
           ) : (
             `${t("oc.stops", { count: slice.stops })} ${slice.segments
               .slice(0, -1)
@@ -54,16 +48,16 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
           )}
         </p>
       </div>
-      <div>
-        <p className="text-lg font-bold leading-none sm:text-xl">
+      <div className="w-14 shrink-0 sm:w-16">
+        <p className="text-lg font-semibold leading-none tabular sm:text-xl">
           {formatClock(slice.arrivingAt)}
           {dayShift > 0 && (
-            <sup className="ml-0.5 text-[10px] font-semibold text-foreground" aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
+            <sup className="ml-0.5 text-[10px] font-semibold text-muted-foreground" aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
               +{dayShift}
             </sup>
           )}
         </p>
-        <p className="mt-1 text-xs font-semibold tracking-wider text-muted-foreground">{slice.destination.iata}</p>
+        <p className="mt-1 text-xs font-medium tracking-wider text-muted-foreground">{slice.destination.iata}</p>
       </div>
     </div>
   );
@@ -74,16 +68,16 @@ function SegmentDetail({ seg }: { seg: Segment }) {
   const operatedBy = seg.operatingCarrier && seg.operatingCarrier.iata !== seg.carrier.iata ? seg.operatingCarrier : null;
   return (
     <div className="flex items-start gap-3">
-      <div className="mt-1 flex flex-col items-center" aria-hidden="true">
-        <span className="h-2 w-2 rounded-full bg-skyline" />
-        <span className="h-8 w-px bg-skyline/30" />
-        <span className="h-2 w-2 rounded-full bg-primary" />
+      <div className="mt-1.5 flex flex-col items-center" aria-hidden="true">
+        <span className="size-2 rounded-full bg-foreground/70" />
+        <span className="h-8 w-px bg-border" />
+        <span className="size-2 rounded-full bg-primary" />
       </div>
       <div className="min-w-0 flex-1 text-sm">
         <p className="font-medium">
-          {formatClock(seg.departingAt)} {seg.origin.city} <span className="text-muted-foreground">({seg.origin.iata})</span>
+          <span className="tabular">{formatClock(seg.departingAt)}</span> {seg.origin.city} <span className="text-muted-foreground">({seg.origin.iata})</span>
           {" → "}
-          {formatClock(seg.arrivingAt)} {seg.destination.city} <span className="text-muted-foreground">({seg.destination.iata})</span>
+          <span className="tabular">{formatClock(seg.arrivingAt)}</span> {seg.destination.city} <span className="text-muted-foreground">({seg.destination.iata})</span>
           {crossesMidnight(seg.departingAt, seg.arrivingAt) > 0 && <span className="ml-1 text-xs text-muted-foreground">{t("oc.nextday")}</span>}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
@@ -106,13 +100,13 @@ function SliceDetails({ slice, label, fallbackBaggage }: { slice: OfferSlice; la
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground">{label}</p>
-        <p className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <p className="eyebrow text-foreground">{label}</p>
+        <p className="flex items-center gap-3 text-2xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Briefcase className="h-3.5 w-3.5" aria-hidden="true" /> {t("oc.carryon", { count: bag.carryOnBags })}
+            <Briefcase className="size-3.5" aria-hidden="true" /> {t("oc.carryon", { count: bag.carryOnBags })}
           </span>
           <span className="flex items-center gap-1">
-            <Luggage className="h-3.5 w-3.5" aria-hidden="true" /> {t("oc.checked", { count: bag.checkedBags })}
+            <Luggage className="size-3.5" aria-hidden="true" /> {t("oc.checked", { count: bag.checkedBags })}
           </span>
         </p>
       </div>
@@ -124,11 +118,7 @@ function SliceDetails({ slice, label, fallbackBaggage }: { slice: OfferSlice; la
             <div key={seg.id}>
               <SegmentDetail seg={seg} />
               {lay && (
-                <p
-                  className={`ml-5 mt-1.5 rounded-lg px-3 py-1.5 text-xs ${
-                    lay.overnight || lay.long ? "bg-primary/10 font-medium text-primary" : "bg-card text-muted-foreground"
-                  }`}
-                >
+                <p className={cn("ml-5 mt-1.5 rounded-md px-3 py-1.5 text-xs", lay.overnight || lay.long ? "bg-warning/10 font-medium text-warning" : "bg-muted text-muted-foreground")}>
                   {t("oc.layover", { city: seg.destination.city, duration: formatDuration(lay.minutes) })}
                   {lay.overnight ? t("oc.layover.overnight") : lay.long ? t("oc.layover.long") : ""}
                 </p>
@@ -145,15 +135,17 @@ interface Props {
   offer: Offer;
   onSelect: (offer: Offer) => void;
   selected?: boolean;
-  /** Sammenlign-valg (maks 3) — håndteres av forelderen */
+  /** Compare selection (max 3), handled by the parent */
   comparing?: boolean;
   compareDisabled?: boolean;
   onToggleCompare?: (offer: Offer) => void;
-  /** Del tilbudet på WhatsApp */
+  /** Share the offer on WhatsApp */
   shareText?: string;
+  /** Marks the top result for the active preference */
+  recommended?: Preference;
 }
 
-export default function OfferCard({ offer, onSelect, selected, comparing, compareDisabled, onToggleCompare, shareText }: Props) {
+export default function OfferCard({ offer, onSelect, selected, comparing, compareDisabled, onToggleCompare, shareText, recommended }: Props) {
   const t = useT();
   const feeConfig = useFeeConfig();
   const [expanded, setExpanded] = useState(false);
@@ -161,6 +153,8 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   const currency = offer.totalCurrency;
   const supplierMinor = toMinor(offer.totalAmount, currency);
   const totalMinor = previewTotalMinor(offer.totalAmount, currency, feeConfig);
+  const paying = payingPassengers(offer.passengers);
+  const family = isFamily(offer.passengers);
   const hasOvernight = offer.slices.some((s) =>
     s.segments.some((seg, i) => {
       const next = s.segments[i + 1];
@@ -183,91 +177,104 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   );
   const refundLabel = fareConditionLabel("refund", offer.conditions?.refundBeforeDeparture, offer.refundable);
   const changeLabel = fareConditionLabel("change", offer.conditions?.changeBeforeDeparture, offer.changeable);
+  const tags = highlights(offer, offer.passengers).filter((k) => k !== "oc.direct");
+  const recommendedLabel = recommended ? PREFERENCES.find((p) => p.key === recommended)?.label : undefined;
 
   return (
     <article
-      className={`overflow-hidden rounded-3xl border bg-card transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-night/5 ${
-        selected ? "border-primary" : "border-border"
-      }`}
+      className={cn(
+        "overflow-hidden rounded-xl border bg-card transition-[border-color,box-shadow] duration-base ease-out hover:border-foreground/30",
+        selected ? "border-primary" : recommended ? "border-primary/40 shadow-soft" : "border-border",
+      )}
       aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b hairline px-5 py-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary text-xs font-black tracking-wider text-foreground" aria-hidden="true">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5 sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-muted text-2xs font-bold tracking-wider text-foreground" aria-hidden="true">
             {offer.owner.iata}
           </span>
           <span className="text-sm font-medium">{offer.owner.name}</span>
-          {operatedBy.length > 0 && <span className="text-[11px] text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
-          {offer.slices.every((s) => s.stops === 0) && (
-            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">{t("oc.direct")}</span>
-          )}
+          {operatedBy.length > 0 && <span className="text-2xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
+          {recommendedLabel && <span className="rounded-md bg-primary-soft px-2 py-0.5 text-2xs font-semibold text-accent-foreground">{t(recommendedLabel)}</span>}
           {offer.slices.some((s) => crossesMidnight(s.departingAt, s.arrivingAt) > 0) && (
-            <span className="flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-foreground">
-              <Moon className="h-3 w-3" aria-hidden="true" /> {t("oc.arrivalnextday")}
+            <span className="flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-2xs font-medium text-foreground">
+              <Moon className="size-3" aria-hidden="true" /> {t("oc.arrivalnextday")}
             </span>
           )}
-          {hasOvernight && <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">{t("oc.overnight")}</span>}
-          {!hasOvernight && hasLong && <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">{t("oc.longlayover")}</span>}
+          {hasOvernight && <span className="rounded-md bg-warning/10 px-2 py-0.5 text-2xs font-semibold text-warning">{t("oc.overnight")}</span>}
+          {!hasOvernight && hasLong && <span className="rounded-md bg-warning/10 px-2 py-0.5 text-2xs font-semibold text-warning">{t("oc.longlayover")}</span>}
         </div>
-        <span className="hidden items-center gap-1 text-[11px] text-muted-foreground md:flex" title={t("oc.co2")}>
-          <Leaf className="h-3.5 w-3.5" aria-hidden="true" /> {offer.emissionsKg} kg CO₂
+        <span className="hidden items-center gap-1 text-2xs text-muted-foreground md:flex" title={t("oc.co2")}>
+          <Leaf className="size-3.5" aria-hidden="true" /> {offer.emissionsKg} kg CO₂
         </span>
       </div>
 
-      <div className="space-y-5 px-5 py-5">
+      <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
         {offer.slices.map((slice, i) => {
           const bag = sliceBaggage(slice, offer.baggage);
           return (
             <div key={slice.id}>
-              {offer.slices.length > 1 && (
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{sliceLabel(offer.slices.length, i)}</p>
-              )}
+              {offer.slices.length > 1 && <p className="eyebrow mb-2">{sliceLabel(offer.slices.length, i)}</p>}
               <SliceViz slice={slice} />
-              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Briefcase className="h-3.5 w-3.5" aria-hidden="true" /> {t("oc.carryon", { count: bag.carryOnBags })}
+                  <Briefcase className="size-3.5" aria-hidden="true" /> {t("oc.carryon", { count: bag.carryOnBags })}
                 </span>
-                <span className="flex items-center gap-1">
-                  <Luggage className="h-3.5 w-3.5" aria-hidden="true" /> {bag.checkedBags === 0 ? t("oc.checked.none") : t("oc.checked", { count: bag.checkedBags })}
+                <span className={cn("flex items-center gap-1", bag.checkedBags > 0 && "text-foreground")}>
+                  <Luggage className="size-3.5" aria-hidden="true" /> {bag.checkedBags === 0 ? t("oc.checked.none") : t("oc.checked", { count: bag.checkedBags })}
                 </span>
               </p>
             </div>
           );
         })}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setExpanded((e) => !e)}
-        aria-expanded={expanded}
-        aria-controls={detailsId}
-        className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t hairline py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        {expanded ? t("oc.hide") : t("oc.show")}
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
-      </button>
-      <div id={detailsId} hidden={!expanded} className="space-y-6 border-t hairline bg-muted/40 px-5 py-5">
-        {offer.slices.map((slice, i) => (
-          <SliceDetails key={slice.id} slice={slice} label={sliceLabel(offer.slices.length, i)} fallbackBaggage={offer.baggage} />
-        ))}
-        <div className="rounded-2xl bg-card p-4 text-xs">
-          <p className="mb-1 font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("oc.conditions")}</p>
-          <ul className="space-y-1 text-foreground">
-            <li>{refundLabel}</li>
-            <li>{changeLabel}</li>
-            <li className="text-muted-foreground">{t("oc.conditions.note")}</li>
+        {tags.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5" aria-label={t("oc.details")}>
+            {tags.map((k) => (
+              <li key={k} className="rounded-md border border-border px-2 py-0.5 text-2xs font-medium text-foreground">
+                {t(k)}
+              </li>
+            ))}
           </ul>
-        </div>
+        )}
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t hairline px-5 py-4">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{refundLabel}</p>
-          <p className="text-2xl font-extrabold leading-none tracking-tight text-night sm:text-3xl">{formatMinor(totalMinor, currency)}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
+      <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
+        <Collapsible.Trigger asChild>
+          <button
+            type="button"
+            aria-controls={detailsId}
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-border py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            {expanded ? t("oc.hide") : t("oc.show")}
+            <ChevronDown className={cn("size-3.5 transition-transform duration-base", expanded && "rotate-180")} aria-hidden="true" />
+          </button>
+        </Collapsible.Trigger>
+        <Collapsible.Content id={detailsId} className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          <div className="space-y-6 border-t border-border bg-muted/40 px-4 py-5 sm:px-5">
+            {offer.slices.map((slice, i) => (
+              <SliceDetails key={slice.id} slice={slice} label={sliceLabel(offer.slices.length, i)} fallbackBaggage={offer.baggage} />
+            ))}
+            <div className="rounded-lg bg-card p-4 text-xs">
+              <p className="eyebrow mb-1">{t("oc.conditions")}</p>
+              <ul className="space-y-1 text-foreground">
+                <li>{refundLabel}</li>
+                <li>{changeLabel}</li>
+                <li className="text-muted-foreground">{t("oc.conditions.note")}</li>
+              </ul>
+            </div>
+          </div>
+        </Collapsible.Content>
+      </Collapsible.Root>
+
+      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-2xs text-muted-foreground">{refundLabel}</p>
+          <p className="text-2xl font-semibold leading-none tracking-tight tabular text-foreground sm:text-[28px]">{formatMinor(totalMinor, currency)}</p>
+          <p className="mt-1 text-2xs text-muted-foreground">
             {t("oc.totalfor", { count: offer.passengers.length })} · {t("oc.approx")}
           </p>
-          <p className="text-[11px] text-muted-foreground">{t("oc.supplierprice", { price: formatMinor(supplierMinor, currency) })}</p>
+          {(family || paying > 1) && <p className="text-2xs font-medium text-foreground">{t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying), currency) })}</p>}
+          <p className="text-2xs text-muted-foreground">{t("oc.supplierprice", { price: formatMinor(supplierMinor, currency) })}</p>
           <div className="mt-2.5 flex items-center gap-2">
             {onToggleCompare && (
               <button
@@ -275,9 +282,10 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
                 onClick={() => onToggleCompare(offer)}
                 disabled={!comparing && compareDisabled}
                 aria-pressed={comparing}
-                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-semibold transition-colors ${
-                  comparing ? "border-foreground/30 bg-night text-white" : "hairline text-muted-foreground hover:text-foreground disabled:opacity-40"
-                }`}
+                className={cn(
+                  "inline-flex min-h-10 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors",
+                  comparing ? "border-night bg-night text-white" : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground disabled:opacity-40",
+                )}
               >
                 <Icon icon={ArrowLeftRight} size={16} />
                 {comparing ? t("oc.selected") : t("oc.compare")}
@@ -289,7 +297,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={t("oc.share")}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-full border hairline px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
               >
                 <Icon icon={Share2} size={16} />
                 {t("oc.share.short")}
@@ -297,12 +305,9 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
             )}
           </div>
         </div>
-        <button
-          onClick={() => onSelect(offer)}
-          className="min-h-12 rounded-full bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:brightness-[0.94] active:scale-[0.98] sm:px-9"
-        >
+        <Button size="lg" onClick={() => onSelect(offer)} className="px-8">
           {t("oc.select")}
-        </button>
+        </Button>
       </div>
     </article>
   );

@@ -93,9 +93,9 @@ export default function PriceCalendar({
   const canGoBack = offset > 0;
 
   return (
-    <div className="rounded-3xl border border-border bg-white p-4 shadow-soft sm:p-5">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-soft sm:p-5">
       <div className="mb-3 flex items-center justify-between">
-        <p className="font-display text-lg capitalize">
+        <p className="text-base font-semibold capitalize">
           {MONTHS_NB[month.getUTCMonth()]} {month.getUTCFullYear()}
         </p>
         <div className="flex gap-1">
@@ -145,7 +145,7 @@ export default function PriceCalendar({
               className={cn(
                 "flex min-h-11 flex-col items-center justify-center rounded-xl border py-1.5 transition-colors",
                 active
-                  ? "border-night bg-night text-white"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : isCheapest
                     ? "border-primary/50 bg-accent hover:border-primary"
                     : "border-transparent hover:border-border hover:bg-muted",
@@ -155,7 +155,7 @@ export default function PriceCalendar({
               <span
                 className={cn(
                   "mt-0.5 text-[9px] font-medium leading-none",
-                  active ? "text-white/80" : isCheapest ? "font-bold text-accent-foreground" : "text-muted-foreground",
+                  active ? "text-primary-foreground/80" : isCheapest ? "font-bold text-accent-foreground" : "text-muted-foreground",
                 )}
               >
                 {amount
@@ -169,7 +169,7 @@ export default function PriceCalendar({
         })}
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Veiledende priser fra vårt prissøk — velg en dato for å se nøyaktige tilbud.
+        Veiledende priser fra vårt prissøk. Velg en dato for å se nøyaktige tilbud.
         {cheapest < Infinity && " Billigste dag er markert."}
       </p>
     </div>

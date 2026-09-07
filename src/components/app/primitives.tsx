@@ -15,59 +15,49 @@ type BtnProps = Omit<
 };
 type MotionBtnRest = Omit<HTMLMotionProps<"button">, "ref">;
 
-/** Lime CTA — the single vivid action of a screen. ≥48px target. */
-export const PrimaryButton = forwardRef<HTMLButtonElement, BtnProps>(
-  function PrimaryButton({ icon, className, children, ...rest }, ref) {
-    return (
-      <motion.button
-        ref={ref}
-        whileTap={{ scale: 0.97 }}
-        className={cn(
-          "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-[15px] font-bold text-primary-foreground transition-colors duration-200 hover:bg-[hsl(74,93%,50%)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
-          className,
-        )}
-        {...(rest as MotionBtnRest)}
-      >
-        {icon ? <Icon icon={icon} size={20} /> : null}
-        {children}
-      </motion.button>
-    );
-  },
-);
+const baseBtn =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-5 text-[15px] font-semibold transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50";
 
-/** Quiet dark action — near-black pill. */
-export const SecondaryButton = forwardRef<HTMLButtonElement, BtnProps>(
-  function SecondaryButton({ icon, className, children, ...rest }, ref) {
-    return (
-      <motion.button
-        ref={ref}
-        whileTap={{ scale: 0.97 }}
-        className={cn(
-          "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-night px-6 text-[15px] font-semibold text-white transition-colors duration-200 hover:bg-[hsl(240,6%,16%)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
-          className,
-        )}
-        {...(rest as MotionBtnRest)}
-      >
-        {icon ? <Icon icon={icon} size={20} /> : null}
-        {children}
-      </motion.button>
-    );
-  },
-);
-
-/** Round outline icon button — 44px touch target. */
-export const IconButton = forwardRef<
-  HTMLButtonElement,
-  BtnProps & { label: string }
->(function IconButton({ icon, label, className, ...rest }, ref) {
+/** The single action of a screen. ≥48px target. */
+export const PrimaryButton = forwardRef<HTMLButtonElement, BtnProps>(function PrimaryButton({ icon, className, children, ...rest }, ref) {
   return (
     <motion.button
       ref={ref}
-      whileTap={{ scale: 0.9 }}
+      whileTap={{ scale: 0.985 }}
+      className={cn(baseBtn, "bg-primary text-primary-foreground shadow-xs hover:bg-[hsl(var(--primary)/0.9)]", className)}
+      {...(rest as MotionBtnRest)}
+    >
+      {icon ? <Icon icon={icon} size={20} /> : null}
+      {children}
+    </motion.button>
+  );
+});
+
+/** Quiet secondary action: outlined on white. */
+export const SecondaryButton = forwardRef<HTMLButtonElement, BtnProps>(function SecondaryButton({ icon, className, children, ...rest }, ref) {
+  return (
+    <motion.button
+      ref={ref}
+      whileTap={{ scale: 0.985 }}
+      className={cn(baseBtn, "border border-input bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60", className)}
+      {...(rest as MotionBtnRest)}
+    >
+      {icon ? <Icon icon={icon} size={20} /> : null}
+      {children}
+    </motion.button>
+  );
+});
+
+/** Round outline icon button — 44px touch target. */
+export const IconButton = forwardRef<HTMLButtonElement, BtnProps & { label: string }>(function IconButton({ icon, label, className, ...rest }, ref) {
+  return (
+    <motion.button
+      ref={ref}
+      whileTap={{ scale: 0.92 }}
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-white text-foreground transition-colors duration-200 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors duration-fast hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
       {...(rest as MotionBtnRest)}
@@ -80,19 +70,16 @@ export const IconButton = forwardRef<
 /* ─── Floating chips over imagery ─────────────────────────────────────── */
 
 export function RatingChip({ value, className }: { value: number; className?: string }) {
-  // Redaksjonell score fra HelloSky (ikke brukeranmeldelser) — merkes tydelig
-  // slik at den ikke kan forveksles med kundevurderinger (OTA-178).
+  // Editorial score from HelloSky (not user reviews); labelled so it cannot be
+  // mistaken for customer ratings (OTA-178).
   const label = `HelloSky-favoritt ${value.toFixed(1)} av 5 (redaksjonell vurdering)`;
   return (
     <span
       title={label}
       aria-label={label}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[12px] font-bold text-foreground shadow-soft backdrop-blur-sm",
-        className,
-      )}
+      className={cn("inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-[12px] font-semibold text-foreground shadow-soft backdrop-blur-sm", className)}
     >
-      <Icon icon={Star} size={14} className="fill-[hsl(var(--primary))] text-[hsl(var(--skyline))]" />
+      <Icon icon={Star} size={14} className="fill-[hsl(var(--primary))] text-[hsl(var(--primary))]" />
       <span aria-hidden="true">Vår favoritt</span>
     </span>
   );
@@ -101,31 +88,16 @@ export function RatingChip({ value, className }: { value: number; className?: st
 /** Small floating label over photos (e.g. "Populær", IATA). */
 export function ImageBadge({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full bg-night/80 px-2.5 py-1 font-mono-label text-[10px] text-white backdrop-blur-sm",
-        className,
-      )}
-    >
+    <span className={cn("inline-flex items-center gap-1 rounded-md bg-night/75 px-2 py-1 font-mono-label text-[10px] text-white backdrop-blur-sm", className)}>
       {children}
     </span>
   );
 }
 
-export function FavoriteButton({
-  active,
-  onToggle,
-  label,
-  className,
-}: {
-  active: boolean;
-  onToggle: () => void;
-  label: string;
-  className?: string;
-}) {
+export function FavoriteButton({ active, onToggle, label, className }: { active: boolean; onToggle: () => void; label: string; className?: string }) {
   return (
     <motion.button
-      whileTap={{ scale: 0.82 }}
+      whileTap={{ scale: 0.85 }}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -135,7 +107,7 @@ export function FavoriteButton({
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-soft backdrop-blur-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-soft backdrop-blur-sm transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active ? "text-[hsl(var(--coral))]" : "text-foreground",
         className,
       )}
@@ -147,41 +119,23 @@ export function FavoriteButton({
 
 /* ─── States ──────────────────────────────────────────────────────────── */
 
-export function EmptyState({
-  icon,
-  title,
-  body,
-  action,
-}: {
-  icon: LucideIcon;
-  title: string;
-  body?: string;
-  action?: ReactNode;
-}) {
+export function EmptyState({ icon, title, body, action }: { icon: LucideIcon; title: string; body?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-border bg-muted/40 px-6 py-12 text-center">
-      <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white text-muted-foreground shadow-soft">
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 px-6 py-12 text-center">
+      <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-card text-muted-foreground shadow-soft">
         <Icon icon={icon} size={24} />
       </span>
-      <p className="font-display text-lg">{title}</p>
+      <p className="font-display text-xl">{title}</p>
       {body ? <p className="max-w-sm text-sm text-muted-foreground">{body}</p> : null}
       {action}
     </div>
   );
 }
 
-export function ErrorState({
-  title = "Noe gikk galt",
-  body,
-  onRetry,
-}: {
-  title?: string;
-  body?: string;
-  onRetry?: () => void;
-}) {
+export function ErrorState({ title = "Noe gikk galt", body, onRetry }: { title?: string; body?: string; onRetry?: () => void }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-3xl border border-border bg-white px-6 py-12 text-center">
-      <p className="font-display text-lg">{title}</p>
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card px-6 py-12 text-center">
+      <p className="font-display text-xl">{title}</p>
       {body ? <p className="max-w-sm text-sm text-muted-foreground">{body}</p> : null}
       {onRetry ? (
         <SecondaryButton onClick={onRetry} className="mt-2">

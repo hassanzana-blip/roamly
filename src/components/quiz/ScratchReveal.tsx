@@ -114,7 +114,7 @@ export default function ScratchReveal({
         <button
           type="button"
           onClick={() => setDone(true)}
-          className="absolute bottom-3 left-1/2 z-10 min-h-11 -translate-x-1/2 rounded-full bg-white/95 px-5 text-[13px] font-bold text-night shadow focus-visible:outline-2 focus-visible:outline-ring"
+          className="absolute bottom-3 left-1/2 z-10 min-h-11 -translate-x-1/2 rounded-lg bg-white/95 px-5 text-[13px] font-semibold text-foreground shadow focus-visible:outline-2 focus-visible:outline-ring"
         >
           Vis
         </button>

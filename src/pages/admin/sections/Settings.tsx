@@ -27,7 +27,7 @@ const ROLE_LABEL: Record<string, string> = {
 function StatusRow({ ok, label, okText, badText }: { ok: boolean; label: string; okText: string; badText: string }) {
   return (
     <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
-      <span className="text-night">{label}</span>
+      <span className="text-foreground">{label}</span>
       <Pill tone={ok ? "success" : "danger"}>
         {ok ? <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> : <CircleAlert className="h-3 w-3" aria-hidden="true" />}
         {ok ? okText : badText}
@@ -42,7 +42,7 @@ function SystemStatusCard() {
   const status = trpc.admin.systemStatus.useQuery(undefined, { retry: false });
   return (
     <Card>
-      <h2 className="mb-3 font-display text-lg font-bold text-night">Systemstatus</h2>
+      <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Systemstatus</h2>
       {status.isLoading ? (
         <p className="text-sm text-muted-foreground">Laster …</p>
       ) : status.error || !status.data ? (
@@ -57,15 +57,15 @@ function SystemStatusCard() {
           <StatusRow ok={status.data.piiEncryptionConfigured} label="Kryptering av passdata" okText="Nøkkel satt" badText="Mangler nøkkel" />
           <StatusRow ok={status.data.publicInstantBooking} label="Direktebooking fra nettsiden" okText="På" badText="Av" />
           <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
-            <span className="text-night">Daglig live-grense</span>
+            <span className="text-foreground">Daglig live-grense</span>
             <span className="text-muted-foreground">{status.data.maxDailyLiveAmountMinor != null ? `${(Number(status.data.maxDailyLiveAmountMinor) / 100).toLocaleString("nb-NO")} (minste enhet/100)` : "–"}</span>
           </li>
           <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
-            <span className="text-night">Miljø</span>
+            <span className="text-foreground">Miljø</span>
             <Pill tone={status.data.environment === "production" ? "danger" : "warning"}>{status.data.environment === "production" ? "Produksjon" : status.data.environment}</Pill>
           </li>
           <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
-            <span className="text-night">App-URL</span>
+            <span className="text-foreground">App-URL</span>
             <span className="truncate text-muted-foreground">{status.data.appBaseUrl ?? "–"}</span>
           </li>
         </ul>
@@ -115,7 +115,7 @@ function SettingsFormInner({ rows }: { rows: SettingRow[] }) {
 
   return (
     <Card>
-      <h2 className="mb-1 font-display text-lg font-bold text-night">Forretningsregler</h2>
+      <h2 className="mb-1 font-display text-xl font-semibold text-foreground">Forretningsregler</h2>
       <p className="mb-4 text-sm text-muted-foreground">Endringer gjelder umiddelbart og logges i aktivitetsloggen.</p>
       {fb.banner}
       <div className="space-y-6">
@@ -174,7 +174,7 @@ function SettingsFormInner({ rows }: { rows: SettingRow[] }) {
             <div className="grid gap-2 sm:grid-cols-3">
               {CURRENCIES.map((c) => (
                 <label key={c} className="flex items-center gap-2 text-sm">
-                  <span className="w-10 font-semibold text-night">{c}</span>
+                  <span className="w-10 font-semibold text-foreground">{c}</span>
                   <input inputMode="decimal" value={flat[c] ?? ""} onChange={(e) => setFlat((f) => ({ ...f, [c]: e.target.value }))} className={inputCls} placeholder="standard" aria-label={`Fast gebyr ${c}`} />
                 </label>
               ))}
@@ -216,7 +216,7 @@ function StaffCard() {
 
   return (
     <Card>
-      <h2 className="mb-3 font-display text-lg font-bold text-night">Ansatte</h2>
+      <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Ansatte</h2>
       {fb.banner}
       {staff.isLoading ? (
         <p className="text-sm text-muted-foreground">Laster …</p>
@@ -230,7 +230,7 @@ function StaffCard() {
               return (
                 <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                   <div className="min-w-0">
-                    <p className="font-semibold text-night">{s.name}{isMe && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(deg)</span>}</p>
+                    <p className="font-semibold text-foreground">{s.name}{isMe && <span className="ml-1.5 text-xs font-normal text-muted-foreground">(deg)</span>}</p>
                     <p className="truncate text-xs text-muted-foreground">{s.email} · {s.mfaEnabled ? "MFA på" : "MFA mangler"} · sist innlogget {formatDateTime(s.lastLoginAt)}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -270,7 +270,7 @@ function StaffCard() {
               className="mt-4 space-y-3 border-t border-border pt-4"
               onSubmit={(e) => { e.preventDefault(); if (inviteEmail.trim() && inviteName.trim()) invite.mutate({ email: inviteEmail.trim(), name: inviteName.trim(), role: inviteRole as never }); }}
             >
-              <p className="flex items-center gap-2 text-sm font-semibold text-night">
+              <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <UserPlus className="h-4 w-4 text-primary" aria-hidden="true" /> Inviter ny ansatt
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -286,9 +286,9 @@ function StaffCard() {
                 </Btn>
               </div>
               {inviteResult && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                  <p className="text-sm font-semibold text-emerald-900">Engangslenke opprettet – send denne sikkert til den ansatte (vises kun nå, gyldig 48 t):</p>
-                  <p className="mt-1.5 select-all break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-night">{inviteResult}</p>
+                <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3">
+                  <p className="text-sm font-semibold text-success">Engangslenke opprettet – send denne sikkert til den ansatte (vises kun nå, gyldig 48 t):</p>
+                  <p className="mt-1.5 select-all break-all rounded-lg bg-card px-3 py-2 font-mono text-xs text-foreground">{inviteResult}</p>
                 </div>
               )}
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" /> Invitasjon, rolleendring, deaktivering og MFA-nullstilling krever nylig innlogging.</p>
@@ -346,7 +346,7 @@ function JobsCard() {
   return (
     <Card>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-lg font-bold text-night">Jobbkø</h2>
+        <h2 className="font-display text-xl font-semibold text-foreground">Jobbkø</h2>
         <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Jobbstatus" className={selectCls}>
           {Object.entries(JOB_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
@@ -357,7 +357,7 @@ function JobsCard() {
       ) : jobs.error || !jobs.data ? (
         <p className="text-sm text-muted-foreground">{jobs.error?.message ?? "Krever tilgang."}</p>
       ) : jobs.data.length === 0 ? (
-        <p className="flex items-center gap-2 text-sm text-emerald-800">
+        <p className="flex items-center gap-2 text-sm text-success">
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Ingen {JOB_STATUS_LABELS[status].toLowerCase()} jobber.
         </p>
       ) : (
@@ -365,9 +365,9 @@ function JobsCard() {
           {jobs.data.map((j) => (
             <li key={j.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-4 py-3 text-sm">
               <div className="min-w-0">
-                <p className="font-mono text-xs font-semibold text-night">#{j.id} {j.type}</p>
+                <p className="font-mono text-xs font-semibold text-foreground">#{j.id} {j.type}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{j.attempts}/{j.maxAttempts} forsøk · {formatDateTime(j.updatedAt)}{j.dedupeKey ? ` · ${j.dedupeKey}` : ""}</p>
-                {j.lastError && <p className="mt-1 max-w-md truncate text-xs text-rose-700" title={j.lastError}>{j.lastError}</p>}
+                {j.lastError && <p className="mt-1 max-w-md truncate text-xs text-destructive" title={j.lastError}>{j.lastError}</p>}
               </div>
               {(status === "dead" || status === "failed") && (
                 <Btn tone="ghost" onClick={() => retry.mutate({ jobId: j.id })} disabled={retry.isPending}>
@@ -387,7 +387,7 @@ function WebhooksCard() {
   const webhooks = trpc.admin.webhookEventsList.useQuery(undefined, { retry: false, refetchInterval: 60_000 });
   return (
     <Card>
-      <h2 className="mb-3 font-display text-lg font-bold text-night">Siste webhooks (Duffel og Stripe)</h2>
+      <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Siste webhooks (Duffel og Stripe)</h2>
       {webhooks.isLoading ? (
         <p className="text-sm text-muted-foreground">Laster …</p>
       ) : webhooks.error || !webhooks.data ? (
@@ -399,11 +399,11 @@ function WebhooksCard() {
           {webhooks.data.map((w) => (
             <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-4 py-2.5 text-sm">
               <div className="min-w-0">
-                <p className="font-mono text-xs font-semibold text-night">
-                  <span className="mr-1.5 rounded bg-night/5 px-1.5 py-0.5 uppercase">{w.provider}</span>{w.eventType}
+                <p className="font-mono text-xs font-semibold text-foreground">
+                  <span className="mr-1.5 rounded bg-muted px-1.5 py-0.5 uppercase">{w.provider}</span>{w.eventType}
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDateTime(w.createdAt)}{w.attempts > 1 ? ` · ${w.attempts} forsøk` : ""}</p>
-                {w.error && <p className="mt-1 max-w-md truncate text-xs text-rose-700" title={w.error}>{w.error}</p>}
+                {w.error && <p className="mt-1 max-w-md truncate text-xs text-destructive" title={w.error}>{w.error}</p>}
               </div>
               <Pill tone={w.status === "processed" ? "success" : w.status === "failed" ? "danger" : "warning"}>{w.status}</Pill>
             </li>

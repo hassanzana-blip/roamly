@@ -71,25 +71,25 @@ export function AdminReports() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
-          <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Bekreftede bookinger</p>
-          <p className="mt-1 font-display text-3xl font-bold text-night">{totalBookings}</p>
+          <p className="eyebrow">Bekreftede bookinger</p>
+          <p className="mt-1 font-display text-3xl font-semibold text-foreground">{totalBookings}</p>
         </Card>
         {data.totals.map((t) => (
           <Card key={t.currency}>
-            <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Bekreftet salg ({t.currency})</p>
-            <p className="mt-1 font-display text-3xl font-bold text-night">{formatMoney(t.total, t.currency)}</p>
+            <p className="eyebrow">Bekreftet salg ({t.currency})</p>
+            <p className="mt-1 font-display text-3xl font-semibold text-foreground">{formatMoney(t.total, t.currency)}</p>
             <p className="mt-1 text-xs text-muted-foreground">{t.bookings} bookinger · servicegebyr {formatMinor(feeFor(t.currency), t.currency)}</p>
           </Card>
         ))}
         <Card className="border-primary/30 bg-primary/[0.04]">
-          <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-primary">Gebyr fra tilbud og manuelle salg</p>
-          <p className="mt-1 font-display text-3xl font-bold text-primary">{formatMoney(Number(data.quoteFees) + Number(data.manualFees))}</p>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-primary">Gebyr fra tilbud og manuelle salg</p>
+          <p className="mt-1 font-display text-3xl font-semibold text-primary">{formatMoney(Number(data.quoteFees) + Number(data.manualFees))}</p>
           <p className="mt-1 text-xs text-muted-foreground">Tilbud {formatMoney(data.quoteFees)} · manuelt {formatMoney(data.manualFees)}</p>
         </Card>
       </div>
 
       <Card className="mt-6">
-        <h2 className="mb-4 font-display text-lg font-bold text-night">Salg per dag ({activeCurrency})</h2>
+        <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Salg per dag ({activeCurrency})</h2>
         {chartData.length === 0 ? (
           <p className="text-sm text-muted-foreground">Ingen bekreftede salg i perioden.</p>
         ) : (
@@ -113,7 +113,7 @@ export function AdminReports() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card className="overflow-x-auto p-0">
-          <h2 className="px-5 pt-5 font-display text-lg font-bold text-night">Per valuta</h2>
+          <h2 className="px-5 pt-5 font-display text-xl font-semibold text-foreground">Per valuta</h2>
           <table className="mt-3 w-full min-w-[420px] text-left text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -129,10 +129,10 @@ export function AdminReports() {
               ) : (
                 data.totals.map((t) => (
                   <tr key={t.currency}>
-                    <td className={`${tdCls} font-semibold text-night`}>{t.currency}</td>
-                    <td className={`${tdCls} text-night`}>{t.bookings}</td>
-                    <td className={`${tdCls} whitespace-nowrap text-night`}>{formatMoney(t.total, t.currency)}</td>
-                    <td className={`${tdCls} whitespace-nowrap text-night`}>{formatMinor(feeFor(t.currency), t.currency)}</td>
+                    <td className={`${tdCls} font-semibold text-foreground`}>{t.currency}</td>
+                    <td className={`${tdCls} text-foreground`}>{t.bookings}</td>
+                    <td className={`${tdCls} whitespace-nowrap text-foreground`}>{formatMoney(t.total, t.currency)}</td>
+                    <td className={`${tdCls} whitespace-nowrap text-foreground`}>{formatMinor(feeFor(t.currency), t.currency)}</td>
                   </tr>
                 ))
               )}
@@ -141,15 +141,15 @@ export function AdminReports() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-display text-lg font-bold text-night">Bestillinger per status</h2>
+          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Bestillinger per status</h2>
           {data.byState.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ingen bestillinger i perioden.</p>
           ) : (
             <ul className="grid gap-2 sm:grid-cols-2">
               {data.byState.map((s) => (
                 <li key={s.state} className="flex items-center justify-between rounded-xl border border-border px-4 py-3 text-sm">
-                  <span className="text-night">{BOOKING_STATE_LABELS[s.state] ?? s.stateLabel}</span>
-                  <span className="font-bold text-night">{s.count}</span>
+                  <span className="text-foreground">{BOOKING_STATE_LABELS[s.state] ?? s.stateLabel}</span>
+                  <span className="font-semibold text-foreground">{s.count}</span>
                 </li>
               ))}
             </ul>
@@ -176,7 +176,7 @@ export function AdminAudit() {
           onChange={(e) => { setPage(1); setAction(e.target.value); }}
           placeholder="Filtrer på handling, f.eks. booking. eller auth. …"
           aria-label="Filtrer aktivitetslogg"
-          className="min-h-11 w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-night outline-none focus:border-primary sm:max-w-md"
+          className="min-h-11 w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary sm:max-w-md"
         />
       </Card>
       {list.isLoading ? (
@@ -216,8 +216,8 @@ export function AdminAudit() {
 
 function EmptyAudit() {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-white/60 px-6 py-12 text-center">
-      <p className="font-semibold text-night">Ingen logglinjer funnet</p>
+    <div className="rounded-lg border border-dashed border-border bg-white/60 px-6 py-12 text-center">
+      <p className="font-semibold text-foreground">Ingen logglinjer funnet</p>
     </div>
   );
 }
@@ -228,8 +228,8 @@ function PagerBar({ page, total, onPage }: { page: number; total: number; onPage
     <nav className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground" aria-label="Paginering">
       <p>Side {page} av {totalPages} · {total} totalt</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1} className="min-h-11 rounded-xl border border-border bg-white px-3 font-semibold text-night disabled:opacity-40">Forrige</button>
-        <button type="button" onClick={() => onPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages} className="min-h-11 rounded-xl border border-border bg-white px-3 font-semibold text-night disabled:opacity-40">Neste</button>
+        <button type="button" onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1} className="min-h-11 rounded-xl border border-border bg-card px-3 font-semibold text-foreground disabled:opacity-40">Forrige</button>
+        <button type="button" onClick={() => onPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages} className="min-h-11 rounded-xl border border-border bg-card px-3 font-semibold text-foreground disabled:opacity-40">Neste</button>
       </div>
     </nav>
   );
@@ -246,13 +246,13 @@ function AuditRow({ row: a, expanded, onToggle }: { row: AuditItem; expanded: bo
     <>
       <tr className="hover:bg-primary/[0.03]">
         <td className={`${tdCls} whitespace-nowrap text-muted-foreground`}>{formatDateTimeLocal(a.createdAt)}</td>
-        <td className={`${tdCls} text-night`}>{a.actorLabel ?? a.actorType}</td>
-        <td className={`${tdCls} font-mono text-xs text-night`}>{a.action}</td>
+        <td className={`${tdCls} text-foreground`}>{a.actorLabel ?? a.actorType}</td>
+        <td className={`${tdCls} font-mono text-xs text-foreground`}>{a.action}</td>
         <td className={`${tdCls} text-muted-foreground`}>{a.targetType ?? "–"}{a.targetId ? ` #${a.targetId}` : ""}</td>
         <td className={`${tdCls} text-muted-foreground`}>{a.ip ?? "–"}</td>
         <td className={tdCls}>
           {a.metadataJson && (
-            <button type="button" onClick={onToggle} aria-expanded={expanded} className="min-h-9 rounded-lg px-2 text-xs font-bold text-primary hover:underline">
+            <button type="button" onClick={onToggle} aria-expanded={expanded} className="min-h-9 rounded-lg px-2 text-xs font-semibold text-primary hover:underline">
               {expanded ? "Skjul" : "Detaljer"}
             </button>
           )}
@@ -261,7 +261,7 @@ function AuditRow({ row: a, expanded, onToggle }: { row: AuditItem; expanded: bo
       {expanded && meta != null && (
         <tr className="bg-muted/40">
           <td colSpan={6} className="px-5 py-3">
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all font-mono text-[11px] text-night">{typeof meta === "string" ? meta : JSON.stringify(meta, null, 2)}</pre>
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all font-mono text-[11px] text-foreground">{typeof meta === "string" ? meta : JSON.stringify(meta, null, 2)}</pre>
           </td>
         </tr>
       )}

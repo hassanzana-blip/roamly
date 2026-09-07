@@ -102,7 +102,7 @@ export function CaseDetail({ id, onClose, canWrite }: { id: number | null; onClo
               )}
 
               <div className="space-y-3">
-                <h3 className="font-display text-base font-bold text-night">Meldinger</h3>
+                <h3 className="font-display text-base font-semibold text-foreground">Meldinger</h3>
                 {c.messages.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Ingen meldinger ennå.</p>
                 ) : (
@@ -113,11 +113,11 @@ export function CaseDetail({ id, onClose, canWrite }: { id: number | null; onClo
                         <li
                           key={m.id}
                           className={cn(
-                            "max-w-[92%] rounded-2xl px-4 py-3 text-sm",
-                            m.isInternal ? "border border-dashed border-amber-300 bg-amber-50 text-amber-950" : staff ? "ml-auto bg-night text-white" : "bg-muted text-night",
+                            "max-w-[92%] rounded-lg px-4 py-3 text-sm",
+                            m.isInternal ? "border border-dashed border-warning/30 bg-warning/10 text-warning" : staff ? "ml-auto bg-night text-white" : "bg-muted text-foreground",
                           )}
                         >
-                          <p className={cn("mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide", m.isInternal ? "text-amber-800" : staff ? "text-white/70" : "text-muted-foreground")}>
+                          <p className={cn("mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide", m.isInternal ? "text-warning" : staff ? "text-white/70" : "text-muted-foreground")}>
                             {m.isInternal && <Lock className="h-3 w-3" aria-hidden="true" />}
                             {m.isInternal ? "Internt notat" : staff ? "Ansatt" : "Kunde"} · {m.name} · {formatDateTime(m.createdAt)}
                           </p>
@@ -146,7 +146,7 @@ export function CaseDetail({ id, onClose, canWrite }: { id: number | null; onClo
                         role="radio"
                         aria-checked={internal === o.v}
                         onClick={() => setInternal(o.v)}
-                        className={cn("min-h-10 rounded-full px-3.5 text-xs font-bold transition-colors", internal === o.v ? "bg-night text-white" : "border border-border bg-white text-night")}
+                        className={cn("min-h-10 rounded-lg px-3.5 text-xs font-semibold transition-colors", internal === o.v ? "bg-night text-white" : "border border-border bg-card text-foreground")}
                       >
                         {o.l}
                       </button>
@@ -244,8 +244,8 @@ export function AdminCases() {
             aria-selected={queue === q.value}
             onClick={() => setQueue(q.value)}
             className={cn(
-              "min-h-11 rounded-full px-4 text-sm font-semibold transition-colors",
-              queue === q.value ? "bg-night text-white" : "border border-border bg-white text-night hover:border-night/30",
+              "min-h-11 rounded-lg px-4 text-sm font-semibold transition-colors",
+              queue === q.value ? "bg-night text-white" : "border border-border bg-card text-foreground hover:border-foreground/40",
             )}
           >
             {q.label}
@@ -273,8 +273,8 @@ export function AdminCases() {
           <tbody className="divide-y divide-border">
             {list.data.items.map((c) => (
               <ClickableRow key={c.id} onClick={() => openCase(c.id)} selected={selected === c.id}>
-                <td className={`${tdCls} font-semibold text-night`}>{c.reference}</td>
-                <td className={`${tdCls} max-w-[280px] truncate text-night`} title={c.subject}>{c.subject}</td>
+                <td className={`${tdCls} font-semibold text-foreground`}>{c.reference}</td>
+                <td className={`${tdCls} max-w-[280px] truncate text-foreground`} title={c.subject}>{c.subject}</td>
                 <td className={tdCls}><PriorityPill priority={c.priority} /></td>
                 <td className={tdCls}><CaseStatusPill status={c.status} /></td>
                 <td className={`${tdCls} text-muted-foreground`}>{c.assigneeName ?? "Ikke fordelt"}</td>

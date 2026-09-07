@@ -21,7 +21,7 @@ export default function NotFound() {
         <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">{t("notfound.body")}</p>
         <Link
           to="/"
-          className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-7 text-[15px] font-bold text-primary-foreground transition-colors hover:brightness-95"
+          className="mt-8 inline-flex min-h-12 items-center gap-2 rounded-lg bg-primary px-7 text-[15px] font-semibold text-primary-foreground transition-colors hover:opacity-90"
         >
           {t("notfound.cta")} <Icon icon={ArrowRight} size={16} />
         </Link>

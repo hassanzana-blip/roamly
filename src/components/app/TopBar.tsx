@@ -44,7 +44,7 @@ export function GreetingBar({ onSearch }: { onSearch?: () => void }) {
           to="/profil"
           aria-label={t("topbar.settings")}
           title={t("topbar.settings")}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-white text-foreground transition-colors duration-200 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors duration-fast hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
         >
           <Icon icon={SlidersHorizontal} size={20} />
         </Link>
@@ -81,16 +81,16 @@ export function AppHeader({
           type="button"
           onClick={() => navigate(-1)}
           aria-label={t("topbar.back")}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-white transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors duration-fast hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
         >
           <Icon icon={ChevronLeft} size={20} />
         </button>
       ) : (
         <Link to="/" aria-label={t("topbar.home")} className="flex min-h-11 min-w-11 items-center gap-2 rounded-full">
-          <SkyMark className="h-7 w-7 text-[hsl(var(--skyline))]" />
+          <SkyMark className="h-7 w-7 text-foreground" />
         </Link>
       )}
-      {title ? <Tag className="font-display text-xl tracking-tight">{title}</Tag> : null}
+      {title ? <Tag className="font-display text-2xl">{title}</Tag> : null}
     </header>
   );
 }

@@ -40,8 +40,8 @@ function StatCard({
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
-          <p className="font-display text-2xl font-bold leading-tight text-night">{value}</p>
+          <p className="eyebrow">{label}</p>
+          <p className="font-display text-2xl font-semibold leading-tight text-foreground">{value}</p>
         </div>
       </div>
       {sub && <p className="mt-2 text-xs text-muted-foreground">{sub}</p>}
@@ -66,17 +66,17 @@ function AttentionItem({
   return (
     <Link
       to={to}
-      className="flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 shadow-sm transition-colors hover:border-primary/40"
+      className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm transition-colors hover:border-primary/40"
     >
       <span
         className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-          danger ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-700"
+          danger ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
         }`}
       >
         <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
       </span>
       <span className="flex-1">
-        <span className="block text-sm font-semibold text-night">{label}</span>
+        <span className="block text-sm font-semibold text-foreground">{label}</span>
         <span className="block text-xs text-muted-foreground">{count} {count === 1 ? "element" : "elementer"}</span>
       </span>
       <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -159,7 +159,7 @@ export function AdminOverview() {
           <Link
             key={q.to}
             to={q.to}
-            className="flex min-h-11 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-bold text-night shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow"
+            className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow"
           >
             <q.icon className="h-4 w-4 text-primary" aria-hidden="true" />
             {q.label}
@@ -170,7 +170,7 @@ export function AdminOverview() {
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section aria-labelledby="attention-heading">
           <div className="mb-3 flex items-center justify-between">
-            <h2 id="attention-heading" className="font-display text-lg font-bold text-night">
+            <h2 id="attention-heading" className="font-display text-xl font-semibold text-foreground">
               Krever oppfølging
             </h2>
             {attentionCount === 0 ? (
@@ -204,7 +204,7 @@ export function AdminOverview() {
         </section>
 
         <section aria-labelledby="activity-heading">
-          <h2 id="activity-heading" className="mb-3 font-display text-lg font-bold text-night">
+          <h2 id="activity-heading" className="mb-3 font-display text-xl font-semibold text-foreground">
             Siste hendelser
           </h2>
           {d.recentActivity.length === 0 ? (
@@ -216,7 +216,7 @@ export function AdminOverview() {
                   <li key={a.id} className="flex items-start gap-3 px-5 py-3.5">
                     <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary/60" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-night">
+                      <p className="text-sm text-foreground">
                         <span className="font-semibold">{a.actorLabel}</span>{" "}
                         <span className="text-muted-foreground">{a.action}</span>
                       </p>

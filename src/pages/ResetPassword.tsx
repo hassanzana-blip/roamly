@@ -63,7 +63,7 @@ export default function ResetPassword() {
         {done ? (
           <div className="mt-10 flex flex-col items-center text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-              <Icon icon={CheckCircle2} size={24} className="text-night" />
+              <Icon icon={CheckCircle2} size={24} className="text-foreground" />
             </span>
             <h1 className="mt-5 font-display text-[30px] leading-tight tracking-tight">
               Passordet er endret
@@ -94,7 +94,7 @@ export default function ResetPassword() {
             </p>
             <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
               <label className="block">
-                <span className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <span className="mb-1.5 block eyebrow">
                   Nytt passord
                 </span>
                 <input
@@ -109,7 +109,7 @@ export default function ResetPassword() {
                 />
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-[12px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <span className="mb-1.5 block eyebrow">
                   Gjenta passord
                 </span>
                 <input
@@ -124,7 +124,7 @@ export default function ResetPassword() {
                 />
               </label>
               {error && (
-                <p className="rounded-2xl bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
+                <p className="rounded-lg bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
                   {error}
                 </p>
               )}

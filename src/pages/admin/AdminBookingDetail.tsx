@@ -82,13 +82,13 @@ function RequestRefundDialog({ bookingId, currency, passengers, open, onClose, o
           </Field>
           {passengers.length > 1 && (
             <fieldset>
-              <legend className="mb-1.5 block text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Gjelder passasjerer (valgfritt)</legend>
+              <legend className="mb-1.5 block eyebrow">Gjelder passasjerer (valgfritt)</legend>
               <div className="flex flex-wrap gap-2">
                 {passengers.map((p, i) => {
                   const id = p.id ?? String(i);
                   const on = pax.includes(id);
                   return (
-                    <label key={id} className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border px-3 text-sm ${on ? "border-night bg-night text-white" : "border-border bg-white text-night"}`}>
+                    <label key={id} className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm ${on ? "border-night bg-night text-white" : "border-border bg-card text-foreground"}`}>
                       <input type="checkbox" className="sr-only" checked={on} onChange={() => setPax((s) => (on ? s.filter((x) => x !== id) : [...s, id]))} />
                       {`${p.givenName ?? ""} ${p.familyName ?? ""}`.trim() || `Passasjer ${i + 1}`}
                     </label>
@@ -139,7 +139,7 @@ function PassengerDocuments({ docs, passengers, canReveal }: { docs: { id: numbe
         {docs.map((d) => (
           <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-sm">
             <div>
-              <p className="font-semibold text-night">{nameFor(d.passengerId)}</p>
+              <p className="font-semibold text-foreground">{nameFor(d.passengerId)}</p>
               <p className="text-xs text-muted-foreground">
                 {d.type} · {d.issuingCountryCode ?? "–"} · utløper {d.expiresOn ?? "–"} ·{" "}
                 <span className="font-mono">{revealed[d.id] ?? `••••${d.last4 ?? ""}`}</span>
@@ -218,7 +218,7 @@ export function AdminBookingDetail() {
       </Link>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-2xl font-bold text-night sm:text-3xl">{booking.bookingReference || booking.orderId}</h1>
+        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">{booking.bookingReference || booking.orderId}</h1>
         <BookingStatePill state={booking.state} />
         {!booking.liveMode && <Pill tone="neutral"><FlaskConical className="h-3 w-3" aria-hidden="true" /> Testmodus</Pill>}
         {fraudFlags.some((f) => f.status === "open") && <Pill tone="danger">Åpent svindelflagg</Pill>}
@@ -233,24 +233,24 @@ export function AdminBookingDetail() {
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
-            <h2 className="mb-4 font-display text-lg font-bold text-night">Reise og passasjerer</h2>
+            <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Reise og passasjerer</h2>
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">Kontakt</dt>
-                <dd className="mt-1 break-all text-night">{booking.contactEmail}</dd>
+                <dt className="eyebrow">Kontakt</dt>
+                <dd className="mt-1 break-all text-foreground">{booking.contactEmail}</dd>
                 {booking.contactPhone && <dd className="text-muted-foreground">{booking.contactPhone}</dd>}
               </div>
               <div>
-                <dt className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">Beløp</dt>
-                <dd className="mt-1 font-display text-xl font-bold text-night">{formatMoney(booking.totalAmount, currency)}</dd>
+                <dt className="eyebrow">Beløp</dt>
+                <dd className="mt-1 font-display text-xl font-semibold text-foreground">{formatMoney(booking.totalAmount, currency)}</dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">Passasjerer</dt>
-                <dd className="mt-1 text-night">
+                <dt className="eyebrow">Passasjerer</dt>
+                <dd className="mt-1 text-foreground">
                   {passengers.length === 0 ? "–" : (
                     <ul className="flex flex-wrap gap-2">
                       {passengers.map((p, i) => (
-                        <li key={p.id ?? i} className="rounded-full bg-muted px-3 py-1 text-sm">
+                        <li key={p.id ?? i} className="rounded-md bg-muted px-3 py-1 text-sm">
                           {`${p.givenName ?? ""} ${p.familyName ?? ""}`.trim() || `Passasjer ${i + 1}`}
                           {p.bornOn && <span className="ml-1 text-xs text-muted-foreground">({p.bornOn})</span>}
                         </li>
@@ -261,30 +261,30 @@ export function AdminBookingDetail() {
               </div>
               {payload.manual && payload.title && (
                 <div className="sm:col-span-2">
-                  <dt className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">Manuell bestilling</dt>
-                  <dd className="mt-1 text-night">{payload.title} · <Link to={`/admin/kvittering/${booking.id}`} className="font-semibold text-primary hover:underline">Kvittering</Link></dd>
+                  <dt className="eyebrow">Manuell bestilling</dt>
+                  <dd className="mt-1 text-foreground">{payload.title} · <Link to={`/admin/kvittering/${booking.id}`} className="font-semibold text-primary hover:underline">Kvittering</Link></dd>
                 </div>
               )}
             </dl>
             {quote && (
-              <p className="mt-4 rounded-xl bg-primary/5 px-4 py-3 text-sm text-night">
+              <p className="mt-4 rounded-xl bg-primary/5 px-4 py-3 text-sm text-foreground">
                 Bestilt fra tilbud <span className="font-semibold">{quote.reference}</span>
               </p>
             )}
             <div className="mt-5 border-t border-border pt-4">
-              <h3 className="mb-2 text-sm font-bold text-night">Identitetsdokumenter</h3>
+              <h3 className="mb-2 text-sm font-semibold text-foreground">Identitetsdokumenter</h3>
               <PassengerDocuments docs={passengerDocuments} passengers={passengers} canReveal={can("customers:reveal")} />
             </div>
           </Card>
 
           <Card className="overflow-x-auto p-0">
-            <h2 className="px-5 pt-5 font-display text-lg font-bold text-night">Flysegmenter</h2>
+            <h2 className="px-5 pt-5 font-display text-xl font-semibold text-foreground">Flysegmenter</h2>
             {segments.length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted-foreground">Ingen segmenter registrert.</p>
             ) : (
               <table className="mt-3 w-full min-w-[640px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-border text-[12px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                  <tr className="border-b border-border eyebrow">
                     <th className="px-5 py-3">Flight</th>
                     <th className="px-5 py-3">Fra</th>
                     <th className="px-5 py-3">Til</th>
@@ -295,7 +295,7 @@ export function AdminBookingDetail() {
                 <tbody className="divide-y divide-border">
                   {(segments as Segment[]).map((s) => (
                     <tr key={s.id}>
-                      <td className="px-5 py-3 font-semibold text-night">{s.carrierIata ?? ""}{s.flightNumber ?? ""}</td>
+                      <td className="px-5 py-3 font-semibold text-foreground">{s.carrierIata ?? ""}{s.flightNumber ?? ""}</td>
                       <td className="px-5 py-3"><span className="inline-flex items-center gap-1.5"><PlaneTakeoff className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />{s.originIata}</span></td>
                       <td className="px-5 py-3"><span className="inline-flex items-center gap-1.5"><PlaneLanding className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />{s.destinationIata}</span></td>
                       <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">{formatDateTime(s.departingAt)}</td>
@@ -326,7 +326,7 @@ export function AdminBookingDetail() {
                     {payments.map((p) => (
                       <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm">
                         <div>
-                          <p className="font-semibold text-night">{formatMoney(p.amount, p.currency)}{p.refundedMinor ? <span className="ml-2 text-xs font-normal text-muted-foreground">refundert {formatMinor(p.refundedMinor, p.currency)}</span> : null}</p>
+                          <p className="font-semibold text-foreground">{formatMoney(p.amount, p.currency)}{p.refundedMinor ? <span className="ml-2 text-xs font-normal text-muted-foreground">refundert {formatMinor(p.refundedMinor, p.currency)}</span> : null}</p>
                           <p className="text-xs text-muted-foreground">{p.provider}{p.providerRef ? ` · ${p.providerRef}` : ""} · {formatDateTime(p.createdAt)}{p.note ? ` · ${p.note}` : ""}</p>
                         </div>
                         <Pill tone={["succeeded", "captured"].includes(p.status) ? "success" : p.status === "failed" ? "danger" : "warning"}>{p.status}</Pill>
@@ -342,7 +342,7 @@ export function AdminBookingDetail() {
                     {refundCases.map((r) => (
                       <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm">
                         <div>
-                          <p className="font-semibold text-night">
+                          <p className="font-semibold text-foreground">
                             <Link to={`/admin/refusjoner?sak=${r.id}`} className="text-primary hover:underline">{r.reference}</Link> · {formatMinor(r.customerRefundAmountMinor ?? r.requestedAmountMinor, r.currency)}
                           </p>
                           <p className="text-xs text-muted-foreground">{r.kind} · {formatDateTime(r.createdAt)}</p>
@@ -359,8 +359,8 @@ export function AdminBookingDetail() {
                   <ul className="divide-y divide-border">
                     {tickets.map((t) => (
                       <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-                        <span className="font-semibold text-night">{t.passengerName ?? t.passengerId ?? "–"}</span>
-                        <span className="font-mono text-xs text-night">{t.uniqueIdentifier}</span>
+                        <span className="font-semibold text-foreground">{t.passengerName ?? t.passengerId ?? "–"}</span>
+                        <span className="font-mono text-xs text-foreground">{t.uniqueIdentifier}</span>
                         <span className="text-xs text-muted-foreground">{t.type}</span>
                       </li>
                     ))}
@@ -375,12 +375,12 @@ export function AdminBookingDetail() {
                       <li key={a.id} className="rounded-xl border border-border px-4 py-3 text-sm">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div>
-                            <p className="font-semibold text-night">Forsøk #{a.id} · {a.attempts} kjøringer</p>
+                            <p className="font-semibold text-foreground">Forsøk #{a.id} · {a.attempts} kjøringer</p>
                             <p className="text-xs text-muted-foreground">
                               {a.supplierOrderId ? `Ordre ${a.supplierOrderId} · ` : ""}{a.supplierBookingReference ? `PNR ${a.supplierBookingReference} · ` : ""}
                               {a.supplierTotalMinor != null ? `${formatMinor(a.supplierTotalMinor, a.supplierCurrency ?? currency)} · ` : ""}{formatDateTime(a.updatedAt)}
                             </p>
-                            {a.lastError && <p className="mt-1 text-xs text-rose-700"><span className="font-mono">{a.lastErrorCode ?? ""}</span> {a.lastError}</p>}
+                            {a.lastError && <p className="mt-1 text-xs text-destructive"><span className="font-mono">{a.lastErrorCode ?? ""}</span> {a.lastError}</p>}
                           </div>
                           <div className="flex items-center gap-2">
                             <AttemptStatePill state={a.state} />
@@ -408,8 +408,8 @@ export function AdminBookingDetail() {
                   <ul className="divide-y divide-border">
                     {invoices.map((inv) => (
                       <li key={inv.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-                        <span className="font-semibold text-night">#{inv.invoiceNumber} · {inv.kind === "credit_note" ? "Kreditnota" : "Kvittering"}</span>
-                        <span className="text-night">{formatMinor(inv.totalMinor, inv.currency)}<span className="ml-1 text-xs text-muted-foreground">(mva {formatMinor(inv.vatMinor, inv.currency)})</span></span>
+                        <span className="font-semibold text-foreground">#{inv.invoiceNumber} · {inv.kind === "credit_note" ? "Kreditnota" : "Kvittering"}</span>
+                        <span className="text-foreground">{formatMinor(inv.totalMinor, inv.currency)}<span className="ml-1 text-xs text-muted-foreground">(mva {formatMinor(inv.vatMinor, inv.currency)})</span></span>
                         <span className="text-xs text-muted-foreground">{formatDateTime(inv.issuedAt)}</span>
                       </li>
                     ))}
@@ -422,7 +422,7 @@ export function AdminBookingDetail() {
                   <ul className="space-y-2">
                     {scheduleChanges.map((sc) => (
                       <li key={sc.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm">
-                        <span className="text-night">Oppdaget {formatDateTime(sc.createdAt)}{sc.resolvedAt ? ` · løst ${formatDateTime(sc.resolvedAt)}` : ""}</span>
+                        <span className="text-foreground">Oppdaget {formatDateTime(sc.createdAt)}{sc.resolvedAt ? ` · løst ${formatDateTime(sc.resolvedAt)}` : ""}</span>
                         <div className="flex items-center gap-2">
                           <Pill tone={sc.status === "resolved" ? "success" : "warning"}>{sc.status === "resolved" ? "Løst" : "Uløst"}</Pill>
                           <Link to="/admin/ruteendringer" className="text-xs font-semibold text-primary hover:underline">Åpne</Link>
@@ -438,7 +438,7 @@ export function AdminBookingDetail() {
                   <ul className="space-y-2">
                     {fraudFlags.map((f) => (
                       <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm">
-                        <span className="text-night"><span className="font-mono text-xs">{f.type}</span> · score {f.score}{f.note ? ` · ${f.note}` : ""}</span>
+                        <span className="text-foreground"><span className="font-mono text-xs">{f.type}</span> · score {f.score}{f.note ? ` · ${f.note}` : ""}</span>
                         <div className="flex items-center gap-2">
                           <Pill tone={f.status === "open" ? "danger" : "success"}>{f.status === "open" ? "Åpent" : "Vurdert"}</Pill>
                           <Link to="/admin/svindel" className="text-xs font-semibold text-primary hover:underline">Åpne</Link>
@@ -452,14 +452,14 @@ export function AdminBookingDetail() {
           </Card>
 
           <Card>
-            <h2 className="mb-4 font-display text-lg font-bold text-night">Hendelseslogg</h2>
+            <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Hendelseslogg</h2>
             <Timeline items={events.map((e) => ({ id: e.id, title: <>{e.fromState ? <>{e.fromState} → </> : null}<span className="font-semibold">{e.toState}</span><span className="text-muted-foreground"> · {e.actorType}</span></>, sub: e.reason, at: e.createdAt }))} />
           </Card>
         </div>
 
         <div className="space-y-6">
           <Card>
-            <h2 className="mb-4 font-display text-lg font-bold text-night">Handlinger</h2>
+            <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Handlinger</h2>
             <div className="space-y-2.5">
               {can("bookings:write") && (
                 <Btn tone="ghost" className="w-full justify-start" onClick={() => resend.mutate({ bookingId })} disabled={busy}>
@@ -503,7 +503,7 @@ export function AdminBookingDetail() {
 
             {cases.length > 0 && (
               <div className="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
-                <p className="mb-1 font-semibold text-night">Kundeservicesaker</p>
+                <p className="mb-1 font-semibold text-foreground">Kundeservicesaker</p>
                 <ul className="space-y-1">
                   {cases.map((c) => (
                     <li key={c.id}>
@@ -516,7 +516,7 @@ export function AdminBookingDetail() {
           </Card>
 
           <Card>
-            <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-night">
+            <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-semibold text-foreground">
               <MessageSquarePlus className="h-5 w-5 text-primary" aria-hidden="true" /> Interne notater
             </h2>
             {can("bookings:write") && (
@@ -529,7 +529,7 @@ export function AdminBookingDetail() {
               <ul className="mt-4 space-y-3 border-t border-border pt-4">
                 {notes.map((n) => (
                   <li key={n.id} className="rounded-xl bg-background px-4 py-3">
-                    <p className="whitespace-pre-wrap text-sm text-night">{n.body}</p>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{n.body}</p>
                     <p className="mt-1.5 text-xs text-muted-foreground">{n.author} · {formatDateTime(n.createdAt)}</p>
                   </li>
                 ))}

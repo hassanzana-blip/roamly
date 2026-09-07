@@ -80,14 +80,14 @@ export default function BottomSheet({ open, onClose, title, size = "md", childre
               if (info.offset.y > 110 || info.velocity.y > 600) onClose();
             }}
             className={cn(
-              "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[28px] bg-white shadow-lift outline-none sm:max-w-md sm:rounded-[28px]",
+              "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[28px] bg-card shadow-lift outline-none sm:max-w-md sm:rounded-[28px]",
               size === "lg" && "h-[88dvh] sm:h-auto sm:max-h-[86dvh]",
             )}
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           >
             <div className="flex items-center justify-between px-5 pb-1 pt-3">
               <div className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-full bg-border sm:hidden" aria-hidden="true" />
-              {title ? <h2 id={titleId} className="font-display text-lg">{title}</h2> : <span />}
+              {title ? <h2 id={titleId} className="font-display text-xl">{title}</h2> : <span />}
               <button
                 ref={closeRef}
                 type="button"

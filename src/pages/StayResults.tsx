@@ -69,16 +69,16 @@ function BookDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-3xl bg-card p-6" showCloseButton={false}>
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-xl bg-card p-6" showCloseButton={false}>
         {submit.isSuccess ? (
           <div className="text-center">
-            <CircleCheck className="mx-auto h-12 w-12 text-emerald-600" strokeWidth={1.6} aria-hidden="true" />
+            <CircleCheck className="mx-auto h-12 w-12 text-success" strokeWidth={1.6} aria-hidden="true" />
             <DialogTitle className="mt-4 font-display text-2xl">Forespørsel sendt!</DialogTitle>
             <DialogDescription className="mt-2 text-sm text-muted-foreground">
               Vi sjekker pris og tilgjengelighet hos partneren og svarer deg på e-post. Du betaler ingenting nå.
             </DialogDescription>
             <p className="mt-3 rounded-xl bg-muted px-4 py-2.5 text-left text-xs text-muted-foreground">{summary}</p>
-            <Link to="/" className="mt-5 inline-block min-h-11 rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground">
+            <Link to="/" className="mt-5 inline-block min-h-11 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
               Tilbake til forsiden
             </Link>
           </div>
@@ -130,7 +130,7 @@ function BookDialog({
               <button
                 type="submit"
                 disabled={submit.isPending}
-                className="min-h-12 w-full rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground transition-all hover:brightness-[0.94] disabled:opacity-50"
+                className="min-h-12 w-full rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50"
               >
                 {submit.isPending ? "Sender …" : "Send forespørsel"}
               </button>
@@ -146,7 +146,7 @@ function BookDialog({
 
 function HotelCard({ h, onBook }: { h: HotelItem; onBook: () => void }) {
   return (
-    <article className="card-lift overflow-hidden rounded-3xl border hairline bg-card">
+    <article className="card-lift overflow-hidden rounded-xl border border-border bg-card">
       <div className="grid sm:grid-cols-[220px_1fr]">
         <div className="img-zoom relative h-44 overflow-hidden sm:h-full">
           <img src={h.image} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -154,8 +154,8 @@ function HotelCard({ h, onBook }: { h: HotelItem; onBook: () => void }) {
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:p-5">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate text-[16px] font-bold">{h.name}</h3>
-              <span className="flex items-center gap-0.5 text-amber-500" role="img" aria-label={`${h.stars} stjerner`}>
+              <h3 className="truncate text-[16px] font-semibold">{h.name}</h3>
+              <span className="flex items-center gap-0.5 text-warning" role="img" aria-label={`${h.stars} stjerner`}>
                 {Array.from({ length: h.stars }).map((_, i) => (
                   <Star key={i} size={12} className="fill-amber-400 text-amber-400" aria-hidden="true" />
                 ))}
@@ -166,25 +166,25 @@ function HotelCard({ h, onBook }: { h: HotelItem; onBook: () => void }) {
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {h.amenities.map((a) => (
-                <span key={a} className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                <span key={a} className="rounded-md bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
                   {a}
                 </span>
               ))}
             </div>
             <p className="mt-2 text-[12px] text-muted-foreground">{h.note}</p>
           </div>
-          <div className="flex shrink-0 flex-row items-end justify-between gap-3 border-t hairline pt-3 sm:w-44 sm:flex-col sm:items-end sm:justify-center sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+          <div className="flex shrink-0 flex-row items-end justify-between gap-3 border-t border-border pt-3 sm:w-44 sm:flex-col sm:items-end sm:justify-center sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
             <div className="text-right">
               <p className="text-[11px] text-muted-foreground">
                 {h.nights} {h.nights === 1 ? "natt" : "netter"} · {formatPrice(h.pricePerNight)}/natt
               </p>
-              <p className="mt-0.5 text-[22px] font-extrabold leading-none">{formatPrice(h.totalPrice)}</p>
+              <p className="mt-0.5 text-[22px] font-semibold leading-none">{formatPrice(h.totalPrice)}</p>
               <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">veiledende for oppholdet</p>
             </div>
             <button
               type="button"
               onClick={onBook}
-              className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-bold text-primary-foreground transition-all hover:brightness-[0.94] active:scale-[0.98]"
+              className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
             >
               Be om tilbud
             </button>
@@ -199,14 +199,14 @@ function HotelCard({ h, onBook }: { h: HotelItem; onBook: () => void }) {
 
 function CarCard({ c, onBook }: { c: CarItem; onBook: () => void }) {
   return (
-    <article className="card-lift rounded-3xl border hairline bg-card p-4 sm:p-5">
+    <article className="card-lift rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{c.className}</p>
-          <h3 className="mt-0.5 truncate text-[16px] font-bold">{c.model} <span className="font-normal text-muted-foreground">eller lignende</span></h3>
-          <p className="mt-1 text-[12px] font-semibold text-skyline">{c.partner}</p>
+          <p className="eyebrow">{c.className}</p>
+          <h3 className="mt-0.5 truncate text-[16px] font-semibold">{c.model} <span className="font-normal text-muted-foreground">eller lignende</span></h3>
+          <p className="mt-1 text-[12px] font-semibold text-primary">{c.partner}</p>
         </div>
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-muted">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-muted">
           <Icon icon={Car} size={24} />
         </span>
       </div>
@@ -217,18 +217,18 @@ function CarCard({ c, onBook }: { c: CarItem; onBook: () => void }) {
         {c.unlimitedKm && <span className="flex items-center gap-1"><Icon icon={Fuel} size={16} /> Fri kilometer</span>}
       </div>
       <p className="mt-2 text-[12px] text-muted-foreground">{c.note}</p>
-      <div className="mt-3 flex items-end justify-between border-t hairline pt-3">
+      <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
         <div>
           <p className="text-[11px] text-muted-foreground">
             {c.days} {c.days === 1 ? "dag" : "dager"} · {formatPrice(c.pricePerDay)}/dag
           </p>
-          <p className="mt-0.5 text-[20px] font-extrabold leading-none">{formatPrice(c.totalPrice)}</p>
+          <p className="mt-0.5 text-[20px] font-semibold leading-none">{formatPrice(c.totalPrice)}</p>
           <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">veiledende for leieperioden</p>
         </div>
         <button
           type="button"
           onClick={onBook}
-          className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-bold text-primary-foreground transition-all hover:brightness-[0.94] active:scale-[0.98]"
+          className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-[0.98]"
         >
           Be om tilbud
         </button>
@@ -306,8 +306,8 @@ export default function StayResults() {
         </div>
 
         {/* Endre søket */}
-        <details className="mt-5 rounded-2xl border border-border bg-card">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-[13px] font-bold [&::-webkit-details-marker]:hidden">
+        <details className="mt-5 rounded-lg border border-border bg-card">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 text-[13px] font-semibold [&::-webkit-details-marker]:hidden">
             Endre søket
             <Icon icon={ChevronDown} size={16} className="text-muted-foreground" />
           </summary>
@@ -336,7 +336,7 @@ export default function StayResults() {
         </details>
 
         {/* Sortering */}
-        <p className="mt-4 flex items-start gap-2 rounded-2xl border border-border bg-muted/50 px-4 py-3 text-[13px] leading-relaxed">
+        <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-muted/50 px-4 py-3 text-[13px] leading-relaxed">
           <Icon icon={Info} size={16} className="mt-0.5 shrink-0" />
           {PARTNER_NOTE}. Prisene er veiledende{(hotels.data?.demoMode || cars.data?.demoMode) ? " (demodata)" : ""}.
         </p>
@@ -351,7 +351,7 @@ export default function StayResults() {
               aria-checked={sort === s.id}
               onClick={() => setSort(s.id)}
               className={cn(
-                "min-h-11 rounded-full px-3.5 text-[12px] font-bold transition-colors",
+                "min-h-11 rounded-lg px-3.5 text-[12px] font-semibold transition-colors",
                 sort === s.id ? "bg-night text-white" : "bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
@@ -363,19 +363,19 @@ export default function StayResults() {
         {/* Resultater */}
         <div className="mt-5 space-y-4">
           {!valid && (
-            <p className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            <p className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
               Fyll inn sted og datoer for å se {type === "hotell" ? "hoteller" : "biler"}.
             </p>
           )}
           {loading && (
             <>
-              <div className="shimmer h-40 rounded-3xl" />
-              <div className="shimmer h-40 rounded-3xl" />
-              <div className="shimmer h-40 rounded-3xl" />
+              <div className="shimmer h-40 rounded-xl" />
+              <div className="shimmer h-40 rounded-xl" />
+              <div className="shimmer h-40 rounded-xl" />
             </>
           )}
           {error && (
-            <p role="alert" className="rounded-2xl border border-primary/40 bg-card p-8 text-center text-sm text-muted-foreground">
+            <p role="alert" className="rounded-lg border border-destructive/30 bg-card p-8 text-center text-sm text-muted-foreground">
               {humanMessage(error)}
             </p>
           )}
@@ -411,7 +411,7 @@ export default function StayResults() {
           )}
 
           {valid && !loading && !error && type === "hotell" && hotelList.length === 0 && (
-            <p className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            <p className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
               Fant ingen hoteller for disse datoene — prøv andre datoer.
             </p>
           )}

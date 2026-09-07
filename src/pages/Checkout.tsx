@@ -93,9 +93,9 @@ function writeSession(key: string, value: unknown) {
 
 function Row({ label, value, strong, muted }: { label: string; value: string; strong?: boolean; muted?: boolean }) {
   return (
-    <div className={cn("flex justify-between gap-3", strong ? "border-t hairline pt-3 text-base font-bold" : muted ? "text-muted-foreground" : "")}>
+    <div className={cn("flex justify-between gap-3", strong ? "border-t border-border pt-3 text-base font-semibold" : muted ? "text-muted-foreground" : "")}>
       <span>{label}</span>
-      <span className={strong ? "font-display text-2xl text-night" : undefined}>{value}</span>
+      <span className={strong ? "text-2xl font-semibold tabular text-foreground" : undefined}>{value}</span>
     </div>
   );
 }
@@ -432,7 +432,7 @@ export default function Checkout() {
   const statusErrCode = status.data?.errorCode ?? null;
 
   const stepIndex = STEPS.findIndex((s) => s.key === step);
-  const stepCls = "rounded-3xl border border-border bg-card p-5 sm:p-6";
+  const stepCls = "rounded-xl border border-border bg-card p-5 sm:p-6";
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -440,12 +440,12 @@ export default function Checkout() {
     <div className="relative min-h-screen bg-background">
       <SiteHeader />
 
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 pb-44 pt-24 outline-none sm:px-6 lg:pb-20">
+      <main id="main" tabIndex={-1} className="container-x pb-44 pt-24 outline-none lg:pb-20">
         {!offerId ? (
           <div className="grid min-h-[50vh] place-items-center text-center">
             <div>
               <p className="font-display text-3xl">{t("co.nooffer")}</p>
-              <button onClick={() => navigate("/")} className="mt-6 min-h-11 rounded-full bg-primary px-6 py-3 font-bold text-primary-foreground">
+              <button onClick={() => navigate("/")} className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
                 {t("co.startsearch")}
               </button>
             </div>
@@ -459,7 +459,7 @@ export default function Checkout() {
               <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("co.backresults")}
             </button>
 
-            <h1 className="font-display text-3xl sm:text-4xl">{t("co.title")}</h1>
+            <h1 className="font-display text-[32px] sm:text-4xl">{t("co.title")}</h1>
             <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
               <Lock className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
               {t("co.secure")}
@@ -481,8 +481,8 @@ export default function Checkout() {
                     >
                       <span
                         className={cn(
-                          "grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
-                          current || done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                          "grid size-6 shrink-0 place-items-center rounded-full text-2xs font-semibold",
+                          done ? "bg-success text-success-foreground" : current ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                         )}
                         aria-hidden="true"
                       >
@@ -498,8 +498,8 @@ export default function Checkout() {
 
             {!offer && fresh.isLoading && (
               <div className="mt-8 space-y-4">
-                <div className="shimmer h-40 rounded-3xl" />
-                <div className="shimmer h-64 rounded-3xl" />
+                <div className="shimmer h-40 rounded-xl" />
+                <div className="shimmer h-64 rounded-xl" />
               </div>
             )}
 
@@ -532,7 +532,7 @@ export default function Checkout() {
                     <div className="space-y-6">
                       {offer.slices.map((s, i) => (
                         <div key={s.id}>
-                          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-foreground">
+                          <p className="eyebrow mb-3 text-foreground">
                             {offer.slices.length === 1 ? t("co.leg.single") : i === 0 ? t("co.leg.out") : offer.slices.length === 2 ? t("co.leg.return") : t("co.leg.n", { n: i + 1 })} · {formatDateLong(s.departingAt)}
                           </p>
                           <SliceViz slice={s} />
@@ -547,7 +547,7 @@ export default function Checkout() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-5 flex flex-wrap gap-4 border-t hairline pt-4 text-xs text-muted-foreground">
+                    <div className="mt-5 flex flex-wrap gap-4 border-t border-border pt-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <Luggage className="h-3.5 w-3.5 text-foreground" aria-hidden="true" />
                         {offer.baggage.checkedBags > 0 ? t("co.bags.included", { count: offer.baggage.checkedBags }) : t("co.bags.handonly")}
@@ -562,7 +562,7 @@ export default function Checkout() {
                   {step === "reisende" && (
                     <section className={stepCls} aria-labelledby="reisende-heading">
                       <h2 id="reisende-heading" className="mb-1 flex items-center gap-2.5 font-display text-2xl">
-                        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">1</span>
+                        <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">1</span>
                         {t("co.pax.title")}
                       </h2>
                       <p className="mb-5 flex items-start gap-2 text-sm text-muted-foreground">
@@ -571,7 +571,7 @@ export default function Checkout() {
                       </p>
                       <PassengerForm {...paxCtx} pax={pax} onChange={setP} errors={errors} savedTravelers={savedTravelers} t={t} />
                       <div className="mt-6 flex justify-end">
-                        <button type="button" onClick={() => goNext("reisende")} className="min-h-12 rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 hover:brightness-[0.94]">
+                        <button type="button" onClick={() => goNext("reisende")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60">
                           {t("co.next.contact")}
                         </button>
                       </div>
@@ -582,7 +582,7 @@ export default function Checkout() {
                   {step === "kontakt" && (
                     <section className={stepCls} aria-labelledby="kontakt-heading">
                       <h2 id="kontakt-heading" className="mb-1 flex items-center gap-2.5 font-display text-2xl">
-                        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">2</span>
+                        <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">2</span>
                         {t("co.contact.title")}
                       </h2>
                       <p className="mb-5 text-sm text-muted-foreground">{t("co.contact.sub")}</p>
@@ -613,10 +613,10 @@ export default function Checkout() {
                         </Field>
                       </div>
                       <div className="mt-6 flex justify-between gap-3">
-                        <button type="button" onClick={() => setStep("reisende")} className="min-h-12 rounded-full border hairline px-6 text-sm font-medium hover:border-foreground/25">
+                        <button type="button" onClick={() => setStep("reisende")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
                           {t("common.back")}
                         </button>
-                        <button type="button" onClick={() => goNext("kontakt")} className="min-h-12 rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 hover:brightness-[0.94]">
+                        <button type="button" onClick={() => goNext("kontakt")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60">
                           {t("co.next.bags")}
                         </button>
                       </div>
@@ -640,11 +640,11 @@ export default function Checkout() {
                           <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} aria-describedby={errors.terms ? "terms-err" : undefined} aria-invalid={Boolean(errors.terms)} className="mt-0.5 h-5 w-5 shrink-0 accent-primary" />
                           <span>
                             {t("co.terms.label")}
-                            <span className="text-primary"> *</span>
+                            <span className="text-destructive"> *</span>
                           </span>
                         </label>
                         {errors.terms && (
-                          <p id="terms-err" role="alert" className="mt-2 text-xs font-medium text-primary">
+                          <p id="terms-err" role="alert" className="mt-2 text-xs font-medium text-destructive">
                             {errors.terms}
                           </p>
                         )}
@@ -653,7 +653,7 @@ export default function Checkout() {
                           <span>{t("co.marketing")}</span>
                         </label>
                         {customer && (customer.bonusKr ?? 0) > 0 && currency === "NOK" && (
-                          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-muted/50 px-4 py-3">
+                          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3">
                             <input type="checkbox" checked={bonusUse} onChange={(e) => setBonusUse(e.target.checked)} className="h-5 w-5 shrink-0 accent-primary" />
                             <Wallet className="h-4 w-4 shrink-0 text-foreground" aria-hidden="true" />
                             <span className="text-sm">{t("co.bonus.use", { amount: customer.bonusKr ?? 0 })}</span>
@@ -671,7 +671,7 @@ export default function Checkout() {
                       )}
 
                       <div className="flex justify-between gap-3">
-                        <button type="button" onClick={() => setStep("kontakt")} className="min-h-12 rounded-full border hairline px-6 text-sm font-medium hover:border-foreground/25">
+                        <button type="button" onClick={() => setStep("kontakt")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
                           {t("common.back")}
                         </button>
                         <button
@@ -679,7 +679,7 @@ export default function Checkout() {
                           onClick={() => startSession()}
                           disabled={createSession.isPending || offerExpired}
                           aria-busy={createSession.isPending}
-                          className="flex min-h-12 items-center gap-2 rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 hover:brightness-[0.94] disabled:opacity-60"
+                          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60"
                         >
                           {createSession.isPending ? (
                             <>
@@ -698,7 +698,7 @@ export default function Checkout() {
                     <>
                       <PaymentSection step={4} value={paymentMethod} onChange={setPaymentMethod} currency={currency} locked>
                         {flowError && (
-                          <p role="alert" className="mb-4 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary">
+                          <p role="alert" className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                             {flowError}
                           </p>
                         )}
@@ -712,14 +712,14 @@ export default function Checkout() {
                             onSucceeded={onStripeSucceeded}
                           />
                         ) : (
-                          <div className="rounded-2xl border border-dashed border-border bg-muted/50 p-4">
+                          <div className="rounded-lg border border-dashed border-border bg-muted/50 p-4">
                             <p className="text-sm font-semibold">{t("co.demo.title")}</p>
                             <p className="mt-1 text-xs text-muted-foreground">{t("co.demo.body")}</p>
                             <button
                               type="button"
                               onClick={onDemoConfirm}
                               disabled={confirmDemo.isPending}
-                              className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-dashed border-night bg-white px-6 text-sm font-bold text-night hover:bg-muted disabled:opacity-60"
+                              className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-night bg-card px-6 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-60"
                             >
                               {confirmDemo.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
                               {t("co.demo.title")}
@@ -737,11 +737,11 @@ export default function Checkout() {
                   {step === "bekreft" && (
                     <section className={stepCls} aria-live="polite" aria-busy={!status.data || !TERMINAL.has(status.data.status)}>
                       <h2 className="mb-1 flex items-center gap-2.5 font-display text-2xl">
-                        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">5</span>
+                        <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">5</span>
                         {t("co.step.confirm")}
                       </h2>
                       {flowError && (
-                        <p role="alert" className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary">
+                        <p role="alert" className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                           {flowError}
                         </p>
                       )}
@@ -761,22 +761,22 @@ export default function Checkout() {
                           onSearch={() => navigate(`/sok${searchCtx}`)}
                         />
                       ) : pollTimedOut ? (
-                        <div className="mt-4 rounded-2xl border border-border bg-muted/50 p-5 text-sm">
+                        <div className="mt-4 rounded-lg border border-border bg-muted/50 p-5 text-sm">
                           <p className="flex items-center gap-2 font-semibold">
                             <TimerReset className="h-4 w-4" aria-hidden="true" /> {t("co.slow.title")}
                           </p>
                           <p className="mt-2 text-muted-foreground">{t("co.slow.body", { email: contact.email || t("co.youraddress") })}</p>
                           <div className="mt-4 flex flex-wrap gap-3">
-                            <button type="button" onClick={() => { setPollStartedAt(Date.now()); status.refetch(); }} className="min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+                            <button type="button" onClick={() => { setPollStartedAt(Date.now()); status.refetch(); }} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
                               {t("co.checkagain")}
                             </button>
-                            <button type="button" onClick={() => navigate("/reise")} className="min-h-11 rounded-full border hairline px-5 text-sm font-medium">
+                            <button type="button" onClick={() => navigate("/reise")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
                               {t("co.gomytrip")}
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-4 flex items-start gap-3 rounded-2xl border border-border bg-muted/50 p-5">
+                        <div className="mt-4 flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-5">
                           <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-primary" aria-hidden="true" />
                           <div className="text-sm">
                             <p className="font-semibold">
@@ -788,7 +788,7 @@ export default function Checkout() {
                               {t("co.wait")}
                             </p>
                             {status.data?.bookingReference && (
-                              <p className="mt-2 flex items-center gap-1.5 text-emerald-700">
+                              <p className="mt-2 flex items-center gap-1.5 text-success">
                                 <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> {t("co.ref", { ref: status.data.bookingReference })}
                               </p>
                             )}
@@ -801,12 +801,12 @@ export default function Checkout() {
 
                 {/* ── Prissammendrag ── */}
                 <aside className="lg:sticky lg:top-24">
-                  <div className="rounded-3xl border hairline bg-card p-6">
+                  <div className="rounded-xl border border-border bg-card p-6">
                     <div className="flex items-start justify-between gap-3">
                       <h2 className="font-display text-2xl">{t("common.price")}</h2>
                       {Number.isFinite(remainingMs) && (
                         <p
-                          className={cn("rounded-full px-3 py-1 text-xs font-semibold tabular-nums", remainingMs < 120_000 ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}
+                          className={cn("rounded-md px-2.5 py-1 text-xs font-semibold tabular-nums", remainingMs < 120_000 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground")}
                           aria-live={remainingMs < 120_000 ? "polite" : "off"}
                         >
                           {t("co.validfor", { time: formatCountdown(remainingMs) })}
@@ -829,7 +829,7 @@ export default function Checkout() {
                       )}
                       <Row muted label={breakdown ? t("common.fee") : t("co.fee.approx")} value={formatMinor(breakdown?.serviceFeeAmountMinor ?? previewFee, currency)} />
                       {breakdown && breakdown.bonusUsedMinor > 0 && (
-                        <div className="flex justify-between font-semibold text-emerald-700">
+                        <div className="flex justify-between font-semibold text-success">
                           <span>{t("common.bonusused")}</span>
                           <span>−{formatMinor(breakdown.bonusUsedMinor, currency)}</span>
                         </div>
@@ -842,7 +842,7 @@ export default function Checkout() {
                         : t("co.price.est")}
                     </p>
                     {serviceStatus.data && !serviceStatus.data.instantBookingEnabled && (
-                      <p role="alert" className="mt-3 rounded-xl border border-primary/40 bg-primary/10 p-3 text-xs text-primary">
+                      <p role="alert" className="mt-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
                         {t("co.closed")}
                       </p>
                     )}
@@ -860,23 +860,23 @@ export default function Checkout() {
 
       {/* Mobil bunnlinje — BottomNav er skjult på /bestill */}
       {offer && !offerExpired && step !== "bekreft" && step !== "betaling" && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white/97 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{breakdown ? t("common.total") : t("co.total.est")}</p>
-              <p className="text-lg font-extrabold leading-none tracking-tight text-night">{formatMinor(displayTotalMinor, currency)}</p>
+              <p className="eyebrow">{breakdown ? t("common.total") : t("co.total.est")}</p>
+              <p className="text-xl font-semibold leading-none tracking-tight tabular text-foreground">{formatMinor(displayTotalMinor, currency)}</p>
             </div>
             {step === "tilvalg" ? (
               <button
                 onClick={() => startSession()}
                 disabled={createSession.isPending}
-                className="flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 disabled:opacity-60"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60"
               >
                 <Lock className="h-4 w-4" aria-hidden="true" />
                 {createSession.isPending ? t("co.confirming") : t("co.topay")}
               </button>
             ) : (
-              <button onClick={() => goNext(step)} className="min-h-12 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-md shadow-primary/25">
+              <button onClick={() => goNext(step)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60">
                 {t("common.next")}
               </button>
             )}
@@ -914,8 +914,8 @@ function ExpiredPanel({
   }, [recovery, searchCtx, onStart]);
   const diff = recovery?.offer && oldOffer ? toMinor(recovery.offer.totalAmount, recovery.offer.totalCurrency) - toMinor(oldOffer.totalAmount, oldOffer.totalCurrency) : 0;
   return (
-    <div role="alert" className="mt-8 rounded-3xl border border-primary/40 bg-card p-8 text-center">
-      <Info className="mx-auto h-8 w-8 text-primary" aria-hidden="true" />
+    <div role="alert" className="mt-8 rounded-xl border border-border bg-card p-8 text-center">
+      <Info className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
       <p className="mt-4 font-display text-2xl">{t("co.exp.title")}</p>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{t("co.exp.body")}</p>
       <div className="mt-6">
@@ -925,11 +925,11 @@ function ExpiredPanel({
           </p>
         )}
         {recovery?.status === "found" && recovery.offer && (
-          <div className="mx-auto max-w-sm rounded-2xl bg-muted/60 p-4 text-sm">
+          <div className="mx-auto max-w-sm rounded-lg bg-muted/60 p-4 text-sm">
             <p>
               {t("co.exp.found")} <b>{formatMinor(toMinor(recovery.offer.totalAmount, recovery.offer.totalCurrency), recovery.offer.totalCurrency)}</b>
               {diff !== 0 && (
-                <span className={diff > 0 ? "text-primary" : "text-emerald-700"}>
+                <span className={diff > 0 ? "text-warning" : "text-success"}>
                   {" "}
                   ({diff > 0 ? "+" : "−"}
                   {formatMinor(Math.abs(diff), recovery.offer.totalCurrency)} {diff > 0 ? t("co.exp.dearer") : t("co.exp.cheaper")})
@@ -937,18 +937,18 @@ function ExpiredPanel({
               )}{" "}
               <span className="text-muted-foreground">{t("co.exp.exclfee")}</span>
             </p>
-            <button onClick={() => onContinue(recovery.offer!)} className="mt-3 min-h-11 w-full rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground">
+            <button onClick={() => onContinue(recovery.offer!)} className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] w-full">
               {t("co.exp.continue")}
             </button>
           </div>
         )}
         <div className="mt-4 flex flex-wrap justify-center gap-3">
           {searchCtx && (
-            <button onClick={onSearch} className="min-h-11 rounded-full border hairline px-6 text-sm font-medium hover:border-foreground/25">
+            <button onClick={onSearch} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
               {t("co.exp.samesearch")}
             </button>
           )}
-          <button onClick={onHome} className="min-h-11 rounded-full border hairline px-6 text-sm font-medium hover:border-foreground/25">
+          <button onClick={onHome} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
             {t("co.exp.restart")}
           </button>
         </div>
@@ -962,8 +962,8 @@ function ErrorPanel({ code, message, onRetry, onSearch }: { code: AppCode | null
   const reSearchCodes: (AppCode | null)[] = ["OFFER_EXPIRED", "OFFER_NOT_FOUND", "PRICE_CHANGED"];
   const retryCodes: (AppCode | null)[] = ["SUPPLIER_UNAVAILABLE", "SUPPLIER_TIMEOUT", "PAYMENT_FAILED", "PAYMENT_REQUIRED", "CONFLICT", "INTERNAL", null];
   return (
-    <div role="alert" className="rounded-3xl border border-primary/40 bg-primary/5 p-5">
-      <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+    <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+      <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
         <TriangleAlert className="h-4 w-4" aria-hidden="true" /> {message}
       </p>
       {code === "PAYMENT_FAILED" && <p className="mt-1 text-xs text-muted-foreground">{t("co.err.nocharge")}</p>}
@@ -971,22 +971,22 @@ function ErrorPanel({ code, message, onRetry, onSearch }: { code: AppCode | null
       {code === "PRICE_CHANGED" && <p className="mt-1 text-xs text-muted-foreground">{t("co.err.newprice")}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
         {code === "PRICE_CHANGED" && (
-          <button onClick={onRetry} className="min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+          <button onClick={onRetry} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
             {t("co.err.continuenew")}
           </button>
         )}
         {reSearchCodes.includes(code) && (
-          <button onClick={onSearch} className="min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+          <button onClick={onSearch} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
             {t("common.searchagain")}
           </button>
         )}
         {retryCodes.includes(code) && (
-          <button onClick={onRetry} className="min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+          <button onClick={onRetry} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
             {t("common.retry")}
           </button>
         )}
         {(code === "BOOKING_CLOSED" || code === "SUPPLIER_REJECTED" || code === "PAYMENT_NOT_CONFIGURED") && (
-          <a href="/hjelp" className="min-h-11 rounded-full border hairline px-5 py-3 text-sm font-medium">
+          <a href="/hjelp" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
             {t("common.contactus")}
           </a>
         )}
@@ -998,26 +998,26 @@ function ErrorPanel({ code, message, onRetry, onSearch }: { code: AppCode | null
 function PriceChangedPanel({ oldMinor, newMinor, currency, onContinue, onSearch }: { oldMinor: number | null; newMinor: number | null; currency: string; onContinue: () => void; onSearch: () => void }) {
   const t = useT();
   return (
-    <div role="alert" className="mt-4 rounded-3xl border border-primary/40 bg-primary/5 p-5">
-      <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+    <div role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+      <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
         <TriangleAlert className="h-4 w-4" aria-hidden="true" /> {t("co.pc.title")}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">{t("co.pc.body")}</p>
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-xl bg-muted/60 p-3">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t("co.pc.old")}</p>
-          <p className="font-bold line-through">{oldMinor != null ? formatMinor(oldMinor, currency) : "—"}</p>
+          <p className="font-semibold line-through">{oldMinor != null ? formatMinor(oldMinor, currency) : "—"}</p>
         </div>
-        <div className="rounded-xl bg-white p-3 ring-1 ring-primary/40">
+        <div className="rounded-lg bg-card p-3 ring-1 ring-primary/40">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t("co.pc.new")}</p>
-          <p className="font-bold text-night">{newMinor != null ? formatMinor(newMinor, currency) : t("co.pc.fetching")}</p>
+          <p className="font-semibold text-foreground">{newMinor != null ? formatMinor(newMinor, currency) : t("co.pc.fetching")}</p>
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button onClick={onContinue} className="min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground">
+        <button onClick={onContinue} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
           {t("co.err.continuenew")}
         </button>
-        <button onClick={onSearch} className="min-h-11 rounded-full border hairline px-5 text-sm font-medium">
+        <button onClick={onSearch} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-input bg-card px-5 text-sm font-medium transition-colors hover:border-foreground/40">
           {t("common.searchagain")}
         </button>
       </div>

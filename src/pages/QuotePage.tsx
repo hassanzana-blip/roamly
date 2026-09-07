@@ -218,14 +218,14 @@ export default function QuotePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-white">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
             <SkyMark className="h-7 w-7" />
-            <span className="font-display text-xl font-bold text-night">hellosky</span>
+            <span className="font-display text-xl font-semibold text-foreground">hellosky</span>
           </Link>
           <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+            <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" />
             Sikker tilbudslenke
           </span>
         </div>
@@ -234,17 +234,17 @@ export default function QuotePage() {
       <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-10 outline-none">
         {quote.isLoading && (
           <div className="space-y-4" aria-label="Laster tilbud" aria-busy="true">
-            <div className="h-10 w-2/3 animate-pulse rounded-xl bg-night/5" />
-            <div className="h-48 animate-pulse rounded-3xl bg-night/5" />
+            <div className="h-10 w-2/3 animate-pulse rounded-xl bg-muted" />
+            <div className="h-48 animate-pulse rounded-xl bg-muted" />
           </div>
         )}
 
         {quote.error && (
-          <div role="alert" className="rounded-3xl border border-border bg-white p-8 text-center shadow-sm">
-            <AlertCircle className="mx-auto h-10 w-10 text-amber-500" aria-hidden="true" />
-            <h1 className="mt-4 font-display text-2xl font-bold text-night">Lenken er ikke gyldig</h1>
+          <div role="alert" className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+            <AlertCircle className="mx-auto h-10 w-10 text-warning" aria-hidden="true" />
+            <h1 className="mt-4 font-display text-2xl font-semibold text-foreground">Lenken er ikke gyldig</h1>
             <p className="mt-2 text-sm text-muted-foreground">{humanMessage(quote.error)} Kontakt oss, så sender vi en ny.</p>
-            <a href={WA} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-white hover:brightness-110">
+            <a href={WA} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:opacity-90">
               <MessageCircle className="h-4 w-4" aria-hidden="true" /> Kontakt oss på WhatsApp
             </a>
           </div>
@@ -253,37 +253,37 @@ export default function QuotePage() {
         {q && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Tilbud {q.reference}</p>
-            <h1 className="mt-2 font-display text-3xl font-bold text-night sm:text-4xl">Hei {q.customerName} – reisen din er klar til bestilling</h1>
+            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground sm:text-4xl">Hei {q.customerName} – reisen din er klar til bestilling</h1>
             <p className="mt-2 text-muted-foreground">
               {q.route} · {q.passengers} {q.passengers === 1 ? "passasjer" : "passasjerer"}
               {q.cabinClass ? ` · ${cabinLabel(q.cabinClass)}` : ""}
             </p>
 
             {q.status === "expired" ? (
-              <div className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-6 text-center">
-                <Clock className="mx-auto h-8 w-8 text-amber-600" aria-hidden="true" />
-                <p className="mt-3 font-display text-xl font-bold text-night">Tilbudet er utløpt</p>
+              <div className="mt-8 rounded-xl border border-warning/30 bg-warning/10 p-6 text-center">
+                <Clock className="mx-auto h-8 w-8 text-warning" aria-hidden="true" />
+                <p className="mt-3 font-display text-xl font-semibold text-foreground">Tilbudet er utløpt</p>
                 <p className="mt-1 text-sm text-muted-foreground">Flypriser endrer seg raskt. Kontakt oss, så lager vi et ferskt tilbud til deg.</p>
-                <a href={WA} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-white hover:brightness-110">
+                <a href={WA} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:opacity-90">
                   <MessageCircle className="h-4 w-4" aria-hidden="true" /> Få nytt tilbud
                 </a>
               </div>
             ) : q.status === "booked" || q.status === "paid" ? (
-              <div className="mt-8 rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-                <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" aria-hidden="true" />
-                <p className="mt-3 font-display text-xl font-bold text-night">{q.status === "booked" ? "Denne reisen er allerede booket" : "Betalingen er registrert"}</p>
+              <div className="mt-8 rounded-xl border border-success/30 bg-success/5 p-6 text-center">
+                <CheckCircle2 className="mx-auto h-8 w-8 text-success" aria-hidden="true" />
+                <p className="mt-3 font-display text-xl font-semibold text-foreground">{q.status === "booked" ? "Denne reisen er allerede booket" : "Betalingen er registrert"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">Du mottar bekreftelse og billetter på e-post. Kontakt oss hvis du har spørsmål.</p>
               </div>
             ) : (
               <>
                 <div className="mt-8 space-y-3">
                   {slicesArr.map((s, i) => (
-                    <div key={i} className="flex items-center gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
+                    <div key={i} className="flex items-center gap-4 rounded-lg border border-border bg-card p-5 shadow-sm">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <Ticket className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-night">
+                        <p className="font-semibold text-foreground">
                           {place(s.origin)} → {place(s.destination)}
                         </p>
                         <p className="mt-0.5 text-sm text-muted-foreground">
@@ -295,20 +295,20 @@ export default function QuotePage() {
                   ))}
                 </div>
 
-                <div className="mt-6 rounded-3xl border border-border bg-white p-6 shadow-sm">
-                  <h2 className="font-display text-lg font-bold text-night">{t("common.price")}</h2>
+                <div className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm">
+                  <h2 className="font-display text-xl font-semibold text-foreground">{t("common.price")}</h2>
                   <dl className="mt-3 space-y-2 text-sm">
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">{t("common.flights")}</dt>
-                      <dd className="font-semibold text-night">{formatPrice(q.offerAmount, currency)}</dd>
+                      <dd className="font-semibold text-foreground">{formatPrice(q.offerAmount, currency)}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Servicegebyr HelloSky</dt>
-                      <dd className="font-semibold text-night">{formatPrice(q.serviceFeeAmount, currency)}</dd>
+                      <dd className="font-semibold text-foreground">{formatPrice(q.serviceFeeAmount, currency)}</dd>
                     </div>
                     <div className="flex justify-between border-t border-border pt-3">
-                      <dt className="font-display text-base font-bold text-night">{t("common.total")}</dt>
-                      <dd className="font-display text-xl font-bold text-primary">{formatPrice(q.totalAmount, currency)}</dd>
+                      <dt className="font-display text-base font-semibold text-foreground">{t("common.total")}</dt>
+                      <dd className="font-display text-xl font-semibold text-primary">{formatPrice(q.totalAmount, currency)}</dd>
                     </div>
                   </dl>
                   <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -319,10 +319,10 @@ export default function QuotePage() {
 
                 {/* Reisende — må registreres før betaling (startPayment avviser med INVALID_PASSENGER uten) */}
                 {canSubmitPassengers && (
-                  <section className="mt-6 rounded-3xl border border-border bg-white p-6 shadow-sm" aria-labelledby="pax-heading">
+                  <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm" aria-labelledby="pax-heading">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h2 id="pax-heading" className="flex items-center gap-2 font-display text-lg font-bold text-night">
+                        <h2 id="pax-heading" className="flex items-center gap-2 font-display text-xl font-semibold text-foreground">
                           <Users className="h-5 w-5 text-primary" aria-hidden="true" /> {t("qp.pax.title")}
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">{passengersSubmitted ? t("qp.pax.saved") : t("qp.pax.sub")}</p>
@@ -334,7 +334,7 @@ export default function QuotePage() {
                             setEditingPax(true);
                             setFlowError(null);
                           }}
-                          className="min-h-11 rounded-full border border-border px-5 text-sm font-bold text-night hover:bg-muted"
+                          className="min-h-11 rounded-lg border border-border px-5 text-sm font-semibold text-foreground hover:bg-muted"
                         >
                           {t("qp.pax.edit")}
                         </button>
@@ -342,14 +342,14 @@ export default function QuotePage() {
                     </div>
 
                     {flowError && !q.onlinePaymentAvailable && (
-                      <p role="alert" className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary">
+                      <p role="alert" className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                         {flowError}
                       </p>
                     )}
                     {passengersSubmitted ? (
                       <ul className="mt-4 flex flex-wrap gap-2" aria-live="polite">
                         {(paxSummary.length ? paxSummary : slots.map((_, i) => `${t("co.step.pax")} ${i + 1}`)).map((name) => (
-                          <li key={name} className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-800">
+                          <li key={name} className="flex items-center gap-1.5 rounded-lg bg-success/5 px-3.5 py-2 text-sm font-semibold text-success">
                             <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> {name}
                           </li>
                         ))}
@@ -368,7 +368,7 @@ export default function QuotePage() {
                           type="button"
                           onClick={savePassengers}
                           disabled={submitPassengers.isPending}
-                          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-night px-6 text-base font-bold text-white hover:brightness-125 disabled:opacity-60 sm:w-auto"
+                          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-night px-6 text-base font-semibold text-white hover:opacity-90 disabled:opacity-60 sm:w-auto"
                         >
                           {submitPassengers.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
                           {t("qp.pax.save")}
@@ -381,15 +381,15 @@ export default function QuotePage() {
 
                 {/* Online betaling — backend åpner først når passasjerene er registrert */}
                 {q.onlinePaymentAvailable ? (
-                  <section className="mt-6 rounded-3xl border border-border bg-white p-6 shadow-sm" aria-labelledby="pay-heading" aria-live="polite">
-                    <h2 id="pay-heading" className="font-display text-lg font-bold text-night">
+                  <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow-sm" aria-labelledby="pay-heading" aria-live="polite">
+                    <h2 id="pay-heading" className="font-display text-xl font-semibold text-foreground">
                       Betal og bestill
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Kortet ditt reserveres nå og belastes først når flyselskapet har bekreftet billetten. Får vi ikke bekreftelse, frigis reservasjonen automatisk.
                     </p>
                     {flowError && (
-                      <p role="alert" className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary">
+                      <p role="alert" className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                         {flowError}
                       </p>
                     )}
@@ -406,7 +406,7 @@ export default function QuotePage() {
                                 role="radio"
                                 aria-checked={method === m}
                                 onClick={() => setMethod(m)}
-                                className={cn("min-h-11 rounded-full border px-5 text-sm font-bold transition-colors", method === m ? "border-night bg-night text-white" : "border-border text-muted-foreground hover:text-foreground")}
+                                className={cn("min-h-11 rounded-lg border px-5 text-sm font-semibold transition-colors", method === m ? "border-night bg-night text-white" : "border-border text-muted-foreground hover:text-foreground")}
                               >
                                 {m === "card" ? t("pay.card") : "Klarna"}
                               </button>
@@ -418,7 +418,7 @@ export default function QuotePage() {
                           disabled={startPayment.isPending}
                           aria-disabled={!passengersSubmitted}
                           className={cn(
-                            "mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-bold text-white hover:brightness-110 disabled:opacity-60",
+                            "mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-base font-semibold text-white hover:opacity-90 disabled:opacity-60",
                             !passengersSubmitted && "opacity-60",
                           )}
                         >
@@ -443,7 +443,7 @@ export default function QuotePage() {
                     )}
 
                     {phase === "confirm" && (
-                      <div className="mt-4 rounded-2xl border border-border bg-muted/50 p-5 text-sm">
+                      <div className="mt-4 rounded-lg border border-border bg-muted/50 p-5 text-sm">
                         {sessionFailed ? (
                           <div role="alert">
                             <p className="font-semibold text-primary">
@@ -461,7 +461,7 @@ export default function QuotePage() {
                                 setPollStartedAt(Date.now());
                                 status.refetch();
                               }}
-                              className="mt-3 min-h-11 rounded-full bg-primary px-5 text-sm font-bold text-white"
+                              className="mt-3 min-h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-white"
                             >
                               {t("co.checkagain")}
                             </button>
@@ -476,8 +476,8 @@ export default function QuotePage() {
                     )}
                   </section>
                 ) : passengersSubmitted || !canSubmitPassengers ? (
-                  <div className="mt-6 rounded-3xl bg-night p-6 text-white">
-                    <h2 className="font-display text-lg font-bold">Slik fullfører du</h2>
+                  <div className="mt-6 rounded-xl bg-night p-6 text-white">
+                    <h2 className="font-display text-xl font-semibold">Slik fullfører du</h2>
                     <p className="mt-2 text-sm text-white/80">
                       Nettbetaling er ikke tilgjengelig for dette tilbudet. Ta kontakt, så bekrefter vi detaljene og sender deg en sikker betalingslenke – deretter bookes billettene.
                       HelloSky ber aldri om kortinformasjon på e-post.
@@ -485,13 +485,13 @@ export default function QuotePage() {
                   </div>
                 ) : null}
 
-                <div className="mt-6 rounded-3xl border border-border bg-white p-6 text-center shadow-sm">
-                  <p className="text-sm font-semibold text-night">Spørsmål om tilbudet?</p>
+                <div className="mt-6 rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+                  <p className="text-sm font-semibold text-foreground">Spørsmål om tilbudet?</p>
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <a href={WA} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 text-sm font-bold text-night hover:brightness-105">
+                    <a href={WA} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-6 text-sm font-semibold text-foreground hover:opacity-90">
                       <MessageCircle className="h-4 w-4" aria-hidden="true" /> WhatsApp
                     </a>
-                    <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, "")}`} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-border px-6 text-sm font-bold text-night hover:bg-muted">
+                    <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, "")}`} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border px-6 text-sm font-semibold text-foreground hover:bg-muted">
                       <Phone className="h-4 w-4" aria-hidden="true" /> Ring {SUPPORT_PHONE}
                     </a>
                   </div>

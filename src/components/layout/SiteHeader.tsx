@@ -1,29 +1,19 @@
 import { Link, NavLink } from "react-router";
 import { useEffect, useState } from "react";
-import { Plane, Radar, LifeBuoy, Luggage, Map, Menu, Sparkles, X, BedDouble, Globe } from "lucide-react";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Plane, Radar, LifeBuoy, Luggage, Map, Menu, Sparkles, BedDouble, Globe } from "lucide-react";
+import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import SkyMark from "@/components/brand/SkyMark";
 import { SkipLink } from "@/components/app/AppShell";
 import { LANGS, LANG_LABELS, useLang, useT, type I18nKey, type Lang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 export function Logo({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {
   const t = useT();
   return (
-    <Link to="/" className="group flex min-h-11 items-center gap-2 rounded-full" aria-label={t("nav.tofront")}>
-      <SkyMark
-        className={`h-8 w-8 transition-all duration-300 group-hover:-rotate-6 ${
-          inverted ? "text-white" : "text-primary"
-        }`}
-      />
-      {!compact && (
-        <span
-          className={`text-[22px] font-extrabold lowercase tracking-tight ${
-            inverted ? "text-white" : "text-night"
-          }`}
-        >
-          hellosky
-        </span>
-      )}
+    <Link to="/" className="group flex min-h-11 items-center gap-2 rounded-md" aria-label={t("nav.tofront")}>
+      <SkyMark className={cn("h-8 w-8 transition-transform duration-base group-hover:-rotate-6", inverted ? "text-white" : "text-foreground")} />
+      {!compact && <span className={cn("text-[22px] font-extrabold lowercase tracking-tight", inverted ? "text-white" : "text-foreground")}>hellosky</span>}
     </Link>
   );
 }
@@ -38,20 +28,15 @@ const NAV: { to: string; label: I18nKey; icon: typeof Plane }[] = [
   { to: "/hjelp", label: "nav.support", icon: LifeBuoy },
 ];
 
-/** Språkvelger — 5 språk, lagres lokalt og på kundekontoen (i18n.tsx). */
+/** Language switcher: 5 languages, stored locally and on the customer account (i18n.tsx). */
 export function LanguageSwitcher({ className = "", compact = false }: { className?: string; compact?: boolean }) {
   const { lang, setLang } = useLang();
   const t = useT();
   return (
-    <label className={`relative inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-border bg-white px-2 text-[13px] font-semibold text-foreground ${className}`}>
-      <Globe className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+    <label className={cn("relative inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-2 text-sm font-medium text-foreground", className)}>
+      <Globe className="size-4 text-muted-foreground" aria-hidden="true" />
       <span className="sr-only">{t("nav.language")}</span>
-      <select
-        value={lang}
-        onChange={(e) => setLang(e.target.value as Lang)}
-        aria-label={t("nav.language")}
-        className="min-h-10 cursor-pointer bg-transparent pr-1 outline-none"
-      >
+      <select value={lang} onChange={(e) => setLang(e.target.value as Lang)} aria-label={t("nav.language")} className="min-h-9 cursor-pointer bg-transparent pr-1 outline-none">
         {LANGS.map((l) => (
           <option key={l} value={l}>
             {compact ? l.toUpperCase() : LANG_LABELS[l]}
@@ -76,23 +61,25 @@ export default function SiteHeader() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 border-b bg-white/95 backdrop-blur-md transition-all duration-300 ${
-        scrolled ? "border-border py-1 shadow-[0_2px_12px_-6px_hsl(var(--night)/0.15)]" : "border-transparent py-2"
-      }`}
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 border-b bg-background/90 backdrop-blur-md transition-[box-shadow,border-color] duration-base",
+        scrolled ? "border-border shadow-xs" : "border-transparent",
+      )}
     >
       <SkipLink />
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+      <div className="container-x flex h-16 items-center justify-between gap-3">
         <Logo />
-        <nav className="hidden items-center gap-5 md:flex lg:gap-6" aria-label={t("nav.mainmenu")}>
+        <nav className="hidden items-center gap-1 md:flex" aria-label={t("nav.mainmenu")}>
           {NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `inline-flex min-h-11 items-center text-[13px] font-semibold transition-colors ${
-                  isActive ? "text-primary" : "text-foreground/80 hover:text-night"
-                }`
+                cn(
+                  "inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium transition-colors",
+                  isActive ? "bg-primary-soft text-accent-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                )
               }
             >
               {t(item.label)}
@@ -101,62 +88,45 @@ export default function SiteHeader() {
         </nav>
         <div className="flex items-center gap-2">
           <LanguageSwitcher className="hidden sm:inline-flex" compact />
-          <Link
-            to="/reise"
-            className="hidden min-h-11 items-center rounded-lg border border-primary/30 px-4 text-[13px] font-semibold text-primary transition-colors hover:bg-secondary lg:inline-flex"
-          >
-            {t("nav.findbooking")}
-          </Link>
+          <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
+            <Link to="/reise">{t("nav.findbooking")}</Link>
+          </Button>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <button
-                type="button"
-                className="grid h-11 w-11 place-items-center rounded-lg border border-border bg-white text-foreground transition-colors hover:bg-muted md:hidden"
-                aria-label={t("nav.openmenu")}
-              >
-                <Menu className="h-5 w-5" aria-hidden="true" />
-              </button>
+              <Button variant="outline" size="icon" className="md:hidden" aria-label={t("nav.openmenu")}>
+                <Menu aria-hidden="true" />
+              </Button>
             </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="w-[min(20rem,90vw)] border-l border-border bg-card p-6 text-foreground"
-            >
-              <SheetTitle className="sr-only">{t("nav.mobilemenu")}</SheetTitle>
-              <div className="mb-6 flex items-center justify-between">
+            <SheetContent side="right">
+              <SheetHeader className="pt-4">
+                <SheetTitle className="sr-only">{t("nav.mobilemenu")}</SheetTitle>
                 <Logo />
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="grid h-11 w-11 place-items-center rounded-lg border border-border"
-                  aria-label={t("nav.closemenu")}
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-              <nav className="flex flex-col gap-1" aria-label={t("nav.mobilemenu")}>
-                {NAV.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.to === "/"}
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) =>
-                      `flex min-h-12 items-center gap-3 rounded-xl px-4 text-base font-medium transition-colors ${
-                        isActive ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      }`
-                    }
-                  >
-                    <item.icon className="h-5 w-5" aria-hidden="true" />
-                    {t(item.label)}
-                  </NavLink>
-                ))}
-              </nav>
-              <div className="mt-6 border-t border-border pt-5">
-                <LanguageSwitcher className="w-full" />
-              </div>
-              <p className="font-mono-label mt-8 text-[12px] leading-relaxed text-muted-foreground">
-                {t("nav.hours")}
-              </p>
+              </SheetHeader>
+              <SheetBody className="pt-2">
+                <nav className="flex flex-col gap-0.5" aria-label={t("nav.mobilemenu")}>
+                  {NAV.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.to === "/"}
+                      onClick={() => setOpen(false)}
+                      className={({ isActive }) =>
+                        cn(
+                          "flex min-h-12 items-center gap-3 rounded-lg px-3 text-base font-medium transition-colors",
+                          isActive ? "bg-primary-soft text-accent-foreground" : "text-foreground hover:bg-muted",
+                        )
+                      }
+                    >
+                      <item.icon className="size-5 text-muted-foreground" aria-hidden="true" />
+                      {t(item.label)}
+                    </NavLink>
+                  ))}
+                </nav>
+                <div className="mt-6 border-t border-border pt-5">
+                  <LanguageSwitcher className="w-full" />
+                </div>
+                <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{t("nav.hours")}</p>
+              </SheetBody>
             </SheetContent>
           </Sheet>
         </div>

@@ -60,13 +60,13 @@ export default class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={this.reload}
-              className="inline-flex min-h-12 items-center rounded-full bg-primary px-7 text-[15px] font-bold text-primary-foreground transition-colors hover:brightness-95"
+              className="inline-flex min-h-12 items-center rounded-lg bg-primary px-7 text-[15px] font-semibold text-primary-foreground transition-colors hover:opacity-90"
             >
               {en ? "Reload the page" : "Last siden på nytt"}
             </button>
             <a
               href="/"
-              className="inline-flex min-h-12 items-center rounded-full border border-border px-7 text-[15px] font-semibold transition-colors hover:bg-muted"
+              className="inline-flex min-h-12 items-center rounded-lg border border-border px-7 text-[15px] font-semibold transition-colors hover:bg-muted"
             >
               {en ? "To the front page" : "Til forsiden"}
             </a>

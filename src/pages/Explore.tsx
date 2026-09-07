@@ -56,10 +56,10 @@ export default function Explore() {
               onClick={() => setCat(c.id)}
               aria-pressed={cat === c.id}
               className={cn(
-                "min-h-11 shrink-0 rounded-full border px-4 text-[14px] font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-ring",
+                "min-h-11 shrink-0 rounded-lg border px-4 text-[14px] font-semibold transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-ring",
                 cat === c.id
                   ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-white text-muted-foreground hover:text-foreground",
+                  : "border-border bg-card text-muted-foreground hover:text-foreground",
               )}
             >
               {c.id === "alle" ? t("explore.all") : c.label}

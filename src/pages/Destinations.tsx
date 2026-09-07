@@ -34,11 +34,11 @@ export default function Destinations() {
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-muted/40 border-b border-border">
         <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-32 sm:px-6">
-          <p className="mb-3 font-mono-label text-[11px] text-skyline">
+          <p className="mb-3 font-mono-label text-[11px] text-primary">
             Reisemål fra Norge
           </p>
           <h1 className="max-w-3xl font-display text-5xl leading-[1.02] text-balance sm:text-6xl md:text-7xl">
-            Dit hjertet hører hjemme — <span className="text-skyline">og resten av verden.</span>
+            Dit hjertet hører hjemme — <span className="text-primary">og resten av verden.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             Vi flyr deg overalt. Men vi kjenner særlig godt rutene hjem — til
@@ -54,7 +54,7 @@ export default function Destinations() {
               <a
                 key={c.id}
                 href={`#${c.id}`}
-                className="rounded-full border border-border bg-white px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                className="rounded-lg border border-border bg-card px-4 py-2 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
               >
                 {c.label}
               </a>
@@ -66,7 +66,7 @@ export default function Destinations() {
       {/* ── Featured: diaspora destinations ──────────────────────── */}
       <section id="hjem" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6">
         <div className="mb-10 max-w-2xl">
-          <p className="mb-2 font-mono-label text-[11px] text-skyline">
+          <p className="mb-2 font-mono-label text-[11px] text-primary">
             Hjem til familien
           </p>
           <h2 className="font-display text-4xl leading-tight sm:text-5xl">
@@ -84,7 +84,7 @@ export default function Destinations() {
             <article
               key={d.id}
               id={d.id}
-              className="scroll-mt-24 overflow-hidden rounded-3xl border hairline bg-card"
+              className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card"
             >
               {/* header band */}
               <div className={`bg-gradient-to-br ${d.hue} p-7 text-white sm:p-9`}>
@@ -120,7 +120,7 @@ export default function Destinations() {
                       {p}
                     </p>
                   ))}
-                  <ul className="mt-5 space-y-2.5 border-t hairline pt-5">
+                  <ul className="mt-5 space-y-2.5 border-t border-border pt-5">
                     {d.tips.map((t) => (
                       <li key={t} className="flex gap-3 text-sm leading-relaxed">
                         <Luggage className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
@@ -130,16 +130,16 @@ export default function Destinations() {
                   </ul>
                 </div>
 
-                <aside className="h-fit rounded-2xl border hairline bg-card p-6">
+                <aside className="h-fit rounded-lg border border-border bg-card p-6">
                   <dl className="space-y-4 text-sm">
                     <div>
-                      <dt className="font-mono-label text-[11px] text-skyline">
+                      <dt className="font-mono-label text-[11px] text-primary">
                         Beste reisetid
                       </dt>
                       <dd className="mt-1 text-muted-foreground">{d.bestTime}</dd>
                     </div>
                     <div>
-                      <dt className="font-mono-label text-[11px] text-skyline">
+                      <dt className="font-mono-label text-[11px] text-primary">
                         Reisetid fra Oslo
                       </dt>
                       <dd className="mt-1 flex items-center gap-1.5 text-muted-foreground">
@@ -147,7 +147,7 @@ export default function Destinations() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono-label text-[11px] text-skyline">
+                      <dt className="font-mono-label text-[11px] text-primary">
                         Vanlig rute
                       </dt>
                       <dd className="mt-1 text-muted-foreground">{d.typicalRoute}</dd>
@@ -155,7 +155,7 @@ export default function Destinations() {
                   </dl>
                   <Link
                     to={searchLink(d.gateways[0].iata)}
-                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gold px-5 py-3 text-sm font-bold text-white transition-all hover:brightness-110"
+                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gold px-5 py-3 text-sm font-semibold text-white transition-all hover:opacity-90"
                   >
                     Søk fly til {d.gateways[0].label} <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -171,7 +171,7 @@ export default function Destinations() {
         <section
           key={c.id}
           id={c.id}
-          className="mx-auto w-full max-w-6xl scroll-mt-24 border-t hairline px-4 py-14 sm:px-6"
+          className="mx-auto w-full max-w-6xl scroll-mt-24 border-t border-border px-4 py-14 sm:px-6"
         >
           <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -184,7 +184,7 @@ export default function Destinations() {
               <Link
                 key={p.iata + p.city}
                 to={searchLink(p.iata)}
-                className="card-lift group rounded-3xl border hairline bg-card p-6"
+                className="card-lift group rounded-xl border border-border bg-card p-6"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -193,13 +193,13 @@ export default function Destinations() {
                       {p.country} · {p.note}
                     </p>
                   </div>
-                  <span className="rounded-lg bg-secondary px-2 py-1 text-xs font-bold tracking-widest text-secondary-foreground">
+                  <span className="rounded-lg bg-secondary px-2 py-1 text-xs font-semibold tracking-widest text-secondary-foreground">
                     {p.iata}
                   </span>
                 </div>
                 <div className="mt-5 flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Fra Oslo Gardermoen</span>
-                  <span className="grid h-8 w-8 place-items-center rounded-full border hairline transition-all group-hover:border-gold group-hover:bg-gold group-hover:text-white">
+                  <span className="grid h-8 w-8 place-items-center rounded-full border border-border transition-all group-hover:border-gold group-hover:bg-gold group-hover:text-white">
                     <ArrowUpRight className="h-4 w-4" />
                   </span>
                 </div>
@@ -213,7 +213,7 @@ export default function Destinations() {
       <section className="relative border-t border-border bg-muted/40">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6">
           <h2 className="max-w-2xl font-display text-4xl leading-tight sm:text-5xl">
-            Fant du ikke byen din? <span className="text-skyline">Vi flyr dit alikevel.</span>
+            Fant du ikke byen din? <span className="text-primary">Vi flyr dit alikevel.</span>
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
             Søk i hele markedet — eller spør oss direkte på WhatsApp, så finner
@@ -221,7 +221,7 @@ export default function Destinations() {
           </p>
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-2xl bg-gold px-8 py-4 text-base font-bold text-white transition-all hover:brightness-110"
+            className="inline-flex items-center gap-2 rounded-lg bg-gold px-8 py-4 text-base font-semibold text-white transition-all hover:opacity-90"
           >
             Søk etter fly nå <ArrowRight className="h-5 w-5" />
           </Link>

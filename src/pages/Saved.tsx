@@ -58,7 +58,7 @@ export default function Saved() {
             action={
               <Link
                 to="/utforsk"
-                className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-night px-5 text-[14px] font-semibold text-white"
+                className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-night px-5 text-[14px] font-semibold text-white"
               >
                 Utforsk reisemål <Icon icon={ArrowRight} size={16} />
               </Link>
@@ -74,7 +74,7 @@ export default function Saved() {
                 <li key={`${s.from}-${s.to}-${s.depart}-${s.ret ?? "ow"}`}>
                   <Link
                     to={recentSearchHref(s)}
-                    className="flex min-h-[64px] items-center gap-3 rounded-2xl border border-border bg-white px-4 transition-colors hover:border-foreground/20"
+                    className="flex min-h-[64px] items-center gap-3 rounded-lg border border-border bg-card px-4 transition-colors hover:border-foreground/20"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
                       <Icon icon={Clock3} size={20} className="text-muted-foreground" />

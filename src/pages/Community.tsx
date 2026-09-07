@@ -42,7 +42,7 @@ function Avatar({ url, name, size = 40 }: { url: string | null; name: string; si
   return (
     <span
       style={{ width: size, height: size, fontSize: size * 0.36 }}
-      className="flex shrink-0 items-center justify-center rounded-full bg-primary font-extrabold text-night"
+      className="flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground"
     >
       {initials}
     </span>
@@ -85,9 +85,9 @@ function CommentThread({ post }: { post: FeedPost }) {
       {comments.data?.map((c) => (
         <div key={c.id} className="flex gap-2.5">
           <Avatar url={c.avatarUrl} name={c.author} size={24} />
-          <div className="min-w-0 flex-1 rounded-2xl bg-muted/60 px-3.5 py-2.5">
+          <div className="min-w-0 flex-1 rounded-lg bg-muted/60 px-3.5 py-2.5">
             <p className="flex items-baseline justify-between gap-2 text-[12px]">
-              <span className="font-bold">{c.author}</span>
+              <span className="font-semibold">{c.author}</span>
               <span className="shrink-0 text-[10px] text-muted-foreground">{timeAgo(c.createdAt)}</span>
             </p>
             <p className="mt-0.5 whitespace-pre-wrap text-[13px] leading-relaxed">{c.body}</p>
@@ -96,7 +96,7 @@ function CommentThread({ post }: { post: FeedPost }) {
             <button
               onClick={() => del.mutate({ id: c.id })}
               aria-label="Slett kommentaren din"
-              className="self-start p-1 text-muted-foreground transition-colors hover:text-coral"
+              className="self-start p-1 text-muted-foreground transition-colors hover:text-destructive"
             >
               <Icon icon={Trash2} size={16} />
             </button>
@@ -120,13 +120,13 @@ function CommentThread({ post }: { post: FeedPost }) {
             onChange={(e) => setText(e.target.value)}
             placeholder="Skriv et svar …"
             maxLength={1000}
-            className="min-h-10 flex-1 rounded-full border border-border bg-background px-4 text-[13px] outline-none focus:border-foreground/30"
+            className="min-h-10 flex-1 rounded-lg border border-border bg-background px-4 text-[13px] outline-none focus:border-foreground/30"
           />
           <button
             type="submit"
             disabled={!text.trim() || add.isPending}
             aria-label="Send svar"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-night text-white transition-colors hover:brightness-125 disabled:opacity-40"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-night text-white transition-colors hover:opacity-90 disabled:opacity-40"
           >
             <Icon icon={Send} size={16} />
           </button>
@@ -152,18 +152,18 @@ function PostCard({ post }: { post: FeedPost }) {
   });
 
   return (
-    <article className="rounded-3xl border border-border bg-white p-4 shadow-soft sm:p-5">
+    <article className="rounded-xl border border-border bg-card p-4 shadow-soft sm:p-5">
       <div className="flex items-start gap-3">
         <Avatar url={post.avatarUrl} name={post.author} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-[14px] font-bold">{post.author}</p>
+            <p className="text-[14px] font-semibold">{post.author}</p>
             <span className="text-[11px] text-muted-foreground">{timeAgo(post.createdAt)}</span>
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
+                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold",
                 post.kind === "question"
-                  ? "bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300"
+                  ? "bg-warning/10 text-warning dark:bg-amber-400/15 dark:text-amber-300"
                   : "bg-accent text-accent-foreground",
               )}
             >
@@ -171,7 +171,7 @@ function PostCard({ post }: { post: FeedPost }) {
               {post.kind === "question" ? "Spørsmål" : "Reisetips"}
             </span>
             {post.routeTag && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+              <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                 <Icon icon={MapPin} size={16} /> {post.routeTag}
               </span>
             )}
@@ -182,7 +182,7 @@ function PostCard({ post }: { post: FeedPost }) {
           <button
             onClick={() => del.mutate({ id: post.id })}
             aria-label="Slett innlegget ditt"
-            className="p-1 text-muted-foreground transition-colors hover:text-coral"
+            className="p-1 text-muted-foreground transition-colors hover:text-destructive"
           >
             <Icon icon={Trash2} size={16} />
           </button>
@@ -194,7 +194,7 @@ function PostCard({ post }: { post: FeedPost }) {
           onClick={() => customer && like.mutate({ postId: post.id })}
           aria-pressed={post.likedByMe}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors",
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors",
             post.likedByMe
               ? "bg-coral/10 text-coral"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -207,7 +207,7 @@ function PostCard({ post }: { post: FeedPost }) {
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors",
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors",
             open ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
@@ -245,7 +245,7 @@ export default function Community() {
         <AppHeader title="Samfunn" />
 
         {/* Intro */}
-        <div className="mb-5 rounded-[26px] bg-night p-5 text-white">
+        <div className="mb-5 rounded-xl bg-night p-5 text-white">
           <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
             <Icon icon={Users} size={16} /> HelloSky-samfunnet
           </p>
@@ -261,7 +261,7 @@ export default function Community() {
         {/* Skriveramme */}
         {customer ? (
           <form
-            className="mb-5 rounded-3xl border border-border bg-white p-4 shadow-soft"
+            className="mb-5 rounded-xl border border-border bg-card p-4 shadow-soft"
             onSubmit={(e) => {
               e.preventDefault();
               if (body.trim().length >= 2)
@@ -288,7 +288,7 @@ export default function Community() {
                       onClick={() => setPostKind(k.id)}
                       aria-pressed={postKind === k.id}
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-bold transition-colors",
+                        "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-semibold transition-colors",
                         postKind === k.id
                           ? "border-night bg-night text-white"
                           : "border-border text-muted-foreground hover:text-foreground",
@@ -308,7 +308,7 @@ export default function Community() {
                       ? "Spør om hva som helst — visum, bagasje, beste tid å reise …"
                       : "Del et tips fra reisen din — flyplass, bagasje, lokale triks …"
                   }
-                  className="w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-[14px] outline-none focus:border-foreground/30"
+                  className="w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-[14px] outline-none focus:border-foreground/30"
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <input
@@ -322,12 +322,12 @@ export default function Community() {
                     )}
                   />
                   {create.isError && (
-                    <span className="text-[12px] font-medium text-coral">{humanMessage(create.error)}</span>
+                    <span className="text-[12px] font-medium text-destructive">{humanMessage(create.error)}</span>
                   )}
                   <button
                     type="submit"
                     disabled={body.trim().length < 2 || create.isPending}
-                    className="ml-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-primary px-5 text-[13px] font-bold text-night transition-colors hover:brightness-95 disabled:opacity-40"
+                    className="ml-auto inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-40"
                   >
                     <Icon icon={Send} size={16} />
                     {create.isPending ? "Publiserer …" : "Publiser"}
@@ -339,10 +339,10 @@ export default function Community() {
         ) : (
           <Link
             to="/logg-inn"
-            className="mb-5 flex items-center justify-between gap-3 rounded-3xl border border-border bg-white p-4 shadow-soft transition-colors hover:border-foreground/20"
+            className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-colors hover:border-foreground/20"
           >
             <span className="text-[14px] font-semibold">Logg inn for å dele tips og stille spørsmål</span>
-            <span className="shrink-0 rounded-full bg-primary px-4 py-2 text-[12px] font-bold text-night">
+            <span className="shrink-0 rounded-md bg-primary px-4 py-2 text-[12px] font-semibold text-primary-foreground">
               Logg inn
             </span>
           </Link>
@@ -362,10 +362,10 @@ export default function Community() {
               onClick={() => setKind(k.id)}
               aria-pressed={kind === k.id}
               className={cn(
-                "min-h-9 rounded-full border px-4 text-[13px] font-semibold transition-colors",
+                "min-h-9 rounded-lg border px-4 text-[13px] font-semibold transition-colors",
                 kind === k.id
                   ? "border-primary bg-primary text-night"
-                  : "border-border bg-white text-muted-foreground hover:text-foreground",
+                  : "border-border bg-card text-muted-foreground hover:text-foreground",
               )}
             >
               {k.label}
@@ -376,10 +376,10 @@ export default function Community() {
         {/* Feed */}
         <div className="space-y-3">
           {feed.isLoading &&
-            [0, 1, 2].map((i) => <div key={i} className="shimmer h-32 rounded-3xl" />)}
+            [0, 1, 2].map((i) => <div key={i} className="shimmer h-32 rounded-xl" />)}
           {feed.data?.posts.map((p) => <PostCard key={p.id} post={p} />)}
           {feed.data && feed.data.posts.length === 0 && (
-            <div className="rounded-3xl border border-border bg-white p-8 text-center shadow-soft">
+            <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft">
               <Icon icon={Users} size={24} className="mx-auto text-muted-foreground" />
               <p className="mt-3 font-display text-xl">Her blir det snart livlig</p>
               <p className="mx-auto mt-1 max-w-sm text-[13px] text-muted-foreground">

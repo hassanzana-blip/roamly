@@ -25,13 +25,13 @@ import { icsDataUrl, type OrderGetResult } from "./orderUtils";
 // ─── Status ─────────────────────────────────────────────────────────────────
 
 const STATE_TONE: Record<string, string> = {
-  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  TRAVELLED: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  BOOKING_PROCESSING: "border-amber-200 bg-amber-50 text-amber-900",
-  AWAITING_RECONCILIATION: "border-amber-200 bg-amber-50 text-amber-900",
-  PAYMENT_AUTHORIZED: "border-amber-200 bg-amber-50 text-amber-900",
-  REVIEW: "border-amber-200 bg-amber-50 text-amber-900",
-  BOOKING_FAILED: "border-primary/40 bg-primary/10 text-primary",
+  CONFIRMED: "border-success/30 bg-success/5 text-success",
+  TRAVELLED: "border-success/30 bg-success/5 text-success",
+  BOOKING_PROCESSING: "border-warning/30 bg-warning/10 text-warning",
+  AWAITING_RECONCILIATION: "border-warning/30 bg-warning/10 text-warning",
+  PAYMENT_AUTHORIZED: "border-warning/30 bg-warning/10 text-warning",
+  REVIEW: "border-warning/30 bg-warning/10 text-warning",
+  BOOKING_FAILED: "border-destructive/30 bg-destructive/5 text-destructive",
   CANCELLED: "border-border bg-muted text-foreground",
   REFUNDED: "border-border bg-muted text-foreground",
   PARTIALLY_REFUNDED: "border-border bg-muted text-foreground",
@@ -41,7 +41,7 @@ const STATE_TONE: Record<string, string> = {
 
 export function StateBadge({ state }: { state: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-bold", STATE_TONE[state] ?? "border-border bg-muted text-foreground")}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-3.5 py-1.5 text-sm font-semibold", STATE_TONE[state] ?? "border-border bg-muted text-foreground")}>
       {["BOOKING_PROCESSING", "AWAITING_RECONCILIATION", "PAYMENT_AUTHORIZED", "CANCELLATION_REQUESTED"].includes(state) && (
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
       )}
@@ -56,9 +56,9 @@ export function SegmentRow({ seg }: { seg: Segment }) {
   const t = useT();
   const operated = seg.operatingCarrier && seg.operatingCarrier.iata !== seg.carrier.iata ? seg.operatingCarrier.name : null;
   return (
-    <div className="rounded-2xl bg-muted/50 px-4 py-3 text-sm">
+    <div className="rounded-lg bg-muted/50 px-4 py-3 text-sm">
       <p>
-        <span className="font-bold">
+        <span className="font-semibold">
           {seg.carrier.iata} {seg.flightNumber}
         </span>{" "}
         <span className="text-muted-foreground">
@@ -100,7 +100,7 @@ export function TicketList({ order }: { order: Order }) {
       {order.passengers.map((p) => {
         const mine = tickets.filter((t) => t.passengerId === p.id || (!t.passengerId && t.passengerName === `${p.givenName} ${p.familyName}`));
         return (
-          <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-muted/50 px-4 py-3 text-sm">
+          <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/50 px-4 py-3 text-sm">
             <span className="font-semibold">
               {p.givenName} {p.familyName}
             </span>
@@ -129,17 +129,17 @@ export function ScheduleChanges({ changes }: { changes: OrderGetResult["schedule
   const t = useT();
   if (!changes.length) return null;
   return (
-    <section role="alert" className="rounded-3xl border border-amber-300 bg-amber-50 p-6 sm:p-8">
-      <h2 className="flex items-center gap-2 font-display text-2xl text-amber-900">
+    <section role="alert" className="rounded-xl border border-warning/30 bg-warning/10 p-6 sm:p-8">
+      <h2 className="flex items-center gap-2 font-display text-2xl text-warning">
         <AlertTriangle className="h-5 w-5" aria-hidden="true" /> {t("od.schedule.title")}
       </h2>
-      <p className="mt-1 text-sm text-amber-900/80">{t("od.schedule.body")}</p>
+      <p className="mt-1 text-sm text-warning/80">{t("od.schedule.body")}</p>
       <div className="mt-4 space-y-4">
         {changes.map((c) => {
           const oldSegs = Array.isArray(c.oldSegments) ? (c.oldSegments as SegLike[]) : [];
           const newSegs = Array.isArray(c.newSegments) ? (c.newSegments as SegLike[]) : [];
           return (
-            <div key={c.id} className="grid gap-3 rounded-2xl bg-white p-4 text-sm sm:grid-cols-2">
+            <div key={c.id} className="grid gap-3 rounded-lg bg-card p-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t("od.schedule.old")}</p>
                 {oldSegs.map((s, i) => (
@@ -149,7 +149,7 @@ export function ScheduleChanges({ changes }: { changes: OrderGetResult["schedule
                 ))}
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-900">{t("od.schedule.new", { date: formatDateTime(c.createdAt) })}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-warning">{t("od.schedule.new", { date: formatDateTime(c.createdAt) })}</p>
                 {newSegs.map((s, i) => (
                   <p key={i} className="mt-1 font-semibold">
                     {segLine(s)}
@@ -169,18 +169,18 @@ export function ScheduleChanges({ changes }: { changes: OrderGetResult["schedule
 export function RefundTimeline({ orderId, accessToken }: { orderId: string; accessToken?: string }) {
   const t = useT();
   const q = trpc.orders.refundStatus.useQuery({ orderId, accessToken }, { retry: 1 });
-  if (q.isLoading) return <div className="shimmer h-24 rounded-2xl" />;
+  if (q.isLoading) return <div className="shimmer h-24 rounded-lg" />;
   if (q.isError) return <p className="text-sm text-muted-foreground">{humanMessage(q.error)}</p>;
   if (!q.data?.length) return null;
   return (
     <div className="space-y-4">
       {q.data.map((c) => (
-        <div key={c.id} className="rounded-2xl border border-border bg-muted/40 p-4 text-sm">
+        <div key={c.id} className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-semibold">
               {t("od.refund.case", { ref: c.reference })} · <span className="font-normal text-muted-foreground">{c.stateLabel}</span>
             </p>
-            <p className="font-bold">{t("od.refund.toyou", { amount: formatMinor(c.customerRefundAmountMinor ?? 0, c.currency) })}</p>
+            <p className="font-semibold">{t("od.refund.toyou", { amount: formatMinor(c.customerRefundAmountMinor ?? 0, c.currency) })}</p>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {t("od.refund.split", { supplier: formatMinor(c.supplierRefundAmountMinor ?? 0, c.currency), fee: formatMinor(c.serviceFeeRefundMinor ?? 0, c.currency) })}
@@ -226,9 +226,9 @@ export function CancelFlow({ orderId, accessToken, data, onDone }: { orderId: st
 
   if (confirm.isSuccess) {
     return (
-      <div role="status" className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
-        <p className="font-display text-xl text-emerald-900">{t("od.cancel.done")}</p>
-        <p className="mt-1 text-sm text-emerald-900/80">{t("od.cancel.donebody", { ref: confirm.data.refundReference })}</p>
+      <div role="status" className="rounded-xl border border-success/30 bg-success/5 p-6">
+        <p className="font-display text-xl text-success">{t("od.cancel.done")}</p>
+        <p className="mt-1 text-sm text-success/80">{t("od.cancel.donebody", { ref: confirm.data.refundReference })}</p>
       </div>
     );
   }
@@ -247,11 +247,11 @@ export function CancelFlow({ orderId, accessToken, data, onDone }: { orderId: st
 
   return (
     <>
-      <button type="button" onClick={start} className="inline-flex min-h-11 items-center gap-2 rounded-full border hairline px-5 text-sm font-semibold transition-colors hover:border-foreground/25">
+      <button type="button" onClick={start} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-5 text-sm font-semibold transition-colors hover:border-foreground/40">
         <Undo2 className="h-4 w-4" aria-hidden="true" /> {t("od.cancel.see")}
       </button>
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent className="rounded-3xl">
+        <AlertDialogContent className="rounded-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-display text-2xl">{t("od.cancel.title")}</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -264,7 +264,7 @@ export function CancelFlow({ orderId, accessToken, data, onDone }: { orderId: st
                 {quote.isError && <p className="text-primary">{humanMessage(quote.error)}</p>}
                 {q && (
                   <div className="space-y-3">
-                    <dl className="space-y-1.5 rounded-2xl bg-muted/60 p-4 text-foreground">
+                    <dl className="space-y-1.5 rounded-lg bg-muted/60 p-4 text-foreground">
                       <div className="flex justify-between">
                         <dt>{t("od.cancel.supplier")}</dt>
                         <dd className="font-semibold">{formatMinor(q.supplierRefundMinor, q.currency)}</dd>
@@ -273,7 +273,7 @@ export function CancelFlow({ orderId, accessToken, data, onDone }: { orderId: st
                         <dt>{t("od.cancel.fee")}</dt>
                         <dd className="font-semibold">{formatMinor(q.serviceFeeRefundMinor, q.currency)}</dd>
                       </div>
-                      <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
+                      <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                         <dt>{t("od.cancel.total")}</dt>
                         <dd>{formatMinor(q.totalToCustomerMinor, q.currency)}</dd>
                       </div>
@@ -309,7 +309,7 @@ export function CancelFlow({ orderId, accessToken, data, onDone }: { orderId: st
               </AlertDialogAction>
             ) : (
               <AlertDialogAction
-                className="min-h-11 rounded-full bg-primary text-primary-foreground hover:brightness-95"
+                className="min-h-11 rounded-full bg-primary text-primary-foreground hover:opacity-90"
                 disabled={!q || confirm.isPending}
                 onClick={(e) => {
                   e.preventDefault();
@@ -335,10 +335,10 @@ export function OrderActions({ orderId, accessToken, data }: { orderId: string; 
   const tokenQs = accessToken ? `?t=${encodeURIComponent(accessToken)}` : "";
   return (
     <div className="flex flex-wrap gap-2">
-      <a href={icsDataUrl(data.order)} download={`hellosky-${data.order.bookingReference}.ics`} className="inline-flex min-h-11 items-center gap-2 rounded-full border hairline px-5 text-sm font-semibold transition-colors hover:border-foreground/25">
+      <a href={icsDataUrl(data.order)} download={`hellosky-${data.order.bookingReference}.ics`} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-5 text-sm font-semibold transition-colors hover:border-foreground/40">
         <CalendarPlus className="h-4 w-4" aria-hidden="true" /> {t("od.calendar")}
       </a>
-      <Link to={`/kvittering/${encodeURIComponent(orderId)}${tokenQs}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border hairline px-5 text-sm font-semibold transition-colors hover:border-foreground/25">
+      <Link to={`/kvittering/${encodeURIComponent(orderId)}${tokenQs}`} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-5 text-sm font-semibold transition-colors hover:border-foreground/40">
         <ReceiptText className="h-4 w-4" aria-hidden="true" /> {t("od.receipt")}
       </Link>
       {data.actions.canResendConfirmation && (
@@ -346,7 +346,7 @@ export function OrderActions({ orderId, accessToken, data }: { orderId: string; 
           type="button"
           onClick={() => resend.mutate({ orderId, accessToken })}
           disabled={resend.isPending || resend.isSuccess}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border hairline px-5 text-sm font-semibold transition-colors hover:border-foreground/25 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-5 text-sm font-semibold transition-colors hover:border-foreground/40 disabled:opacity-60"
         >
           <Mail className="h-4 w-4" aria-hidden="true" />
           {resend.isSuccess ? t("od.resend.done") : resend.isPending ? t("common.sending") : t("od.resend")}

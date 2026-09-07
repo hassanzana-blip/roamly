@@ -6,7 +6,7 @@ import { FavoriteButton, RatingChip } from "@/components/app/primitives";
 function RouteIllustration({ iata }: { iata: string }) {
   return (
     <div className="flex h-full w-full flex-col justify-between bg-night p-5">
-      <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/60">
+      <span className="text-2xs font-semibold uppercase tracking-[0.18em] text-white/60">
         OSL → {iata}
       </span>
       <svg viewBox="0 0 200 60" className="w-full text-white/50" aria-hidden="true">
@@ -51,10 +51,10 @@ export default function DestinationCard({ destination: d, isFavourite, onToggleF
       <button
         type="button"
         onClick={() => onOpen?.(d)}
-        className="block w-full rounded-[26px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="block w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label={`Se ${d.city}, ${d.country}`}
       >
-        <div className="relative aspect-[4/5] overflow-hidden rounded-[26px] bg-muted">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-muted">
           {showPhoto ? (
             <img
               src={d.image}
@@ -80,9 +80,9 @@ export default function DestinationCard({ destination: d, isFavourite, onToggleF
         {/* Info surface beneath the photo */}
         <div className="px-1.5 pt-3">
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="truncate font-display text-[17px] leading-tight">{d.city}</h3>
+            <h3 className="truncate text-[16px] font-semibold leading-tight">{d.city}</h3>
             {price ? (
-              <span className="shrink-0 text-[13px] font-bold">{price}</span>
+              <span className="shrink-0 text-[13px] font-semibold tabular">{price}</span>
             ) : null}
           </div>
           <p className="mt-0.5 truncate text-[13px] text-muted-foreground">

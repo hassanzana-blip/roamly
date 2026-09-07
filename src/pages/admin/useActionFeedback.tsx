@@ -30,7 +30,7 @@ export function useActionFeedback() {
         role={error ? "alert" : "status"}
         className={cn(
           "mb-4 rounded-xl border px-4 py-3 text-sm font-semibold",
-          error ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700",
+          error ? "border-destructive/30 bg-destructive/5 text-destructive" : "border-success/30 bg-success/5 text-success",
         )}
       >
         {error ?? ok}

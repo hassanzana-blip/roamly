@@ -65,13 +65,13 @@ export function AdminManualBooking() {
   if (done) {
     return (
       <div className="mx-auto max-w-lg pt-10 text-center">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-          <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+          <CheckCircle2 className="h-8 w-8 text-success" />
         </span>
-        <h1 className="mt-5 font-display text-3xl font-bold text-night">Bestilling registrert</h1>
+        <h1 className="mt-5 font-display text-3xl font-semibold text-foreground">Bestilling registrert</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Referanse <span className="font-mono font-bold text-night">{done.reference}</span> · totalt{" "}
-          <span className="font-bold text-night">{formatMoney(done.total)}</span>
+          Referanse <span className="font-mono font-semibold text-foreground">{done.reference}</span> · totalt{" "}
+          <span className="font-semibold text-foreground">{formatMoney(done.total)}</span>
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link to={`/admin/kvittering/${done.bookingId}`}>
@@ -97,7 +97,7 @@ export function AdminManualBooking() {
 
       <div className="grid gap-5">
         <Card>
-          <h2 className="mb-4 font-display text-lg font-bold text-night">Kunde</h2>
+          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Kunde</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls}>Navn *</label>
@@ -115,7 +115,7 @@ export function AdminManualBooking() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-display text-lg font-bold text-night">Reisen</h2>
+          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Reisen</h2>
           <div className="mb-4 flex flex-wrap gap-2">
             {TRIP_TYPES.map((t) => (
               <button
@@ -123,8 +123,8 @@ export function AdminManualBooking() {
                 type="button"
                 onClick={() => setTripType(t.value)}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-bold transition-all",
-                  tripType === t.value ? "bg-night text-white shadow-sm" : "bg-night/5 text-night/60 hover:bg-night/10",
+                  "rounded-lg px-4 py-2 text-sm font-semibold transition-all",
+                  tripType === t.value ? "bg-night text-white shadow-sm" : "bg-muted text-foreground/60 hover:bg-night/10",
                 )}
               >
                 {t.label}
@@ -149,7 +149,7 @@ export function AdminManualBooking() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-display text-lg font-bold text-night">Pris og betaling</h2>
+          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Pris og betaling</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls}>Grunnpris (NOK) *</label>
@@ -164,8 +164,8 @@ export function AdminManualBooking() {
                     type="button"
                     onClick={() => setPaymentMethod(p.value)}
                     className={cn(
-                      "rounded-full px-3.5 py-2 text-xs font-bold transition-all",
-                      paymentMethod === p.value ? "bg-primary text-white" : "bg-night/5 text-night/60 hover:bg-night/10",
+                      "rounded-lg px-3.5 py-2 text-xs font-semibold transition-all",
+                      paymentMethod === p.value ? "bg-primary text-white" : "bg-muted text-foreground/60 hover:bg-night/10",
                     )}
                   >
                     {p.label}
@@ -176,15 +176,15 @@ export function AdminManualBooking() {
           </div>
 
           {calc && (
-            <dl className="mt-5 space-y-2 rounded-2xl bg-night/[0.03] p-4 text-sm">
+            <dl className="mt-5 space-y-2 rounded-lg bg-night/[0.03] p-4 text-sm">
               <div className="flex justify-between text-muted-foreground">
-                <dt>Grunnpris</dt><dd className="font-semibold text-night">{formatMoney(Number(baseAmount))}</dd>
+                <dt>Grunnpris</dt><dd className="font-semibold text-foreground">{formatMoney(Number(baseAmount))}</dd>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <dt>Servicegebyr (8 % = {formatMoney(calc.percent)} + 250 kr)</dt>
-                <dd className="font-semibold text-night">{formatMoney(calc.fee)}</dd>
+                <dd className="font-semibold text-foreground">{formatMoney(calc.fee)}</dd>
               </div>
-              <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
+              <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                 <dt>Kunden betaler</dt>
                 <dd className="font-display text-xl text-primary">{formatMoney(calc.total)}</dd>
               </div>
@@ -193,7 +193,7 @@ export function AdminManualBooking() {
         </Card>
 
         {create.isError && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
             {create.error.message}
           </p>
         )}

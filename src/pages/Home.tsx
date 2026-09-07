@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowRight, BedDouble, Building2, Car, Clock3, MapPin, Plane, Users } from "lucide-react";
+import { ArrowRight, BedDouble, Building2, Car, Clock3, MapPin, Plane, ShieldCheck, Users } from "lucide-react";
 import AppShell, { SectionHeader } from "@/components/app/AppShell";
 import { GreetingBar } from "@/components/app/TopBar";
 import PillTabs from "@/components/app/PillTabs";
@@ -10,6 +10,10 @@ import DestinationCard from "@/components/travel/DestinationCard";
 import DealCard from "@/components/app/DealCard";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFavourites } from "@/lib/favourites";
 import { loadRecentSearches, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
 import { useRoutePrice } from "@/lib/useRoutePrice";
@@ -23,16 +27,11 @@ const TABS: { id: string; label: I18nKey; icon: typeof Plane }[] = [
   { id: "leiebil", label: "home.tab.car", icon: Car },
 ];
 
-const fieldCls =
-  "w-full rounded-xl border border-border bg-white px-4 py-3 text-[14px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground/40";
-const labelCls =
-  "mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground";
-
 function inDays(n: number) {
   return new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 }
 
-/** Hotell/Leiebil-skjema på forsiden — viderefører til bestillingsskjemaet. */
+/** Hotel / car form on the front page: hands over to the request form. */
 function HotelCarSearch({ kind }: { kind: "hotell" | "leiebil" }) {
   const navigate = useNavigate();
   const [place, setPlace] = useState("");
@@ -53,27 +52,19 @@ function HotelCarSearch({ kind }: { kind: "hotell" | "leiebil" }) {
   };
 
   return (
-    <form
-      onSubmit={submit}
-      className="mt-4 w-full rounded-2xl border border-border bg-white p-4 shadow-[0_12px_40px_-16px_hsl(var(--night)/0.35)] sm:p-5"
-    >
+    <form onSubmit={submit} className="mt-4 w-full rounded-2xl border border-border bg-card p-3 shadow-md sm:p-4 md:p-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr]">
-        <label className="block">
-          <span className={labelCls}>
-            <Icon icon={MapPin} size={16} className="mr-1 inline-block -translate-y-px" />
+        <div className="space-y-1.5">
+          <Label htmlFor="hc-place">
+            <Icon icon={MapPin} size={16} className="text-muted-foreground" />
             {kind === "hotell" ? "Hvor vil du bo?" : "Hvor hentes bilen?"}
-          </span>
-          <input
-            value={place}
-            onChange={(e) => setPlace(e.target.value)}
-            placeholder={kind === "hotell" ? "F.eks. Barcelona" : "F.eks. Oslo lufthavn"}
-            required
-            className={fieldCls}
-          />
-        </label>
-        <label className="block">
-          <span className={labelCls}>{kind === "hotell" ? "Innsjekk" : "Hentes"}</span>
-          <input
+          </Label>
+          <Input id="hc-place" value={place} onChange={(e) => setPlace(e.target.value)} placeholder={kind === "hotell" ? "F.eks. Barcelona" : "F.eks. Oslo lufthavn"} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="hc-from">{kind === "hotell" ? "Innsjekk" : "Hentes"}</Label>
+          <Input
+            id="hc-from"
             type="date"
             value={from}
             min={inDays(0)}
@@ -82,67 +73,43 @@ function HotelCarSearch({ kind }: { kind: "hotell" | "leiebil" }) {
               if (to < e.target.value) setTo(e.target.value);
             }}
             required
-            className={fieldCls}
           />
-        </label>
-        <label className="block">
-          <span className={labelCls}>{kind === "hotell" ? "Utsjekk" : "Leveres"}</span>
-          <input
-            type="date"
-            value={to}
-            min={from}
-            onChange={(e) => setTo(e.target.value)}
-            required
-            className={fieldCls}
-          />
-        </label>
-        <label className="block">
-          <span className={labelCls}>
-            <Icon icon={Users} size={16} className="mr-1 inline-block -translate-y-px" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="hc-to">{kind === "hotell" ? "Utsjekk" : "Leveres"}</Label>
+          <Input id="hc-to" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="hc-count">
+            <Icon icon={Users} size={16} className="text-muted-foreground" />
             {kind === "hotell" ? "Gjester" : "Sjåfører"}
-          </span>
-          <select value={count} onChange={(e) => setCount(e.target.value)} className={fieldCls}>
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
+          </Label>
+          <Select value={count} onValueChange={setCount}>
+            <SelectTrigger id="hc-count">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      <button
-        type="submit"
-        className="mt-4 flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:brightness-[0.94] active:scale-[0.99]"
-      >
+      <Button type="submit" size="xl" className="mt-4 w-full">
         <Icon icon={kind === "hotell" ? BedDouble : Car} size={20} />
         {kind === "hotell" ? "Finn hotell" : "Finn leiebil"}
-      </button>
+      </Button>
     </form>
   );
 }
 
-/** Recommended card with a live «fra»-price line (null-safe: hides when absent). */
-function RecommendedCard({
-  d,
-  favs,
-  toggle,
-  onOpen,
-}: {
-  d: DiscoverDestination;
-  favs: Set<string>;
-  toggle: (id: string) => void;
-  onOpen: (d: DiscoverDestination) => void;
-}) {
+/** Recommended card with a live «from» price line (null-safe: hides when absent). */
+function RecommendedCard({ d, favs, toggle, onOpen }: { d: DiscoverDestination; favs: Set<string>; toggle: (id: string) => void; onOpen: (d: DiscoverDestination) => void }) {
   const price = useRoutePrice("OSL", d.iata);
-  return (
-    <DestinationCard
-      destination={d}
-      isFavourite={favs.has(d.id)}
-      onToggleFavourite={toggle}
-      onOpen={onOpen}
-      price={price}
-    />
-  );
+  return <DestinationCard destination={d} isFavourite={favs.has(d.id)} onToggleFavourite={toggle} onOpen={onOpen} price={price} />;
 }
 
 export default function Home() {
@@ -154,8 +121,7 @@ export default function Home() {
   const [recent] = useState<RecentSearch[]>(() => loadRecentSearches());
   const searchRef = useRef<HTMLDivElement>(null);
 
-
-  /** Søkeknappen i toppfeltet: vis flysøket og flytt fokus dit. */
+  /** Search button in the top bar: show the flight search and move focus there. */
   const focusSearch = () => {
     setTab("fly");
     requestAnimationFrame(() => {
@@ -174,16 +140,19 @@ export default function Home() {
           <GreetingBar onSearch={focusSearch} />
         </div>
 
-        {/* Editorial headline — accent-highlighted key word, no paragraph */}
-        <h1 className="font-display text-balance text-[38px] leading-[1.04] tracking-tight sm:text-6xl">
-          {t("home.title1")} <span className="hl">{t("home.title2")}</span> {t("home.title3")}
-        </h1>
+        {/* Editorial headline: one quiet accent word, then the search. */}
+        <div className="lg:pt-10">
+          <h1 className="font-display text-balance text-[38px] leading-[1.04] sm:text-[52px] lg:text-[60px]">
+            {t("home.title1")} <span className="hl">{t("home.title2")}</span> {t("home.title3")}
+          </h1>
+          <p className="mt-3 max-w-xl text-base text-muted-foreground sm:text-lg">{t("footer.blurb")}</p>
+        </div>
 
         <div className="mt-6">
           <PillTabs tabs={TABS.map((x) => ({ ...x, label: t(x.label) }))} active={tab} onChange={setTab} />
         </div>
 
-        {/* Søkeskjema direkte på forsiden — fly / hotell / leiebil */}
+        {/* Search form directly on the front page: flights / hotel / car */}
         {tab === "fly" && (
           <div className="mt-4 scroll-mt-24" ref={searchRef}>
             <SearchWidget />
@@ -193,15 +162,15 @@ export default function Home() {
         {tab === "leiebil" && <HotelCarSearch kind="leiebil" />}
 
         {recent.length > 0 && (
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Icon icon={Clock3} size={16} /> {t("home.recent")}:
             </span>
             {recent.slice(0, 3).map((s) => (
               <Link
                 key={`${s.from}-${s.to}-${s.depart}`}
                 to={recentSearchHref(s)}
-                className="inline-flex min-h-9 items-center rounded-full border border-border bg-white px-3.5 text-[13px] font-semibold transition-colors hover:border-foreground/25"
+                className="inline-flex min-h-9 items-center rounded-lg border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-foreground/30"
               >
                 {s.fromLabel} → {s.toLabel}
               </Link>
@@ -209,42 +178,46 @@ export default function Home() {
           </div>
         )}
 
-        {/* Anbefalt for deg */}
-        <section className="mt-10">
+        {/* Plain trust line: real facts only */}
+        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+          <li className="flex items-center gap-2">
+            <Icon icon={ShieldCheck} size={16} className="text-success" /> {t("footer.trust")}
+          </li>
+          <li className="flex items-center gap-2">
+            <Icon icon={Users} size={16} className="text-muted-foreground" /> {t("footer.hours")}
+          </li>
+        </ul>
+
+        {/* Recommended for you */}
+        <section className="mt-12">
           <SectionHeader
             title={t("home.recommended")}
             action={
-              <Link
-                to="/utforsk"
-                className="inline-flex min-h-9 items-center gap-1 text-[14px] font-semibold text-[hsl(var(--skyline))]"
-              >
+              <Link to="/utforsk" className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">
                 {t("home.seeall")} <Icon icon={ArrowRight} size={16} />
               </Link>
             }
           />
-          <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
+          <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
             {RECOMMENDED_DESTINATIONS.map((d) => (
               <RecommendedCard key={d.id} d={d} favs={favs} toggle={toggleFav} onOpen={setQuickView} />
             ))}
           </div>
         </section>
 
-        {/* Gode tilbud — veiledende priser fra prissøket, aldri fabrikkert */}
-        <section className="mt-10">
+        {/* Good deals: indicative prices from the price search, never fabricated */}
+        <section className="mt-12">
           <SectionHeader title={t("home.deals")} />
-          <div className="no-scrollbar -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
+          <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
             {DEAL_ROUTES.map((deal) => (
               <DealCard key={deal.id} deal={deal} onOpen={setQuickView} />
             ))}
           </div>
-          <p className="mt-2 px-0.5 text-[12px] text-muted-foreground">
-            «Fra»-priser hentes fra vårt eget prissøk og er veiledende — endelig
-            pris ser du i søkeresultatet.
-          </p>
+          <p className="mt-3 text-xs text-muted-foreground">«Fra»-priser hentes fra vårt eget prissøk og er veiledende. Endelig pris ser du i søkeresultatet.</p>
         </section>
       </AppShell>
 
-      <div className="mt-14">
+      <div className="mt-16">
         <SiteFooter />
       </div>
 

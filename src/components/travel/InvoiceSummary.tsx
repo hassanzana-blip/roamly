@@ -28,7 +28,7 @@ export default function InvoiceSummaryBlock({
   return (
     <div className={compact ? "" : "border-t border-border pt-4"}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className={compact ? "text-sm font-bold" : "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"}>
+        <h3 className={compact ? "text-sm font-bold" : "eyebrow"}>
           {t("rc.title", { n: String(invoice.invoiceNumber) })}
         </h3>
         <p className="text-xs text-muted-foreground">{t("rc.issued", { date: formatDateLong(invoice.issuedAt) })}</p>
@@ -69,10 +69,10 @@ export default function InvoiceSummaryBlock({
               <td className="pt-2 text-right tabular-nums">{formatMinor(invoice.vatMinor, cur)}</td>
             </tr>
             <tr>
-              <td colSpan={3} className="pt-1 text-right font-bold">
+              <td colSpan={3} className="pt-1 text-right font-semibold">
                 {t("common.total")}
               </td>
-              <td className="pt-1 text-right font-display text-lg font-bold tabular-nums">{formatMinor(invoice.totalMinor, cur)}</td>
+              <td className="pt-1 text-right font-display text-xl font-semibold tabular-nums">{formatMinor(invoice.totalMinor, cur)}</td>
             </tr>
           </tfoot>
         </table>

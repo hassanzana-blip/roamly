@@ -87,7 +87,7 @@ export default function HotelCar() {
                   document.getElementById("skjema")?.scrollIntoView({ behavior: "smooth" });
                 }}
                 className={cn(
-                  "group relative overflow-hidden rounded-2xl border border-border text-left transition-all duration-300",
+                  "group relative overflow-hidden rounded-lg border border-border text-left transition-all duration-300",
                   tab === c.key ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "opacity-90 hover:opacity-100",
                 )}
               >
@@ -101,13 +101,13 @@ export default function HotelCar() {
                 </div>
                 <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
                   <div>
-                    <p className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-white">
+                    <p className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-white">
                       <c.icon className="h-5 w-5" /> {c.title}
                     </p>
                     <p className="mt-1 text-xs text-white/75">{c.sub}</p>
                   </div>
                   {tab === c.key && (
-                    <span className="rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-white">Valgt</span>
+                    <span className="rounded-md bg-primary px-3 py-1 text-[11px] font-semibold text-white">Valgt</span>
                   )}
                 </div>
               </button>
@@ -147,7 +147,7 @@ export default function HotelCar() {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8">
+            <div className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-8">
               {tab === "hotel" ? <HotelForm /> : <CarForm />}
             </div>
           </motion.div>
@@ -268,7 +268,7 @@ function CarForm() {
             onClick={() => setPartner(p)}
             aria-pressed={partner === p}
             className={cn(
-              "min-h-11 rounded-full border px-5 py-2.5 text-sm font-bold transition-all",
+              "min-h-11 rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all",
               partner === p
                 ? "border-primary bg-primary text-white shadow-md shadow-primary/25"
                 : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
@@ -282,7 +282,7 @@ function CarForm() {
           onClick={() => setPartner("Beste pris")}
           aria-pressed={partner === "Beste pris"}
           className={cn(
-            "min-h-11 rounded-full border px-5 py-2.5 text-sm font-bold transition-all",
+            "min-h-11 rounded-lg border px-5 py-2.5 text-sm font-semibold transition-all",
             partner === "Beste pris"
               ? "border-primary bg-primary text-white shadow-md shadow-primary/25"
               : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
@@ -384,7 +384,7 @@ function SubmitRow({ pending, error, label }: { pending: boolean; error?: string
   return (
     <div className="sm:col-span-2">
       {error && (
-        <p role="alert" className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p role="alert" className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </p>
       )}
@@ -394,7 +394,7 @@ function SubmitRow({ pending, error, label }: { pending: boolean; error?: string
       <button
         type="submit"
         disabled={pending}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-bold text-white shadow-md shadow-primary/25 transition-all hover:brightness-[0.94] active:scale-[0.99] disabled:opacity-60"
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-4 text-base font-semibold text-white shadow-xs transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
       >
         {pending ? "Sender …" : label}
       </button>
@@ -410,10 +410,10 @@ function SuccessMessage({ what }: { what: string }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="rounded-2xl border border-emerald-200 bg-emerald-50 p-10 text-center"
+      className="rounded-lg border border-success/30 bg-success/5 p-10 text-center"
     >
-      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-        <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
+        <CheckCircle2 className="h-7 w-7 text-success" />
       </span>
       <h2 className="mt-4 font-display text-2xl">Takk — vi har mottatt {what}!</h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">

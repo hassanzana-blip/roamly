@@ -88,7 +88,7 @@ export default function DestinationSheet({
           </div>
 
           {VISA_NOTES[d.id] && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-border bg-muted/50 px-4 py-3">
+            <div className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/50 px-4 py-3">
               <Icon icon={ShieldCheck} size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
               <p className="text-[12px] leading-relaxed text-muted-foreground">
                 {VISA_NOTES[d.id]}{" "}
@@ -103,7 +103,7 @@ export default function DestinationSheet({
             <p className="mb-2 flex items-center gap-1.5 font-mono-label text-[10px] text-muted-foreground">
               <Icon icon={CalendarDays} size={16} /> Neste avganger fra Oslo — veiledende pris
             </p>
-            <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border">
+            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {DAY_OFFSETS.map((offset, i) => {
                 const date = departDate(offset);
                 const amount = prices[i]?.amount;
@@ -113,10 +113,10 @@ export default function DestinationSheet({
                     {hints.isLoading ? (
                       <span className="h-4 w-16 animate-pulse rounded-full bg-muted" />
                     ) : amount != null ? (
-                      <span className="text-[14px] font-bold">
+                      <span className="text-[14px] font-semibold">
                         {fmtNok.format(amount)} kr
                         {cheapest === amount && (
-                          <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          <span className="ml-2 rounded-md bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
                             Billigst
                           </span>
                         )}

@@ -57,10 +57,10 @@ function CreateQuoteDialog({ open, onClose, onCreated }: { open: boolean; onClos
         </DialogHeader>
         {result ? (
           <div className="space-y-3">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
               <p className="font-semibold">Tilbud {result.reference} opprettet · {formatMoney(result.total)}</p>
               <p className="mt-1">Betalingslenke (vises kun nå — send den til kunden eller bruk «Send» for e-post):</p>
-              <p className="mt-1.5 select-all break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-night">
+              <p className="mt-1.5 select-all break-all rounded-lg bg-card px-3 py-2 font-mono text-xs text-foreground">
                 {window.location.origin}{result.checkoutPath}
               </p>
             </div>
@@ -176,9 +176,9 @@ function QuoteDetail({ id, onClose }: { id: number | null; onClose: () => void }
                 ]}
               />
               {sentPath && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
-                  <p className="font-semibold text-emerald-900">Ny betalingslenke (gamle lenker er ugyldige):</p>
-                  <p className="mt-1 select-all break-all font-mono text-xs text-night">{window.location.origin}{sentPath}</p>
+                <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm">
+                  <p className="font-semibold text-success">Ny betalingslenke (gamle lenker er ugyldige):</p>
+                  <p className="mt-1 select-all break-all font-mono text-xs text-foreground">{window.location.origin}{sentPath}</p>
                 </div>
               )}
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
@@ -280,12 +280,12 @@ export function AdminQuotes() {
           <tbody className="divide-y divide-border">
             {list.data.items.map((q) => (
               <ClickableRow key={q.id} onClick={() => setSelected(q.id)} selected={selected === q.id}>
-                <td className={`${tdCls} font-semibold text-night`}>{q.reference}</td>
+                <td className={`${tdCls} font-semibold text-foreground`}>{q.reference}</td>
                 <td className={tdCls}>
-                  <span className="block text-night">{q.customerName}</span>
+                  <span className="block text-foreground">{q.customerName}</span>
                   <span className="block text-xs text-muted-foreground">{q.customerEmail}</span>
                 </td>
-                <td className={`${tdCls} whitespace-nowrap font-semibold text-night`}>{formatMoney(q.totalAmount, q.currency)}</td>
+                <td className={`${tdCls} whitespace-nowrap font-semibold text-foreground`}>{formatMoney(q.totalAmount, q.currency)}</td>
                 <td className={tdCls}><Pill tone={quoteTone(q.status)}>{QUOTE_STATUS_LABELS[q.status] ?? q.status}</Pill></td>
                 <td className={`${tdCls} whitespace-nowrap text-muted-foreground`}>{formatDateTime(q.expiresAt)}</td>
                 <td className={`${tdCls} text-muted-foreground`}>{q.creatorName}</td>

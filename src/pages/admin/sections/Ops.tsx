@@ -129,7 +129,7 @@ export function AdminReviewQueue() {
                         {!b.liveMode && <Pill className="ml-2">Test</Pill>}
                       </td>
                       <td className={`${tdCls} text-muted-foreground`}>{b.contactEmail}</td>
-                      <td className={`${tdCls} whitespace-nowrap text-night`}>{formatMoney(b.totalAmount, b.totalCurrency ?? "NOK")}</td>
+                      <td className={`${tdCls} whitespace-nowrap text-foreground`}>{formatMoney(b.totalAmount, b.totalCurrency ?? "NOK")}</td>
                       <td className={tdCls}><BookingStatePill state={b.state} /></td>
                       <td className={`${tdCls} whitespace-nowrap text-muted-foreground`}>{formatDateTime(b.updatedAt)}</td>
                       <td className={tdCls}>
@@ -170,17 +170,17 @@ export function AdminReviewQueue() {
                   {queue.data.attempts.map((a) => (
                     <tr key={a.id} className="hover:bg-primary/[0.03]">
                       <td className={tdCls}>
-                        <span className="font-semibold text-night">#{a.id}</span>
+                        <span className="font-semibold text-foreground">#{a.id}</span>
                         <span className="block text-xs text-muted-foreground">{a.attempts} forsøk{a.bookingId ? <> · <Link to={`/admin/bestillinger/${a.bookingId}`} className="text-primary hover:underline">booking #{a.bookingId}</Link></> : null}</span>
                       </td>
                       <td className={tdCls}>
-                        <span className="block font-mono text-xs text-night">{a.sessionPublicId}</span>
+                        <span className="block font-mono text-xs text-foreground">{a.sessionPublicId}</span>
                         <span className="block text-xs text-muted-foreground">{a.contactEmail}</span>
                       </td>
-                      <td className={`${tdCls} whitespace-nowrap text-night`}>{formatMinor(a.totalAmountMinor, a.currency)}</td>
+                      <td className={`${tdCls} whitespace-nowrap text-foreground`}>{formatMinor(a.totalAmountMinor, a.currency)}</td>
                       <td className={tdCls}><AttemptStatePill state={a.state} /></td>
                       <td className={`${tdCls} max-w-[220px]`}>
-                        {a.lastErrorCode && <span className="block font-mono text-[11px] text-rose-700">{a.lastErrorCode}</span>}
+                        {a.lastErrorCode && <span className="block font-mono text-[11px] text-destructive">{a.lastErrorCode}</span>}
                         {a.lastError && <span className="block truncate text-xs text-muted-foreground" title={a.lastError}>{a.lastError}</span>}
                         {a.supplierOrderId && <span className="block font-mono text-[11px] text-muted-foreground">{a.supplierOrderId}</span>}
                       </td>
@@ -263,7 +263,7 @@ export function AdminScheduleChanges() {
               <Card key={sc.id}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-night">
+                    <p className="font-semibold text-foreground">
                       <Link to={`/admin/bestillinger/${sc.bookingId}`} className="text-primary hover:underline">{sc.bookingReference ?? `#${sc.bookingId}`}</Link>
                       <span className="ml-2 text-muted-foreground">{sc.customerEmail}</span>
                     </p>
@@ -276,12 +276,12 @@ export function AdminScheduleChanges() {
                 </div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
-                    <p className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">Før</p>
-                    <ul className="mt-1 space-y-1 text-sm text-night">{oldSegs.length ? oldSegs.map((s, i) => <li key={i} className="line-through decoration-rose-400">{segLabel(s)}</li>) : <li className="text-muted-foreground">–</li>}</ul>
+                    <p className="eyebrow">Før</p>
+                    <ul className="mt-1 space-y-1 text-sm text-foreground">{oldSegs.length ? oldSegs.map((s, i) => <li key={i} className="line-through decoration-destructive/60">{segLabel(s)}</li>) : <li className="text-muted-foreground">–</li>}</ul>
                   </div>
                   <div>
-                    <p className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">Etter</p>
-                    <ul className="mt-1 space-y-1 text-sm text-night">{newSegs.length ? newSegs.map((s, i) => <li key={i}>{segLabel(s)}</li>) : <li className="text-muted-foreground">–</li>}</ul>
+                    <p className="eyebrow">Etter</p>
+                    <ul className="mt-1 space-y-1 text-sm text-foreground">{newSegs.length ? newSegs.map((s, i) => <li key={i}>{segLabel(s)}</li>) : <li className="text-muted-foreground">–</li>}</ul>
                   </div>
                 </div>
                 {sc.status !== "resolved" && canWrite && (
@@ -371,7 +371,7 @@ export function AdminFraudFlags() {
           <tbody className="divide-y divide-border">
             {list.data.map((f) => (
               <tr key={f.id} className="hover:bg-primary/[0.03]">
-                <td className={`${tdCls} font-mono text-xs font-semibold text-night`}>{f.type}</td>
+                <td className={`${tdCls} font-mono text-xs font-semibold text-foreground`}>{f.type}</td>
                 <td className={tdCls}><Pill tone={f.score >= 70 ? "danger" : f.score >= 40 ? "warning" : "neutral"}>{f.score}</Pill></td>
                 <td className={`${tdCls} text-sm`}>
                   {f.bookingId && <Link to={`/admin/bestillinger/${f.bookingId}`} className="block font-semibold text-primary hover:underline">Booking #{f.bookingId}</Link>}
@@ -468,9 +468,9 @@ export function AdminCheckoutSessions() {
           <tbody className="divide-y divide-border">
             {list.data.map((s) => (
               <ClickableRow key={s.id} onClick={() => setSelected(s.id)} selected={selected === s.id}>
-                <td className={`${tdCls} font-mono text-xs text-night`}>{s.publicId}</td>
+                <td className={`${tdCls} font-mono text-xs text-foreground`}>{s.publicId}</td>
                 <td className={`${tdCls} text-muted-foreground`}>{s.contactEmail}</td>
-                <td className={`${tdCls} whitespace-nowrap font-semibold text-night`}>{formatMinor(s.totalAmountMinor, s.currency)}</td>
+                <td className={`${tdCls} whitespace-nowrap font-semibold text-foreground`}>{formatMinor(s.totalAmountMinor, s.currency)}</td>
                 <td className={`${tdCls} text-xs text-muted-foreground`}>{s.pspProvider ?? "–"}{s.paymentMethod ? ` · ${s.paymentMethod}` : ""}</td>
                 <td className={tdCls}>
                   <Pill tone={s.status === "confirmed" ? "success" : s.status === "failed" ? "danger" : ["expired", "cancelled"].includes(s.status) ? "neutral" : "warning"}>{SESSION_STATUS_LABELS[s.status] ?? s.status}</Pill>
@@ -504,7 +504,7 @@ export function AdminCheckoutSessions() {
                   { k: "Oppdatert", v: formatDateTime(current.updatedAt) },
                 ]}
               />
-              {current.lastError && <p role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">Siste feil: {current.lastError}</p>}
+              {current.lastError && <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">Siste feil: {current.lastError}</p>}
             </div>
           )}
         </SheetContent>
@@ -557,10 +557,10 @@ export function AdminCommunity() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">
-                      <span className="font-semibold text-night">{p.authorName}</span>{p.authorEmail ? ` · ${p.authorEmail}` : ""} · {formatDateTime(p.createdAt)}
-                      {p.routeTag && <span className="ml-1.5 rounded bg-night/5 px-1.5 py-0.5 font-mono">{p.routeTag}</span>}
+                      <span className="font-semibold text-foreground">{p.authorName}</span>{p.authorEmail ? ` · ${p.authorEmail}` : ""} · {formatDateTime(p.createdAt)}
+                      {p.routeTag && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 font-mono">{p.routeTag}</span>}
                     </p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-night">{p.body}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{p.body}</p>
                     <p className="mt-2 text-xs text-muted-foreground">{p.kind} · {p.likes} likerklikk · {p.commentCount} kommentarer</p>
                   </div>
                   <div className="flex items-center gap-2">

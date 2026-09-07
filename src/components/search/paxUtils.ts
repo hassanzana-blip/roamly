@@ -25,3 +25,9 @@ export function paxSummary(p: PaxCount): string {
   const total = p.adult + p.child + p.infant_without_seat;
   return `${total} reisende`;
 }
+
+export const MAX_PASSENGERS = 9;
+
+export function paxTotal(p: PaxCount): number {
+  return p.adult + p.child + p.infant_without_seat;
+}

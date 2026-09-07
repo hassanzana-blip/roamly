@@ -28,7 +28,7 @@ export default function Visa() {
       </Section>
 
       <Section title="Regler for våre mest populære reisemål">
-        <div className="not-prose mt-4 overflow-x-auto rounded-2xl border border-border">
+        <div className="not-prose mt-4 overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-border bg-muted/50">

@@ -40,9 +40,9 @@ export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, nam
   const available = Boolean(svc && svc.maxExtraBags > 0 && seatHolders.length > 0);
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 sm:p-6" aria-labelledby="tilvalg-heading">
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6" aria-labelledby="tilvalg-heading">
       <h2 id="tilvalg-heading" className="mb-1 flex items-center gap-2.5 font-display text-2xl">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">
+        <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">
           {step}
         </span>
         {t("co.step.bags")}
@@ -52,11 +52,11 @@ export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, nam
       </p>
 
       {!available ? (
-        <p className="rounded-2xl border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
+        <p className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
           {t("ex.unavailable")}
         </p>
       ) : (
-        <div className="rounded-2xl border border-border bg-muted/50 p-4">
+        <div className="rounded-lg border border-border bg-muted/50 p-4">
           <div className="mb-3 flex items-center gap-3">
             <Luggage className="h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
             <div>
@@ -73,24 +73,24 @@ export default function ExtrasSection({ offer, step, bagsByPax, onBagsByPax, nam
               const label = names?.[p.id] || `${paxLabel(p.type)} ${i + 1}`;
               const perPaxMax = Math.min(MAX_PER_PAX, svc!.maxExtraBags);
               return (
-                <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3.5 py-2">
+                <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-card px-3.5 py-2">
                   <span className="min-w-0 truncate text-sm font-medium">{label}</span>
                   <span className="flex shrink-0 items-center gap-2" role="group" aria-label={t("ex.group", { name: label })}>
                     <button
                       type="button"
                       onClick={() => setBags(p.id, n - 1)}
                       disabled={disabled || n === 0}
-                      className="grid h-11 w-11 place-items-center rounded-full border border-border transition-colors hover:border-accent disabled:opacity-30"
+                      className="grid h-11 w-11 place-items-center rounded-full border border-border transition-colors hover:border-foreground/40 disabled:opacity-30"
                       aria-label={t("ex.fewer", { name: label })}
                     >
                       <Minus className="h-4 w-4" aria-hidden="true" />
                     </button>
-                    <span className="w-5 text-center text-sm font-bold" aria-live="polite">{n}</span>
+                    <span className="w-5 text-center text-sm font-semibold tabular" aria-live="polite">{n}</span>
                     <button
                       type="button"
                       onClick={() => setBags(p.id, n + 1)}
                       disabled={disabled || n >= perPaxMax || totalBags >= maxTotal}
-                      className="grid h-11 w-11 place-items-center rounded-full border border-border transition-colors hover:border-accent disabled:opacity-30"
+                      className="grid h-11 w-11 place-items-center rounded-full border border-border transition-colors hover:border-foreground/40 disabled:opacity-30"
                       aria-label={t("ex.more", { name: label })}
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />

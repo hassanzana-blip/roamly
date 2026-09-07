@@ -101,7 +101,7 @@ export default function AdminLogin() {
           <p className="mt-2 text-sm text-white/70">Internportal for ansatte</p>
         </div>
 
-        <main id="main" className="rounded-3xl bg-card p-6 shadow-2xl sm:p-8">
+        <main id="main" className="rounded-xl bg-card p-6 shadow-2xl sm:p-8">
           {setupStatus.data?.needsSetup && step === "credentials" ? (
             <>
               <h1 className="flex items-center gap-2.5 font-display text-2xl text-foreground">
@@ -170,7 +170,7 @@ export default function AdminLogin() {
                     Kontoen din krever totrinnsbekreftelse. Skann QR-koden i en autentikator-app (1Password, Google Authenticator, Authy …) og skriv inn koden appen viser.
                   </p>
                   {setup ? (
-                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-white p-4">
+                    <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-4">
                       <img src={setup.qrDataUrl} alt={`QR-kode for TOTP-oppsett for ${setup.email}`} width={240} height={240} className="h-60 w-60" />
                       <details className="w-full text-xs text-muted-foreground">
                         <summary className="cursor-pointer font-semibold text-foreground">Kan du ikke skanne? Vis nøkkelen</summary>

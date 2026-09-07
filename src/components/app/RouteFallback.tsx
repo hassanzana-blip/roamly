@@ -7,17 +7,17 @@ export default function RouteFallback({ admin = false }: { admin?: boolean }) {
   if (admin) {
     return (
       <div className="min-h-screen bg-background" aria-busy="true" aria-label="Laster">
-        <div className="hidden lg:block fixed inset-y-0 left-0 w-64 border-r border-border bg-white" />
+        <div className="hidden lg:block fixed inset-y-0 left-0 w-64 border-r border-border bg-card" />
         <div className="lg:pl-64">
           <div className="h-16 border-b border-border bg-white/90" />
           <div className="space-y-4 px-4 py-6 sm:px-6 lg:px-8">
-            <div className="h-8 w-48 animate-pulse rounded-xl bg-night/5" />
+            <div className="h-8 w-48 animate-pulse rounded-xl bg-muted" />
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-24 animate-pulse rounded-2xl bg-night/5" />
+                <div key={i} className="h-24 animate-pulse rounded-lg bg-muted" />
               ))}
             </div>
-            <div className="h-64 animate-pulse rounded-2xl bg-night/5" />
+            <div className="h-64 animate-pulse rounded-lg bg-muted" />
           </div>
         </div>
       </div>

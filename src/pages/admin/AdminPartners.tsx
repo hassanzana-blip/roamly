@@ -54,8 +54,8 @@ export function AdminPartners() {
             type="button"
             onClick={() => setStatusFilter(s)}
             className={cn(
-              "rounded-full px-4 py-2 text-xs font-bold transition-all",
-              statusFilter === s ? "bg-night text-white" : "bg-night/5 text-night/60 hover:bg-night/10",
+              "rounded-lg px-4 py-2 text-xs font-semibold transition-all",
+              statusFilter === s ? "bg-night text-white" : "bg-muted text-foreground/60 hover:bg-night/10",
             )}
           >
             {s === "all" ? "Alle" : STATUS[s].label}
@@ -76,12 +76,12 @@ export function AdminPartners() {
           return (
             <Card key={r.id} className="flex flex-col">
               <div className="flex items-start gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <t.icon className="h-5 w-5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-bold text-night">{r.customerName}</h3>
+                    <h3 className="font-semibold text-foreground">{r.customerName}</h3>
                     <Pill tone="info">{t.label}</Pill>
                     {r.partner && <Pill tone="neutral">{r.partner}</Pill>}
                     <Pill tone={st.tone}>{st.label}</Pill>
@@ -101,10 +101,10 @@ export function AdminPartners() {
                   .filter(([, v]) => v !== "" && v !== undefined)
                   .map(([k, v]) => (
                     <div key={k} className={k === "wishes" ? "col-span-2" : ""}>
-                      <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      <dt className="eyebrow">
                         {DETAIL_LABELS[k] ?? k}
                       </dt>
-                      <dd className="font-medium text-night">{String(v)}</dd>
+                      <dd className="font-medium text-foreground">{String(v)}</dd>
                     </div>
                   ))}
               </dl>
@@ -132,7 +132,7 @@ export function AdminPartners() {
                   href={`mailto:${r.customerEmail}?subject=${encodeURIComponent(
                     r.type === "hotel" ? "Hotellforespørselen din — HelloSky" : "Leiebilforespørselen din — HelloSky",
                   )}`}
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-border px-3.5 py-2 text-xs font-bold text-night hover:border-night/30"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold text-foreground hover:border-foreground/40"
                 >
                   <Mail className="h-3.5 w-3.5" /> Svar kunde
                 </a>

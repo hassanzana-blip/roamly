@@ -52,14 +52,14 @@ export function AdminBookings() {
             onChange={(e) => setQueryInput(e.target.value)}
             placeholder="Søk på referanse, e-post, telefon eller rute …"
             aria-label="Søk i bestillinger"
-            className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-sm text-night outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </form>
         <select
           value={stateFilter}
           onChange={(e) => setState(e.target.value)}
           aria-label="Filtrer på status"
-          className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold text-night outline-none focus:border-primary"
+          className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-semibold text-foreground outline-none focus:border-primary"
         >
           <option value="">Alle statuser</option>
           {Object.entries(BOOKING_STATE_LABELS).map(([value, label]) => (
@@ -82,7 +82,7 @@ export function AdminBookings() {
           <Card className="overflow-x-auto p-0">
             <table className="w-full min-w-[860px] text-left text-sm">
               <thead>
-                <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                <tr className="border-b border-border eyebrow">
                   <th className="px-5 py-3.5">Opprettet</th>
                   <th className="px-5 py-3.5">Referanse</th>
                   <th className="px-5 py-3.5">Rute</th>
@@ -105,11 +105,11 @@ export function AdminBookings() {
                         </Pill>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap font-medium text-night">{b.route || "–"}</td>
+                    <td className="px-5 py-3.5 whitespace-nowrap font-medium text-foreground">{b.route || "–"}</td>
                     <td className="max-w-[220px] truncate px-5 py-3.5 text-muted-foreground" title={b.passenger}>
                       {b.passenger || "–"}
                     </td>
-                    <td className="px-5 py-3.5 whitespace-nowrap font-semibold text-night">
+                    <td className="px-5 py-3.5 whitespace-nowrap font-semibold text-foreground">
                       {formatMoney(b.totalAmount, b.totalCurrency ?? "NOK")}
                     </td>
                     <td className="px-5 py-3.5"><BookingStatePill state={b.state} /></td>
@@ -128,7 +128,7 @@ export function AdminBookings() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="inline-flex items-center gap-1 rounded-xl border border-border bg-white px-3 py-2 font-semibold text-night disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 font-semibold text-foreground disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" /> Forrige
               </button>
@@ -136,7 +136,7 @@ export function AdminBookings() {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="inline-flex items-center gap-1 rounded-xl border border-border bg-white px-3 py-2 font-semibold text-night disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 font-semibold text-foreground disabled:opacity-40"
               >
                 Neste <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>

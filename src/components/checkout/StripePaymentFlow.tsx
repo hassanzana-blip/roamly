@@ -25,16 +25,16 @@ const BRAND_APPEARANCE: Appearance = {
   theme: "stripe",
   labels: "floating",
   variables: {
-    colorPrimary: "#2457f5",
-    colorText: "#0f1b2d",
+    colorPrimary: "#5F7A05",
+    colorText: "#131316",
     colorDanger: "#d0433b",
     fontFamily: "Inter, system-ui, sans-serif",
-    borderRadius: "12px",
+    borderRadius: "10px",
     spacingUnit: "4px",
   },
   rules: {
     ".Input": { borderColor: "rgba(15,27,45,0.16)", boxShadow: "none" },
-    ".Input:focus": { borderColor: "#2457f5", boxShadow: "0 0 0 1px #2457f5" },
+    ".Input:focus": { borderColor: "#5F7A05", boxShadow: "0 0 0 2px rgba(205,245,39,0.45)" },
   },
 };
 
@@ -105,7 +105,7 @@ function PayForm({ returnUrl, payLabel, disabled, onSucceeded, onError, children
         options={{ layout: "tabs", terms: { card: "never", klarna: "auto" } }}
       />
       {localError && (
-        <p role="alert" className="rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary">
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {localError}
         </p>
       )}
@@ -115,7 +115,7 @@ function PayForm({ returnUrl, payLabel, disabled, onSucceeded, onError, children
         onClick={pay}
         disabled={disabled || pending || !ready || !stripe}
         aria-busy={pending}
-        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 text-base font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:brightness-[0.94] active:scale-[0.99] disabled:opacity-60"
+        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-base font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] active:scale-[0.99] disabled:opacity-60"
       >
         {pending ? (
           <>
@@ -137,7 +137,7 @@ export default function StripePaymentFlow(props: StripeFlowProps) {
   const options = useMemo(() => ({ clientSecret, locale: "nb" as const, appearance: BRAND_APPEARANCE }), [clientSecret]);
   if (!publishableKey || !clientSecret) {
     return (
-      <p role="alert" className="rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary">
+      <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
         Betaling er ikke tilgjengelig akkurat nå. Kontakt oss, så hjelper vi deg.
       </p>
     );

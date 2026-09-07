@@ -23,7 +23,7 @@ export default function ContentPage({
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 pb-20 outline-none sm:px-6">
         <div className="-mx-4 -mt-0 mb-10 border-b border-border bg-muted/40 px-4 pb-12 pt-32 sm:-mx-6 sm:px-6">
           <div className="mx-auto w-full max-w-3xl">
-            <p className="font-mono-label text-[12px] text-skyline">{eyebrow}</p>
+            <p className="font-mono-label text-[12px] text-primary">{eyebrow}</p>
             <h1 className="mt-2 font-display text-4xl tracking-tight sm:text-5xl">{title}</h1>
             {intro && <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">{intro}</p>}
             {updated && (
@@ -55,7 +55,7 @@ export function Section({ title, id, children }: { title: string; id?: string; c
 /** Markert plassholder for juridisk gjennomgang. */
 export function LegalNote({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded bg-amber-50 px-1 py-0.5 text-[13px] font-medium text-amber-900" data-legal-review>
+    <span className="rounded bg-warning/10 px-1 py-0.5 text-[13px] font-medium text-warning" data-legal-review>
       [JURIST: {children}]
     </span>
   );

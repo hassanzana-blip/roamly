@@ -42,7 +42,7 @@ export default function VerifyEmail() {
   return (
     <div className="grid min-h-[100dvh] place-items-center bg-background p-6">
       <AppShell className="w-full max-w-md">
-        <div className="rounded-3xl border border-border bg-white p-8 text-center shadow-soft">
+        <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft">
           {done === null && (
             <>
               <div className="shimmer mx-auto h-12 w-12 rounded-full" />
@@ -51,14 +51,14 @@ export default function VerifyEmail() {
           )}
           {done === "ok" && (
             <>
-              <Icon icon={CircleCheck} size={24} className="mx-auto text-emerald-600" />
+              <Icon icon={CircleCheck} size={24} className="mx-auto text-success" />
               <h1 className="mt-4 font-display text-2xl">E-posten er bekreftet!</h1>
               <p className="mt-2 text-[14px] text-muted-foreground">
                 Kontoen din er nå fullverdig. Vi sender bekreftelser og viktige reisevarsler hit.
               </p>
               <Link
                 to="/profil"
-                className="mt-6 inline-flex min-h-12 items-center rounded-full bg-primary px-7 text-[14px] font-bold text-night transition-colors hover:brightness-95"
+                className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-primary px-7 text-[14px] font-semibold text-primary-foreground transition-colors hover:opacity-90"
               >
                 Til profilen din
               </Link>
@@ -66,12 +66,12 @@ export default function VerifyEmail() {
           )}
           {done === "error" && (
             <>
-              <Icon icon={MailWarning} size={24} className="mx-auto text-amber-500" />
+              <Icon icon={MailWarning} size={24} className="mx-auto text-warning" />
               <h1 className="mt-4 font-display text-2xl">Lenken virker ikke</h1>
               <p className="mt-2 text-[14px] text-muted-foreground">{message}</p>
               <Link
                 to="/profil"
-                className="mt-6 inline-flex min-h-12 items-center rounded-full bg-night px-7 text-[14px] font-bold text-white transition-colors hover:brightness-125"
+                className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-night px-7 text-[14px] font-semibold text-white transition-colors hover:opacity-90"
               >
                 Til profilen — send ny lenke
               </Link>

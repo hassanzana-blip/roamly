@@ -2,44 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────
+   HelloSky design tokens
+   Calm, editorial, mobile-first. One palette, one type system, one motion
+   scale. Components read from these variables; no raw hex in components.
+
+   Paper       hsl(40 33% 97%)   → page ground (warm off-white)
+   Ink         hsl(218 44% 13%)  → primary text, footer, dark panels
+   Sky         hsl(217 78% 46%)  → the single action colour
+   Sand        hsl(40 22% 92%)   → quiet fills, chips, dividers
+   ───────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* ── HelloSky identity — native app-grammatikk ────────────────────────
-       Lime       #CDF527  → én vivid aksent: highlight, aktive piller, CTA
-       Nesten-svart #131316 → bunnnav-kapsel, footer, primærtekst
-       Hvit       #FFFFFF  → flater, kort, generøs luft
-       Grå        skala    → sekundærtekst, hårlinjer, dempede chips      */
-    --background: 0 0% 100%;            /* ren hvit app-flate */
-    --foreground: 240 5% 10%;           /* nesten-svart */
+    /* Surfaces: white app surface, near-black ink */
+    --background: 0 0% 100%;
+    --foreground: 240 5% 10%;
     --card: 0 0% 100%;
     --card-foreground: 240 5% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 5% 10%;
-    --primary: 74 93% 54%;              /* lime — eneste vivid aksent */
-    --primary-foreground: 240 10% 8%;   /* mørk tekst på lime */
-    --secondary: 0 0% 95%;              /* nøytrale chips */
+
+    /* Brand: lime is the single vivid accent (dark text on lime) */
+    --primary: 74 93% 54%;
+    --primary-foreground: 240 10% 8%;
+    --primary-soft: 74 90% 93%;
+    --night: 240 6% 9%;
+    --sand: 0 0% 95%;
+
+    /* Neutrals */
+    --secondary: 0 0% 95%;
     --secondary-foreground: 240 6% 12%;
     --muted: 0 0% 96.5%;
-    --muted-foreground: 0 0% 40%;      /* ≥ 5.7:1 mot hvit — OK for 11–12px etiketter (WCAG AA) */
-    --accent: 74 90% 93%;               /* lime-tintet flate */
+    --muted-foreground: 0 0% 40%;
+    --accent: 74 90% 93%;
     --accent-foreground: 72 85% 20%;
-    --destructive: 4 72% 48%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 145 63% 32%;
-    --success-foreground: 0 0% 100%;
-    --warning: 36 92% 42%;
-    --warning-foreground: 0 0% 100%;
-    --border: 0 0% 91.5%;
-    --input: 0 0% 88%;
-    --ring: 74 93% 40%;
-    --radius: 1.25rem;
+    --border: 0 0% 91%;
+    --input: 0 0% 84%;
+    --ring: 74 93% 38%;
 
-    /* Brand tokens — slot names kept stable */
-    --gold: 74 93% 54%;                 /* accent slot = lime */
-    --skyline: 74 95% 26%;              /* lesbar lime-oliven for tekstaksent */
-    --night: 240 6% 9%;                 /* nesten-svart (kapsel, footer) */
+    /* Semantic */
+    --destructive: 4 72% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 145 63% 30%;
+    --success-foreground: 0 0% 100%;
+    --warning: 34 90% 36%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Shape */
+    --radius: 0.75rem;
+
+    /* Motion */
+    --dur-fast: 150ms;
+    --dur-base: 220ms;
+    --dur-slow: 320ms;
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Legacy slot names — kept so existing components compile. */
+    --gold: 74 93% 54%;
+    --skyline: 74 95% 24%;               /* readable lime-olive for text accents */
     --cream: 0 0% 100%;
-    --coral: 4 72% 48%;                 /* destructive red */
+    --coral: 4 72% 46%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5% 10%;
@@ -47,11 +70,11 @@
     --sidebar-primary-foreground: 240 10% 8%;
     --sidebar-accent: 0 0% 96.5%;
     --sidebar-accent-foreground: 240 5% 10%;
-    --sidebar-border: 0 0% 91.5%;
-    --sidebar-ring: 74 93% 40%;
+    --sidebar-border: 0 0% 91%;
+    --sidebar-ring: 74 93% 38%;
   }
 
-  /* ── Mørk modus ─────────────────────────────────────────────────────────── */
+  /* ── Dark mode ─────────────────────────────────────────────────────────── */
   .dark {
     --background: 240 7% 7%;
     --foreground: 0 0% 96%;
@@ -59,15 +82,20 @@
     --card-foreground: 0 0% 96%;
     --popover: 240 6% 12%;
     --popover-foreground: 0 0% 96%;
+    --primary: 74 93% 54%;
+    --primary-foreground: 240 10% 8%;
+    --primary-soft: 74 55% 16%;
     --secondary: 240 5% 16%;
     --secondary-foreground: 0 0% 92%;
     --muted: 240 5% 15%;
-    --muted-foreground: 240 5% 62%;
+    --muted-foreground: 240 5% 64%;
     --accent: 74 55% 16%;
     --accent-foreground: 74 90% 70%;
     --border: 240 5% 20%;
-    --input: 240 5% 24%;
+    --input: 240 5% 26%;
+    --ring: 74 93% 54%;
     --night: 240 6% 12%;
+    --sand: 240 5% 16%;
     --skyline: 74 80% 62%;
     --sidebar-background: 240 6% 9%;
     --sidebar-foreground: 0 0% 96%;
@@ -77,18 +105,15 @@
   }
 }
 
-/* Mørk modus: remap hardkodede lyse flater fra komponenter */
+/* Dark mode: remap hard-coded light surfaces used by older components */
 .dark .bg-white {
   background-color: hsl(var(--card));
 }
 .dark .text-night {
   color: hsl(var(--foreground));
 }
-/* …men lime flater beholder mørk tekst */
 .dark .bg-primary .text-night,
-.dark .bg-primary.text-night,
-.dark span.bg-primary.text-night,
-.dark button.bg-primary.text-night {
+.dark .bg-primary.text-night {
   color: hsl(var(--primary-foreground));
 }
 .dark .bg-night {
@@ -106,59 +131,86 @@
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-    font-feature-settings: "calt", "ss01", "cv11", "tnum";
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "calt", "cv11", "ss01", "tnum";
     font-weight: 400;
+    line-height: 1.5;
     overscroll-behavior-y: none;
     /* Safety net: nothing may ever create horizontal page scroll */
     overflow-x: hidden;
     overflow-x: clip;
   }
-  html {
-    overflow-x: hidden;
-  }
-  /* Plass til flytende bunnnav-kapsel (alle bredder) */
+  /* Room for the floating bottom navigation (all widths below lg) */
   @media (max-width: 1023px) {
     body.has-tabbar {
       padding-bottom: calc(96px + env(safe-area-inset-bottom));
     }
   }
   ::selection {
-    background: hsl(var(--primary) / 0.92);
+    background: hsl(var(--primary) / 0.9);
     color: hsl(var(--primary-foreground));
+  }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button, [role="button"], a, label, select, summary {
+    cursor: pointer;
+  }
+  button:disabled, [aria-disabled="true"] {
+    cursor: not-allowed;
   }
 }
 
 @layer utilities {
-  /* Overskrifter: Inter ekstra fet, tett tracking — booking-plattform-look */
+  /* Display type: editorial serif for headlines only */
   .font-display {
-    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-family: "Newsreader", "Iowan Old Style", "Times New Roman", Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    line-height: 1.08;
+    font-feature-settings: "ss01", "kern";
   }
-  /* Små etiketter: IATA-koder, eyebrows, tekniske data */
+  /* Small labels: IATA codes, eyebrows, technical data */
   .font-mono-label {
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.1em;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground;
   }
   .text-balance {
     text-wrap: balance;
   }
-  /* Lesbar tekstaksent — ren lime på hvitt er for lys, oliven-variant bærer fargen */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Page gutter + width in one place */
+  .container-x {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+  .container-narrow {
+    @apply mx-auto w-full max-w-3xl px-5 sm:px-8;
+  }
+  /* Readable text accent: pure lime on white is too light, the olive variant carries the colour */
   .text-primary {
     color: hsl(var(--skyline));
   }
-  /* Lime flater skal ha mørk tekst — eldre komponenter med text-white korrigeres */
+  /* Lime surfaces always carry dark text, also for older components with text-white */
   .bg-primary.text-white,
   .bg-gold.text-white {
     color: hsl(var(--primary-foreground));
   }
-  /* Lime highlight-boks bak nøkkelord i overskrifter (referanse-grammatikk) */
+  /* Lime highlight box behind the key word in headlines (brand grammar) */
   .hl {
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
@@ -167,14 +219,14 @@
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
   }
-  /* App-skygger: ekstremt myke, ingen harde kanter */
+  /* App shadows: very soft, no hard edges */
   .shadow-soft {
-    box-shadow: 0 6px 24px -10px hsl(240 10% 8% / 0.10), 0 2px 8px -4px hsl(240 10% 8% / 0.06);
+    box-shadow: 0 4px 16px -8px hsl(240 10% 8% / 0.10), 0 1px 3px -1px hsl(240 10% 8% / 0.06);
   }
   .shadow-lift {
-    box-shadow: 0 20px 48px -20px hsl(240 10% 8% / 0.22), 0 4px 12px -6px hsl(240 10% 8% / 0.08);
+    box-shadow: 0 16px 40px -18px hsl(240 10% 8% / 0.26), 0 3px 10px -5px hsl(240 10% 8% / 0.10);
   }
-  /* Horisontale striper uten synlig scrollbar */
+  /* Horizontal strips without a visible scrollbar */
   .no-scrollbar {
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -182,12 +234,28 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  /* thin hairline — dark navy at low opacity on light surfaces */
+  /* Thin hairline: ink at low opacity on light surfaces */
   .hairline {
-    border-color: hsl(var(--night) / 0.09);
+    border-color: hsl(var(--night) / 0.1);
   }
   .hairline-light {
-    border-color: hsl(0 0% 100% / 0.14);
+    border-color: hsl(0 0% 100% / 0.16);
+  }
+  /* Safe areas for notched phones */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  /* Photo readability wash */
+  .photo-wash {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--night) / 0.05) 0%,
+      hsl(var(--night) / 0.35) 55%,
+      hsl(var(--night) / 0.72) 100%
+    );
   }
 }
 
@@ -204,18 +272,20 @@
 .hero-photo-fade {
   background: linear-gradient(
     180deg,
-    hsl(212 60% 16% / 0.30) 0%,
-    hsl(212 60% 16% / 0.05) 40%,
+    hsl(240 10% 8% / 0.30) 0%,
+    hsl(240 10% 8% / 0.05) 40%,
     hsl(var(--background) / 0.92) 88%,
     hsl(var(--background)) 100%
   );
 }
 
 /* ─── Motion system ────────────────────────────────────────────────────── */
+/* Only two entrance patterns: a short fade-up and an opacity fade.
+   Everything else is state feedback (hover/press) and Motion springs. */
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(26px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -223,32 +293,38 @@
   }
 }
 .fade-up {
-  animation: fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-up var(--dur-slow) var(--ease-out) both;
 }
-.fade-up-1 { animation-delay: 0.12s; }
-.fade-up-2 { animation-delay: 0.26s; }
-.fade-up-3 { animation-delay: 0.42s; }
-.fade-up-4 { animation-delay: 0.6s; }
+.fade-up-1 { animation-delay: 60ms; }
+.fade-up-2 { animation-delay: 120ms; }
+.fade-up-3 { animation-delay: 180ms; }
+.fade-up-4 { animation-delay: 240ms; }
 
-/* Ken Burns — hero-media zoomer rolig fra 1.1 til 1.0 mens bildet er aktivt */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in {
+  animation: fade-in var(--dur-slow) var(--ease-out) both;
+}
+
+/* Ken Burns: hero media drifts from 1.06 to 1.0 while active */
 @keyframes ken-burns {
-  from { transform: scale(1.1); }
+  from { transform: scale(1.06); }
   to { transform: scale(1); }
 }
 .ken-burns {
-  animation: ken-burns 8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ken-burns 8s var(--ease-out) both;
   will-change: transform;
 }
 
-/* Fremdriftslinje i hero-slideshow — fylles 0 → 100% per bilde */
+/* Slideshow progress bar */
 @keyframes slide-progress {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
 
-/* Ord-for-ord reveal: hvert ord klippes frem med clip-path inset()
-   samtidig som det løfter 24px — 1200ms, trappet med 90ms per ord.
-   Bruk: pakk hvert ord i <span class="wr"><span class="wr-i">Ord</span></span> */
+/* Word reveal: each word lifts 12px with a clip; 600ms, staggered */
 .wr {
   display: inline-block;
   overflow: hidden;
@@ -259,8 +335,8 @@
 .wr-i {
   display: inline-block;
   clip-path: inset(0 0 110% 0);
-  transform: translateY(24px);
-  animation: word-reveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform: translateY(12px);
+  animation: word-reveal 0.6s var(--ease-out) forwards;
   animation-delay: var(--wr-delay, 0ms);
   will-change: transform, clip-path;
 }
@@ -271,7 +347,7 @@
   }
 }
 
-/* Nav-understrek: 1px linje som vokser 0 → 100% ved hover/aktiv */
+/* Nav underline: 1px line that grows 0 → 100% on hover/active */
 .nav-underline {
   position: relative;
 }
@@ -285,15 +361,13 @@
   background: currentColor;
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--dur-base) var(--ease-out);
 }
 .nav-underline:hover::after,
 .nav-underline[aria-current="page"]::after {
   transform: scaleX(1);
 }
 
-/* Automatisk kontrast over varierende bakgrunn (video/foto → hvit tekst,
-   lys bakgrunn → mørk tekst) uten JavaScript */
 .blend-difference {
   mix-blend-mode: difference;
   color: #fff;
@@ -306,7 +380,7 @@
 .marquee-track {
   display: flex;
   width: max-content;
-  animation: marquee-x 32s linear infinite;
+  animation: marquee-x 40s linear infinite;
 }
 .marquee-track:hover {
   animation-play-state: paused;
@@ -327,9 +401,9 @@
 .shimmer {
   background: linear-gradient(
     90deg,
-    hsl(214 28% 88% / 0.6) 25%,
-    hsl(214 30% 94% / 0.9) 50%,
-    hsl(214 28% 88% / 0.6) 75%
+    hsl(var(--muted)) 25%,
+    hsl(var(--secondary)) 50%,
+    hsl(var(--muted)) 75%
   );
   background-size: 800px 100%;
   animation: skeleton-shimmer 1.4s linear infinite;
@@ -343,7 +417,7 @@
   animation: plane-dash 1.2s linear infinite;
 }
 
-/* Fly som sveiver langs ruten under søk */
+/* Plane travelling along the route while searching */
 @keyframes plane-fly {
   from { transform: translate(0, 26px) rotate(-12deg); opacity: 0; }
   12% { opacity: 1; }
@@ -356,19 +430,17 @@
 
 .card-lift {
   transition:
-    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.35s ease,
-    box-shadow 0.35s ease,
-    background-color 0.35s ease;
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out);
 }
 .card-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px -18px hsl(var(--night) / 0.25);
+  border-color: hsl(var(--night) / 0.22);
+  box-shadow: 0 10px 28px -16px hsl(var(--night) / 0.22);
 }
 
-/* keyboard focus — always visible, never ambiguous (OTA-188).
-   Ringen tegnes utenfor elementet og får en hvit «halo» slik at den er
-   synlig både på lyse og mørke flater (bunnnav, footer, dialoger). */
+/* Keyboard focus: always visible, never ambiguous. The ring sits outside
+   the element with a background halo so it reads on light and dark. */
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
@@ -380,33 +452,25 @@
   outline-color: hsl(var(--primary));
   box-shadow: none;
 }
-/* Skip-lenke og andre sr-only-elementer som blir synlige ved fokus */
 .focus\:not-sr-only:focus {
   z-index: 100;
 }
 
-/* Desktop hover-løft på bildekort — zoom i bildet, kortet løfter */
+/* Desktop hover on image cards: gentle zoom, quiet lift */
 @media (hover: hover) and (pointer: fine) {
   .img-zoom img {
-    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.5s var(--ease-out);
   }
   .img-zoom:hover img {
-    transform: scale(1.05);
+    transform: scale(1.04);
   }
   .hover-lift {
-    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) ease, border-color var(--dur-base) ease;
   }
   .hover-lift:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 18px 44px -20px hsl(var(--night) / 0.28);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px -20px hsl(var(--night) / 0.28);
   }
-}
-
-/* hide scrollbars on horizontal strips */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 /* native date input indicator */
@@ -418,13 +482,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* carousel scroll snap */
 .snap-row {
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: 1rem;
+  scroll-padding-inline: 1.25rem;
   -webkit-overflow-scrolling: touch;
 }
 .snap-row > * {
   scroll-snap-align: start;
 }
 
+/* ─── Reduced motion: everything settles instantly ───────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -435,9 +500,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-  .fade-up, .marquee-track, .pulse-soft, .route-dash, .shimmer, .ken-burns, .plane-fly {
+  .fade-up, .fade-in, .marquee-track, .pulse-soft, .route-dash, .ken-burns, .plane-fly {
     animation: none !important;
+  }
+  .shimmer {
+    animation: none;
+    background: hsl(var(--muted));
   }
   .wr-i {
     animation: none;

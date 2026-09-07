@@ -60,7 +60,7 @@ export function Pill({ tone = "neutral", children, className }: { tone?: PillTon
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-bold",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1 text-[12px] font-semibold",
         TONE_CLASSES[tone],
         className,
       )}
@@ -88,7 +88,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="font-display text-2xl font-bold text-night sm:text-3xl">{title}</h1>
+        <h1 className="font-display text-[26px] text-foreground sm:text-3xl">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -97,13 +97,13 @@ export function PageHeader({ title, description, actions }: { title: string; des
 }
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-2xl border border-border bg-white p-5 shadow-sm", className)}>{children}</div>;
+  return <div className={cn("rounded-xl border border-border bg-card p-5 shadow-xs", className)}>{children}</div>;
 }
 
 export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-white/60 px-6 py-12 text-center">
-      <p className="font-semibold text-night">{title}</p>
+    <div className="rounded-lg border border-dashed border-border bg-white/60 px-6 py-12 text-center">
+      <p className="font-semibold text-foreground">{title}</p>
       {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
@@ -113,10 +113,10 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 export function ErrorState({ message, error, onRetry }: { message?: string; error?: TrpcErrorLike; onRetry?: () => void }) {
   const text = message ?? (error ? errorMessage(error, "Kunne ikke laste data. Prøv å laste siden på nytt.") : "Kunne ikke laste data. Prøv å laste siden på nytt.");
   return (
-    <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-8 text-center">
-      <p className="font-semibold text-rose-700">Noe gikk galt</p>
-      <p className="mt-1 text-sm text-rose-700/90">{text}</p>
-      {error?.data?.appCode && <p className="mt-1 font-mono text-[11px] text-rose-700/70">{error.data.appCode}</p>}
+    <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-8 text-center">
+      <p className="font-semibold text-destructive">Noe gikk galt</p>
+      <p className="mt-1 text-sm text-destructive">{text}</p>
+      {error?.data?.appCode && <p className="mt-1 font-mono text-[11px] text-destructive">{error.data.appCode}</p>}
       {onRetry && (
         <Btn tone="ghost" className="mt-4" onClick={onRetry}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" /> Prøv igjen
@@ -130,7 +130,7 @@ export function LoadingRows({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-3" role="status" aria-label="Laster" aria-busy="true">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-16 animate-pulse rounded-2xl bg-night/5" />
+        <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
       ))}
     </div>
   );
@@ -198,7 +198,7 @@ export function Btn({ tone = "primary", className, type = "button", ...props }: 
     <button
       type={type}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50",
         BTN_CLASSES[tone],
         className,
       )}
@@ -225,8 +225,8 @@ export function KV({ items }: { items: { k: string; v: ReactNode }[] }) {
     <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
       {items.map((it) => (
         <div key={it.k} className="min-w-0">
-          <dt className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">{it.k}</dt>
-          <dd className="mt-0.5 break-words text-night">{it.v ?? "–"}</dd>
+          <dt className="eyebrow">{it.k}</dt>
+          <dd className="mt-0.5 break-words text-foreground">{it.v ?? "–"}</dd>
         </div>
       ))}
     </dl>
@@ -241,7 +241,7 @@ export function Timeline({ items }: { items: { id: number | string; title: React
       {items.map((e) => (
         <li key={e.id} className="relative">
           <span className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-primary" aria-hidden="true" />
-          <p className="text-sm text-night">{e.title}</p>
+          <p className="text-sm text-foreground">{e.title}</p>
           {e.sub && <p className="mt-0.5 whitespace-pre-wrap text-xs text-muted-foreground">{e.sub}</p>}
           <time className="mt-0.5 block text-xs text-muted-foreground">{formatDateTime(e.at)}</time>
         </li>

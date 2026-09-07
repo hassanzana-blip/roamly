@@ -25,9 +25,9 @@ export default function DealCard({
       type="button"
       onClick={() => onOpen?.(d)}
       aria-label={`Se flyreiser ${deal.originCity} til ${d.city}`}
-      className="hover-lift group block w-[272px] shrink-0 rounded-[26px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-[300px]"
+      className="hover-lift group block w-[272px] shrink-0 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-[300px]"
     >
-      <div className="relative aspect-[16/11] overflow-hidden rounded-[26px] bg-muted">
+      <div className="relative aspect-[16/11] overflow-hidden rounded-xl bg-muted">
         {d.image && !imgFailed ? (
           <img
             src={d.image}
@@ -46,17 +46,17 @@ export default function DealCard({
             <Icon icon={Plane} size={24} />
           </div>
         )}
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[12px] font-bold text-foreground shadow-soft backdrop-blur-sm">
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-white/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-soft backdrop-blur-sm">
           {deal.originCity} → {d.city}
         </span>
       </div>
       <div className="flex items-baseline justify-between gap-2 px-1.5 pt-3">
         <div className="min-w-0">
-          <h3 className="truncate font-display text-[16px] leading-tight">{d.city}</h3>
+          <h3 className="truncate text-[16px] font-semibold leading-tight">{d.city}</h3>
           <p className="truncate text-[13px] text-muted-foreground">{d.country}</p>
         </div>
         {price ? (
-          <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-[13px] font-bold text-accent-foreground">
+          <span className="shrink-0 rounded-md bg-primary-soft px-2.5 py-1 text-[13px] font-semibold tabular text-accent-foreground">
             {price}
           </span>
         ) : null}

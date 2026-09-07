@@ -27,7 +27,7 @@ export function Field({
   const describedBy = [error ? errId : null, hint ? hintId : null].filter(Boolean).join(" ") || undefined;
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
         {label}
       </label>
       {children({ id, describedBy, invalid: Boolean(error) })}
@@ -37,7 +37,7 @@ export function Field({
         </span>
       )}
       {error && (
-        <span id={errId} role="alert" className="mt-1 block text-xs font-medium text-primary">
+        <span id={errId} role="alert" className="mt-1 block text-xs font-medium text-destructive">
           {error}
         </span>
       )}
@@ -66,7 +66,7 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
   return (
     <div className="space-y-6">
       {errors.passengers && (
-        <p role="alert" className="rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           {errors.passengers}
         </p>
       )}
@@ -75,11 +75,11 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
         const k = (f: string) => `passengers.${i}.${f}`;
         const idp = `${idPrefix}-${i}`;
         return (
-          <fieldset key={p.id} className="rounded-3xl border hairline bg-muted/50 p-4 sm:p-5">
-            <legend className="px-1 text-sm font-bold text-foreground">{passengerLabel(p, passengers, t)}</legend>
+          <fieldset key={p.id} className="rounded-xl border border-border bg-muted/40 p-4 sm:p-5">
+            <legend className="px-1 text-base font-semibold text-foreground">{passengerLabel(p, passengers, t)}</legend>
             {savedTravelers.length > 0 && (
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">{t("co.pax.fromsaved")}</span>
+                <span className="eyebrow">{t("co.pax.fromsaved")}</span>
                 {savedTravelers.map((tv) => (
                   <button
                     key={tv.id}
@@ -93,7 +93,7 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
                         title: tv.gender === "f" ? "ms" : tv.gender === "m" ? "mr" : undefined,
                       })
                     }
-                    className="min-h-11 rounded-full border hairline bg-white px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-foreground/40 hover:bg-muted"
+                    className="min-h-10 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-foreground/40"
                   >
                     {tv.firstName} {tv.lastName}
                   </button>

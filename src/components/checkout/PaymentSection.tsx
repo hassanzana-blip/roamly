@@ -34,9 +34,9 @@ export default function PaymentSection({
   const t = useT();
   const methods = METHODS.filter((m) => m.id !== "klarna" || klarnaAvailable(currency));
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 sm:p-6" aria-labelledby="betaling-heading">
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6" aria-labelledby="betaling-heading">
       <h2 id="betaling-heading" className="mb-1 flex items-center gap-2.5 font-display text-2xl">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">
+        <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">
           {step}
         </span>
         {t("co.step.payment")}
@@ -55,11 +55,11 @@ export default function PaymentSection({
               disabled={locked && !active}
               onClick={() => onChange(m.id)}
               className={cn(
-                "flex min-h-[44px] w-full items-center gap-3.5 rounded-2xl border p-4 text-left transition-colors disabled:opacity-50",
-                active ? "border-foreground/40 bg-muted" : "border-border hover:border-foreground/20",
+                "flex min-h-[44px] w-full items-center gap-3.5 rounded-lg border p-4 text-left transition-colors disabled:opacity-50",
+                active ? "border-primary/50 bg-primary-soft" : "border-border hover:border-foreground/30",
               )}
             >
-              <span className={cn("grid h-11 w-14 shrink-0 place-items-center overflow-hidden rounded-lg", m.logo ? "bg-white" : "bg-secondary")}>
+              <span className={cn("grid h-11 w-14 shrink-0 place-items-center overflow-hidden rounded-lg", m.logo ? "bg-card" : "bg-secondary")}>
                 {m.logo ? (
                   <img src={m.logo} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -67,11 +67,11 @@ export default function PaymentSection({
                 )}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold">{m.label ? t(m.label) : "Klarna"}</span>
+                <span className="block text-sm font-semibold">{m.label ? t(m.label) : "Klarna"}</span>
                 <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{t(m.sub)}</span>
               </span>
               <span
-                className={cn("h-4 w-4 shrink-0 rounded-full border-2 transition-colors", active ? "border-night bg-night" : "border-border")}
+                className={cn("h-4 w-4 shrink-0 rounded-full border-2 transition-colors", active ? "border-primary bg-primary" : "border-input")}
                 aria-hidden="true"
               />
             </button>
@@ -81,7 +81,7 @@ export default function PaymentSection({
 
       {children && <div className="mt-5">{children}</div>}
 
-      <div className="mt-4 flex items-start gap-3 rounded-2xl bg-secondary/60 p-4">
+      <div className="mt-4 flex items-start gap-3 rounded-lg bg-secondary/60 p-4">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-foreground" aria-hidden="true" />
         <div className="text-sm leading-relaxed">
           <p className="font-semibold text-foreground">{t("pay.how")}</p>

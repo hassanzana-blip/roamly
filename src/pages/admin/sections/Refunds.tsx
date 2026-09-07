@@ -98,11 +98,11 @@ function RefundDetail({ id, onClose, canProcess }: { id: number | null; onClose:
                 ]}
               />
               <div>
-                <p className="text-[12px] font-bold uppercase tracking-wide text-muted-foreground">Begrunnelse</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-night">{rc.reason}</p>
+                <p className="eyebrow">Begrunnelse</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{rc.reason}</p>
               </div>
               {rc.lastError && (
-                <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">Siste feil: {rc.lastError}</p>
+                <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">Siste feil: {rc.lastError}</p>
               )}
               {canProcess && (
                 <div className="flex flex-wrap gap-2 border-t border-border pt-4">
@@ -120,7 +120,7 @@ function RefundDetail({ id, onClose, canProcess }: { id: number | null; onClose:
                 </div>
               )}
               <div>
-                <h3 className="mb-3 font-display text-base font-bold text-night">Tidslinje</h3>
+                <h3 className="mb-3 font-display text-base font-semibold text-foreground">Tidslinje</h3>
                 <Timeline
                   items={rc.events.map((e) => ({
                     id: e.id,
@@ -226,7 +226,7 @@ export function AdminRefunds() {
             <option key={v} value={v}>{l}</option>
           ))}
         </select>
-        <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-night">
+        <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-foreground">
           <input type="checkbox" checked={onlyOpen} onChange={(e) => { setOnlyOpen(e.target.checked); setPage(1); }} disabled={Boolean(state)} className="h-4 w-4 rounded border-border" />
           Kun åpne saker
         </label>
@@ -253,13 +253,13 @@ export function AdminRefunds() {
           <tbody className="divide-y divide-border">
             {list.data.items.map((r) => (
               <ClickableRow key={r.id} onClick={() => setParams({ sak: String(r.id) })} selected={selected === r.id}>
-                <td className={`${tdCls} font-semibold text-night`}>{r.reference}</td>
+                <td className={`${tdCls} font-semibold text-foreground`}>{r.reference}</td>
                 <td className={tdCls}>
-                  <span className="block text-night">{r.bookingReference ?? `#${r.bookingId}`}</span>
+                  <span className="block text-foreground">{r.bookingReference ?? `#${r.bookingId}`}</span>
                   <span className="block text-xs text-muted-foreground">{r.customerEmail}</span>
                 </td>
-                <td className={`${tdCls} text-night`}>{KIND_LABELS[r.kind] ?? r.kind}</td>
-                <td className={`${tdCls} whitespace-nowrap font-semibold text-night`}>{formatMinor(r.customerRefundAmountMinor ?? r.requestedAmountMinor, r.currency)}</td>
+                <td className={`${tdCls} text-foreground`}>{KIND_LABELS[r.kind] ?? r.kind}</td>
+                <td className={`${tdCls} whitespace-nowrap font-semibold text-foreground`}>{formatMinor(r.customerRefundAmountMinor ?? r.requestedAmountMinor, r.currency)}</td>
                 <td className={tdCls}><RefundStatePill state={r.state} /></td>
                 <td className={`${tdCls} text-muted-foreground`}>{r.approverName ?? "–"}</td>
                 <td className={`${tdCls} whitespace-nowrap text-muted-foreground`}>{formatDateTime(r.updatedAt)}</td>

@@ -201,16 +201,16 @@ export const ATTEMPT_TONES: Record<string, PillTone> = {
 };
 
 export const TONE_CLASSES: Record<PillTone, string> = {
-  neutral: "bg-night/5 text-night/80",
-  info: "bg-primary/10 text-primary",
-  success: "bg-emerald-100 text-emerald-800",
-  warning: "bg-amber-100 text-amber-900",
-  danger: "bg-rose-100 text-rose-800",
+  neutral: "bg-muted text-foreground/80",
+  info: "bg-primary-soft text-accent-foreground",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  danger: "bg-destructive/10 text-destructive",
 };
 
 /* ── Tabell ─────────────────────────────────────────────────────────────── */
 
-export const thCls = "px-4 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-muted-foreground sm:px-5";
+export const thCls = "px-4 py-3 text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground sm:px-5";
 export const tdCls = "px-4 py-3 align-middle sm:px-5";
 
 /* ── Knapper og felter ──────────────────────────────────────────────────── */
@@ -218,20 +218,20 @@ export const tdCls = "px-4 py-3 align-middle sm:px-5";
 export type BtnTone = "primary" | "night" | "ghost" | "danger" | "success";
 
 export const BTN_CLASSES: Record<BtnTone, string> = {
-  primary: "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:brightness-110",
-  night: "bg-night text-white shadow-sm hover:bg-night/90",
-  ghost: "border border-border bg-white text-night hover:border-night/30 hover:bg-night/[0.03]",
-  danger: "bg-rose-600 text-white hover:bg-rose-500",
-  success: "bg-emerald-600 text-white hover:bg-emerald-500",
+  primary: "bg-primary text-primary-foreground shadow-xs hover:bg-[hsl(var(--primary)/0.9)]",
+  night: "bg-night text-white shadow-xs hover:bg-night/90",
+  ghost: "border border-input bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60",
+  danger: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+  success: "bg-success text-success-foreground hover:bg-success/90",
 };
 
 export const inputCls =
-  "w-full min-h-11 rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-night outline-none transition-colors placeholder:text-muted-foreground/80 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
+  "w-full min-h-11 rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:opacity-60";
 
 export const selectCls =
-  "min-h-11 rounded-xl border border-border bg-white px-3 py-2.5 text-sm font-semibold text-night outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "min-h-11 rounded-lg border border-input bg-card px-3 py-2.5 text-sm font-medium text-foreground outline-none hover:border-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/25";
 
-export const labelCls = "mb-1.5 block text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground";
+export const labelCls = "mb-1.5 block text-sm font-medium text-foreground";
 
 
 /* ── Kundeservice ───────────────────────────────────────────────────────── */

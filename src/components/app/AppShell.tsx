@@ -5,11 +5,11 @@ import { useT } from "@/lib/i18n";
 import SiteHeader from "@/components/layout/SiteHeader";
 
 /**
- * AppShell — the single page container. Mobile 390px-first; desktop is
+ * AppShell: the single page container. Mobile 390px-first; desktop is
  * derived from the mobile column (same rhythm, wider track, more columns).
- * Every screen fades in once — native, quick (≤240ms), no scroll trapping.
+ * Every screen fades in once, quickly (≤220ms), no scroll trapping.
  * A11y: renders the skip link + `<main id="main">` target; honours
- * prefers-reduced-motion (no translate, opacity only).
+ * prefers-reduced-motion (opacity only).
  */
 
 export function SkipLink({ className }: { className?: string }) {
@@ -18,7 +18,7 @@ export function SkipLink({ className }: { className?: string }) {
     <a
       href="#main"
       className={cn(
-        "sr-only z-[100] rounded-full bg-night px-4 py-2 text-sm font-bold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-2 focus:outline-offset-2 focus:outline-ring",
+        "sr-only z-[100] rounded-lg bg-night px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-2 focus:outline-offset-2 focus:outline-ring",
         className,
       )}
     >
@@ -27,29 +27,23 @@ export function SkipLink({ className }: { className?: string }) {
   );
 }
 
-export default function AppShell({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export default function AppShell({ children, className }: { children: ReactNode; className?: string }) {
   const reduce = useReducedMotion();
   return (
     <>
       <SkipLink />
-      {/* Desktop (≥ lg): full nettstedsmeny. Mobil/nettbrett: app-topplinje + bunnnav. */}
+      {/* Desktop (≥ lg): full site header. Phone/tablet: app top bar + bottom nav. */}
       <div className="hidden lg:block">
         <SiteHeader />
-        <div className="h-20" aria-hidden="true" />
+        <div className="h-16" aria-hidden="true" />
       </div>
       <motion.main
         id="main"
         tabIndex={-1}
-        initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+        initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reduce ? 0.12 : 0.22, ease: "easeOut" }}
-        className={cn("mx-auto w-full max-w-6xl px-5 outline-none sm:px-8", className)}
+        transition={{ duration: reduce ? 0.12 : 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+        className={cn("container-x outline-none", className)}
       >
         {children}
       </motion.main>
@@ -57,19 +51,11 @@ export default function AppShell({
   );
 }
 
-/** Section header row: oversized title + quiet "Se alle" action. */
-export function SectionHeader({
-  title,
-  action,
-  className,
-}: {
-  title: string;
-  action?: ReactNode;
-  className?: string;
-}) {
+/** Section header row: editorial title + quiet "See all" action. */
+export function SectionHeader({ title, action, className }: { title: string; action?: ReactNode; className?: string }) {
   return (
     <div className={cn("mb-4 flex items-end justify-between gap-4", className)}>
-      <h2 className="font-display text-[22px] leading-tight tracking-tight sm:text-2xl">{title}</h2>
+      <h2 className="font-display text-[24px] leading-tight sm:text-[28px]">{title}</h2>
       {action}
     </div>
   );

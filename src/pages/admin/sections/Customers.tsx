@@ -83,7 +83,7 @@ function CustomerDetail({ id, onClose, canReveal }: { id: number | null; onClose
                     <ul className="divide-y divide-border">
                       {detail.data.quotes.map((q) => (
                         <li key={q.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                          <span className="font-semibold text-night">{q.reference}</span>
+                          <span className="font-semibold text-foreground">{q.reference}</span>
                           <span className="text-muted-foreground">{formatMoney(q.totalAmount, q.currency)}</span>
                           <Pill>{q.status}</Pill>
                         </li>
@@ -99,7 +99,7 @@ function CustomerDetail({ id, onClose, canReveal }: { id: number | null; onClose
                       {detail.data.cases.map((s) => (
                         <li key={s.id} className="py-2.5 text-sm">
                           <Link to={`/admin/kundeservice?case=${s.id}`} className="font-semibold text-primary hover:underline">{s.reference}</Link>
-                          <span className="ml-2 text-night">{s.subject}</span>
+                          <span className="ml-2 text-foreground">{s.subject}</span>
                           <span className="block text-xs text-muted-foreground">{s.status} · {formatDateTime(s.updatedAt)}</span>
                         </li>
                       ))}
@@ -178,12 +178,12 @@ export function AdminCustomers() {
               <tbody className="divide-y divide-border">
                 {accounts.data.map((a) => (
                   <tr key={a.id}>
-                    <td className={`${tdCls} font-semibold text-night`}>{a.name}</td>
+                    <td className={`${tdCls} font-semibold text-foreground`}>{a.name}</td>
                     <td className={`${tdCls} text-muted-foreground`}>{a.email}</td>
                     <td className={`${tdCls} text-muted-foreground`}>{a.phone}</td>
                     <td className={tdCls}>{a.emailVerified ? <Pill tone="success">Ja</Pill> : <Pill tone="warning">Nei</Pill>}</td>
-                    <td className={`${tdCls} text-night`}>{a.bonusKr ?? 0} kr</td>
-                    <td className={`${tdCls} text-night`}>{a.bookings}</td>
+                    <td className={`${tdCls} text-foreground`}>{a.bonusKr ?? 0} kr</td>
+                    <td className={`${tdCls} text-foreground`}>{a.bookings}</td>
                     <td className={`${tdCls} text-muted-foreground`}>{formatDate(a.createdAt)}</td>
                   </tr>
                 ))}
@@ -213,10 +213,10 @@ export function AdminCustomers() {
               <tbody className="divide-y divide-border">
                 {list.data.items.map((c) => (
                   <ClickableRow key={c.id} onClick={() => setSelected(c.id)} selected={selected === c.id}>
-                    <td className={`${tdCls} font-semibold text-night`}>{c.name}</td>
+                    <td className={`${tdCls} font-semibold text-foreground`}>{c.name}</td>
                     <td className={`${tdCls} text-muted-foreground`}>{c.email}</td>
                     <td className={`${tdCls} text-muted-foreground`}>{c.phone}</td>
-                    <td className={`${tdCls} text-night`}>{c.bookings}</td>
+                    <td className={`${tdCls} text-foreground`}>{c.bookings}</td>
                     <td className={`${tdCls} text-muted-foreground`}>{formatDate(c.createdAt)}</td>
                   </ClickableRow>
                 ))}
@@ -240,7 +240,7 @@ export function AdminPayments() {
     <div>
       <PageHeader title="Betalinger" description="Alle registrerte betalinger. Kortdata håndteres av Stripe – HelloSky ser aldri kortnummer." />
       <Card className="mb-4">
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filtrer på status" className="min-h-11 rounded-xl border border-border bg-white px-3 py-2.5 text-sm font-semibold text-night outline-none focus:border-primary">
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filtrer på status" className="min-h-11 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold text-foreground outline-none focus:border-primary">
           <option value="">Alle statuser</option>
           <option value="pending">Venter</option>
           <option value="authorized">Reservert</option>
@@ -272,10 +272,10 @@ export function AdminPayments() {
             {list.data.items.map((p) => (
               <tr key={p.id}>
                 <td className={`${tdCls} whitespace-nowrap text-muted-foreground`}>{formatDateTime(p.createdAt)}</td>
-                <td className={`${tdCls} whitespace-nowrap font-semibold text-night`}>{formatMoney(p.amount, p.currency)}</td>
+                <td className={`${tdCls} whitespace-nowrap font-semibold text-foreground`}>{formatMoney(p.amount, p.currency)}</td>
                 <td className={`${tdCls} whitespace-nowrap text-muted-foreground`}>{p.refundedMinor ? formatMoney(p.refundedMinor / 100, p.currency) : "–"}</td>
                 <td className={tdCls}>
-                  <span className="text-night">{p.provider}</span>
+                  <span className="text-foreground">{p.provider}</span>
                   {p.providerRef && <span className="block max-w-[180px] truncate font-mono text-[11px] text-muted-foreground" title={p.providerRef}>{p.providerRef}</span>}
                 </td>
                 <td className={tdCls}>
