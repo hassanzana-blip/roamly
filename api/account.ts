@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
-import { createRouter, customerProcedure } from "./middleware";
+import { createRouter, customerProcedure, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   bookings,
@@ -186,6 +186,11 @@ function tripsFromBookings(rows: (typeof bookings.$inferSelect)[]) {
 }
 
 export const accountRouter = createRouter({
+  /** Programfakta for forsiden — ingen kundedata, kun det admin har bestemt. */
+  rewardsPublic: publicQuery.query(async () => {
+    const rules = await rewardRules();
+    return { programName: rules.programName, earnFraction: rules.bookingEarnFraction, referrerKr: rules.referralReferrerKr, referredKr: rules.referralReferredKr, tiers: rules.tiers.map((t) => ({ id: t.id, name: t.name, minCompletedTrips: t.minCompletedTrips })) };
+  }),
   // ─── Reiseprofil ───────────────────────────────────────────────────────────
   travelProfile: customerProcedure.query(({ ctx }) => loadTravelProfile(ctx.customer.customerId)),
 

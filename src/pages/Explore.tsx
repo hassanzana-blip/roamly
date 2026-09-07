@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Sparkles } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
@@ -33,7 +34,10 @@ const CATEGORIES: { id: string; label: string; ids?: string[] }[] = [
 
 export default function Explore() {
   usePageMeta(PAGE_META.explore);
-  const [cat, setCat] = useState("alle");
+  const [params, setParams] = useSearchParams();
+  // Forsiden lenker hit med ?k=familie osv. — kategorien lever i URL-en, så den kan deles.
+  const cat = CATEGORIES.some((c) => c.id === params.get("k")) ? (params.get("k") as string) : "alle";
+  const setCat = (id: string) => setParams(id === "alle" ? {} : { k: id }, { replace: true });
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
   const { ids: favs, toggle: toggleFav } = useSavedDestinations();
   const t = useT();
