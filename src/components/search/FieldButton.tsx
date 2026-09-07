@@ -39,6 +39,9 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
         className,
       )}
       {...props}
+      // The visible label + value is the accessible name; a separate aria-label
+      // ("Til: Istanbul (IST)") never matched the visible text for voice control.
+      aria-label={undefined}
     >
       <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
       <span className="min-w-0 flex-1">

@@ -647,7 +647,8 @@ export default function SearchResults() {
         </div>
       )}
 
-      <main id="main" tabIndex={-1} className="container-x gap-8 py-6 outline-none sm:py-8 lg:grid lg:grid-cols-[260px_1fr]">
+      {/* min-h keeps the footer below the fold while results stream in, so the skeleton→cards swap doesn't shift it (CLS). */}
+      <main id="main" tabIndex={-1} className="container-x min-h-[100dvh] gap-8 py-6 outline-none sm:py-8 lg:grid lg:grid-cols-[260px_1fr]">
         <aside className="hidden lg:block">
           <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-xl border border-border bg-card p-5">
             <h2 className="mb-5 flex items-center gap-2 text-base font-semibold">
@@ -678,7 +679,6 @@ export default function SearchResults() {
                   role="radio"
                   aria-checked={s.keys.includes(sort)}
                   onClick={() => setSort(s.key)}
-                  aria-label={t("sr.summary.aria", { label: s.label, price: formatMinor(totalOf(s.offer), s.offer.totalCurrency) })}
                   className={cn(
                     "relative -mb-px min-w-0 shrink-0 px-3 py-3 text-left transition-colors duration-fast first:pl-0 sm:px-4",
                     s.keys.includes(sort) ? "text-foreground" : "text-muted-foreground hover:text-foreground",

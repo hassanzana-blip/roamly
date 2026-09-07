@@ -157,7 +157,7 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
       popoverClassName="w-[23rem]"
       align="end"
       doneLabel={t("sw.done")}
-      trigger={<FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} joined={joined} aria-label={`${t("sw.pax.title")}: ${value}`} />}
+      trigger={<FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} joined={joined} />}
     >
       <div className="space-y-5 p-4">
         <PartyRow pax={pax} cabin={cabin} />
