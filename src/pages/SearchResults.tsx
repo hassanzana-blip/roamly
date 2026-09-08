@@ -670,7 +670,7 @@ export default function SearchResults() {
             </div>
           )}
 
-          {summaryCards.length > 0 && !search.isPending && (
+          {summaryCards.length > 1 && !search.isPending && (
             <div className="no-scrollbar -mx-5 mb-5 flex gap-1 overflow-x-auto border-b border-border px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0" role="radiogroup" aria-label={t("sr.sorting")}>
               {summaryCards.map((s) => (
                 <button
@@ -694,8 +694,6 @@ export default function SearchResults() {
               ))}
             </div>
           )}
-
-          {family && result && filtered.length > 0 && <p className="mb-4 text-sm text-muted-foreground">{t("sr.family.hint", { count: passengers.length })}</p>}
 
           {/* sort + mobile filter row: stays under the header while the list scrolls on phones */}
           <div className="sticky top-16 z-20 -mx-5 mb-5 flex items-center gap-2 bg-background/95 px-5 py-1 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:py-0 lg:backdrop-blur-none">
@@ -788,15 +786,13 @@ export default function SearchResults() {
 
           {result && filtered.length > 0 && (
             <div className="space-y-4" aria-live="polite">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-                <p>
-                  <span className="font-semibold text-foreground">{t("sr.results", { count: filtered.length })}</span>
-                  {activeFilters > 0 ? ` ${t("sr.results.of", { count: allOffers.length })}` : ""}
-                  {" · "}
-                  {t("sr.totalnote")}
-                </p>
-                {expiresInMin !== null && expiresInMin > 0 && <p className="text-xs">{t("sr.validfor", { count: expiresInMin })}</p>}
-              </div>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{t("sr.results", { count: filtered.length })}</span>
+                {activeFilters > 0 ? ` ${t("sr.results.of", { count: allOffers.length })}` : ""}
+                {" · "}
+                {family ? t("sr.family.hint", { count: passengers.length }) : t("sr.totalnote")}
+                {expiresInMin !== null && expiresInMin > 0 ? ` · ${t("sr.validfor", { count: expiresInMin })}` : ""}
+              </p>
               {filtered.slice(0, visible).map((offer, i) => (
                 <div key={offer.id} className={i < 8 ? "fade-up" : undefined} style={i < 8 ? { animationDelay: `${i * 45}ms` } : undefined}>
                 <OfferCard

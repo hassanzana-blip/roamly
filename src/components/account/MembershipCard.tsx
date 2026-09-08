@@ -50,7 +50,7 @@ export default function MembershipCard({
           <span className="rounded-md border border-white/20 px-2 py-0.5 font-mono-label text-[10px] uppercase tracking-[0.16em] text-white/85">{tierName}</span>
         </div>
         <div>
-          <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-primary">{programName}</p>
+          <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-lime-dark">{programName}</p>
           <p className={cn("font-display leading-tight", compact ? "mt-1 text-xl" : "mt-1.5 text-2xl sm:text-3xl")}>{name}</p>
           <div className="mt-3 flex items-end justify-between gap-3 text-[11px] text-white/70">
             <span className="font-mono tracking-[0.14em]">{memberNumber}</span>

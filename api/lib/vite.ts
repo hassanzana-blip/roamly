@@ -65,7 +65,7 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
   });
 
   app.get("/index.html", (c) => c.redirect("/", 301));
-  app.use("*", serveStatic({ root: path.relative(process.cwd(), distPath) || "." }));
+  app.use("*", serveStatic({ root: path.relative(process.cwd(), distPath) || ".", precompressed: true }));
 
   app.notFound((c) => {
     const accept = c.req.header("accept") ?? "";

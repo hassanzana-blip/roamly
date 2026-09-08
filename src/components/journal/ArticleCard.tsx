@@ -52,6 +52,7 @@ export function ArticleCover({
     <TypeCover
       variant={variant}
       size={size}
+      tag={a.tags[0]}
       title={mode === "title" ? a.title : mode === "category" ? category : undefined}
       label={mode === "category" ? "Journal" : undefined}
       className={className}

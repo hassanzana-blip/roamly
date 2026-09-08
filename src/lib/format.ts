@@ -2,7 +2,6 @@
 // leses fra <html lang> slik at i18n-laget kan bytte uten at denne fila
 // importerer noe fra det.
 
-import { DateTime } from "luxon";
 import type { FeeConfig } from "@contracts/types";
 
 // ─── Språk ──────────────────────────────────────────────────────────────────
@@ -205,6 +204,27 @@ export function crossesMidnight(a: string, b: string): number {
 }
 
 /**
+ * Kalenderdatoen «YYYY-MM-DD» slik den ser ut på flyplassen.
+ *
+ * Mellomlandinger måles i flyplassens egen tidssone: en overnatting er en
+ * overnatting der man faktisk står. Intl gjør dette selv, så vi trenger ikke
+ * et tidssonebibliotek i bunten på hver eneste side. En ukjent sone faller
+ * tilbake på UTC i stedet for å kaste.
+ */
+function localDay(ms: number, timeZone?: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timeZone || "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(ms);
+  } catch {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+/**
  * Mellomlanding: varighet og om den krysser lokal midnatt – beregnet i
  * flyplassens tidssone når den er kjent (Duffel `time_zone`).
  */
@@ -213,13 +233,13 @@ export function layoverInfo(
   nextDepartingAt: string,
   timeZone?: string,
 ): { minutes: number; overnight: boolean; long: boolean } {
-  const zone = timeZone || "utc";
-  const arr = DateTime.fromISO(arrivingAt, { zone, setZone: true });
-  const dep = DateTime.fromISO(nextDepartingAt, { zone, setZone: true });
-  const minutes = arr.isValid && dep.isValid
-    ? Math.max(0, Math.round(dep.diff(arr, "minutes").minutes))
-    : Math.max(0, Math.round((Date.parse(nextDepartingAt) - Date.parse(arrivingAt)) / 60_000));
-  const sameDay = arr.isValid && dep.isValid ? arr.hasSame(dep, "day") : arrivingAt.slice(0, 10) === nextDepartingAt.slice(0, 10);
+  const arr = Date.parse(arrivingAt);
+  const dep = Date.parse(nextDepartingAt);
+  const valid = Number.isFinite(arr) && Number.isFinite(dep);
+  const minutes = valid ? Math.max(0, Math.round((dep - arr) / 60_000)) : 0;
+  const a = valid ? localDay(arr, timeZone) : arrivingAt.slice(0, 10);
+  const b = valid ? localDay(dep, timeZone) : nextDepartingAt.slice(0, 10);
+  const sameDay = a === b;
   return { minutes, overnight: minutes > 6 * 60 && !sameDay, long: minutes > 4 * 60 };
 }
 

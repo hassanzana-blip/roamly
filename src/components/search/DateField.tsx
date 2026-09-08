@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import type { DateRange } from "react-day-picker";
-import { Calendar } from "@/components/ui/calendar";
+import Calendar from "./LazyCalendar";
 import FieldButton from "./FieldButton";
 import PickerSurface from "./PickerSurface";
 import { useT } from "@/lib/i18n";

@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -29,7 +28,6 @@ export function SkipLink({ className }: { className?: string }) {
 
 /** `bleed`: the page manages its own containers (full-width photo sections). */
 export default function AppShell({ children, className, bleed = false }: { children: ReactNode; className?: string; bleed?: boolean }) {
-  const reduce = useReducedMotion();
   return (
     <>
       <SkipLink />
@@ -38,16 +36,16 @@ export default function AppShell({ children, className, bleed = false }: { child
         <SiteHeader />
         <div className="h-16" aria-hidden="true" />
       </div>
-      <motion.main
+      {/* Sideinngangen er ren CSS. Den lå før i motion, og dro dermed
+          animasjonsbiblioteket inn i basischunken på hver eneste side – for et
+          fade som ikke kan avbrytes og ikke reagerer på noe. */}
+      <main
         id="main"
         tabIndex={-1}
-        initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reduce ? 0.12 : 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-        className={cn(bleed ? "outline-none" : "container-x outline-none", className)}
+        className={cn("page-enter", bleed ? "outline-none" : "container-x outline-none", className)}
       >
         {children}
-      </motion.main>
+      </main>
     </>
   );
 }

@@ -111,9 +111,16 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
       aria-label={t("sw.aria")}
       className={cn("w-full", variant === "compact" && "rounded-xl border border-border bg-card p-3 sm:p-4")}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={cn("flex flex-wrap items-center justify-between gap-3", variant === "hero" && "border-b border-border pb-3")}>
         {leading}
-        <Segmented aria-label={t("sw.triptype")} value={state.tripType} onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))} options={TRIP_TYPES} className="w-auto" size={variant === "hero" ? "md" : "sm"} />
+        <Segmented
+          aria-label={t("sw.triptype")}
+          value={state.tripType}
+          onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))}
+          options={TRIP_TYPES}
+          className={cn("w-auto", variant === "hero" && "bg-transparent p-0 gap-0")}
+          size={variant === "hero" ? "md" : "sm"}
+        />
       </div>
 
       {isMulti ? (
@@ -167,7 +174,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
           />
         </div>
       ) : (
-        <div className={cn("mt-3 overflow-hidden rounded-xl border border-input bg-card", variant === "hero" && "lg:[--field-h:4rem]")}>
+        <div className={cn("overflow-hidden bg-card", variant === "hero" ? "mt-1 lg:[--field-h:4rem]" : "mt-3 rounded-xl border border-input")}>
           {/* Tablet: two rows (from|to over dates|travellers); four cells in one row only fit from lg. */}
           <div className={cn("grid divide-y divide-border md:grid-cols-2 lg:divide-x lg:divide-y-0", variant === "hero" ? "lg:grid-cols-[1fr_1fr_1.7fr_1.1fr_auto]" : "lg:grid-cols-[1fr_1fr_1.35fr_1.05fr]")}>
             {/* Origin + destination with a swap control on the seam */}

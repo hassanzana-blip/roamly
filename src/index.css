@@ -338,6 +338,11 @@
   .text-primary {
     color: hsl(var(--skyline));
   }
+  /* …but on a dark surface the olive goes muddy. There the lime itself is the
+     readable one, so dark cards ask for it by name instead of text-primary. */
+  .text-lime-dark {
+    color: hsl(var(--primary));
+  }
   /* Lime surfaces always carry dark text, also for older components with text-white */
   .bg-primary.text-white,
   .bg-gold.text-white {
@@ -382,12 +387,16 @@
     padding-top: env(safe-area-inset-top);
   }
   /* Photo readability wash */
+  /* Skyggen over et foto skal samle seg der teksten står, ikke ligge som et
+     jevnt teppe: himmelen blir stående, og hvit tekst har alltid nok mørke
+     under seg – også over lyse motiver som strand, snø og hvite fasader. */
   .photo-wash {
     background: linear-gradient(
       180deg,
-      hsl(var(--night) / 0.05) 0%,
-      hsl(var(--night) / 0.35) 55%,
-      hsl(var(--night) / 0.72) 100%
+      hsl(var(--night) / 0.02) 0%,
+      hsl(var(--night) / 0.16) 42%,
+      hsl(var(--night) / 0.62) 74%,
+      hsl(var(--night) / 0.93) 100%
     );
   }
 }
@@ -614,6 +623,16 @@
 
 /* Desktop hover on image cards: gentle zoom, quiet lift */
 @media (hover: hover) and (pointer: fine) {
+  /* Sideinngangen: ett kort fade-og-løft, likt for alle sider. Ren CSS, så
+     den ikke drar et animasjonsbibliotek inn i basischunken. */
+  .page-enter {
+    animation: page-enter 220ms var(--ease-out) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter {
+      animation: page-enter-fade 120ms linear both;
+    }
+  }
   .img-zoom img {
     transition: transform 0.5s var(--ease-out);
   }
@@ -675,5 +694,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   .snap-row {
     scroll-behavior: auto;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes page-enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
