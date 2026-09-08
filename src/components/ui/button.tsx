@@ -21,9 +21,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground shadow-xs hover:bg-[hsl(var(--primary)/0.9)]",
+        /* Hover darkens the lime a step instead of fading it: a washed-out primary reads as disabled. */
+        primary: "bg-primary text-primary-foreground hover:bg-[hsl(74_93%_49%)]",
         /** Alias kept for generated shadcn files that still pass variant="default" */
-        default: "bg-primary text-primary-foreground shadow-xs hover:bg-[hsl(var(--primary)/0.9)]",
+        default: "bg-primary text-primary-foreground hover:bg-[hsl(74_93%_49%)]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-[hsl(var(--secondary)/0.7)]",
         outline: "border border-input bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60",
         ghost: "text-foreground hover:bg-muted",
@@ -38,7 +39,7 @@ const buttonVariants = cva(
         /** Alias kept for generated shadcn files that still pass size="default" */
         default: "h-11 px-4 text-sm",
         lg: "h-12 px-6 text-base",
-        xl: "h-14 px-7 text-base",
+        xl: "h-14 px-8 text-[17px] [&_svg:not([class*='size-'])]:size-5",
         icon: "size-11",
         "icon-sm": "size-9",
         "icon-lg": "size-12",

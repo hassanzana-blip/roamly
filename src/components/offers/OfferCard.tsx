@@ -1,14 +1,16 @@
 import { useId, useState } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { ArrowLeftRight, Briefcase, ChevronDown, Leaf, Luggage, Moon, Share2 } from "lucide-react";
-import type { Offer, OfferSlice, Segment } from "@contracts/types";
+import type { Offer, OfferPassenger, OfferSlice, Segment } from "@contracts/types";
 import { cabinLabel, crossesMidnight, fareConditionLabel, formatClock, formatDuration, formatMinor, layoverInfo, previewTotalMinor, toMinor } from "@/lib/format";
 import Icon from "@/components/app/Icon";
 import { Button } from "@/components/ui/button";
 import { useFeeConfig } from "@/lib/useFeeConfig";
 import { useT } from "@/lib/i18n";
 import { PREFERENCES, hasAirportChange, highlights, payingPassengers, type Preference } from "@/lib/offers";
-import type { OfferPassenger } from "@contracts/types";
+import { cn } from "@/lib/utils";
+import { sliceBaggage, sliceLabel } from "./offerUtils";
+import { AirportChangeDiagram, BaggageVisual, FamilyGlyph, RouteDiagram, AMENITY_ICONS } from "@/components/graphics";
 
 /** "2 voksne · 1 barn" from the offer's passenger list; infants only when present. */
 function useParty(passengers: Pick<OfferPassenger, "type">[]) {
@@ -20,9 +22,6 @@ function useParty(passengers: Pick<OfferPassenger, "type">[]) {
   if (n("infant_without_seat")) parts.push(t("pax.infants", { count: n("infant_without_seat") }));
   return parts.join(" · ");
 }
-import { cn } from "@/lib/utils";
-import { sliceBaggage, sliceLabel } from "./offerUtils";
-import { AirportChangeDiagram, BaggageVisual, RouteDiagram, AMENITY_ICONS } from "@/components/graphics";
 
 export function SliceViz({ slice }: { slice: OfferSlice }) {
   const t = useT();
@@ -30,7 +29,7 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
   return (
     <div className="flex items-center gap-3">
       <div className="w-14 shrink-0 text-right sm:w-16">
-        <p className="t-num text-lg font-semibold leading-none sm:text-xl">{formatClock(slice.departingAt)}</p>
+        <p className="t-num text-xl font-semibold leading-none sm:text-[22px]">{formatClock(slice.departingAt)}</p>
         <p className="t-code mt-1 text-muted-foreground">{slice.origin.iata}</p>
       </div>
       <div className="relative min-w-0 flex-1 px-1">
@@ -48,7 +47,7 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
           </span>
           <span className="size-1.5 rounded-full bg-primary" />
         </div>
-        <p className="mt-1.5 truncate text-center text-2xs text-muted-foreground">
+        <p className="mt-1.5 truncate text-center text-xs text-muted-foreground">
           {formatDuration(slice.durationMinutes)}
           {" · "}
           {slice.stops === 0 ? (
@@ -62,7 +61,7 @@ export function SliceViz({ slice }: { slice: OfferSlice }) {
         </p>
       </div>
       <div className="w-14 shrink-0 sm:w-16">
-        <p className="t-num text-lg font-semibold leading-none sm:text-xl">
+        <p className="t-num text-xl font-semibold leading-none sm:text-[22px]">
           {formatClock(slice.arrivingAt)}
           {dayShift > 0 && (
             <sup className="ml-0.5 text-[10px] font-semibold text-muted-foreground" aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
@@ -118,8 +117,8 @@ function SliceDetails({ slice, label, fallbackBaggage }: { slice: OfferSlice; la
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="eyebrow text-foreground">{label}</p>
-        <p className="flex items-center gap-3 text-2xs text-muted-foreground">
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        <p className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Briefcase className="size-3.5" aria-hidden="true" /> {t("oc.carryon", { count: bag.carryOnBags })}
           </span>
@@ -167,6 +166,12 @@ interface Props {
   recommended?: Preference;
 }
 
+/**
+ * One offer. Anatomy, top to bottom: why it ranks first (only the top card),
+ * who flies + the total, the route lines, the baggage strip, the details
+ * disclosure, and the actions. The price sits in the header so a list of
+ * cards can be scanned by price without reaching the bottom of each card.
+ */
 export default function OfferCard({ offer, onSelect, selected, comparing, compareDisabled, onToggleCompare, shareText, recommended }: Props) {
   const t = useT();
   const feeConfig = useFeeConfig();
@@ -176,7 +181,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   const supplierMinor = toMinor(offer.totalAmount, currency);
   const totalMinor = previewTotalMinor(offer.totalAmount, currency, feeConfig);
   const paying = payingPassengers(offer.passengers);
-    const hasOvernight = offer.slices.some((s) =>
+  const hasOvernight = offer.slices.some((s) =>
     s.segments.some((seg, i) => {
       const next = s.segments[i + 1];
       return next ? layoverInfo(seg.arrivingAt, next.departingAt, seg.destination.timeZone).overnight : false;
@@ -199,111 +204,113 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   const refundLabel = fareConditionLabel("refund", offer.conditions?.refundBeforeDeparture, offer.refundable);
   const changeLabel = fareConditionLabel("change", offer.conditions?.changeBeforeDeparture, offer.changeable);
   const allHighlights = highlights(offer, offer.passengers);
-  const tags = allHighlights.filter((k) => k !== "oc.direct" && k !== "oc.tag.bags");
+  const family = allHighlights.includes("oc.tag.family");
+  const flexible = allHighlights.find((k) => k === "oc.tag.refundable" || k === "oc.tag.changeable");
   const airportChange = hasAirportChange(offer);
   const recommendedLabel = recommended ? PREFERENCES.find((p) => p.key === recommended)?.label : undefined;
-  // Why this one ranks first: the two strongest facts, never a score.
-  const reason = recommended ? allHighlights.slice(0, 2).map((k) => t(k)).join(" · ") : "";
+  // Why this one ranks first: the strongest facts, never a score.
+  const reasons = recommended ? allHighlights.slice(0, 3).map((k) => t(k)) : [];
   const party = useParty(offer.passengers);
+  // The trip-wide baggage promise: the weakest slice decides, exactly like the details view.
+  const bags = offer.slices.map((s) => sliceBaggage(s, offer.baggage));
+  const carryOn = Math.min(...bags.map((b) => b.carryOnBags));
+  const checked = Math.min(...bags.map((b) => b.checkedBags));
+  const carryOnUnknown = bags.some((b) => b.carryOnUnknown);
+  const checkedUnknown = bags.some((b) => b.checkedUnknown);
+  const nextDay = offer.slices.some((s) => crossesMidnight(s.departingAt, s.arrivingAt) > 0);
 
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-xl border bg-card transition-[border-color,box-shadow] duration-base ease-out hover:border-foreground/30",
-        selected ? "border-primary" : recommended ? "border-primary/40 shadow-soft" : "border-border",
+        "overflow-hidden rounded-2xl border bg-card transition-[border-color,box-shadow] duration-base ease-out",
+        selected ? "border-primary" : recommended ? "border-foreground" : "border-border hover:border-foreground/40",
       )}
       aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5 sm:px-5">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="t-code grid size-7 shrink-0 place-items-center rounded-md bg-muted text-foreground" aria-hidden="true">
-            {offer.owner.iata}
-          </span>
-          <span className="text-sm font-medium">{offer.owner.name}</span>
-          {operatedBy.length > 0 && <span className="text-2xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
-          {recommendedLabel && (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-primary-soft px-2 py-0.5 text-2xs font-semibold text-accent-foreground">
-              {t(recommendedLabel)}
-              {reason && <span className="font-medium">· {reason}</span>}
-            </span>
-          )}
-          {airportChange && <span className="rounded-md bg-warning/10 px-2 py-0.5 text-2xs font-semibold text-warning">{t("oc.tag.airportchange")}</span>}
-          {offer.slices.some((s) => crossesMidnight(s.departingAt, s.arrivingAt) > 0) && (
-            <span className="flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-2xs font-medium text-foreground">
-              <Moon className="size-3" aria-hidden="true" /> {t("oc.arrivalnextday")}
-            </span>
-          )}
-          {hasOvernight && <span className="rounded-md bg-warning/10 px-2 py-0.5 text-2xs font-semibold text-warning">{t("oc.overnight")}</span>}
-          {!hasOvernight && hasLong && <span className="rounded-md bg-warning/10 px-2 py-0.5 text-2xs font-semibold text-warning">{t("oc.longlayover")}</span>}
+      {recommendedLabel && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-primary-soft px-4 py-2.5 text-sm text-accent-foreground sm:px-5">
+          <span className="font-semibold text-foreground">{t("oc.ourpick")} · {t(recommendedLabel)}</span>
+          {reasons.length > 0 && <span className="text-accent-foreground">{reasons.join(" · ")}</span>}
         </div>
-        <span className="hidden items-center gap-1 text-2xs text-muted-foreground md:flex" title={t("oc.co2")}>
-          <Leaf className="size-3.5" aria-hidden="true" /> {offer.emissionsKg} kg CO₂
-        </span>
+      )}
+
+      {/* Who flies + what it costs, on one line */}
+      <div className="flex items-start justify-between gap-4 px-4 pt-4 sm:px-5 sm:pt-5">
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="t-code grid size-8 shrink-0 place-items-center rounded-md bg-muted text-foreground" aria-hidden="true">
+              {offer.owner.iata}
+            </span>
+            <span className="truncate text-[15px] font-semibold">{offer.owner.name}</span>
+          </div>
+          {operatedBy.length > 0 && <p className="mt-1 text-xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</p>}
+          {(family || flexible || airportChange || nextDay || hasOvernight || hasLong) && (
+            <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={t("oc.details")}>
+              {family && (
+                <li className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                  <FamilyGlyph size={14} /> {t("oc.tag.family")}
+                </li>
+              )}
+              {flexible && <li className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">{t(flexible)}</li>}
+              {nextDay && (
+                <li className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                  <Moon className="size-3" aria-hidden="true" /> {t("oc.arrivalnextday")}
+                </li>
+              )}
+              {airportChange && <li className="rounded-md bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">{t("oc.tag.airportchange")}</li>}
+              {hasOvernight && <li className="rounded-md bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">{t("oc.overnight")}</li>}
+              {!hasOvernight && hasLong && <li className="rounded-md bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">{t("oc.longlayover")}</li>}
+            </ul>
+          )}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="t-price text-foreground">{formatMinor(totalMinor, currency)}</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">{offer.passengers.length > 1 ? t("oc.totalfor.party", { party }) : t("oc.forpax", { count: 1 })}</p>
+        </div>
       </div>
 
       <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
-        {offer.slices.map((slice, i) => {
-          const bag = sliceBaggage(slice, offer.baggage);
-          return (
-            <div key={slice.id}>
-              {offer.slices.length > 1 && <p className="eyebrow mb-2">{sliceLabel(offer.slices.length, i)}</p>}
-              <SliceViz slice={slice} />
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <BaggageVisual
-                    kind="cabin"
-                    count={bag.carryOnBags}
-                    unknown={bag.carryOnUnknown}
-                    size={18}
-                    label={bag.carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: bag.carryOnBags })}
-                  />
-                  <span aria-hidden="true">{bag.carryOnUnknown ? t("oc.carryon.unknown") : t("oc.carryon", { count: bag.carryOnBags })}</span>
-                </span>
-                <span className={cn("flex items-center gap-1.5", !bag.checkedUnknown && bag.checkedBags > 0 && "text-foreground")}>
-                  <BaggageVisual
-                    kind="checked"
-                    count={bag.checkedBags}
-                    unknown={bag.checkedUnknown}
-                    size={18}
-                    label={bag.checkedUnknown ? t("bg.checked.unknown") : bag.checkedBags === 0 ? t("bg.checked.none") : t("bg.checked", { count: bag.checkedBags })}
-                  />
-                  <span aria-hidden="true">
-                    {bag.checkedUnknown ? t("oc.checked.unknown") : bag.checkedBags === 0 ? t("oc.checked.none") : t("oc.checked", { count: bag.checkedBags })}
-                  </span>
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        {tags.length > 0 && (
-          <ul className="flex flex-wrap gap-1.5" aria-label={t("oc.details")}>
-            {tags.map((k) => (
-              <li key={k} className="rounded-md border border-border px-2 py-0.5 text-2xs font-medium text-foreground">
-                {t(k)}
-              </li>
-            ))}
-          </ul>
-        )}
+        {offer.slices.map((slice, i) => (
+          <div key={slice.id}>
+            {offer.slices.length > 1 && <p className="mb-2 text-xs font-semibold text-muted-foreground">{sliceLabel(offer.slices.length, i)}</p>}
+            <SliceViz slice={slice} />
+          </div>
+        ))}
+
+        {/* Baggage strip: the question every family asks first, answered per ticket. */}
+        <div className="grid gap-2 rounded-lg bg-muted/60 p-3 sm:grid-cols-2 sm:gap-4 sm:px-4">
+          <div className="flex items-center gap-2.5">
+            <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={22} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
+            <span className="text-sm" aria-hidden="true">{carryOnUnknown ? t("oc.carryon.unknown") : t("oc.carryon.included", { count: carryOn })}</span>
+          </div>
+          <div className={cn("flex items-center gap-2.5", !checkedUnknown && checked > 0 ? "text-foreground" : "text-muted-foreground")}>
+            <BaggageVisual kind="checked" count={checked} unknown={checkedUnknown} size={22} label={checkedUnknown ? t("bg.checked.unknown") : checked === 0 ? t("bg.checked.none") : t("bg.checked", { count: checked })} />
+            <span className="text-sm" aria-hidden="true">
+              {checkedUnknown ? t("oc.checked.unknown") : checked === 0 ? t("oc.checked.addable") : t("oc.checked.included", { count: checked })}
+            </span>
+          </div>
+        </div>
       </div>
 
       <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-        <Collapsible.Trigger asChild>
-          <button
-            type="button"
-            aria-controls={detailsId}
-            className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-border py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-          >
-            {expanded ? t("oc.hide") : t("oc.show")}
-            <ChevronDown className={cn("size-3.5 transition-transform duration-base", expanded && "rotate-180")} aria-hidden="true" />
-          </button>
-        </Collapsible.Trigger>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
+          <Collapsible.Trigger asChild>
+            <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 items-center gap-1.5 rounded-md text-sm font-medium text-foreground underline-offset-4 hover:underline">
+              {expanded ? t("oc.hide") : t("oc.show")}
+              <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
+            </button>
+          </Collapsible.Trigger>
+          <span className="hidden items-center gap-1 text-xs text-muted-foreground md:flex" title={t("oc.co2")}>
+            <Leaf className="size-3.5" aria-hidden="true" /> {offer.emissionsKg} kg CO₂
+          </span>
+        </div>
         <Collapsible.Content id={detailsId} className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
           <div className="space-y-6 border-t border-border bg-muted/40 px-4 py-5 sm:px-5">
             {offer.slices.map((slice, i) => (
               <SliceDetails key={slice.id} slice={slice} label={sliceLabel(offer.slices.length, i)} fallbackBaggage={offer.baggage} />
             ))}
             <div className="rounded-lg bg-card p-4 text-xs">
-              <p className="eyebrow mb-1">{t("oc.conditions")}</p>
+              <p className="mb-1.5 text-sm font-semibold text-foreground">{t("oc.conditions")}</p>
               <ul className="space-y-1.5 text-foreground">
                 <li className="flex items-center gap-2">
                   {(() => {
@@ -327,46 +334,34 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
         </Collapsible.Content>
       </Collapsible.Root>
 
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-t border-border px-4 py-4 sm:px-5">
-        <div className="min-w-0">
-          <p className="t-price text-foreground">{formatMinor(totalMinor, currency)}</p>
-          <p className="mt-2 text-sm text-foreground">
-            {offer.passengers.length > 1 ? t("oc.totalfor.party", { party }) : t("oc.forpax", { count: 1 })}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {paying > 1 && <>{t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying / 100) * 100, currency) })} · </>}
-            {t("oc.approx")}
-          </p>
-        </div>
-        <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-border px-4 py-3.5 sm:px-5">
+        <p className="min-w-0 text-xs text-muted-foreground">
+          {paying > 1 && <span className="t-num">{t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying / 100) * 100, currency) })} · </span>}
+          {t("oc.incl")}
+        </p>
+        <div className="flex items-center gap-2">
           {onToggleCompare && (
-            <button
+            <Button
               type="button"
+              variant={comparing ? "dark" : "outline"}
+              size="icon"
               onClick={() => onToggleCompare(offer)}
               disabled={!comparing && compareDisabled}
               aria-pressed={comparing}
-              className={cn(
-                "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors",
-                comparing ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40",
-              )}
+              aria-label={comparing ? t("oc.selected") : t("oc.compare")}
+              title={comparing ? t("oc.selected") : t("oc.compare")}
             >
-              <Icon icon={ArrowLeftRight} size={16} />
-              {comparing ? t("oc.selected") : t("oc.compare")}
-            </button>
+              <Icon icon={ArrowLeftRight} size={18} />
+            </Button>
           )}
           {shareText && (
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t("oc.share")}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <Icon icon={Share2} size={16} />
-              {t("oc.share.short")}
-            </a>
+            <Button asChild variant="outline" size="icon">
+              <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" aria-label={t("oc.share")} title={t("oc.share")}>
+                <Icon icon={Share2} size={18} />
+              </a>
+            </Button>
           )}
-          <Button size="lg" onClick={() => onSelect(offer)} className="ml-1 px-7">
+          <Button size="lg" onClick={() => onSelect(offer)} className="px-8">
             {t("oc.select")}
           </Button>
         </div>

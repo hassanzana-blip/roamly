@@ -1,19 +1,14 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
-import { ArrowRight, BedDouble, Building2, Car, Check, Clock3, Plane, TrendingDown } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router";
+import { ArrowRight, ArrowUpRight, Clock3, Receipt, TrendingDown } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import AppShell, { SectionHeader } from "@/components/app/AppShell";
 import { GreetingBar } from "@/components/app/TopBar";
-import PillTabs from "@/components/app/PillTabs";
 import SearchWidget from "@/components/search/SearchWidget";
 import DestinationSheet from "@/components/app/DestinationSheet";
-import DealCard from "@/components/app/DealCard";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BaggageVisual, FamilyGlyph } from "@/components/graphics";
 import { loadRecentSearches, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -21,7 +16,8 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { useCustomer } from "@/lib/useCustomer";
 import { useAccountHub } from "@/lib/useAccount";
 import { formatDateShort, formatMinor } from "@/lib/format";
-import { DEAL_ROUTES, POPULAR_DESTINATIONS, imageSrcSet, type DiscoverDestination } from "@/content/discover";
+import { useRoutePrice } from "@/lib/useRoutePrice";
+import { DEAL_ROUTES, POPULAR_DESTINATIONS, imageSrcSet, type DealRoute, type DiscoverDestination } from "@/content/discover";
 import { WHATSAPP_DISPLAY, WHATSAPP_LINK, WhatsAppIcon } from "@/components/WhatsAppFab";
 import { trpc } from "@/providers/trpc";
 import ArticleCard from "@/components/journal/ArticleCard";
@@ -30,38 +26,28 @@ import { featured } from "@/content/journal";
 import { cn } from "@/lib/utils";
 
 /**
- * Forsiden. Tre hensikter, én rytme: «jeg vet hvor» (søket), «hjelp meg å velge»
- * (anledninger, ruter, ReiseMatch) og «jeg har allerede noe» (ditt, øverst).
- * Foto + søk → ditt → anledninger → ruter med ekte fra-priser → ett mørkt
- * øyeblikk → prisovervåking → det vi gjør annerledes → journalen → ReiseMatch →
- * bonus → tillit → bunntekst. Ingen seksjon uten innhold; ingen tall som ikke er ekte.
+ * Forsiden. Én reise nedover siden, sju stopp, ingen fyllseksjoner:
+ *   1 foto + tittel + søket           «jeg vet hvor jeg skal»
+ *   2 ditt (kun innlogget)            «jeg har allerede noe her»
+ *   3 rutene hjem, med ekte priser    «dere kjenner reisen min»
+ *   4 derfor reiser familier med oss  fakta, ikke merker
+ *   5 fire dører etter anledning      «hjelp meg å velge»
+ *   6 journalen                       det vi faktisk vet
+ *   7 prisovervåking                  «jeg vet hvor, men ikke når»
+ * Hotell og leiebil er forespørsler, ikke søk, og bor derfor i én linje under søket.
  */
 
-const TABS: { id: string; label: I18nKey; icon: typeof Plane }[] = [
-  { id: "fly", label: "home.tab.flight", icon: Plane },
-  { id: "hotell", label: "home.tab.hotel", icon: Building2 },
-  { id: "leiebil", label: "home.tab.car", icon: Car },
-];
-
-/** Anledninger som bilder: hver dør har et ekte foto fra reisemålslisten. */
-const OCCASIONS: { id: string; to: string; label: I18nKey; sub: I18nKey; photo: string; span: string }[] = [
-  { id: "home", to: "/reisemal#hjem", label: "home.occ.home", sub: "home.occ.homesub", photo: "istanbul", span: "col-span-2 md:row-span-2" },
-  { id: "sun", to: "/utforsk?k=sol", label: "home.occ.sun", sub: "home.occ.sunsub", photo: "malaga", span: "" },
-  { id: "weekend", to: "/utforsk?k=helg", label: "home.occ.weekend", sub: "home.occ.weekendsub", photo: "london", span: "" },
-  { id: "family", to: "/utforsk?k=familie", label: "home.occ.family", sub: "home.occ.familysub", photo: "dubai", span: "" },
-  { id: "football", to: "/utforsk?k=fotball", label: "home.occ.football", sub: "home.occ.footballsub", photo: "barcelona", span: "" },
-  { id: "culture", to: "/utforsk?k=kultur", label: "home.occ.culture", sub: "home.occ.culturesub", photo: "rome", span: "col-span-2 md:col-span-1" },
+const OCCASIONS: { id: string; to: string; label: I18nKey; sub: I18nKey; photo: string }[] = [
+  { id: "sun", to: "/utforsk?k=sol", label: "home.occ.sun", sub: "home.occ.sunsub", photo: "malaga" },
+  { id: "family", to: "/utforsk?k=familie", label: "home.occ.family", sub: "home.occ.familysub", photo: "dubai" },
+  { id: "weekend", to: "/utforsk?k=helg", label: "home.occ.weekend", sub: "home.occ.weekendsub", photo: "london" },
+  { id: "culture", to: "/utforsk?k=kultur", label: "home.occ.culture", sub: "home.occ.culturesub", photo: "rome" },
 ];
 
 const ALT: Record<string, string> = Object.fromEntries(POPULAR_DESTINATIONS.map((d) => [d.id, d.imageAlt]));
 
 function inDays(n: number) {
   return new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
-}
-
-/** Seksjonene rendres statisk; bevegelsesbudsjettet brukes på ett sted: åpningen. */
-function Reveal({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={className}>{children}</section>;
 }
 
 /** Ordvis inntoning av tittelen: forsidens ene bevegelsesøyeblikk. */
@@ -80,49 +66,34 @@ function Words({ text, from = 0 }: { text: string; from?: number }) {
   );
 }
 
-/** Hotel / car form on the front page: hands over to the request form. */
-function HotelCarSearch({ kind, leading }: { kind: "hotell" | "leiebil"; leading: ReactNode }) {
-  const navigate = useNavigate();
-  const [place, setPlace] = useState("");
-  const [from, setFrom] = useState(inDays(21));
-  const [to, setTo] = useState(inDays(25));
-  const [count, setCount] = useState("2");
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = new URLSearchParams({ type: kind === "hotell" ? "hotell" : "bil", sted: place.trim(), fra: from, til: to, antall: count });
-    navigate(`/overnatting-bil?${q.toString()}`);
-  };
-
+/** Én rute hjem: by, land og en ekte «fra»-pris når prissøket har en. */
+function RouteRow({ deal, onOpen }: { deal: DealRoute; onOpen: (d: DiscoverDestination) => void }) {
+  const t = useT();
+  const d = deal.destination;
+  const price = useRoutePrice(deal.originIata, d.iata);
   return (
-    <form onSubmit={submit} className="w-full">
-      <div className="flex flex-wrap items-center justify-between gap-3">{leading}</div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr]">
-        <div className="space-y-1.5">
-          <Label htmlFor="hc-place">{kind === "hotell" ? "Hvor vil du bo?" : "Hvor hentes bilen?"}</Label>
-          <Input id="hc-place" value={place} onChange={(e) => setPlace(e.target.value)} placeholder={kind === "hotell" ? "F.eks. Barcelona" : "F.eks. Oslo lufthavn"} required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="hc-from">{kind === "hotell" ? "Innsjekk" : "Hentes"}</Label>
-          <Input id="hc-from" type="date" value={from} min={inDays(0)} onChange={(e) => { setFrom(e.target.value); if (to < e.target.value) setTo(e.target.value); }} required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="hc-to">{kind === "hotell" ? "Utsjekk" : "Leveres"}</Label>
-          <Input id="hc-to" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="hc-count">{kind === "hotell" ? "Gjester" : "Sjåfører"}</Label>
-          <Select value={count} onValueChange={setCount}>
-            <SelectTrigger id="hc-count"><SelectValue /></SelectTrigger>
-            <SelectContent>{[1, 2, 3, 4, 5, 6].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-      </div>
-      <Button type="submit" size="xl" className="mt-4 w-full md:w-auto md:min-w-64">
-        <Icon icon={kind === "hotell" ? BedDouble : Car} size={20} />
-        {kind === "hotell" ? "Finn hotell" : "Finn leiebil"}
-      </Button>
-    </form>
+    <li>
+      <button type="button" onClick={() => onOpen(d)} className="group flex w-full min-w-0 items-center gap-3 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:gap-4 sm:py-4">
+        <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted sm:size-16">
+          {d.image && <img src={d.image} srcSet={imageSrcSet(d.image)} sizes="64px" alt="" loading="lazy" decoding="async" width={64} height={64} className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[17px] font-semibold leading-tight">{deal.originCity} → {d.city}</span>
+          <span className="mt-0.5 block truncate text-sm text-muted-foreground">{d.country}{d.tagline ? ` · ${d.tagline}` : ""}</span>
+        </span>
+        <span className="min-w-0 shrink text-right">
+          {price ? (
+            <span className="t-num block whitespace-nowrap text-[15px] font-semibold">{price}</span>
+          ) : (
+            <span className="block whitespace-nowrap text-sm text-muted-foreground">{t("home.routes.check")}</span>
+          )}
+          <span className="t-caption hidden sm:block">{t("home.routes.perperson")}</span>
+        </span>
+        <span className="hidden size-9 shrink-0 place-items-center rounded-full border border-border text-foreground transition-colors duration-fast ease-out group-hover:border-foreground group-hover:bg-foreground group-hover:text-background sm:grid">
+          <Icon icon={ArrowUpRight} size={16} />
+        </span>
+      </button>
+    </li>
   );
 }
 
@@ -136,12 +107,12 @@ function PersonalStrip() {
   const res = watch?.lastResult as { priceMinor?: number; currency?: string; live?: boolean } | null | undefined;
   if (!h.nextTrip && !watch && h.routes.length === 0) return null;
   return (
-    <Reveal className="container-x mt-10">
+    <section className="container-x mt-12">
       <h2 className="t-label mb-3">{t("home.personal.foryou")}</h2>
       <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
         {h.nextTrip && (
           <Link to={`/bekreftelse/${encodeURIComponent(h.nextTrip.orderId)}`} className="press flex min-h-[96px] w-[240px] shrink-0 flex-col justify-between rounded-xl bg-primary-soft p-4 transition-colors hover:bg-primary/30">
-            <span className="flex items-center justify-between"><span className="t-label">{t("home.personal.nexttrip")}</span><Icon icon={Plane} size={16} className="text-accent-foreground" /></span>
+            <span className="t-label">{t("home.personal.nexttrip")}</span>
             <span><span className="block truncate text-[16px] font-semibold">{h.nextTrip.originCity || h.nextTrip.originIata} → {h.nextTrip.destinationCity || h.nextTrip.destinationIata}</span><span className="block text-[12px] text-muted-foreground">{formatDateShort(h.nextTrip.departingAt)}</span></span>
           </Link>
         )}
@@ -158,15 +129,25 @@ function PersonalStrip() {
           </Link>
         ))}
       </div>
-    </Reveal>
+    </section>
   );
 }
 
 const SeeAll = ({ to, label }: { to: string; label: string }) => (
-  <Link to={to} className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary">
+  <Link to={to} className="inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-foreground underline-offset-4 hover:underline">
     {label} <Icon icon={ArrowRight} size={16} />
   </Link>
 );
+
+function Why({ glyph, title, body }: { glyph: ReactNode; title: string; body: string }) {
+  return (
+    <div>
+      <span className="grid size-12 place-items-center rounded-full bg-muted text-foreground">{glyph}</span>
+      <h3 className="t-h3 mt-5">{title}</h3>
+      <p className="t-body mt-2 max-w-sm text-muted-foreground">{body}</p>
+    </div>
+  );
+}
 
 export default function Home() {
   usePageMeta(PAGE_META.home);
@@ -175,20 +156,17 @@ export default function Home() {
   const { customer } = useCustomer();
   const rewards = trpc.account.rewardsPublic.useQuery(undefined, { staleTime: 600_000, retry: false });
   const status = trpc.flights.status.useQuery(undefined, { staleTime: 300_000, retry: false });
-  const [tab, setTab] = useState("fly");
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
   const [recent] = useState<RecentSearch[]>(() => loadRecentSearches());
-  const searchRef = useRef<HTMLDivElement>(null);
 
   const rw = rewards.data;
-  const tabs = <PillTabs tabs={TABS.map((x) => ({ ...x, label: t(x.label) }))} active={tab} onChange={setTab} />;
-  const title1 = t("home.title1");
-  const title3 = t("home.title3");
+  const h1a = t("home.h1a");
+  const h1b = t("home.h1b");
 
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell bleed>
-        {/* 1 · Åpningen: ett ekte foto, tittelen, og søket som ligger oppå kanten. */}
+        {/* 1 · Åpningen: ett ekte foto, én setning, søket over fotokanten. */}
         <section className="relative isolate overflow-hidden bg-night text-white">
           <img
             src="/photos/hero-wing-1280.jpg"
@@ -201,192 +179,147 @@ export default function Home() {
             decoding="async"
             className={cn("absolute inset-0 h-full w-full object-cover object-[62%_45%]", !reduce && "ken-burns")}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-night/55 via-night/25 to-night/70" aria-hidden="true" />
-          <div className="absolute inset-0 bg-gradient-to-r from-night/45 via-transparent to-transparent" aria-hidden="true" />
-          <div className="container-x relative pb-24 sm:pb-32 lg:pb-40 lg:pt-24">
+          <div className="absolute inset-0 bg-gradient-to-b from-night/60 via-night/20 to-night/75" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-r from-night/50 via-night/10 to-transparent" aria-hidden="true" />
+          <div className="container-x relative flex min-h-[560px] flex-col sm:min-h-[600px] lg:min-h-[680px] lg:pt-16">
             <div className="lg:hidden"><GreetingBar tone="dark" /></div>
-            <h1 className="t-display max-w-3xl">
-              <Words text={title1} /> <span className="wr"><span className="wr-i hl" style={{ ["--wr-delay" as string]: `${title1.split(" ").length * 70}ms` }}>{t("home.title2")}</span></span> <Words text={title3} from={title1.split(" ").length + 1} />
-            </h1>
-            <p className="fade-up fade-up-3 t-lead mt-4 max-w-xl text-white/85">{t("home.sub")}</p>
+            <div className="mt-auto pb-28 sm:pb-36 lg:pb-44">
+              <h1 className="t-display max-w-4xl">
+                <Words text={h1a} />
+                <span className="t-em block text-white/95"><Words text={h1b} from={h1a.split(" ").length} /></span>
+              </h1>
+              <p className="fade-up fade-up-4 t-lead mt-5 max-w-xl text-white/85">{t("home.sub2")}</p>
+            </div>
           </div>
         </section>
 
-        {/* Søkekortet: løftet, ikke rammet. Ligger over fotokanten. */}
-        <div className="container-x relative z-10 -mt-16 sm:-mt-24 lg:-mt-28">
+        {/* Søkekortet: løftet, ikke rammet. Ligger over fotokanten. Bare fly: hotell og bil er forespørsler. */}
+        <div className="container-x relative z-10 -mt-20 sm:-mt-28 lg:-mt-32">
           <motion.div
-            ref={searchRef}
             initial={reduce ? false : { opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
-            className="surface-lift scroll-mt-24 p-4 sm:p-5 lg:p-6"
+            className="surface-lift scroll-mt-24 p-4 sm:p-6 lg:p-7"
           >
-            {tab === "fly" && <SearchWidget leading={tabs} />}
-            {tab === "hotell" && <HotelCarSearch kind="hotell" leading={tabs} />}
-            {tab === "leiebil" && <HotelCarSearch kind="leiebil" leading={tabs} />}
+            <SearchWidget />
           </motion.div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             {/* Én tillitslinje, kun fakta: betalingspåstanden vises bare når Stripe faktisk er satt opp. */}
             <p className="t-caption">{status.data?.paymentsConfigured ? t("home.trust") : t("home.trust.nopay")}</p>
-            {recent.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Icon icon={Clock3} size={16} /> {t("home.recent")}:</span>
-                {recent.slice(0, 3).map((s) => (
-                  <Link key={`${s.from}-${s.to}-${s.depart}`} to={recentSearchHref(s)} className="press inline-flex min-h-9 items-center rounded-lg border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-foreground/30">{s.fromLabel} → {s.toLabel}</Link>
-                ))}
-              </div>
-            )}
+            <p className="t-caption">
+              {t("home.hotelcar")}{" "}
+              <Link to="/hotell-bil" className="font-semibold text-foreground underline underline-offset-4">{t("home.hotelcar.cta")}</Link>
+            </p>
           </div>
+          {recent.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Icon icon={Clock3} size={16} /> {t("home.recent")}:</span>
+              {recent.slice(0, 3).map((s) => (
+                <Link key={`${s.from}-${s.to}-${s.depart}`} to={recentSearchHref(s)} className="press inline-flex min-h-9 items-center rounded-lg border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-foreground/30">{s.fromLabel} → {s.toLabel}</Link>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 2 · Ditt: kun innlogget, kun med data. */}
         {customer && <PersonalStrip />}
         {customer && <ForYou />}
 
-        {/* 3 · Anledninger: seks dører med ekte foto. Den du peker på trer fram, resten trer tilbake. */}
-        <Reveal className="container-x mt-14 sm:mt-16">
-          <h2 className="t-h2 mb-4">{t("home.occasions")}</h2>
-          <ul className="group/occ grid auto-rows-[150px] grid-cols-2 gap-2.5 sm:auto-rows-[170px] md:auto-rows-[190px] md:grid-cols-3 md:gap-3">
+        {/* 3 · Rutene hjem: fotoet, setningen og seks ruter med ekte fra-priser. Forsidens tyngdepunkt. */}
+        <section className="container-x mt-20 sm:mt-28">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-16">
+            <Link to="/reisemal#hjem" className="group relative block aspect-[4/3] overflow-hidden rounded-2xl bg-night lg:aspect-[4/5]">
+              <img src="/destinations/istanbul.jpg" srcSet="/destinations/istanbul-640.jpg 640w, /destinations/istanbul.jpg 1024w" sizes="(max-width: 1024px) 100vw, 45vw" alt="Galatatårnet over Istanbuls tak" loading="lazy" decoding="async" width={1024} height={640} className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.03]" />
+              <span className="photo-wash absolute inset-0" aria-hidden="true" />
+              <span className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5 text-white sm:p-6">
+                <span>
+                  <span className="block text-[13px] text-white/75">{t("home.routes.caption")}</span>
+                  <span className="block text-[20px] font-semibold leading-tight">Istanbul</span>
+                </span>
+                <span className="grid size-10 place-items-center rounded-full bg-white/15 backdrop-blur-sm transition-colors group-hover:bg-white/25"><Icon icon={ArrowUpRight} size={18} /></span>
+              </span>
+            </Link>
+            <div className="min-w-0">
+              <h2 className="t-h1">{t("home.hero.title")}</h2>
+              <p className="t-lead mt-4 max-w-xl text-muted-foreground">{t("home.hero.body")}</p>
+              <ul className="mt-8 divide-y divide-border border-y border-border">
+                {DEAL_ROUTES.map((deal) => <RouteRow key={deal.id} deal={deal} onOpen={setQuickView} />)}
+              </ul>
+              <p className="t-caption mt-3 max-w-xl">{t("home.routes.note")}</p>
+              <Button asChild variant="dark" size="lg" className="mt-6">
+                <Link to="/reisemal#hjem">{t("home.routes.cta")} <Icon icon={ArrowRight} size={18} /></Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* 4 · Derfor: tre fakta, ingen kort, ingen merker. */}
+        <section className="container-x mt-20 sm:mt-28">
+          <h2 className="t-h1 max-w-2xl">{t("home.why.title")}</h2>
+          <div className="mt-8 grid gap-8 border-t border-border pt-8 md:grid-cols-3 md:gap-10 md:pt-10">
+            <Why glyph={<Icon icon={Receipt} size={22} />} title={t("home.why.1.title")} body={t("home.why.1.body")} />
+            <Why glyph={<BaggageVisual kind="checked" count={2} size={26} label={t("home.why.2.title")} />} title={t("home.why.2.title")} body={t("home.why.2.body")} />
+            <Why glyph={<FamilyGlyph size={26} />} title={t("home.why.3.title")} body={t("home.why.3.body")} />
+          </div>
+          <div className="mt-8 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            {rw ? (
+              <p className="t-body max-w-2xl text-muted-foreground">{t("home.rewards.body", { pct: Math.round(rw.earnFraction * 1000) / 10, kr: rw.referrerKr })}</p>
+            ) : (
+              <p className="t-body max-w-2xl text-muted-foreground">{t("home.help.body")}</p>
+            )}
+            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="press inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold transition-colors hover:border-foreground/30">
+              <WhatsAppIcon className="h-4 w-4" /> WhatsApp {WHATSAPP_DISPLAY}
+            </a>
+          </div>
+        </section>
+
+        {/* 5 · Fire dører etter anledning. Den du peker på trer fram, resten trer tilbake. */}
+        <section className="container-x mt-20 sm:mt-28">
+          <SectionHeader title={t("home.occasions")} action={<SeeAll to="/utforsk" label={t("home.seeall")} />} />
+          <ul className="group/occ grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             {OCCASIONS.map((o) => (
-              <li key={o.id} className={cn("min-w-0", o.span)}>
+              <li key={o.id} className="min-w-0">
                 <Link
                   to={o.to}
-                  className="press group/door relative block h-full w-full overflow-hidden rounded-xl bg-night text-white outline-none transition-opacity duration-slow ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:group-hover/occ:opacity-70 md:hover:!opacity-100 md:focus-visible:!opacity-100"
+                  className="press group/door relative block aspect-[4/5] w-full overflow-hidden rounded-2xl bg-night text-white outline-none transition-opacity duration-slow ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:aspect-[3/4] md:group-hover/occ:opacity-70 md:hover:!opacity-100 md:focus-visible:!opacity-100"
                 >
-                  <img src={`/destinations/${o.photo}.jpg`} srcSet={imageSrcSet(`/destinations/${o.photo}.jpg`)} sizes="(max-width: 768px) 50vw, 33vw" alt={ALT[o.photo] ?? ""} loading="lazy" decoding="async" width={1024} height={640} className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover/door:scale-[1.04]" />
+                  <img src={`/destinations/${o.photo}.jpg`} srcSet={imageSrcSet(`/destinations/${o.photo}.jpg`)} sizes="(max-width: 768px) 50vw, 25vw" alt={ALT[o.photo] ?? ""} loading="lazy" decoding="async" width={1024} height={640} className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover/door:scale-[1.04]" />
                   <span className="photo-wash absolute inset-0" aria-hidden="true" />
                   <span className="absolute inset-x-0 bottom-0 p-4 md:p-5">
-                    <span className="block text-[17px] font-semibold leading-tight md:text-[19px]">{t(o.label)}</span>
-                    <span className="mt-1 block text-[12px] text-white/80 md:text-[13px]">{t(o.sub)}</span>
+                    <span className="block text-[18px] font-semibold leading-tight md:text-[20px]">{t(o.label)}</span>
+                    <span className="mt-1 block text-[13px] text-white/80">{t(o.sub)}</span>
                   </span>
                 </Link>
               </li>
             ))}
           </ul>
-        </Reveal>
+        </section>
 
-        {/* 4 · Ruter fra Norge: den ene fotorekken, fordi den bærer ekte «fra»-priser. */}
-        <Reveal className="container-x mt-14 sm:mt-16">
-          <SectionHeader title={t("home.deals")} action={<SeeAll to="/utforsk" label={t("home.seeall")} />} />
-          <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8">
-            {DEAL_ROUTES.map((deal) => <DealCard key={deal.id} deal={deal} onOpen={setQuickView} />)}
+        {/* 6 · Journalen: tre artikler, håndplukket. */}
+        <section className="container-x mt-20 sm:mt-28">
+          <SectionHeader title={t("home.journal")} action={<SeeAll to="/journal" label={t("home.journal.all")} />} />
+          <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0">
+            {featured().slice(0, 3).map((a) => <ArticleCard key={a.slug} a={a} className="w-[280px] shrink-0 md:w-auto" />)}
           </div>
-          <p className="t-caption mt-3">«Fra»-priser hentes fra vårt eget prissøk og er veiledende. Endelig pris, bagasje og gebyrer ser du i søkeresultatet.</p>
-        </Reveal>
+        </section>
 
-        {/* 5 · Ett mørkt øyeblikk: identiteten. Ekte foto, ingen påstander. */}
-        <Reveal className="mt-16 sm:mt-20">
-          <Link to="/reisemal#hjem" className="group relative block min-h-[440px] overflow-hidden bg-night text-white sm:min-h-[540px]">
-            <img src="/destinations/istanbul.jpg" srcSet="/destinations/istanbul-640.jpg 640w, /destinations/istanbul.jpg 1024w" sizes="100vw" alt="Galatatårnet over Istanbuls tak" loading="lazy" decoding="async" width={1024} height={640} className="absolute inset-0 h-full w-full object-cover opacity-75 transition-transform duration-[1200ms] ease-out group-hover:scale-[1.03]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-night via-night/45 to-night/10" aria-hidden="true" />
-            <div className="container-x relative flex h-full min-h-[440px] flex-col justify-end pb-12 pt-24 sm:min-h-[540px] sm:pb-16">
-              <h2 className="t-display max-w-2xl">{t("home.hero.title")}</h2>
-              <p className="t-lead mt-4 max-w-xl text-white/85">{t("home.hero.body")}</p>
-              <span className="mt-7 inline-flex min-h-12 w-fit items-center gap-2 rounded-lg bg-primary px-5 text-[15px] font-semibold text-primary-foreground transition-transform duration-base ease-out group-hover:translate-x-0.5">{t("home.hero.cta")} <Icon icon={ArrowRight} size={16} /></span>
+        {/* 7 · Prisovervåking: lys flate, mørk handling. */}
+        <section className="container-x mt-20 sm:mt-28">
+          <div className="surface grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-10">
+            <div>
+              <h2 className="t-h2">{t("home.watch.title")}</h2>
+              <p className="t-body mt-3 max-w-lg text-muted-foreground">{t("home.watch.body")}</p>
             </div>
-          </Link>
-        </Reveal>
-
-        <div className="container-x">
-          {/* 6 · Prisovervåking: lys flate, mørk handling. Ett mørkt øyeblikk holder. */}
-          <Reveal className="mt-16 sm:mt-20">
-            <div className="surface grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-9">
-              <div>
-                <h2 className="t-h2">{t("home.watch.title")}</h2>
-                <p className="t-body mt-3 max-w-lg text-muted-foreground">{t("home.watch.body")}</p>
-              </div>
-              <Button asChild variant="dark" size="lg">
-                <Link to={customer ? "/profil/prisovervaking" : "/logg-inn?next=/profil/prisovervaking"}>
-                  <Icon icon={TrendingDown} size={20} /> {t("home.watch.cta")}
-                </Link>
-              </Button>
-            </div>
-          </Reveal>
-
-          {/* 7 · Det vi gjør annerledes: familie og bagasje, én flate, to spor. */}
-          <Reveal className="mt-14 sm:mt-16">
-            <h2 className="t-h2 mb-5">{t("home.different")}</h2>
-            <div className="grid gap-8 border-t border-border pt-6 md:grid-cols-2 md:gap-10">
-              <Link to="/reisemal#hjem" className="group flex gap-4">
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-muted text-foreground"><FamilyGlyph size={26} /></span>
-                <span className="min-w-0">
-                  <span className="t-h3 block">{t("home.family.title")}</span>
-                  <span className="t-body mt-1.5 block text-muted-foreground">{t("home.family.body")}</span>
-                  <span className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold transition-transform duration-base ease-out group-hover:translate-x-0.5">{t("home.family.cta")} <Icon icon={ArrowRight} size={16} /></span>
-                </span>
+            <Button asChild variant="dark" size="lg">
+              <Link to={customer ? "/profil/prisovervaking" : "/logg-inn?next=/profil/prisovervaking"}>
+                <Icon icon={TrendingDown} size={20} /> {t("home.watch.cta")}
               </Link>
-              <Link to="/bagasje" className="group flex gap-4">
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-muted text-foreground"><BaggageVisual kind="checked" count={2} size={26} label={t("home.bags.title")} /></span>
-                <span className="min-w-0">
-                  <span className="t-h3 block">{t("home.bags.title")}</span>
-                  <span className="t-body mt-1.5 block text-muted-foreground">{t("home.bags.body")}</span>
-                  <span className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold transition-transform duration-base ease-out group-hover:translate-x-0.5">{t("home.bags.cta")} <Icon icon={ArrowRight} size={16} /></span>
-                </span>
-              </Link>
-            </div>
-          </Reveal>
-
-          {/* 8 · Journalen: tre artikler, håndplukket. */}
-          <Reveal className="mt-14 sm:mt-16">
-            <SectionHeader title={t("home.journal")} action={<SeeAll to="/journal" label={t("home.journal.all")} />} />
-            <p className="t-caption -mt-2 mb-4">{t("home.journal.sub")}</p>
-            <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:px-0">
-              {featured().slice(0, 3).map((a) => <ArticleCard key={a.slug} a={a} className="w-[280px] shrink-0 md:w-auto" />)}
-            </div>
-          </Reveal>
-
-          {/* 9 · ReiseMatch: invitasjon, ikke i veien. */}
-          <Reveal className="mt-14 sm:mt-16">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-              <div className="min-w-0">
-                <h2 className="t-h2">{t("home.quiz.title")}</h2>
-                <p className="t-body mt-1 max-w-md text-muted-foreground">{t("home.quiz.body")}</p>
-              </div>
-              <Button asChild variant="dark" size="md">
-                <Link to="/quiz">{t("home.quiz.cta")} <Icon icon={ArrowRight} size={16} /></Link>
-              </Button>
-            </div>
-          </Reveal>
-
-          {/* 10 · Bonus: bare med regler fra admin; tallene er de som gjelder. */}
-          {rw && (
-            <Reveal className="mt-14 sm:mt-16">
-              <div className="grid gap-5 rounded-2xl bg-primary-soft p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-9">
-                <div>
-                  <h2 className="t-h2 text-foreground">{t("home.rewards.title", { program: rw.programName })}</h2>
-                  <p className="t-body mt-3 max-w-xl text-accent-foreground/90">{t("home.rewards.body", { pct: Math.round(rw.earnFraction * 1000) / 10, kr: rw.referrerKr })}</p>
-                </div>
-                <Button asChild variant="dark" size="lg">
-                  <Link to={customer ? "/profil/bonus" : "/logg-inn?modus=registrer"}>{customer ? t("home.rewards.ctain") : t("home.rewards.cta")}</Link>
-                </Button>
-              </div>
-            </Reveal>
-          )}
-
-          {/* 11 · Tillit + mennesker: fakta, ikke merker. Ingen kort, én linje. */}
-          <Reveal className="mt-14 sm:mt-16">
-            <div className="grid gap-8 border-t border-border pt-8 md:grid-cols-2 md:gap-12">
-              <div>
-                <h2 className="t-h2">{t("home.trust.title")}</h2>
-                <ul className="mt-4 space-y-3">
-                  {(["home.trust.1", "home.trust.2", "home.trust.3", "home.trust.4"] as I18nKey[]).map((k) => (
-                    <li key={k} className="t-body flex items-start gap-2.5"><Icon icon={Check} size={16} className="mt-1 shrink-0 text-success" /> {t(k)}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h2 className="t-h2">{t("home.help.title")}</h2>
-                <p className="t-body mt-2 max-w-lg text-muted-foreground">{t("home.help.body")}</p>
-                <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="press mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold transition-colors hover:border-foreground/30">
-                  <WhatsAppIcon className="h-4 w-4" /> WhatsApp {WHATSAPP_DISPLAY}
-                </a>
-              </div>
-            </div>
-          </Reveal>
-        </div>
+            </Button>
+          </div>
+        </section>
       </AppShell>
 
-      <div className="mt-16 sm:mt-20"><SiteFooter /></div>
+      <div className="mt-20 sm:mt-28"><SiteFooter /></div>
       <DestinationSheet destination={quickView} onClose={() => setQuickView(null)} />
     </div>
   );

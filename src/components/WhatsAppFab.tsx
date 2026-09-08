@@ -25,9 +25,9 @@ const HIDDEN_PREFIXES = ["/bestill", "/tilbud"];
 export default function WhatsAppFab() {
   const { pathname } = useLocation();
   if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
-  // On the phone front page the bubble would sit on top of the search button;
-  // the page already offers WhatsApp in its own section and in the footer.
-  const desktopOnly = pathname === "/";
+  // Phones and tablets already carry the floating bottom navigation; a second
+  // floating control in the same corner is noise. WhatsApp lives in the header
+  // sheet, on Kundeservice, on Profil and in the footer there. Desktop keeps the bubble.
   return (
     <aside aria-label="WhatsApp">
     <a
@@ -35,7 +35,7 @@ export default function WhatsAppFab() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Chat med oss på WhatsApp – ${WHATSAPP_DISPLAY}`}
-      className={`whatsapp-fab group fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-50 items-center gap-0 rounded-full bg-night p-3 text-white shadow-lift transition-transform duration-fast ease-out hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 md:right-6 lg:bottom-6 ${desktopOnly ? "hidden lg:flex" : "flex"}`}
+      className={`whatsapp-fab group fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-50 items-center gap-0 rounded-full bg-night p-3 text-white shadow-lift transition-transform duration-fast ease-out hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 md:right-6 lg:bottom-6 hidden lg:flex`}
     >
       <WhatsAppIcon className="h-5 w-5" />
       <span className="sr-only">WhatsApp</span>
