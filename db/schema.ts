@@ -117,6 +117,8 @@ export const staffSessions = mysqlTable(
     lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
     expiresAt: timestamp("expires_at").notNull(),
     revokedAt: timestamp("revoked_at"),
+    /** Satt når skjermen har stått urørt for lenge. Sesjonen lever, men gjør ingenting. */
+    lockedAt: timestamp("locked_at"),
   },
   (t) => [
     uniqueIndex("uq_session_token").on(t.tokenHash),

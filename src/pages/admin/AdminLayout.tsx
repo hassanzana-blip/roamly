@@ -10,7 +10,13 @@ import { Avatar } from "@/components/admin/Avatar";
 import { CommandPalette, type Command } from "@/components/admin/CommandPalette";
 import { ShortcutSheet } from "@/components/admin/ShortcutSheet";
 import { MfaGate } from "@/components/admin/MfaGate";
+import { LockGate } from "@/components/admin/LockGate";
+import { useIdleLock } from "@/hooks/useIdleLock";
+import { AdminPrefsProvider } from "@/providers/adminPrefs";
 import { ROLE_LABEL, visibleItems, visibleSections } from "./nav";
+
+/** Litt kortere enn serverens grense, så låsen kommer fra oss og ikke som en avvist forespørsel. */
+const IDLE_LOCK_MS = 14 * 60_000;
 
 // ─── Adminskallet ───────────────────────────────────────────────────────────
 //
@@ -121,7 +127,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
-export function AdminLayout() {
+function AdminShell() {
   usePageMeta(PAGE_META.admin, { layout: true });
   const navigate = useNavigate();
   const location = useLocation();
@@ -191,6 +197,17 @@ export function AdminLayout() {
     return () => document.removeEventListener("keydown", onKey);
   }, [onKey]);
 
+  /**
+   * Skjermlåsen, sett fra klienten.
+   *
+   * Serveren låser uansett – dette er bare for at det skal skje med én gang
+   * tiden er ute, og ikke først neste gang noen rører maskinen.
+   */
+  const lock = trpc.staffAuth.lockScreen.useMutation({ onSettled: () => void utils.staffAuth.me.invalidate() });
+  const locked = me.data?.authenticated === true && me.data.locked;
+  const signedIn = me.data?.authenticated === true;
+  useIdleLock(IDLE_LOCK_MS, () => lock.mutate(), signedIn && !locked);
+
   if (me.isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background" role="status" aria-live="polite">
@@ -205,6 +222,12 @@ export function AdminLayout() {
   // så skallet vises ikke før koden er inne.
   if (me.data.mfaEnabled && !me.data.mfaVerified) {
     return <MfaGate name={me.data.name} onVerified={() => void utils.staffAuth.me.invalidate()} />;
+  }
+  // Låst skjerm tar ned skallet – ellers ville kundedataene du hadde framme
+  // ligget synlige bak låsen. Adressen står igjen, så du kommer tilbake til
+  // siden du sto på.
+  if (me.data.locked) {
+    return <LockGate name={me.data.name} onUnlocked={() => void utils.staffAuth.me.invalidate()} />;
   }
 
   const user = me.data;
@@ -323,5 +346,20 @@ export function AdminLayout() {
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} perms={perms} extra={extraCommands} />
       <ShortcutSheet open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
+  );
+}
+
+/**
+ * Utseendevalgene må ligge utenfor skallet, ikke inni.
+ *
+ * Låseskjermen og totrinnsporten rendres i stedet for skallet, og de skal
+ * være mørke eller lyse på samme måte som resten. Ligger provideren inni,
+ * mister de temaet i det øyeblikket de trengs.
+ */
+export function AdminLayout() {
+  return (
+    <AdminPrefsProvider>
+      <AdminShell />
+    </AdminPrefsProvider>
   );
 }

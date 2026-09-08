@@ -210,8 +210,16 @@ export const TONE_CLASSES: Record<PillTone, string> = {
 
 /* ── Tabell ─────────────────────────────────────────────────────────────── */
 
-export const thCls = "px-4 py-3 text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground sm:px-5";
-export const tdCls = "px-4 py-3 align-middle sm:px-5";
+/**
+ * Radhøyden følger tetthetsvalget.
+ *
+ * Den som lever i listene vil ha flest mulig rader på skjermen; den som er
+ * innom av og til har mer nytte av luft. Verdiene kommer fra `--admin-row-y`,
+ * som settes på <html> ut fra valget – da slipper hver eneste tabell å vite om
+ * innstillingen.
+ */
+export const thCls = "px-4 py-[var(--admin-row-y)] text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground sm:px-5";
+export const tdCls = "px-4 py-[var(--admin-row-y)] align-middle sm:px-5";
 
 /* ── Knapper og felter ──────────────────────────────────────────────────── */
 

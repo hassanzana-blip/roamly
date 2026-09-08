@@ -110,7 +110,32 @@
     --sidebar-accent: 240 5% 15%;
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 240 5% 20%;
+
+    /*
+     * Statusfargene må snus, ikke arves.
+     *
+     * De lyse variantene er mørk grønn, rav og rød – laget for å leses som
+     * tekst mot hvitt. Arves de inn i mørkt tema, blir hver eneste
+     * status-brikke i adminen mørk tekst på mørk flate: «Bekreftet»,
+     * miljømerket, frafallslinjene i trakten. Her er de lyse nok til å leses
+     * mot kortbakgrunnen, og forgrunnsfargene tilsvarende mørke, siden de
+     * brukes oppå fargen.
+     */
+    --destructive: 4 80% 70%;
+    --destructive-foreground: 240 10% 8%;
+    --success: 145 52% 62%;
+    --success-foreground: 240 10% 8%;
+    --warning: 38 90% 64%;
+    --warning-foreground: 240 10% 8%;
   }
+}
+
+/* Tetthet i adminlistene. Standard er den vi alltid har hatt (12 px). */
+:root {
+  --admin-row-y: 0.75rem;
+}
+:root[data-density="compact"] {
+  --admin-row-y: 0.375rem;
 }
 
 /* Dark mode: remap hard-coded light surfaces used by older components */

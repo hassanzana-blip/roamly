@@ -1,0 +1,1 @@
+ALTER TABLE `staff_sessions` ADD `locked_at` timestamp;

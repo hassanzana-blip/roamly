@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Check, Copy, KeyRound, ShieldAlert, ShieldCheck, Smartphone } from "lucide-react";
+import { Check, Copy, KeyRound, Laptop, LogOut, Monitor, Moon, Rows3, Rows4, ShieldAlert, ShieldCheck, Smartphone, Sun } from "lucide-react";
+import { useAdminPrefs, type Density, type Theme } from "@/providers/adminPrefsContext";
+import { deviceLabel } from "@/lib/deviceLabel";
+import { formatDateTime } from "./helpers";
 import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
@@ -208,6 +211,125 @@ export default function AdminSecurity() {
           </form>
         )}
       </section>
+
+      <Sessions />
+      <Appearance />
     </div>
+  );
+}
+
+/* ── Hvor du er logget inn ───────────────────────────────────────────────── */
+
+function Sessions() {
+  const utils = trpc.useUtils();
+  const list = trpc.staffAuth.mySessions.useQuery(undefined, { retry: false });
+  const signOut = trpc.staffAuth.signOutOtherSessions.useMutation({
+    onSuccess: () => void utils.staffAuth.mySessions.invalidate(),
+  });
+  const others = (list.data ?? []).filter((s) => !s.current).length;
+
+  return (
+    <section className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="t-h3">Hvor du er logget inn</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Kjenner du ikke igjen en av dem, logg ut de andre og bytt passord. Listen viser bare dine egne innlogginger.
+      </p>
+
+      {list.isLoading ? (
+        <p className="mt-4 text-sm text-muted-foreground">Laster …</p>
+      ) : list.error || !list.data ? (
+        <p role="alert" className="mt-4 text-sm text-destructive">{humanMessage(list.error)}</p>
+      ) : (
+        <>
+          <ul className="mt-4 divide-y divide-border">
+            {list.data.map((s) => (
+              <li key={s.id} className="flex items-start gap-3 py-3">
+                <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
+                  <Laptop className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+                    {deviceLabel(s.userAgent)}
+                    {s.current && (
+                      <span className="rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">Denne skjermen</span>
+                    )}
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">
+                    {s.ip ?? "ukjent adresse"} · sist aktiv {formatDateTime(s.lastSeenAt)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {others > 0 && (
+            <button
+              type="button"
+              onClick={() => signOut.mutate()}
+              disabled={signOut.isPending}
+              className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-destructive/40 px-4 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-50"
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              {signOut.isPending ? "Logger ut …" : others === 1 ? "Logg ut den andre" : `Logg ut de ${others} andre`}
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+/* ── Utseende ────────────────────────────────────────────────────────────── */
+
+function Choice<T extends string>({
+  label, value, current, onSelect, icon: Icon,
+}: { label: string; value: T; current: T; onSelect: (v: T) => void; icon: typeof Sun }) {
+  const active = value === current;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(value)}
+      aria-pressed={active}
+      className={cn(
+        "flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors",
+        // `bg-night` er nesten kortfargen i mørkt tema, så et valgt felt ville
+        // sett like uvalgt ut som de andre. `bg-foreground` snur riktig vei i
+        // begge temaer og er alltid det tydeligste feltet på skjermen.
+        active ? "border-foreground bg-foreground text-background" : "border-border text-foreground hover:border-foreground/40",
+      )}
+    >
+      <Icon className="size-4" aria-hidden="true" />
+      {label}
+    </button>
+  );
+}
+
+function Appearance() {
+  const { theme, density, setTheme, setDensity } = useAdminPrefs();
+  return (
+    <section className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="t-h3">Utseende</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Gjelder denne maskinen, ikke kontoen din.</p>
+
+      <div className="mt-5">
+        <p className="eyebrow">Tema</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Choice<Theme> label="Følg systemet" value="system" current={theme} onSelect={setTheme} icon={Monitor} />
+          <Choice<Theme> label="Lyst" value="light" current={theme} onSelect={setTheme} icon={Sun} />
+          <Choice<Theme> label="Mørkt" value="dark" current={theme} onSelect={setTheme} icon={Moon} />
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <p className="eyebrow">Tetthet i lister</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Choice<Density> label="Luftig" value="comfortable" current={density} onSelect={setDensity} icon={Rows3} />
+          <Choice<Density> label="Tett" value="compact" current={density} onSelect={setDensity} icon={Rows4} />
+        </div>
+        <p className="mt-2 text-[13px] text-muted-foreground">
+          Tett gir flere rader på skjermen. Trykkflatene blir ikke mindre – bare luften rundt teksten.
+        </p>
+      </div>
+    </section>
   );
 }

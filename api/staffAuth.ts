@@ -1,15 +1,18 @@
 import { z } from "zod";
-import { eq, isNull, ne } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createRouter, freshSessionProcedure, permittedProcedure, publicQuery, staffProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
-import { staffInvites, staffUsers } from "../db/schema";
+import { staffInvites, staffSessions, staffUsers } from "../db/schema";
 import { hashPassword, passwordIssues, verifyPassword } from "./lib/passwords";
 import { randomToken, sha256Hex } from "./lib/tokens";
 import {
   clearSessionCookie,
   createSession,
+  lockSession,
+  unlockSession,
   revokeAllUserSessions,
+  revokeOtherUserSessions,
   revokeSession,
   sessionIsFresh,
   setSessionCookie,
@@ -86,6 +89,7 @@ export const staffAuthRouter = createRouter({
       sessionFresh: sessionIsFresh(ctx.staff),
       mfaEnabled: ctx.staff.mfaEnabled,
       mfaVerified: ctx.staff.mfaVerified,
+      locked: ctx.staff.locked,
       environment: env.APP_ENV,
     };
   }),
@@ -346,6 +350,87 @@ export const staffAuthRouter = createRouter({
       });
       return { ok: true };
     }),
+
+  /**
+   * Hvor kontoen din er logget inn.
+   *
+   * En konsoll med passdata og refusjoner må kunne svare på «hvem er inne som
+   * meg akkurat nå». Vi viser bare dine egne sesjoner – ingen skal kunne se
+   * kollegers IP-adresser herfra – og aldri tokenet, som uansett bare finnes
+   * som hash.
+   */
+  /**
+   * Lås skjermen nå.
+   *
+   * `publicQuery`, ikke `staffProcedure`: en allerede låst sesjon skal kunne
+   * kalle denne uten å få avvist – å låse noe som er låst er ikke en feil.
+   */
+  lockScreen: publicQuery.mutation(async ({ ctx }) => {
+    if (!ctx.staff) throw new TRPCError({ code: "UNAUTHORIZED", cause: new AppError("UNAUTHORIZED") });
+    await lockSession(ctx.staff.sessionId);
+    return { ok: true };
+  }),
+
+  /** Lås opp igjen med passordet. Feil passord teller mot rate-grensa. */
+  unlockScreen: publicQuery
+    .input(z.object({ password: z.string().min(1).max(128) }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.staff) throw new TRPCError({ code: "UNAUTHORIZED", cause: new AppError("UNAUTHORIZED") });
+      assertRateLimit("staff-unlock", `${ctx.staff.userId}`, 10, 5 * 60_000);
+
+      const db = getDb();
+      const [user] = await db.select().from(staffUsers).where(eq(staffUsers.id, ctx.staff.userId)).limit(1);
+      if (!user?.passwordHash || !(await verifyPassword(user.passwordHash, input.password))) {
+        await logAudit({
+          actorType: "staff", actorId: String(ctx.staff.userId), action: "auth.unlock_failed",
+          targetType: "staff_user", targetId: ctx.staff.userId, ip: clientIp(ctx.req),
+        });
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Feil passord.", cause: new AppError("UNAUTHORIZED", { message: "Feil passord." }) });
+      }
+
+      await unlockSession(ctx.staff.sessionId);
+      return { ok: true };
+    }),
+
+  mySessions: staffProcedure.query(async ({ ctx }) => {
+    const db = getDb();
+    const rows = await db
+      .select({
+        id: staffSessions.id,
+        ip: staffSessions.ip,
+        userAgent: staffSessions.userAgent,
+        createdAt: staffSessions.createdAt,
+        lastSeenAt: staffSessions.lastSeenAt,
+        expiresAt: staffSessions.expiresAt,
+        mfaVerified: staffSessions.mfaVerified,
+      })
+      .from(staffSessions)
+      .where(
+        and(
+          eq(staffSessions.userId, ctx.staff.userId),
+          isNull(staffSessions.revokedAt),
+          gt(staffSessions.expiresAt, new Date()),
+        ),
+      )
+      .orderBy(desc(staffSessions.lastSeenAt))
+      .limit(50);
+
+    return rows.map((r) => ({
+      ...r,
+      /** Den du sitter i nå – den skal ikke kunne logges ut ved et uhell. */
+      current: r.id === ctx.staff.sessionId,
+    }));
+  }),
+
+  /** Logg ut overalt ellers. Denne sesjonen står igjen, så du blir sittende. */
+  signOutOtherSessions: staffProcedure.mutation(async ({ ctx }) => {
+    await revokeOtherUserSessions(ctx.staff.userId, ctx.staff.sessionId);
+    await logAudit({
+      actorType: "staff", actorId: String(ctx.staff.userId), action: "auth.sign_out_others",
+      targetType: "staff_user", targetId: ctx.staff.userId, ip: clientIp(ctx.req),
+    });
+    return { ok: true };
+  }),
 
   myPermissions: staffProcedure.query(({ ctx }) => {
     const role = ctx.staff.role as StaffRole;

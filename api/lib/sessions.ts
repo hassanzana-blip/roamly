@@ -9,6 +9,17 @@ import { env } from "./env";
 const ABSOLUTE_MS = 12 * 60 * 60_000;
 const IDLE_MS = 2 * 60 * 60_000;
 
+/**
+ * Skjermlås.
+ *
+ * To timer er lenge å stå åpen på et kontor med passdata på skjermen. Etter et
+ * kvarter uten aktivitet låses sesjonen: den lever fortsatt, men gjør
+ * ingenting før passordet er skrevet inn på nytt. Da mister man ikke det man
+ * holdt på med, slik en full utlogging ville gjort – og skjermen står ikke
+ * åpen for den som går forbi.
+ */
+export const LOCK_MS = 15 * 60_000;
+
 export const STAFF_COOKIE = "hellosky_staff";
 
 export type StaffIdentity = {
@@ -22,6 +33,8 @@ export type StaffIdentity = {
   sessionId: number;
   sessionCreatedAt: Date;
   mfaVerified: boolean;
+  /** Sesjonen er låst og har ingen rettigheter før passordet er skrevet inn. */
+  locked: boolean;
 };
 
 function cookieAttributes(maxAgeSec: number): string {
@@ -109,15 +122,32 @@ export async function resolveSession(req: Request): Promise<StaffIdentity | null
   const row = rows[0];
   if (!row) return null;
 
-  // Idle-grense
+  // Idle-grense: her dør sesjonen for godt.
   if (Date.now() - row.session.lastSeenAt.getTime() > IDLE_MS) return null;
   if (row.user.status !== "active") return null;
 
-  // Forny lastSeen (best effort, ikke i kritisk sti)
-  db.update(staffSessions)
-    .set({ lastSeenAt: new Date() })
-    .where(eq(staffSessions.id, row.session.id))
-    .catch(() => {});
+  /**
+   * Låsen settes enten av klienten (som merker at skjermen står stille) eller
+   * her, av tiden siden forrige kall. Den er ikke et forslag: `assertStaff`
+   * avviser alt annet enn opplåsing, så det hjelper ikke å gå utenom
+   * grensesnittet.
+   */
+  const locked = row.session.lockedAt !== null || Date.now() - row.session.lastSeenAt.getTime() > LOCK_MS;
+  if (locked && row.session.lockedAt === null) {
+    db.update(staffSessions)
+      .set({ lockedAt: new Date() })
+      .where(eq(staffSessions.id, row.session.id))
+      .catch(() => {});
+  }
+
+  // Forny lastSeen (best effort, ikke i kritisk sti). Ikke mens den er låst –
+  // da ville en åpen fane i bakgrunnen holdt låsen unna for alltid.
+  if (!locked) {
+    db.update(staffSessions)
+      .set({ lastSeenAt: new Date() })
+      .where(eq(staffSessions.id, row.session.id))
+      .catch(() => {});
+  }
 
   return {
     userId: row.user.id,
@@ -130,7 +160,21 @@ export async function resolveSession(req: Request): Promise<StaffIdentity | null
     sessionId: row.session.id,
     sessionCreatedAt: row.session.createdAt,
     mfaVerified: row.session.mfaVerified,
+    locked,
   };
+}
+
+/** Lås sesjonen nå – kalles av klienten når skjermen har stått urørt. */
+export async function lockSession(sessionId: number): Promise<void> {
+  await getDb().update(staffSessions).set({ lockedAt: new Date() }).where(eq(staffSessions.id, sessionId));
+}
+
+/** Lås opp igjen. Nullstiller også idle-klokka, ellers låses den umiddelbart på nytt. */
+export async function unlockSession(sessionId: number): Promise<void> {
+  await getDb()
+    .update(staffSessions)
+    .set({ lockedAt: null, lastSeenAt: new Date() })
+    .where(eq(staffSessions.id, sessionId));
 }
 
 export async function markMfaVerified(sessionId: number): Promise<void> {

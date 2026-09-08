@@ -124,6 +124,7 @@ export function fakeStaff(over: Partial<StaffIdentity> = {}): StaffIdentity {
     sessionId: over.sessionId ?? 1,
     sessionCreatedAt: over.sessionCreatedAt ?? new Date(),
     mfaVerified: over.mfaVerified ?? true,
+    locked: over.locked ?? false,
     ...over,
   };
 }

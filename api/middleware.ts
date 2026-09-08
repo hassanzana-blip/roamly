@@ -144,6 +144,20 @@ export const verifiedCustomerProcedure = publicQuery.use(({ ctx, next }) => {
  */
 function assertStaff(ctx: TrpcContext) {
   if (!ctx.staff) throw unauthorized();
+  /**
+   * Låst skjerm er låst på serveren.
+   *
+   * Overlegget i grensesnittet er bare det man ser; hadde låsen bodd der,
+   * ville den vært et forslag man kunne gå rundt med et API-kall. Her koster
+   * det passordet.
+   */
+  if (ctx.staff.locked) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Skjermen er låst. Skriv passordet ditt for å fortsette.",
+      cause: new AppError("FORBIDDEN", { message: "Sesjonen er låst.", data: { reason: "locked" } }),
+    });
+  }
   if (ctx.staff.mfaEnabled && !ctx.staff.mfaVerified) {
     throw new TRPCError({
       code: "FORBIDDEN",

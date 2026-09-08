@@ -221,7 +221,7 @@ export function AdminAudit() {
 
 function EmptyAudit() {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-white/60 px-6 py-12 text-center">
+    <div className="rounded-lg border border-dashed border-border bg-card/60 px-6 py-12 text-center">
       <p className="font-semibold text-foreground">Ingen logglinjer funnet</p>
     </div>
   );

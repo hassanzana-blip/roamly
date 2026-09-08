@@ -29,6 +29,13 @@
       "when": 1788870535784,
       "tag": "0003_expenses",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1788875788200,
+      "tag": "0004_session_lock",
+      "breakpoints": true
     }
   ]
 }
