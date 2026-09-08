@@ -27,14 +27,15 @@ export default function About() {
   return (
     <ContentPage
       eyebrow="Om HelloSky"
-      title="Reisebyrået som kjenner veien hjem"
-      intro="HelloSky er et norsk reisebyrå. Vi hjelper deg med å finne de beste flyreisene – særlig rutene hjem til familien – med ekte mennesker på andre siden av telefonen."
+      title="Et norsk reisebyrå for hele verden"
+      intro="HelloSky er et norsk reisebyrå. Vi hjelper deg med å finne flyreiser dit du skal – strandferie, storbyhelg, langtur eller hjem til familien – med ekte mennesker på andre siden av telefonen."
     >
       <Section title="Hvem vi er">
         <p>
-          HelloSky ble startet av folk som selv har reist disse rutene hele livet – til familie i Kurdistan,
-          Libanon, Marokko, Tyrkia og resten av verden. Vi vet hva det koster, hva som kan gå galt, og hva
-          som betyr noe når du endelig er fremme. Den kunnskapen får du med deg i hver bestilling.
+          HelloSky ble startet av folk som har reist mye, og som har brukt for mange kvelder på å lete etter
+          den riktige billetten. Vi selger hele verden fra Norge. Noen ruter kjenner vi spesielt godt – de
+          hjem til familie i Kurdistan, Libanon, Marokko, Tyrkia og Pakistan – fordi vi har reist dem selv.
+          Den kunnskapen får du med deg uansett hvor du skal.
         </p>
       </Section>
 

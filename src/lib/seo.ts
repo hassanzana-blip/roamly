@@ -193,7 +193,7 @@ export const PAGE_META = {
     jsonLd: ORG_JSON_LD,
   },
   explore: { title: "Utforsk reisemål", description: "Reisemål fra Norge etter stemning, region og reisetid. Ekte priser fra vårt eget prissøk.", canonicalPath: "/utforsk" },
-  journal: { title: "HelloSky Journal", description: "Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og rutene hjem. Oppdaterte, nyttige artikler uten priser som tall.", canonicalPath: "/journal" },
+  journal: { title: "HelloSky Journal", description: "Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og stedene vi flyr til. Oppdaterte, nyttige artikler uten priser som tall.", canonicalPath: "/journal" },
   destinations: { title: "Reisemål", description: "Guider til de rutene vi kjenner best – fra Oslo til Istanbul, Erbil, Beirut, Casablanca og resten av verden.", canonicalPath: "/reisemal" },
   support: { title: "Kundeservice", description: "Hjelp med bestilling, endring, refusjon og bagasje. Norsk kundeservice alle dager 06–24.", canonicalPath: "/hjelp" },
   flightStatus: { title: "Flystatus", description: "Sjekk avganger, ankomster og forsinkelser for flyet ditt.", canonicalPath: "/flystatus" },
@@ -228,7 +228,7 @@ export const PAGE_META = {
   privacy: { title: "Personvernerklæring", description: "Hvordan HelloSky behandler personopplysninger: behandlingsansvarlig, databehandlere, lagringstid og dine rettigheter.", canonicalPath: "/personvern" },
   baggage: { title: "Bagasjeguiden", description: "Håndbagasje, innsjekket bagasje, barn, spesialbagasje og hva du gjør om bagasjen blir borte.", canonicalPath: "/bagasje" },
   visa: { title: "Visumguiden", description: "Generell veiledning om pass og visum for norske pass til populære reisemål.", canonicalPath: "/visum" },
-  about: { title: "Om HelloSky", description: "Norsk reisebyrå med spesialkompetanse på reiser hjem til familie – med ekte mennesker i kundeservice.", canonicalPath: "/om-oss" },
+  about: { title: "Om HelloSky", description: "Norsk reisebyrå for hele verden – strandferie, storbyhelg, langtur og reiser hjem til familien, med ekte mennesker i kundeservice.", canonicalPath: "/om-oss" },
   notFound: { title: "Siden finnes ikke", description: "Siden du leter etter finnes ikke.", canonicalPath: "/404", noindex: true },
   admin: { title: "Administrasjon", description: "Internportal for ansatte.", canonicalPath: "/admin", noindex: true },
 } as const satisfies Record<string, PageMeta>;
