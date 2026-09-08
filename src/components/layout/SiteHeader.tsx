@@ -1,13 +1,14 @@
 import { Link, NavLink } from "react-router";
 import { useEffect, useState } from "react";
-import { Plane, BookOpen, LifeBuoy, Luggage, Map, Menu, Sparkles, BedDouble, Globe } from "lucide-react";
+import { Plane, BookOpen, LifeBuoy, Luggage, Map, Menu, Sparkles, BedDouble } from "lucide-react";
 import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import SkyMark from "@/components/brand/SkyMark";
 import UserMenu from "@/components/account/UserMenu";
 import { SkipLink } from "@/components/app/AppShell";
-import { LANGS, LANG_LABELS, useLang, useT, type I18nKey, type Lang } from "@/lib/i18n";
+import { useT, type I18nKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { LocaleChip } from "./LocaleChip";
 
 export function Logo({ compact = false, inverted = false }: { compact?: boolean; inverted?: boolean }) {
   const t = useT();
@@ -28,25 +29,6 @@ const NAV: { to: string; label: I18nKey; icon: typeof Plane }[] = [
   { to: "/reise", label: "nav.mytrip", icon: Luggage },
   { to: "/hjelp", label: "nav.support", icon: LifeBuoy },
 ];
-
-/** Language switcher: 5 languages, stored locally and on the customer account (i18n.tsx). */
-export function LanguageSwitcher({ className = "", compact = false }: { className?: string; compact?: boolean }) {
-  const { lang, setLang } = useLang();
-  const t = useT();
-  return (
-    <label className={cn("relative inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-2 text-sm font-medium text-foreground", className)}>
-      <Globe className="size-4 text-muted-foreground" aria-hidden="true" />
-      <span className="sr-only">{t("nav.language")}</span>
-      <select value={lang} onChange={(e) => setLang(e.target.value as Lang)} aria-label={t("nav.language")} className="min-h-9 cursor-pointer bg-transparent pr-1 outline-none">
-        {LANGS.map((l) => (
-          <option key={l} value={l}>
-            {compact ? l.toUpperCase() : LANG_LABELS[l]}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 export default function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -88,7 +70,7 @@ export default function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <LanguageSwitcher className="hidden sm:inline-flex" compact />
+          <LocaleChip className="hidden sm:block" />
           <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
             <Link to="/reise">{t("nav.findbooking")}</Link>
           </Button>
@@ -125,7 +107,7 @@ export default function SiteHeader() {
                   ))}
                 </nav>
                 <div className="mt-6 border-t border-border pt-5">
-                  <LanguageSwitcher className="w-full" />
+                  <LocaleChip className="w-full [&>button]:w-full [&>button]:justify-between" />
                 </div>
                 <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{t("nav.hours")}</p>
               </SheetBody>
