@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { ChevronLeft, User } from "lucide-react";
 import Icon from "./Icon";
 import SkyMark from "@/components/brand/SkyMark";
+import UserMenu from "@/components/account/UserMenu";
 import { useCustomer } from "@/lib/useCustomer";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -25,29 +26,7 @@ export function GreetingBar({ tone = "light" }: { tone?: "light" | "dark" }) {
         <SkyMark className={cn("h-7 w-7", onDark ? "text-white" : "text-foreground")} />
         <span className="text-[19px] font-extrabold lowercase tracking-tight">hellosky</span>
       </Link>
-      <Link
-        to="/profil"
-        aria-label={t("topbar.openprofile")}
-        className={cn(
-          "flex min-h-11 min-w-11 items-center gap-2.5 rounded-full pl-3 pr-1 transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-ring",
-          onDark ? "hover:bg-white/10" : "hover:bg-muted/60",
-        )}
-      >
-        {customer ? (
-          <span className={cn("hidden max-w-[9rem] truncate text-[14px] font-medium sm:block", onDark ? "text-white/85" : "text-foreground")}>
-            {t("greet.name", { name: customer.firstName })}
-          </span>
-        ) : null}
-        {customer?.avatarUrl ? (
-          <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full">
-            <img src={customer.avatarUrl} alt="" className="h-full w-full object-cover" />
-          </span>
-        ) : (
-          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border", onDark ? "border-white/25 bg-white/10 text-white backdrop-blur-sm" : "border-border bg-card text-foreground")}>
-            <Icon icon={User} size={20} />
-          </span>
-        )}
-      </Link>
+      <UserMenu tone={tone} />
     </header>
   );
 }

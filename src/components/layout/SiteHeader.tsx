@@ -4,6 +4,7 @@ import { Plane, BookOpen, LifeBuoy, Luggage, Map, Menu, Sparkles, BedDouble, Glo
 import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import SkyMark from "@/components/brand/SkyMark";
+import UserMenu from "@/components/account/UserMenu";
 import { SkipLink } from "@/components/app/AppShell";
 import { LANGS, LANG_LABELS, useLang, useT, type I18nKey, type Lang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -91,6 +92,7 @@ export default function SiteHeader() {
           <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex">
             <Link to="/reise">{t("nav.findbooking")}</Link>
           </Button>
+          <UserMenu />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden" aria-label={t("nav.openmenu")}>
