@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import Icon from "@/components/app/Icon";
 import CountryFlag from "@/components/brand/CountryFlag";
 import { Chip } from "@/components/ui/chip";
@@ -34,7 +34,7 @@ export default function WorldDiscovery() {
   const t = useT();
   const [theme, setTheme] = useState<ThemeId>("sol");
   const active = THEMES.find((x) => x.id === theme)!;
-  const picks = spreadAcrossRegions(DESTINATIONS.filter((d) => d.themes.includes(theme) && d.image), 6);
+  const picks = spreadAcrossRegions(DESTINATIONS.filter((d) => d.themes.includes(theme) && d.image), 3);
 
   return (
     <section aria-labelledby="world" className="container-x mt-20 sm:mt-28">
@@ -58,32 +58,36 @@ export default function WorldDiscovery() {
 
       <p className="t-lead mt-5 max-w-xl text-muted-foreground">{t(active.sub)}</p>
 
-      {/* `key` gjør at listen monteres på nytt når temaet skifter, og
-          CSS-animasjonen spiller av. Ren CSS: en kryssfade her er ikke verdt
-          136 kB på forsidens kritiske sti. */}
       {/*
-        På telefon står listen i to spalter med et bredt kort først. Er antallet
-        partall, blir det siste kortet stående alene med et hull ved siden av –
-        derfor får det siste kortet samme bredde som det første når det ellers
-        ville blitt et enslig kort. Rytmen blir bred, par, par, bred. På store
-        skjermer er det tre spalter og seks kort går opp av seg selv.
+        Tre kort, ikke seks.
+
+        Seks små kort leses som en katalog: øyet skanner dem og velger
+        ingenting. Tre store leses som et utvalg noen har gjort. Kortet er
+        stort nok til at fotografiet faktisk får si noe, og byen står i
+        handlingslinjen slik at man vet hvor man havner før man trykker.
+
+        `key` gjør at listen monteres på nytt når temaet skifter, så
+        CSS-kryssfaden spiller av. Ren CSS: et animasjonsbibliotek er ikke
+        verdt 136 kB på forsidens kritiske sti.
       */}
-      <ul key={theme} className="theme-swap mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-        {picks.map((d, i) => {
+      <ul
+        key={theme}
+        className="theme-swap no-scrollbar -mx-5 mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0"
+      >
+        {picks.map((d) => {
           const air = airportByIata(d.iata);
-          const wide = i === 0 || (picks.length % 2 === 0 && i === picks.length - 1);
           return (
-            <li key={d.id} className={wide ? "col-span-2 lg:col-span-1" : undefined}>
+            <li key={d.id} className="w-[78vw] shrink-0 snap-start sm:w-auto">
               <Link
                 to={searchHref(d.iata)}
                 className="press img-zoom group relative block overflow-hidden rounded-2xl bg-night text-white outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <span className={wide ? "block aspect-[16/10] lg:aspect-[4/5]" : "block aspect-[4/5]"}>
+                <span className="block aspect-[4/3] sm:aspect-[3/4] lg:aspect-[4/3]">
                   {d.image && (
                     <img
                       src={d.image}
                       srcSet={imageSrcSet(d.image)}
-                      sizes={wide ? "(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 380px" : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 380px"}
+                      sizes="(max-width: 640px) 78vw, (max-width: 1024px) 33vw, 400px"
                       alt={d.imageAlt}
                       loading="lazy"
                       decoding="async"
@@ -94,13 +98,13 @@ export default function WorldDiscovery() {
                   )}
                 </span>
                 <span className="photo-wash absolute inset-0" aria-hidden="true" />
-                <span className="absolute inset-x-0 bottom-0 p-3.5 sm:p-4">
-                  <span className="flex items-center gap-2 text-white/85">
-                    <CountryFlag code={air?.countryCode} size={11} />
-                    <span className="t-code">{d.iata}</span>
+                <span className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                  <span className="block font-display text-[22px] leading-tight sm:text-[24px]">{d.tagline}</span>
+                  <span className="mt-1.5 flex items-center gap-2 text-[14px] font-semibold text-white/90">
+                    <CountryFlag code={air?.countryCode} size={12} />
+                    {d.city}
+                    <Icon icon={ArrowRight} size={16} className="transition-transform group-hover:translate-x-0.5" />
                   </span>
-                  <span className="mt-1 block text-[18px] font-semibold leading-tight sm:text-[20px]">{d.city}</span>
-                  <span className="mt-0.5 block text-[13px] text-white/75">{d.tagline}</span>
                 </span>
               </Link>
             </li>
@@ -111,6 +115,38 @@ export default function WorldDiscovery() {
       <Link to="/reisemal" className="mt-6 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold underline-offset-4 hover:underline">
         {t("world.all")} <Icon icon={ArrowRight} size={16} />
       </Link>
+
+      {/*
+        Utveien for den som har bladd gjennom alle temaene og fortsatt ikke vet.
+        Den står her, rett etter valgene, og ikke nederst på siden – det er her
+        man gir opp, ikke der.
+      */}
+      <div className="mt-10 overflow-hidden rounded-2xl bg-primary-soft sm:flex sm:items-stretch">
+        <div className="min-w-0 flex-1 p-6 sm:p-8">
+          <p className="font-display text-[26px] leading-tight text-foreground sm:text-[30px]">{t("home.quizband.title")}</p>
+          <p className="mt-1.5 text-[15px] text-foreground/75">{t("home.quizband.sub")}</p>
+          <Link
+            to="/quiz"
+            className="press mt-5 inline-flex min-h-12 items-center gap-2 rounded-xl bg-night px-5 text-[15px] font-bold text-white transition-all hover:brightness-110"
+          >
+            {t("home.quizband.cta")} <Icon icon={ArrowUpRight} size={16} />
+          </Link>
+        </div>
+        <div className="hidden w-[38%] shrink-0 sm:block">
+          <img
+            src="/destinations/lisboa-640.jpg"
+            srcSet="/destinations/lisboa-640.jpg 640w, /destinations/lisboa.jpg 1024w"
+            sizes="38vw"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+            width={1024}
+            height={640}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      </div>
     </section>
   );
 }

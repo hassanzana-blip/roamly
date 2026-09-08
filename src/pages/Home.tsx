@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { ArrowRight, ArrowUpRight, Clock3, Receipt, TrendingDown } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Clock3, Globe, Headphones, Receipt, ShieldCheck, TrendingDown } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import AppShell, { SectionHeader } from "@/components/app/AppShell";
 import BelowFold from "@/components/app/BelowFold";
@@ -212,8 +212,31 @@ export default function Home() {
           >
             <SearchWidget />
           </motion.div>
+          {/*
+            Tre løfter, ikke én linje med liten skrift.
+            Det man vil vite rett etter søkefeltet er om prisen holder, om noen
+            svarer hvis det går galt, og om siden hjelper med annet enn å være
+            billigst. Alle tre er ting vi faktisk gjør – ingen påstand her er
+            uten dekning i produktet.
+          */}
+          <ul className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-3 sm:gap-6">
+            {[
+              { icon: ShieldCheck, title: t("home.assure.total"), sub: t("home.assure.total.sub") },
+              { icon: Headphones, title: t("home.assure.help"), sub: t("home.assure.help.sub") },
+              { icon: Globe, title: t("home.assure.fit"), sub: t("home.assure.fit.sub") },
+            ].map((a) => (
+              <li key={a.title} className="flex items-start gap-3">
+                <Icon icon={a.icon} size={20} className="mt-0.5 shrink-0 text-foreground" />
+                <span className="min-w-0">
+                  <span className="block text-[14px] font-semibold leading-snug text-foreground">{a.title}</span>
+                  <span className="t-caption mt-0.5 block leading-snug">{a.sub}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            {/* Én tillitslinje, kun fakta: betalingspåstanden vises bare når Stripe faktisk er satt opp. */}
+            {/* Betalingspåstanden vises bare når Stripe faktisk er satt opp. */}
             <p className="t-caption">{status.data?.paymentsConfigured ? t("home.trust") : t("home.trust.nopay")}</p>
             <p className="t-caption">
               {t("home.hotelcar")}{" "}
