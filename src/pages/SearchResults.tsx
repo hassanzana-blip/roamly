@@ -26,6 +26,7 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { PREFERENCES, isFamily, isPreference, rank, type Preference } from "@/lib/offers";
 import { ConnectionProblemSpot, NoFlightsSpot, SkeletonFlightCard } from "@/components/graphics";
 import { cn } from "@/lib/utils";
+import { DEFAULT_CHILD_AGE, DEFAULT_INFANT_AGE, passengersFromParams } from "@/components/search/searchQuery";
 
 type SortKey = Preference | "earliest";
 
@@ -39,14 +40,6 @@ const TIME_BANDS = [
 type TimeBand = (typeof TIME_BANDS)[number]["key"];
 
 const PAGE_SIZE = 20;
-
-function parseAges(param: string | null): number[] {
-  if (!param) return [];
-  return param
-    .split(",")
-    .map((x) => Number(x))
-    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 17);
-}
 
 const inBand = (band: TimeBand, h: number) =>
   band === "all" ? true : band === "night" ? h < 6 : band === "morning" ? h >= 6 && h < 12 : band === "day" ? h >= 12 && h < 18 : h >= 18;
@@ -119,17 +112,11 @@ export default function SearchResults() {
     return s;
   }, [isMulti, legs, from, to, depart, ret]);
 
-  const childAges = useMemo(() => parseAges(params.get("childAges")), [params]);
-  const infantAges = useMemo(() => parseAges(params.get("infantAges")), [params]);
-
-  const passengers = useMemo<SearchPassengerInput[]>(() => {
-    const out: SearchPassengerInput[] = [];
-    const adults = Number(params.get("adults") ?? 1);
-    for (let i = 0; i < adults; i++) out.push({ type: "adult" });
-    childAges.forEach((age) => out.push({ type: "child", age }));
-    infantAges.forEach((age) => out.push({ type: "infant_without_seat", age }));
-    return out;
-  }, [params, childAges, infantAges]);
+  // Antallet i lenken er fasit; alderslistene presiserer den. Se
+  // passengersFromParams – lagrede og nylige søk bærer bare antall.
+  const passengers = useMemo<SearchPassengerInput[]>(() => passengersFromParams(params), [params]);
+  const childAges = useMemo(() => passengers.filter((p) => p.type === "child").map((p) => p.age ?? DEFAULT_CHILD_AGE), [passengers]);
+  const infantAges = useMemo(() => passengers.filter((p) => p.type === "infant_without_seat").map((p) => p.age ?? DEFAULT_INFANT_AGE), [passengers]);
   const family = isFamily(passengers);
 
   const search = trpc.flights.search.useMutation();

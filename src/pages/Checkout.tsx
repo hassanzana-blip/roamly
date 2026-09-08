@@ -24,6 +24,7 @@ import { useFeeConfig } from "@/lib/useFeeConfig";
 import { useLocale, useT, type I18nKey } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { passengersFromParams } from "@/components/search/searchQuery";
 
 // ─── Typer ──────────────────────────────────────────────────────────────────
 
@@ -64,16 +65,9 @@ function parseSearchQuery(qs: string): { slices: SearchSliceInput[]; passengers:
     if (ret) slices.push({ origin: to, destination: from, departureDate: ret });
   }
   if (!slices.length) return null;
-  const ages = (key: string) =>
-    (p.get(key) ?? "")
-      .split(",")
-      .map(Number)
-      .filter((n) => Number.isInteger(n) && n >= 0 && n <= 17);
-  const passengers: SearchPassengerInput[] = [];
-  for (let i = 0; i < Number(p.get("adults") ?? 1); i++) passengers.push({ type: "adult" });
-  ages("childAges").forEach((age) => passengers.push({ type: "child", age }));
-  ages("infantAges").forEach((age) => passengers.push({ type: "infant_without_seat", age }));
-  return { slices, passengers, cabinClass: (p.get("cabin") ?? "economy") as CabinClass };
+  // Samme lesning som søkesiden: antallet er fasit. Uten den ble kassen bedt
+  // om å prise to voksne for et søk som gjaldt to voksne og to barn.
+  return { slices, passengers: passengersFromParams(p), cabinClass: (p.get("cabin") ?? "economy") as CabinClass };
 }
 
 function readSession<T>(key: string): T | null {
