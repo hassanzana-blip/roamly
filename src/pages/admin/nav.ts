@@ -15,6 +15,7 @@ import {
   ScanSearch,
   ScrollText,
   Settings,
+  ShieldCheck,
   ShieldAlert,
   ShoppingCart,
   StickyNote,
@@ -87,6 +88,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "System",
     items: [
+      { to: "/admin/sikkerhet", label: "Sikkerhet", icon: ShieldCheck, perm: null, keywords: "totrinn mfa totp passord tofaktor" },
       { to: "/admin/aktivitetslogg", label: "Aktivitetslogg", icon: ScrollText, perm: "audit:read", keywords: "audit logg sporing" },
       { to: "/admin/innstillinger", label: "Innstillinger", icon: Settings, perm: "settings:manage", keywords: "oppsett gebyr konfigurasjon" },
     ],

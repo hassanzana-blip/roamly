@@ -133,12 +133,24 @@ export const verifiedCustomerProcedure = publicQuery.use(({ ctx, next }) => {
 });
 
 /**
- * Staff-pålogging er e-post + passord. Tofaktor er avslått etter eiers
- * beslutning; kolonnene i databasen er beholdt slik at det kan slås på igjen
- * uten migrering.
+ * Staff-pålogging er e-post + passord, med totrinn som et valg per konto.
+ *
+ * Totrinn var tidligere avslått for alle, og kolonnene sto ubrukt mens både
+ * bootstrap-skriptet og sidemenyen fortalte eierne at det var påkrevd. Nå er
+ * det ekte: den som slår det på, må bekrefte en kode ved innlogging, og
+ * sesjonen bærer ingen rettigheter før den er bekreftet. Den som ikke har
+ * slått det på, merker ingen forskjell – ingen låses ute av en endring de
+ * ikke har bedt om.
  */
 function assertStaff(ctx: TrpcContext) {
   if (!ctx.staff) throw unauthorized();
+  if (ctx.staff.mfaEnabled && !ctx.staff.mfaVerified) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Bekreft koden fra autentikator-appen for å fortsette.",
+      cause: new AppError("FORBIDDEN", { message: "Totrinn ikke bekreftet.", data: { reason: "mfa_pending" } }),
+    });
+  }
   return ctx.staff;
 }
 

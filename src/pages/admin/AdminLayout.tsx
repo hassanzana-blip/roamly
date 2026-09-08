@@ -9,6 +9,7 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { Avatar } from "@/components/admin/Avatar";
 import { CommandPalette, type Command } from "@/components/admin/CommandPalette";
 import { ShortcutSheet } from "@/components/admin/ShortcutSheet";
+import { MfaGate } from "@/components/admin/MfaGate";
 import { ROLE_LABEL, visibleItems, visibleSections } from "./nav";
 
 // ─── Adminskallet ───────────────────────────────────────────────────────────
@@ -199,6 +200,11 @@ export function AdminLayout() {
   }
   if (!me.data?.authenticated) {
     return <Navigate to={`/admin/logg-inn?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
+  // Innlogget, men totrinn ikke bekreftet: serveren avviser uansett alt annet,
+  // så skallet vises ikke før koden er inne.
+  if (me.data.mfaEnabled && !me.data.mfaVerified) {
+    return <MfaGate name={me.data.name} onVerified={() => void utils.staffAuth.me.invalidate()} />;
   }
 
   const user = me.data;

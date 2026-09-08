@@ -2,12 +2,10 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../lib/stripe", () => import("./stripeMock"));
 
-import { caller, closeDb, countRows, expectAppCode, makeCtx, rows, runJobsUntilIdle, searchOffer, sessionInput, truncateAll, type CtxOptions } from "./setup";
+import { caller, closeDb, countRows, expectAppCode, makeCtx, rows, runJobsUntilIdle, searchOffer, sessionInput, truncateAll, withCookie } from "./setup";
 import { createCallerFactory } from "../middleware";
 import { appRouter } from "../router";
 import { hashPassword } from "../lib/passwords";
-import { resolveSession } from "../lib/sessions";
-import { resolveCustomerSession } from "../lib/customerSessions";
 import { randomToken, sha256Hex } from "../lib/tokens";
 import { getDb } from "../queries/connection";
 import { customerEmailTokens, staffUsers } from "../../db/schema";
@@ -16,20 +14,6 @@ import { setDuffelClient } from "../lib/duffel";
 // ─── Autentisering: staff (e-post + passord) og kunde (registrering → sletting) ──
 
 const factory = createCallerFactory(appRouter);
-
-/** Plukk cookie fra Set-Cookie og bygg en ny kontekst med sesjonen løst opp som i context.ts. */
-async function withCookie(resHeaders: Headers, extra: CtxOptions = {}) {
-  const setCookie = resHeaders.get("set-cookie") ?? "";
-  const cookie = setCookie
-    .split(/,(?=\s*hellosky_)/)
-    .map((c) => c.split(";")[0].trim())
-    .filter((c) => c.includes("=") && !c.endsWith("="))
-    .join("; ");
-  const ctx = makeCtx({ ...extra, headers: { ...(extra.headers ?? {}), cookie } });
-  ctx.staff = await resolveSession(ctx.req);
-  ctx.customer = await resolveCustomerSession(ctx.req);
-  return { ctx, caller: factory(ctx), cookie };
-}
 
 describe("staff-autentisering", () => {
   beforeEach(truncateAll);

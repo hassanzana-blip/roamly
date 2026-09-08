@@ -88,6 +88,7 @@ const AdminMessages = adminLazy('AdminMessages')
 const AdminNotes = adminLazy('AdminNotes')
 const AdminProblems = adminLazy('AdminProblems')
 const AdminPayroll = adminLazy('AdminPayroll')
+const AdminSecurity = adminLazy('AdminSecurity')
 const AdminPartners = adminLazy('AdminPartners')
 const AdminManualBooking = adminLazy('AdminManualBooking')
 const AdminReceipt = adminLazy('AdminReceipt')
@@ -157,6 +158,7 @@ export default function App() {
               <Route path="notater" element={<AdminNotes />} />
               <Route path="problemer" element={<AdminProblems />} />
               <Route path="lonn" element={<AdminPayroll />} />
+              <Route path="sikkerhet" element={<AdminSecurity />} />
               <Route path="hotell-bil" element={<AdminPartners />} />
               <Route path="bestillinger" element={<AdminBookings />} />
               <Route path="bestillinger/:id" element={<AdminBookingDetail />} />

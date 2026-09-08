@@ -10,6 +10,8 @@ import type { StaffIdentity } from "../lib/sessions";
 import type { CustomerIdentity } from "../lib/customerSessions";
 import { claimNextJob } from "../lib/jobs";
 import { runJob } from "../lib/workerHandlers";
+import { resolveSession } from "../lib/sessions";
+import { resolveCustomerSession } from "../lib/customerSessions";
 import { AppError } from "../lib/errors";
 import type { Offer, PassengerDetails } from "../../contracts/types";
 import { resetAccessTokenCache } from "../checkout";
@@ -102,6 +104,11 @@ export type Caller = ReturnType<typeof factory>;
 /** tRPC-caller med fabrikert kontekst. Hver caller har egen «IP». */
 export function caller(opts: CtxOptions = {}): Caller {
   return factory(makeCtx(opts));
+}
+
+/** Caller for en kontekst du allerede har bygget (og evt. løst sesjonen på). */
+export function callerFor(ctx: TrpcContext): Caller {
+  return factory(ctx);
 }
 
 /** Fabrikert staff-identitet (ingen DB-rad nødvendig for RBAC/MFA-sjekker i middleware). */
@@ -263,4 +270,22 @@ export async function assertLedgerBalanced(bookingId?: number): Promise<void> {
   );
   if (r.length === 0) throw new Error("ingen hovedbokposteringer");
   for (const x of r) if (Number(x.d) !== Number(x.c)) throw new Error(`Hovedbok ubalansert for ${x.currency}: debet ${x.d} ≠ kredit ${x.c}`);
+}
+
+/**
+ * Plukk cookien ut av Set-Cookie og bygg en ny kontekst med sesjonen løst opp
+ * akkurat slik context.ts gjør det. Lå tidligere som en privat hjelper i
+ * auth.it.ts; den hører hjemme her når flere testfiler trenger den.
+ */
+export async function withCookie(resHeaders: Headers, extra: CtxOptions = {}) {
+  const setCookie = resHeaders.get("set-cookie") ?? "";
+  const cookie = setCookie
+    .split(/,(?=\s*hellosky_)/)
+    .map((c) => c.split(";")[0].trim())
+    .filter((c) => c.includes("=") && !c.endsWith("="))
+    .join("; ");
+  const ctx = makeCtx({ ...extra, headers: { ...(extra.headers ?? {}), cookie } });
+  ctx.staff = await resolveSession(ctx.req);
+  ctx.customer = await resolveCustomerSession(ctx.req);
+  return { ctx, caller: factory(ctx), cookie };
 }

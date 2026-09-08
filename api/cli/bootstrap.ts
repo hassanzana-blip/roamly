@@ -75,7 +75,7 @@ async function main() {
     console.log(`  Utløper om 48 timer. Send lenken på en sikker kanal.\n`);
   }
   console.log("Ferdig. Slett disse lenkene fra terminalhistorikken når de er delt.");
-  console.log("Aktivering krever passord + TOTP (autentikator-app) — se /admin/aktiver.");
+  console.log("Aktivering setter passord. Slå på totrinn etterpå under Admin → Sikkerhet.");
   await closeDb();
   process.exit(0);
 }

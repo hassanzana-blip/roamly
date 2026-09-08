@@ -20,3 +20,4 @@ export { AdminPayroll } from "./AdminPayroll";
 export { AdminPartners } from "./AdminPartners";
 export { AdminManualBooking } from "./AdminManualBooking";
 export { AdminReceipt } from "./AdminReceipt";
+export { default as AdminSecurity } from "./AdminSecurity";
