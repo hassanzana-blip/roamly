@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { Check, ChevronDown } from "lucide-react";
-import DateField from "@/components/search/DateField";
+import DateParts from "@/components/search/DateParts";
 import SelectWrap from "./SelectWrap";
 import { Chip } from "@/components/ui/chip";
 import { COUNTRIES } from "@/content/countries";
@@ -79,8 +79,6 @@ export type PassengerFormProps = PassengerContext & {
 
 export default function PassengerForm({ passengers, lastArrival, identityDocumentsRequired, pax, onChange, errors, savedTravelers = [], t, idPrefix = "pax" }: PassengerFormProps) {
   const adults = passengers.filter((p) => p.type === "adult");
-  const year = new Date().getFullYear();
-  const today = new Date().toISOString().slice(0, 10);
 
   /**
    * Én reisende av gangen.
@@ -210,7 +208,7 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
               >
                 {(a) => (
                   <div aria-describedby={a.describedBy}>
-                    <DateField value={d.bornOn} onChange={(iso) => onChange(p.id, { bornOn: iso })} placeholder={t("co.f.born")} captionLayout="dropdown" fromYear={1920} toYear={year} max={today} error={a.invalid} />
+                    <DateParts value={d.bornOn} onChange={(iso) => onChange(p.id, { bornOn: iso })} label={t("co.f.born")} invalid={a.invalid} />
                   </div>
                 )}
               </Field>
@@ -271,7 +269,7 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
                   <Field id={`${idp}-expiry`} label={t("co.f.expiry")} error={errors[k("identityDocument.expiresOn")]} hint={t("co.f.expiry.hint", { date: lastArrival })}>
                     {(a) => (
                       <div aria-describedby={a.describedBy}>
-                        <DateField value={d.passportExpiry} onChange={(iso) => onChange(p.id, { passportExpiry: iso })} placeholder={t("co.f.expiry")} captionLayout="dropdown" fromYear={year} toYear={year + 15} min={lastArrival} error={a.invalid} />
+                        <DateParts value={d.passportExpiry} onChange={(iso) => onChange(p.id, { passportExpiry: iso })} label={t("co.f.expiry")} invalid={a.invalid} />
                       </div>
                     )}
                   </Field>

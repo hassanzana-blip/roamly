@@ -6,7 +6,7 @@ import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
 import { EmptyState, PrimaryButton } from "@/components/app/primitives";
 import { FamilyGlyph } from "@/components/graphics";
-import DateField from "@/components/search/DateField";
+import DateParts from "@/components/search/DateParts";
 import { useCustomer } from "@/lib/useCustomer";
 import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
@@ -118,15 +118,7 @@ export default function Travelers() {
               <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Etternavn (som i passet)" required className={inputCls} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <DateField
-                value={bornOn}
-                onChange={setBornOn}
-                placeholder="Fødselsdato (valgfritt)"
-                captionLayout="dropdown"
-                fromYear={1930}
-                toYear={new Date().getFullYear()}
-                max={new Date().toISOString().slice(0, 10)}
-              />
+              <DateParts value={bornOn} onChange={setBornOn} label="Fødselsdato (valgfritt)" />
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value as typeof gender)}

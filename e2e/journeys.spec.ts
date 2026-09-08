@@ -169,15 +169,16 @@ test.describe("deling", () => {
   });
 });
 
-/** react-day-picker med nedtrekk: velg år og måned, klikk dagen. */
-async function pickDate(page: Page, trigger: import("@playwright/test").Locator, isoDate: string) {
-  const [y, m] = isoDate.split("-").map(Number);
-  await trigger.click();
-  const dialog = page.locator('[role="dialog"]').last();
-  await dialog.locator("select.rdp-years_dropdown").selectOption(String(y));
-  await dialog.locator("select.rdp-months_dropdown").selectOption(String(m - 1));
-  await dialog.locator(`td[data-day="${isoDate}"] button, [data-day="${isoDate}"]`).first().click();
-  await expect(dialog).toBeHidden();
+/**
+ * Fødselsdatoen skrives inn i tre tallfelt, ikke plukkes i en kalender.
+ * Feltene ligger i raden til den reisende, så de scopes til panelet – ellers
+ * treffer man den første reisende uansett hvem man fyller ut.
+ */
+async function fillDate(panel: import("@playwright/test").Locator, isoDate: string) {
+  const [y, m, d] = isoDate.split("-");
+  await panel.getByLabel("Dag").first().fill(d);
+  await panel.getByLabel("Måned").first().fill(m);
+  await panel.getByLabel("År").first().fill(y);
 }
 
 /**
@@ -192,7 +193,7 @@ async function fillTraveller(page: Page, row: string, p: { title: string; first:
   await panel.getByRole("radio", { name: p.title, exact: true }).click();
   await panel.getByLabel("Fornavn (som i passet)").fill(p.first);
   await panel.getByLabel("Etternavn (som i passet)").fill(p.last);
-  await pickDate(page, panel.getByRole("button", { name: /^(Fødselsdato|Dato)/ }).first(), p.born);
+  await fillDate(panel, p.born);
   await panel.getByRole("radio", { name: p.gender, exact: true }).click();
 }
 

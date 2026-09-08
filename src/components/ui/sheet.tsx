@@ -56,6 +56,29 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
+        /**
+         * Et trykk inni arket skal aldri lukke arket.
+         *
+         * Radix avgjør «utenfor» ut fra hvor pekeren gikk ned. Innebygde
+         * kontroller – en `<select>` framfor alt – åpner systemets egen
+         * velger på iOS, og hendelsene den sender tilbake ser ut som et trykk
+         * et helt annet sted. Arket lukket seg da man forsøkte å bruke det.
+         *
+         * Her sjekker vi selv om målet ligger inni arket, og lar det være i
+         * fred hvis det gjør det. Trykk faktisk utenfor lukker som før.
+         */
+        onPointerDownOutside={(event) => {
+          const target = event.target as Node | null;
+          const content = event.currentTarget as HTMLElement | null;
+          if (target && content?.contains(target)) event.preventDefault();
+          props.onPointerDownOutside?.(event);
+        }}
+        onFocusOutside={(event) => {
+          const target = event.target as Node | null;
+          const content = event.currentTarget as HTMLElement | null;
+          if (target && content?.contains(target)) event.preventDefault();
+          props.onFocusOutside?.(event);
+        }}
         className={cn(
           "fixed z-50 flex flex-col bg-card text-card-foreground shadow-lift outline-none",
           "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",

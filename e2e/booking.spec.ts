@@ -14,17 +14,19 @@ async function pickAirport(page: Page, label: "Fra" | "Til", query: string, iata
   await expect(page.getByRole("button", { name: new RegExp(`^${label}\\b`) }).first()).toContainText(iata);
 }
 
-/** react-day-picker (dropdown-caption): velg år/måned i select og klikk dagen. */
-async function pickDate(page: Page, triggerName: string, iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  await page.getByRole("button", { name: triggerName }).first().click();
-  // Popover på desktop, bunnark på telefon: begge er Radix-dialoger.
-  const dialog = page.locator('[role="dialog"]').last();
-  await dialog.locator("select.rdp-years_dropdown").selectOption(String(y));
-  await dialog.locator("select.rdp-months_dropdown").selectOption(String(m - 1));
-  await dialog.locator(`td[data-day="${iso}"] button, [data-day="${iso}"]`).first().click();
-  void d;
-  await expect(dialog).toBeHidden();
+/**
+ * Fødselsdato og passutløp skrives inn i tre tallfelt.
+ *
+ * De var en kalender med innebygde nedtrekk for måned og år. På iOS åpner
+ * slike nedtrekk systemets hjulvelger, og arket rundt tolket det som et trykk
+ * utenfor seg selv og lukket seg – feltet lot seg ikke fylle ut i det hele
+ * tatt. Ingen blar seg trettini år bakover i en kalender uansett.
+ */
+async function fillDate(page: Page, iso: string) {
+  const [y, m, d] = iso.split("-");
+  await page.getByLabel("Dag").first().fill(d);
+  await page.getByLabel("Måned").first().fill(m);
+  await page.getByLabel("År").first().fill(y);
 }
 
 test.describe("booking (demo)", () => {
@@ -48,7 +50,7 @@ test.describe("booking (demo)", () => {
     await page.getByRole("radiogroup", { name: "Tittel" }).first().getByRole("radio", { name: "Mr", exact: true }).click();
     await page.getByLabel("Fornavn (som i passet)").fill("Ola");
     await page.getByLabel("Etternavn (som i passet)").fill("Nordmann");
-    await pickDate(page, "Fødselsdato", "1985-04-12");
+    await fillDate(page, "1985-04-12");
     await page.getByRole("radiogroup", { name: "Kjønn" }).first().getByRole("radio", { name: "Mann" }).click();
     await page.getByRole("button", { name: "Neste: kontakt" }).click();
 
