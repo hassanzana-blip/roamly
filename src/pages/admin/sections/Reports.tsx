@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { trpc } from "@/providers/trpc";
 import { Card, ErrorState, LoadingRows, PageHeader } from "../ui";
+import { ReportCharts } from "./ReportCharts";
 import { BOOKING_STATE_LABELS, formatDate, formatMinor, formatMoney, selectCls, tdCls, thCls } from "../helpers";
 
 export function AdminReports() {
@@ -111,7 +112,7 @@ export function AdminReports() {
         )}
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card className="overflow-x-auto p-0">
           <h2 className="px-5 pt-5 font-display text-xl font-semibold text-foreground">Per valuta</h2>
           <table className="mt-3 w-full min-w-[420px] text-left text-sm">
@@ -155,6 +156,10 @@ export function AdminReports() {
             </ul>
           )}
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <ReportCharts days={days} currency={activeCurrency} />
       </div>
     </div>
   );

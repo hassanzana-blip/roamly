@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, like, or, sql, count, isNull, inArray } from "
 import { TRPCError } from "@trpc/server";
 import { createRouter, freshSessionProcedure, permittedProcedure, staffProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
+import { insightsProcedures } from "./insights";
 import {
   auditLogs,
   bookingAttemptEvents,
@@ -90,6 +91,7 @@ async function transitionBooking(
 const stateLabel = (s: string) => STATE_LABELS[s as BookingState] ?? s;
 
 export const adminRouter = createRouter({
+  ...insightsProcedures,
   // ─── OVERSIKT ─────────────────────────────────────────────────────────────
 
   dashboard: permittedProcedure("overview:read").query(async () => {
