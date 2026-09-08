@@ -89,7 +89,7 @@ export function AppHeader({
           <SkyMark className="h-7 w-7 text-foreground" />
         </Link>
       )}
-      {title ? <Tag className="font-display text-2xl lg:text-[34px]">{title}</Tag> : null}
+      {title ? <Tag className="t-h1">{title}</Tag> : null}
     </header>
   );
 }
