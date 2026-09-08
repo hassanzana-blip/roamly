@@ -279,6 +279,9 @@ const dict = {
   "home.occ.weekend": { nb: "Helgetur", en: "Weekend trip" },
   "home.occ.weekendsub": { nb: "Fredag ut, søndag hjem", en: "Out Friday, home Sunday" },
   // ── Verden, etter tema ────────────────────────────────────────────────
+  "jn.band.places": { nb: "Steder", en: "Places" },
+  "jn.band.practical": { nb: "Det praktiske", en: "The practical stuff" },
+  "jn.band.practicalsub": { nb: "Bagasje, mellomlandinger, billetter og pass – gjennomgangene du leser én gang og husker.", en: "Baggage, layovers, tickets and passports – the guides you read once and remember." },
   "sp.i.soon": { nb: "Jeg reiser snart", en: "I am travelling soon" },
   "sp.i.soon.sub": { nb: "Avreise innen 48 timer", en: "Departure within 48 hours" },
   "sp.human": { nb: "Snakk med et menneske", en: "Talk to a person" },
