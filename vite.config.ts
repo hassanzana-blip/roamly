@@ -4,6 +4,43 @@ const __dirname = import.meta.dirname
 import react from "@vitejs/plugin-react"
 import { defineConfig, type PluginOption } from "vite"
 
+/**
+ * Forhåndslaster de to latinske skriftfilene.
+ *
+ * Skriftene ligger bak et CSS-importtre, så nettleseren oppdager dem først
+ * etter at stilarket er lastet og tolket. Overskriften på forsiden er
+ * sidens største element, og den ble tegnet to ganger: én gang i
+ * reserveskriften og én gang i Newsreader. Med preload kommer filene i gang
+ * med én gang, og det siste opptegnet skjer tidligere.
+ *
+ * Bare de rene latinske filene forhåndslastes. latin-ext dekker tegn norsk
+ * ikke bruker, og 88 kB til ville konkurrert med den kritiske stien.
+ *
+ * Filnavnene er innholdshashet, så lenken settes inn når bygget er ferdig og
+ * navnene faktisk finnes.
+ */
+function preloadLatinFonts(): PluginOption {
+  return {
+    name: "hellosky-preload-latin-fonts",
+    apply: "build",
+    enforce: "post",
+    async writeBundle(options, bundle) {
+      const dir = options.dir
+      if (!dir) return
+      const links = Object.keys(bundle)
+        .filter((f) => /(manrope|newsreader)-latin-(?!ext-)[^/]*\.woff2$/.test(f))
+        .map((f) => `<link rel="preload" href="/${f}" as="font" type="font/woff2" crossorigin>`)
+        .join("\n    ")
+      if (!links) return
+      const fs = await import("node:fs/promises")
+      const file = path.join(dir, "index.html")
+      const html = await fs.readFile(file, "utf8")
+      if (html.includes('rel="preload"')) return
+      await fs.writeFile(file, html.replace("</head>", `  ${links}\n  </head>`))
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(async ({ command }) => {
   const plugins: PluginOption[] = [
@@ -15,6 +52,7 @@ export default defineConfig(async ({ command }) => {
     plugins.push(inspectAttr())
   }
   plugins.push(react())
+  plugins.push(preloadLatinFonts())
 
   return {
     plugins,

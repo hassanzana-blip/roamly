@@ -61,7 +61,10 @@ const img = (name: string) => `/destinations/${name}.jpg`;
 /** srcset-par: liten 640px-variant + original (1024px) for raske kort på mobil. */
 export function imageSrcSet(image: string): string | undefined {
   if (!image.startsWith("/destinations/") || !image.endsWith(".jpg")) return undefined;
-  return `${image.replace(/\.jpg$/, "-640.jpg")} 640w, ${image} 1024w`;
+  // 256 er for miniatyrene i listene (44–64 px), 640 for kort, 1024 for scener.
+  // Uten 256-trinnet lastet en 64 px-miniatyr 83 kB.
+  const base = image.replace(/\.jpg$/, "");
+  return `${base}-256.jpg 256w, ${base}-640.jpg 640w, ${image} 1024w`;
 }
 
 export const POPULAR_DESTINATIONS: DiscoverDestination[] = [

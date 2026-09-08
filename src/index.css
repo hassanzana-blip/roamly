@@ -623,6 +623,16 @@
 
 /* Desktop hover on image cards: gentle zoom, quiet lift */
 @media (hover: hover) and (pointer: fine) {
+  /* Sideinngangen: ett kort fade-og-løft, likt for alle sider. Ren CSS, så
+     den ikke drar et animasjonsbibliotek inn i basischunken. */
+  .page-enter {
+    animation: page-enter 220ms var(--ease-out) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter {
+      animation: page-enter-fade 120ms linear both;
+    }
+  }
   .img-zoom img {
     transition: transform 0.5s var(--ease-out);
   }
@@ -684,5 +694,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   .snap-row {
     scroll-behavior: auto;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes page-enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
