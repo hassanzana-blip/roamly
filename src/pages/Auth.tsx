@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { appCodeOf, humanMessage, retryAfterSecOf } from "@/lib/apiError";
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
+import { safeNextPath } from "@/lib/nextPath";
 
 /**
  * Innlogging og registrering for kunder – bevisst enkelt:
@@ -62,7 +63,8 @@ export default function Auth() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
-  const next = params.get("next") || "/profil";
+  // `next` kommer fra adressefeltet: bare stier i appen slipper gjennom.
+  const next = safeNextPath(params.get("next"));
   const refCode = params.get("ref") ?? "";
 
   const [mode, setMode] = useState<Mode>(
