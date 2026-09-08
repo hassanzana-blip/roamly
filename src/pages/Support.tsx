@@ -312,7 +312,7 @@ export default function Support() {
                   <p className="font-display text-[22px]">{p.name}</p>
                   <p className="text-[13px] font-medium text-muted-foreground">{p.role}</p>
                   <p className="mt-2 text-[14px] leading-relaxed text-foreground/85">«{p.quote}»</p>
-                  <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t("sp.team.wamsg", { name: p.name }))}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#25D366]/15 px-3.5 text-[13px] font-semibold hover:bg-[#25D366]/25" aria-label={t("sp.team.chat", { name: p.name })}>
+                  <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t("sp.team.wamsg", { name: p.name }))}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#25D366]/15 px-3.5 text-[13px] font-semibold hover:bg-[#25D366]/25">
                     <WhatsAppIcon className="h-4 w-4" /> {t("sp.team.wa", { name: p.name })}
                   </a>
                 </div>
