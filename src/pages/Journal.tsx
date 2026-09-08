@@ -4,7 +4,7 @@ import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ArticleCard from "@/components/journal/ArticleCard";
-import { coverVariantAt } from "@/components/journal/TypeCover";
+import { coverVariantAt } from "@/components/journal/coverVariants";
 import { Chip } from "@/components/account/AccountRow";
 import { articlesByTag, featured, TAG_LABELS, tagsInUse, type JournalTag } from "@/content/journal";
 import { PAGE_META, breadcrumbJsonLd, itemListJsonLd, usePageMeta } from "@/lib/seo";

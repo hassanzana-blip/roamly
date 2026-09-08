@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { ArrowRight, ChevronDown, Clock3 } from "lucide-react";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -36,10 +36,12 @@ function catalogMatch(p: ContinentPlace) {
  */
 function HomeRoute({ d, hash }: { d: FeaturedDestination; hash: string }) {
   const t = useT();
-  const [open, setOpen] = useState(hash === d.id);
-  useEffect(() => {
-    if (hash === d.id) setOpen(true);
-  }, [hash, d.id]);
+  // Åpen når leseren har trykket, eller når adressen peker hit (#syria).
+  // Utledet under render – ingen setState i en effekt.
+  const [toggled, setToggled] = useState<boolean | null>(null);
+  const linked = hash === d.id;
+  const open = toggled ?? linked;
+  const setOpen = (next: boolean) => setToggled(next);
   const bodyId = `${d.id}-guide`;
   const photo = d.photo ? destinationById(d.photo) : undefined;
   const gateway = d.gateways[0];
@@ -55,7 +57,7 @@ function HomeRoute({ d, hash }: { d: FeaturedDestination; hash: string }) {
           type="button"
           aria-expanded={open}
           aria-controls={bodyId}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpen(!open)}
           className="img-zoom group grid w-full grid-cols-[88px_minmax(0,1fr)_auto] items-start gap-4 py-5 text-left sm:grid-cols-[176px_minmax(0,1fr)_auto] sm:gap-6 sm:py-6"
         >
           <span className="block aspect-[4/3] overflow-hidden rounded-2xl bg-muted">

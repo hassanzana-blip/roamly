@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { ArrowRight, ChevronRight, MailWarning, Plane, Search, UserRound } from "lucide-react";
+import { Link } from "react-router";
+import { ArrowRight, ChevronRight, MailWarning, Search, UserRound } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
@@ -12,7 +12,6 @@ import { useCustomer } from "@/lib/useCustomer";
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { appCodeOf, humanMessage } from "@/lib/apiError";
-import { bookingStateLabel, formatDateShort, formatPrice } from "@/lib/format";
 import { trpc } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +25,6 @@ type Tab = "upcoming" | "past" | "cancelled";
 export default function Trips() {
   usePageMeta(PAGE_META.trips);
   const t = useT();
-  const navigate = useNavigate();
   const { customer, isLoading } = useCustomer();
   const [tab, setTab] = useState<Tab>("upcoming");
   const trips = trpc.customerAuth.myTrips.useQuery(undefined, { enabled: Boolean(customer), retry: 0 });

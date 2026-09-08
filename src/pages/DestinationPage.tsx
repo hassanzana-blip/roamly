@@ -4,7 +4,7 @@ import AppShell from "@/components/app/AppShell";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ArticleCard from "@/components/journal/ArticleCard";
-import { coverVariantAt } from "@/components/journal/TypeCover";
+import { coverVariantAt } from "@/components/journal/coverVariants";
 import AddToBoard from "@/components/account/AddToBoard";
 import PlaceCard from "@/components/travel/PlaceCard";
 import { EmptyState, FavoriteButton } from "@/components/app/primitives";
