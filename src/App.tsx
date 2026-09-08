@@ -54,6 +54,7 @@ const Privacy = lazy(() => import('./pages/content/Privacy'))
 const Baggage = lazy(() => import('./pages/content/Baggage'))
 const Visa = lazy(() => import('./pages/content/Visa'))
 const About = lazy(() => import('./pages/content/About'))
+const PhotoCredits = lazy(() => import('./pages/content/PhotoCredits'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const GlyphSheet = lazy(() => import('./pages/GlyphSheet'))
 const WhatsAppFab = lazy(() => import('./components/WhatsAppFab'))
@@ -144,6 +145,7 @@ export default function App() {
             <Route path="/bagasje" element={<Baggage />} />
             <Route path="/visum" element={<Visa />} />
             <Route path="/om-oss" element={<About />} />
+            <Route path="/fotokreditering" element={<PhotoCredits />} />
 
             <Route path="/admin/logg-inn" element={<AdminLogin />} />
             <Route path="/admin/aktiver" element={<AdminActivate />} />

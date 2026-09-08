@@ -177,7 +177,8 @@ const dict = {
   "footer.baggage": { nb: "Bagasjeregler", en: "Baggage rules", sv: "Bagageregler", da: "Bagageregler", de: "Gepäckregeln" },
   "footer.visa": { nb: "Pass og visum", en: "Passport and visa", sv: "Pass och visum", da: "Pas og visum", de: "Pass und Visum" },
   "footer.copy": { nb: "Flyinnhold levert via Duffel", en: "Flight content provided via Duffel", sv: "Flyginnehåll via Duffel", da: "Flyindhold leveret via Duffel", de: "Fluginhalte über Duffel" },
-  "footer.photo": { nb: "Foto: Unsplash- og Pexels-fotografer", en: "Photos: Unsplash and Pexels photographers", sv: "Foto: Unsplash- och Pexels-fotografer", da: "Foto: Unsplash- og Pexels-fotografer", de: "Fotos: Unsplash- und Pexels-Fotografen" },
+  "footer.photo": { nb: "Ekte fotografi, aldri AI-genererte reisebilder", en: "Real photography, never AI-generated travel images", sv: "Äkta fotografi, aldrig AI-genererade resebilder", da: "Ægte fotografi, aldrig AI-genererede rejsebilleder", de: "Echte Fotografie, nie KI-generierte Reisebilder" },
+  "footer.photocredits": { nb: "Fotokreditering", en: "Photo credits", sv: "Fotokreditering", da: "Fotokreditering", de: "Bildnachweis" },
 
   // ── Innholdssider (titler) ─────────────────────────────────────────────
   "content.terms.title": { nb: "Reisevilkår", en: "Terms of travel", sv: "Resevillkor", da: "Rejsevilkår", de: "Reisebedingungen" },
