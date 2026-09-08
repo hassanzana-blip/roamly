@@ -5,6 +5,7 @@ import { trpc } from "@/providers/trpc";
 import AppShell from "@/components/app/AppShell";
 import Icon from "@/components/app/Icon";
 import { PrimaryButton } from "@/components/app/primitives";
+import { AuthProviderButtons } from "@/components/account/AuthProviders";
 import SkyMark from "@/components/brand/SkyMark";
 import { cn } from "@/lib/utils";
 import { appCodeOf, humanMessage, retryAfterSecOf } from "@/lib/apiError";
@@ -398,6 +399,9 @@ export default function Auth() {
                 {t("au.backtologin")}
               </button>
             )}
+
+            {/* Innloggingsmetoder fra registeret: bare aktive blir knapper, aldri en død. */}
+            {(mode === "login" || mode === "register") && <AuthProviderButtons className="mt-6" />}
           </form>
         )}
       </AppShell>

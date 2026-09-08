@@ -1,32 +1,37 @@
 import { Link, useParams } from "react-router";
-import { ArrowLeft, ArrowRight, Plane } from "lucide-react";
+import { ArrowLeft, Plane } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
-import ArticleCard, { ArticleCover, ArticleMeta } from "@/components/journal/ArticleCard";
+import ArticleCard, { ArticleCover, ArticleMeta, articlePhoto } from "@/components/journal/ArticleCard";
+import { coverVariantAt } from "@/components/journal/TypeCover";
 import AddToBoard from "@/components/account/AddToBoard";
+import PlaceCard from "@/components/travel/PlaceCard";
 import { EmptyState } from "@/components/app/primitives";
+import { Button } from "@/components/ui/button";
 import { ALL_DESTINATIONS, destinationById, searchHref } from "@/content/discover";
 import { articleBySlug, TAG_LABELS, type Article, type Block } from "@/content/journal";
+import { useT } from "@/lib/i18n";
 import { articleJsonLd, breadcrumbJsonLd, usePageMeta } from "@/lib/seo";
 
 const fmtDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long", year: "numeric" });
 
+/** Brødtekst 16/1.6 i et mål på 65–75 tegn; serif-mellomtitler; tips og sitater på paletten. */
 function Blocks({ blocks }: { blocks: Block[] }) {
   return (
     <>
       {blocks.map((b, i) => {
         switch (b.t) {
           case "p":
-            return <p key={i} className="mt-5 text-[17px] leading-[1.65] text-foreground/90">{b.text}</p>;
+            return <p key={i} className="t-body mt-5 text-foreground/90">{b.text}</p>;
           case "h2":
-            return <h2 key={i} id={b.id} className="mt-10 scroll-mt-24 font-display text-[26px] leading-tight sm:text-[30px]">{b.text}</h2>;
+            return <h2 key={i} id={b.id} className="t-h2 mt-10 scroll-mt-24">{b.text}</h2>;
           case "ul":
             return (
               <ul key={i} className="mt-5 space-y-3">
                 {b.items.map((it, j) => (
-                  <li key={j} className="flex gap-3 text-[17px] leading-[1.6] text-foreground/90">
-                    <span className="mt-[0.7em] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                  <li key={j} className="t-body flex gap-3 text-foreground/90">
+                    <span className="mt-[0.65em] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
                     <span>{it}</span>
                   </li>
                 ))}
@@ -34,16 +39,17 @@ function Blocks({ blocks }: { blocks: Block[] }) {
             );
           case "tip":
             return (
-              <aside key={i} className="mt-7 rounded-xl bg-primary-soft p-5 sm:p-6">
-                {b.title && <p className="text-[13px] font-semibold text-accent-foreground">{b.title}</p>}
-                <p className="mt-1 text-[16px] leading-relaxed text-foreground/90">{b.text}</p>
+              <aside key={i} className="mt-7 rounded-2xl bg-primary-soft p-5 sm:p-6">
+                {b.title && <p className="text-[12px] font-semibold text-accent-foreground">{b.title}</p>}
+                <p className="t-body mt-1 text-foreground/90">{b.text}</p>
               </aside>
             );
           case "quote":
             return (
-              <blockquote key={i} className="mt-7 border-l-2 border-primary pl-5 font-display text-[22px] leading-snug">
-                {b.text}
-                {b.by && <footer className="mt-2 font-sans text-[13px] text-muted-foreground">{b.by}</footer>}
+              <blockquote key={i} className="mt-8">
+                <span className="block h-1 w-10 rounded-full bg-primary" aria-hidden="true" />
+                <p className="font-display mt-4 text-[24px] italic leading-[1.3] sm:text-[28px]">{b.text}</p>
+                {b.by && <footer className="t-caption mt-3">{b.by}</footer>}
               </blockquote>
             );
           case "steps":
@@ -51,10 +57,10 @@ function Blocks({ blocks }: { blocks: Block[] }) {
               <ol key={i} className="mt-6 space-y-4">
                 {b.items.map((s, j) => (
                   <li key={j} className="flex gap-4">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-[13px] font-bold text-background">{j + 1}</span>
+                    <span className="t-num flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-[13px] font-bold text-background">{j + 1}</span>
                     <span>
-                      <span className="block text-[17px] font-semibold leading-tight">{s.title}</span>
-                      <span className="mt-1 block text-[16px] leading-relaxed text-foreground/85">{s.text}</span>
+                      <span className="t-h3 block">{s.title}</span>
+                      <span className="t-body mt-1 block text-foreground/85">{s.text}</span>
                     </span>
                   </li>
                 ))}
@@ -67,6 +73,7 @@ function Blocks({ blocks }: { blocks: Block[] }) {
 }
 
 function ArticleView({ a }: { a: Article }) {
+  const t = useT();
   usePageMeta({
     title: a.title,
     description: a.deck,
@@ -78,7 +85,7 @@ function ArticleView({ a }: { a: Article }) {
       breadcrumbJsonLd([{ name: "Hjem", path: "/" }, { name: "Journal", path: "/journal" }, { name: a.title, path: `/journal/${a.slug}` }]),
     ],
   });
-  const dest = a.hero ? destinationById(a.hero) : undefined;
+  const photo = articlePhoto(a);
   const searchDest = a.searchIata ? ALL_DESTINATIONS.find((d) => d.iata === a.searchIata) : undefined;
   const headings = a.blocks.filter((b): b is Extract<Block, { t: "h2" }> => b.t === "h2");
   const related = a.relatedArticles.map(articleBySlug).filter((x): x is Article => Boolean(x));
@@ -86,55 +93,73 @@ function ArticleView({ a }: { a: Article }) {
 
   return (
     <>
-      <div className="container-x pt-4 lg:pt-6">
-        <Link to="/journal" className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-muted-foreground hover:text-foreground"><Icon icon={ArrowLeft} size={16} /> Journal</Link>
+      <div className="container-x pt-3 lg:pt-5">
+        <Link to="/journal" className="inline-flex min-h-11 items-center gap-1.5 text-[14px] font-medium text-muted-foreground transition-colors duration-fast hover:text-foreground">
+          <Icon icon={ArrowLeft} size={16} /> Journal
+        </Link>
       </div>
+
       <article className="container-x">
-        <header className="mx-auto max-w-3xl pt-4">
-          <ArticleMeta a={a} />
-          <h1 className="mt-3 font-display text-[36px] leading-[1.04] sm:text-[52px]">{a.title}</h1>
-          <p className="mt-4 text-[18px] leading-relaxed text-muted-foreground sm:text-[20px]">{a.deck}</p>
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            {a.tags.map((t) => <Link key={t} to={`/journal?t=${t}`} className="inline-flex min-h-8 items-center rounded-md bg-muted px-2.5 text-[12px] font-semibold text-foreground hover:bg-secondary">{TAG_LABELS[t]}</Link>)}
-            <AddToBoard kind="article" refId={a.slug} payload={{ title: a.title }} className="ml-auto" />
-          </div>
-        </header>
-
-        {dest?.image && (
-          <figure className="mx-auto mt-8 max-w-5xl">
-            <div className="group aspect-[16/9] overflow-hidden rounded-2xl bg-muted sm:aspect-[21/9]">
-              <ArticleCover a={a} sizes="(max-width: 1024px) 100vw, 1024px" className="group-hover:scale-100" />
+        {/* Header, photo and body share one grid so the measure lines up with the table of contents. */}
+        <div className="mx-auto max-w-[72ch] lg:grid lg:max-w-[calc(72ch+16rem)] lg:grid-cols-[minmax(0,72ch)_200px] lg:gap-x-16">
+          <header className="pt-2 lg:col-start-1 lg:pt-4">
+            <div className="flex flex-wrap gap-2">
+              {a.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  to={`/journal?t=${tag}`}
+                  className="inline-flex min-h-9 items-center rounded-lg border border-border bg-card px-3 text-[13px] font-semibold transition-colors duration-fast hover:border-foreground/40"
+                >
+                  {TAG_LABELS[tag]}
+                </Link>
+              ))}
             </div>
-            <figcaption className="mt-2 px-1 text-[12px] text-muted-foreground">{a.heroAlt ?? dest.imageAlt}</figcaption>
-          </figure>
-        )}
+            <h1 className="t-h1 mt-5">{a.title}</h1>
+            <p className="t-lead mt-4 text-muted-foreground">{a.deck}</p>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+              <ArticleMeta a={a} withCategory={false} />
+              <AddToBoard kind="article" refId={a.slug} payload={{ title: a.title }} />
+            </div>
+          </header>
 
-        <div className="mx-auto mt-6 max-w-3xl lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-14">
-          <div className="max-w-3xl">
+          {photo && (
+            <figure className="mt-8 lg:col-span-2">
+              <div className="aspect-[16/9] overflow-hidden rounded-2xl bg-muted sm:aspect-[21/9]">
+                <ArticleCover a={a} sizes="(max-width: 1024px) 100vw, 1024px" />
+              </div>
+              <figcaption className="t-caption mt-2 px-1">{photo.alt}</figcaption>
+            </figure>
+          )}
+
+          <div className="mt-6 lg:col-start-1 lg:mt-8">
             <Blocks blocks={a.blocks} />
 
             {searchDest && (
-              <Link to={searchHref(searchDest.iata)} className="press mt-10 flex items-center justify-between gap-4 rounded-2xl bg-night p-5 text-white sm:p-6">
-                <span>
-                  <span className="block font-display text-[24px] leading-tight">Søk fly til {searchDest.city}</span>
-                  <span className="mt-1 block text-[14px] text-white/70">Ekte priser fra Oslo, med bagasje og gebyrer regnet inn.</span>
-                </span>
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><Icon icon={Plane} size={20} /></span>
-              </Link>
+              <div className="surface mt-10 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <div>
+                  <p className="t-h3">{t("dest.searchTo", { city: searchDest.city })}</p>
+                  <p className="t-caption mt-1">Ekte priser fra Oslo, med bagasje og gebyrer regnet inn.</p>
+                </div>
+                <Button asChild size="lg" className="shrink-0">
+                  <Link to={searchHref(searchDest.iata)}><Icon icon={Plane} size={20} /> Søk fly</Link>
+                </Button>
+              </div>
             )}
 
-            <p className="mt-10 border-t border-border pt-5 text-[13px] leading-relaxed text-muted-foreground">
+            <p className="t-caption mt-10 border-t border-border pt-5">
               Sist sett over {fmtDate.format(new Date(`${a.updated}T12:00:00`))}. Vi oppgir ikke priser, visumregler eller bagasjegrenser som tall, fordi de endres uten at vi får beskjed. Sjekk alltid kilden som bestemmer: flyselskapet, Utenriksdepartementet og ambassaden.
             </p>
           </div>
 
           {headings.length > 1 && (
-            <nav className="hidden lg:block" aria-label="Innhold">
-              <div className="sticky top-24">
-                <p className="text-[12px] font-semibold text-muted-foreground">I denne artikkelen</p>
-                <ol className="mt-3 space-y-2 border-l border-border">
+            <nav className="hidden lg:col-start-2 lg:mt-8 lg:block" aria-label={t("journal.inThisArticle")}>
+              <div className="sticky top-24 border-t border-border pt-4">
+                <p className="t-label">{t("journal.inThisArticle")}</p>
+                <ol className="mt-3 space-y-2.5">
                   {headings.map((h) => (
-                    <li key={h.id}><a href={`#${h.id}`} className="-ml-px block border-l border-transparent pl-4 text-[14px] leading-snug text-muted-foreground transition-colors hover:border-foreground hover:text-foreground">{h.text}</a></li>
+                    <li key={h.id}>
+                      <a href={`#${h.id}`} className="block text-[14px] leading-snug text-muted-foreground transition-colors duration-fast hover:text-foreground">{h.text}</a>
+                    </li>
                   ))}
                 </ol>
               </div>
@@ -144,23 +169,25 @@ function ArticleView({ a }: { a: Article }) {
       </article>
 
       {places.length > 0 && (
-        <section className="container-x mt-14">
-          <h2 className="font-display text-[24px]">Reisemål i artikkelen</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
+        <section className="container-x mt-16">
+          <h2 className="t-h2">{t("journal.placesInArticle")}</h2>
+          <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
             {places.map((d) => (
-              <Link key={d.id} to={`/reisemal/${d.id}`} className="press inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3.5 text-[14px] font-semibold transition-colors hover:border-foreground/30">
-                {d.city} <Icon icon={ArrowRight} size={14} className="text-muted-foreground" />
-              </Link>
+              <PlaceCard
+                key={d.id}
+                place={{ id: d.id, city: d.city, country: d.country, iata: d.iata, caption: d.tagline, image: d.image, imageAlt: d.imageAlt }}
+                to={`/reisemal/${d.id}`}
+              />
             ))}
           </div>
         </section>
       )}
 
       {related.length > 0 && (
-        <section className="container-x mt-14">
-          <h2 className="font-display text-[24px]">Les også</h2>
-          <div className="mt-5 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((r) => <ArticleCard key={r.slug} a={r} />)}
+        <section className="container-x mt-16">
+          <h2 className="t-h2">{t("journal.readAlso")}</h2>
+          <div className="mt-6 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {related.map((r, i) => <ArticleCard key={r.slug} a={r} variant={coverVariantAt(i)} />)}
           </div>
         </section>
       )}

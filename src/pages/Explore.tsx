@@ -4,7 +4,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
-import DestinationCard from "@/components/travel/DestinationCard";
+import PlaceCard from "@/components/travel/PlaceCard";
 import DestinationSheet from "@/components/app/DestinationSheet";
 import { EmptyState } from "@/components/app/primitives";
 import { NoSavedSpot } from "@/components/graphics";
@@ -78,9 +78,15 @@ export default function Explore() {
         </div>
 
         {list.length ? (
-          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
             {list.map((d) => (
-              <DestinationCard key={d.id} destination={d} isFavourite={favs.has(d.id)} onToggleFavourite={toggleFav} onOpen={setQuickView} fluid />
+              <PlaceCard
+                key={d.id}
+                place={{ id: d.id, city: d.city, country: d.country, iata: d.iata, caption: d.tagline, image: d.image, imageAlt: d.imageAlt }}
+                onOpen={() => setQuickView(d)}
+                favourite={favs.has(d.id)}
+                onToggleFavourite={() => toggleFav(d.id)}
+              />
             ))}
           </div>
         ) : (
