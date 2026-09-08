@@ -279,6 +279,12 @@ const dict = {
   "home.occ.weekend": { nb: "Helgetur", en: "Weekend trip" },
   "home.occ.weekendsub": { nb: "Fredag ut, søndag hjem", en: "Out Friday, home Sunday" },
   // ── Verden, etter tema ────────────────────────────────────────────────
+  "sp.i.soon": { nb: "Jeg reiser snart", en: "I am travelling soon" },
+  "sp.i.soon.sub": { nb: "Avreise innen 48 timer", en: "Departure within 48 hours" },
+  "sp.human": { nb: "Snakk med et menneske", en: "Talk to a person" },
+  "sp.human.sub": { nb: "Norsk, engelsk og kurdisk – alle dager 06–24.", en: "Norwegian, English and Kurdish – every day 06–24." },
+  "sp.urgent.title": { nb: "Reiser du innen 48 timer, ring oss.", en: "Travelling within 48 hours? Call us." },
+  "sp.urgent.body": { nb: "Et skjema er for tregt når avreisen er nær. Vi svarer på telefon og WhatsApp alle dager 06–24.", en: "A form is too slow when departure is near. We answer by phone and WhatsApp every day 06–24." },
   "sec.linked": { nb: "Tilkoblede kontoer", en: "Connected accounts" },
   "sec.linkedsub": { nb: "Logg inn raskere ved å koble til en konto du allerede har.", en: "Sign in faster by connecting an account you already have." },
   "sec.linked.none": { nb: "Ingen sosiale innlogginger er satt opp for HelloSky ennå. Du logger inn med e-post og passord.", en: "No social sign-in is set up for HelloSky yet. You sign in with e-mail and password." },
