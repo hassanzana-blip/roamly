@@ -11,7 +11,7 @@ import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { enqueueJob } from "./lib/jobs";
 import { issueBookingAccessToken } from "./lib/bookingAccess";
 import { FLAT_FEE_BY_CURRENCY, instantBookingEnabled, loadPricingOverrides, SERVICE_FEE_PERCENT } from "./lib/pricing";
-import { searchAirports } from "../contracts/airports";
+import { searchAirportsWorldwide } from "./lib/airportMeta";
 import { travelportConfig, travelportSearch, isTravelportOffer } from "./lib/travelport";
 import { fetchFlightStatus, flightStatusConfig } from "./lib/flightStatus";
 import type { FlightStatus, Offer, Order, PriceHint, SearchResult, ServiceStatus } from "../contracts/types";
@@ -101,7 +101,14 @@ export type FlightStatusResult = (FlightStatus & { fetchedAt: string; demo: bool
 export const flightsRouter = createRouter({
   status: publicQuery.query((): Promise<ServiceStatusWithFees> => serviceStatus()),
 
-  airports: publicQuery.input(z.object({ query: z.string().max(60) })).query(({ input }) => searchAirports(input.query)),
+  /**
+   * Flyplassøk over hele verden. Registeret ligger på serveren fordi det er
+   * 454 kB; nettleseren har det kuraterte settet for øyeblikkelige forslag og
+   * spør hit for alt annet.
+   */
+  airports: publicQuery
+    .input(z.object({ query: z.string().max(60), limit: z.number().int().min(1).max(20).optional() }))
+    .query(({ input }) => searchAirportsWorldwide(input.query, input.limit ?? 12)),
 
   search: publicQuery.input(searchSchema).mutation(async ({ input, ctx }): Promise<SearchResult> => {
     try {

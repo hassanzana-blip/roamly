@@ -5,6 +5,7 @@ import PickerSurface from "./PickerSurface";
 import { AIRPORTS, airportByIata, searchAirports, type Airport } from "@contracts/airports";
 import { loadRecentSearches } from "@/lib/recentSearches";
 import { useT, type I18nKey } from "@/lib/i18n";
+import { trpc } from "@/providers/trpc";
 import CountryFlag from "@/components/brand/CountryFlag";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +70,31 @@ export default function AirportField({ label, value, onChange, exclude, directio
   const listId = `airports-${direction}`;
 
   const groups = useGroups(direction, exclude);
-  const searched = useMemo(() => (query ? searchAirports(query, 12).filter((a) => a.iata !== exclude) : []), [query, exclude]);
+
+  // Det kuraterte settet svarer med én gang, uten nettverk. Det dekker
+  // flyplassene folk søker på oftest, og gjør at listen aldri står tom mens
+  // vi venter.
+  const local = useMemo(() => (query ? searchAirports(query, 12).filter((a) => a.iata !== exclude) : []), [query, exclude]);
+
+  // Verdensregisteret ligger på serveren fordi det er 454 kB. Vi spør bare
+  // når det lokale settet ikke har nok, og først når noen har skrevet nok til
+  // at et treff betyr noe.
+  const worldQuery = trpc.flights.airports.useQuery(
+    { query, limit: 12 },
+    { enabled: query.trim().length >= 2 && local.length < 8, staleTime: 300_000, retry: false, placeholderData: (prev) => prev },
+  );
+
+  const searched = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Airport[] = [];
+    for (const a of [...local, ...(worldQuery.data ?? [])]) {
+      if (a.iata === exclude || seen.has(a.iata)) continue;
+      seen.add(a.iata);
+      out.push(a);
+    }
+    return out.slice(0, 12);
+  }, [local, worldQuery.data, exclude]);
+
   // One flat, ordered list drives keyboard navigation whether grouped or searched.
   const flat = query ? searched : groups.flatMap((g) => g.items);
 
