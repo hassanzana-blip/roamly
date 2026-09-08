@@ -95,8 +95,12 @@ function SegmentDetail({ seg }: { seg: Segment }) {
           <span className="tabular">{formatClock(seg.arrivingAt)}</span> {seg.destination.city} <span className="text-muted-foreground">({seg.destination.iata})</span>
           {crossesMidnight(seg.departingAt, seg.arrivingAt) > 0 && <span className="ml-1 text-xs text-muted-foreground">{t("oc.nextday")}</span>}
         </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {seg.carrier.name} {seg.carrier.iata} {seg.flightNumber} · {seg.aircraft} · {cabinLabel(seg.cabinClass)} · {formatDuration(seg.durationMinutes)}
+        {/* Hvem som faktisk flyr strekningen, med selskapets eget merke. */}
+        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+          <AirlineLogo airline={{ iata: seg.carrier.iata, name: seg.carrier.name }} size={16} className="rounded" />
+          <span className="font-medium text-foreground">{seg.carrier.name}</span>
+          <span className="t-code">{seg.carrier.iata} {seg.flightNumber}</span>
+          <span>· {seg.aircraft} · {cabinLabel(seg.cabinClass)} · {formatDuration(seg.durationMinutes)}</span>
         </p>
         {operatedBy && <p className="mt-0.5 text-xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.name })}</p>}
         {seg.baggage && (

@@ -5,6 +5,8 @@ import { bookingStateLabel, formatDateShort, formatPrice } from "@/lib/format";
 import { confirmationHref, receiptHref, type TripBucket, type TripSummary } from "@/components/account/tripUtils";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import CountryFlag from "@/components/brand/CountryFlag";
+import { airportByIata } from "@contracts/airports";
 
 /**
  * Én bestilling som reisekort: rute, dato, reisefølge, PNR, status – og
@@ -65,8 +67,10 @@ export function TripCard({ trip, bucket, className }: { trip: TripSummary; bucke
               {from} <span aria-hidden="true">→</span> {to}
             </p>
             {trip.originIata && trip.destinationIata ? (
-              <p className="t-code mt-1 text-muted-foreground">
-                {trip.originIata} – {trip.destinationIata}
+              // Flagget svarer på «hvilket land» før man har lest bykoden.
+              <p className="mt-1 flex items-center gap-2 text-muted-foreground">
+                <CountryFlag code={airportByIata(trip.destinationIata)?.countryCode} size={11} />
+                <span className="t-code">{trip.originIata} – {trip.destinationIata}</span>
               </p>
             ) : null}
           </div>

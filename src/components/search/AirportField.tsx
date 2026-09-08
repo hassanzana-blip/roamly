@@ -5,6 +5,7 @@ import PickerSurface from "./PickerSurface";
 import { AIRPORTS, airportByIata, searchAirports, type Airport } from "@contracts/airports";
 import { loadRecentSearches } from "@/lib/recentSearches";
 import { useT, type I18nKey } from "@/lib/i18n";
+import CountryFlag from "@/components/brand/CountryFlag";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -120,8 +121,11 @@ export default function AirportField({ label, value, onChange, exclude, directio
       {recent ? <Clock3 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /> : <MapPin className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-base font-medium">{a.city}</span>
-        <span className="block truncate text-sm text-muted-foreground">
-          {a.name} · {a.country}
+        {/* Flagget er orientering, ikke pynt: i en liste med Bergen, Beirut og
+            Birmingham er landet det som skiller dem raskest. */}
+        <span className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+          <CountryFlag code={a.countryCode} size={11} />
+          <span className="truncate">{a.name} · {a.country}</span>
         </span>
       </span>
       <span className="t-code rounded-md bg-muted px-2 py-0.5 text-foreground">{a.iata}</span>
