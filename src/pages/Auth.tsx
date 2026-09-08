@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { cloneElement, useEffect, useId, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, KeyRound, MailCheck } from "lucide-react";
 import { trpc } from "@/providers/trpc";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { appCodeOf, humanMessage, retryAfterSecOf } from "@/lib/apiError";
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
+import { safeNextPath } from "@/lib/nextPath";
 
 /**
  * Innlogging og registrering for kunder – bevisst enkelt:
@@ -22,23 +23,37 @@ type Mode = "login" | "register" | "forgot" | "otp";
 const inputCls =
   "w-full rounded-2xl border border-border bg-white px-4 py-3.5 text-[16px] outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground/40";
 
+/**
+ * Etikett, felt og hjelpetekst.
+ *
+ * Hjelpeteksten lå inne i `<label>`, og da leser skjermleseren feltet som
+ * «Passord Minst 10 tegn.» – etiketten og forklaringen smeltet sammen til ett
+ * navn. Forklaringen hører til `aria-describedby`: den leses etter navnet, og
+ * navnet forblir «Passord».
+ */
 function Field({
   label,
   children,
   hint,
 }: {
   label: string;
-  children: React.ReactNode;
+  children: React.ReactElement<{ id?: string; "aria-describedby"?: string }>;
   hint?: string;
 }) {
+  const id = useId();
+  const hintId = `${id}-hint`;
   return (
-    <label className="block">
-      <span className="mb-1.5 block eyebrow">
+    <div className="block">
+      <label htmlFor={id} className="mb-1.5 block eyebrow">
         {label}
-      </span>
-      {children}
-      {hint && <span className="mt-1 block text-[12px] text-muted-foreground">{hint}</span>}
-    </label>
+      </label>
+      {cloneElement(children, { id, ...(hint ? { "aria-describedby": hintId } : {}) })}
+      {hint && (
+        <span id={hintId} className="mt-1 block text-[12px] text-muted-foreground">
+          {hint}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -48,7 +63,8 @@ export default function Auth() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
-  const next = params.get("next") || "/profil";
+  // `next` kommer fra adressefeltet: bare stier i appen slipper gjennom.
+  const next = safeNextPath(params.get("next"));
   const refCode = params.get("ref") ?? "";
 
   const [mode, setMode] = useState<Mode>(

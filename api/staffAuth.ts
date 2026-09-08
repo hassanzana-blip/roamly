@@ -19,6 +19,8 @@ import { logAudit } from "./lib/audit";
 import { env } from "./lib/env";
 import { AppError } from "./lib/errors";
 import { ROLE_PERMISSIONS, VALID_ROLES, type StaffRole } from "./lib/rbac";
+import { generateRecoveryCodes, newTotpSecret, totpUri, verifyTotp } from "./lib/totp";
+import { markMfaVerified } from "./lib/sessions";
 
 const INVITE_TTL_MS = 48 * 60 * 60_000;
 
@@ -47,14 +49,17 @@ export const staffAuthRouter = createRouter({
         throw new TRPCError({ code: "FORBIDDEN", message: "Kontoen er ikke aktivert ennå." });
       }
 
-      const token = await createSession(user.id, ctx.req, true);
+      // Sesjonen er bare halvferdig når kontoen har totrinn: den bærer
+      // brukeren, men ikke retten til å gjøre noe, før koden er bekreftet.
+      const token = await createSession(user.id, ctx.req, !user.mfaEnabled);
       setSessionCookie(ctx.resHeaders, token);
       await db.update(staffUsers).set({ lastLoginAt: new Date() }).where(eq(staffUsers.id, user.id));
       await logAudit({
-        actorType: "staff", actorId: user.id, actorLabel: user.name, action: "auth.login",
+        actorType: "staff", actorId: user.id, actorLabel: user.name,
+        action: user.mfaEnabled ? "auth.login_password_ok" : "auth.login",
         targetType: "staff_user", targetId: user.id, ip,
       });
-      return { ok: true as const, name: user.name, role: user.role };
+      return { ok: true as const, name: user.name, role: user.role, mfaRequired: user.mfaEnabled };
     }),
 
   logout: publicQuery.mutation(async ({ ctx }) => {
@@ -79,9 +84,96 @@ export const staffAuthRouter = createRouter({
       role: ctx.staff.role,
       avatarUrl: ctx.staff.avatarUrl,
       sessionFresh: sessionIsFresh(ctx.staff),
+      mfaEnabled: ctx.staff.mfaEnabled,
+      mfaVerified: ctx.staff.mfaVerified,
       environment: env.APP_ENV,
     };
   }),
+
+  // ─── Totrinn (TOTP) ───────────────────────────────────────────────────────
+  // Koden lå ferdig i api/lib/totp.ts uten at noe kalte den, mens
+  // bootstrap-skriptet lovet eierne at aktivering krevde autentikator-app.
+  // Nå gjør den det.
+
+  /** Bekreft koden fra autentikator-appen (eller en gjenopprettingskode). */
+  verifyMfa: publicQuery
+    .input(z.object({ code: z.string().trim().min(6).max(16) }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.staff) throw new AppError("UNAUTHORIZED");
+      assertRateLimit("staff-mfa", `${ctx.staff.userId}`, 10, 5 * 60_000);
+      const db = getDb();
+      const [user] = await db.select().from(staffUsers).where(eq(staffUsers.id, ctx.staff.userId)).limit(1);
+      if (!user?.totpSecret) throw new AppError("VALIDATION", { message: "Kontoen har ikke totrinn satt opp." });
+
+      if (await verifyTotp(user.totpSecret, input.code)) {
+        await markMfaVerified(ctx.staff.sessionId);
+        await logAudit({ actorType: "staff", actorId: user.id, actorLabel: user.name, action: "auth.mfa_verified", targetType: "staff_user", targetId: user.id, ip: clientIp(ctx.req) });
+        return { ok: true as const, usedRecoveryCode: false };
+      }
+
+      // Gjenopprettingskoder er engangs: den som brukes, forsvinner.
+      const stored: string[] = user.recoveryCodesJson ? (JSON.parse(user.recoveryCodesJson) as string[]) : [];
+      const offered = sha256Hex(input.code.toUpperCase().replace(/\s/g, ""));
+      const left = stored.filter((h) => h !== offered);
+      if (left.length !== stored.length) {
+        await db.update(staffUsers).set({ recoveryCodesJson: JSON.stringify(left) }).where(eq(staffUsers.id, user.id));
+        await markMfaVerified(ctx.staff.sessionId);
+        await logAudit({ actorType: "staff", actorId: user.id, actorLabel: user.name, action: "auth.mfa_recovery_used", targetType: "staff_user", targetId: user.id, metadata: { remaining: left.length }, ip: clientIp(ctx.req) });
+        return { ok: true as const, usedRecoveryCode: true, remaining: left.length };
+      }
+
+      await logAudit({ actorType: "staff", actorId: user.id, actorLabel: user.name, action: "auth.mfa_failed", targetType: "staff_user", targetId: user.id, ip: clientIp(ctx.req) });
+      throw new AppError("UNAUTHORIZED", { message: "Feil kode. Prøv igjen, eller bruk en gjenopprettingskode." });
+    }),
+
+  /** Start oppsett: lag en hemmelighet og vis QR-koden. Slår ikke på noe ennå. */
+  startMfaSetup: publicQuery.mutation(async ({ ctx }) => {
+    if (!ctx.staff) throw new AppError("UNAUTHORIZED");
+    const db = getDb();
+    const [user] = await db.select().from(staffUsers).where(eq(staffUsers.id, ctx.staff.userId)).limit(1);
+    if (!user) throw new AppError("NOT_FOUND");
+    if (user.mfaEnabled) throw new AppError("CONFLICT", { message: "Totrinn er allerede slått på." });
+    const secret = newTotpSecret();
+    await db.update(staffUsers).set({ totpSecret: secret }).where(eq(staffUsers.id, user.id));
+    return { uri: totpUri(user.email, secret), secret };
+  }),
+
+  /** Bekreft oppsettet med en kode – først da er totrinn faktisk på. */
+  confirmMfaSetup: publicQuery
+    .input(z.object({ code: z.string().trim().min(6).max(8) }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.staff) throw new AppError("UNAUTHORIZED");
+      assertRateLimit("staff-mfa-setup", `${ctx.staff.userId}`, 10, 5 * 60_000);
+      const db = getDb();
+      const [user] = await db.select().from(staffUsers).where(eq(staffUsers.id, ctx.staff.userId)).limit(1);
+      if (!user?.totpSecret) throw new AppError("VALIDATION", { message: "Start oppsettet på nytt." });
+      if (!(await verifyTotp(user.totpSecret, input.code))) {
+        throw new AppError("UNAUTHORIZED", { message: "Koden stemmer ikke. Sjekk at klokken på telefonen er riktig." });
+      }
+      // Kodene vises én gang og lagres bare som hash – vi kan aldri vise dem igjen.
+      const codes = generateRecoveryCodes();
+      await db
+        .update(staffUsers)
+        .set({ mfaEnabled: true, recoveryCodesJson: JSON.stringify(codes.map((c) => sha256Hex(c))) })
+        .where(eq(staffUsers.id, user.id));
+      await markMfaVerified(ctx.staff.sessionId);
+      await logAudit({ actorType: "staff", actorId: user.id, actorLabel: user.name, action: "auth.mfa_enabled", targetType: "staff_user", targetId: user.id, ip: clientIp(ctx.req) });
+      return { ok: true as const, recoveryCodes: codes };
+    }),
+
+  /** Slå av totrinn. Krever fersk sesjon og passordet på nytt. */
+  disableMfa: freshSessionProcedure("staff:manage")
+    .input(z.object({ password: z.string().min(1).max(128) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const [user] = await db.select().from(staffUsers).where(eq(staffUsers.id, ctx.staff.userId)).limit(1);
+      if (!user?.passwordHash || !(await verifyPassword(user.passwordHash, input.password))) {
+        throw new AppError("UNAUTHORIZED", { message: "Feil passord." });
+      }
+      await db.update(staffUsers).set({ mfaEnabled: false, totpSecret: null, recoveryCodesJson: null }).where(eq(staffUsers.id, user.id));
+      await logAudit({ actorType: "staff", actorId: user.id, actorLabel: user.name, action: "auth.mfa_disabled", targetType: "staff_user", targetId: user.id, ip: clientIp(ctx.req) });
+      return { ok: true as const };
+    }),
 
   /** Aktivering: valider invitasjonen og sett passord — så er kontoen aktiv. */
   activateAccount: publicQuery

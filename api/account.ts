@@ -20,7 +20,7 @@ import { env } from "./lib/env";
 import { revokeCustomerSession } from "./lib/customerSessions";
 import { cleanNotificationPrefs, DEFAULT_NOTIFICATION_PREFS, listNotifications, unreadCount, type NotificationPrefs } from "./lib/notifications";
 import { qualifiedReferralCount, rewardHistory, rewardRules, tierFor } from "./lib/rewards";
-import { airportByIata } from "../contracts/airports";
+import { airportCity, knownAirport } from "./lib/airportMeta";
 
 // ─── Kontoens reiseidentitet ─────────────────────────────────────────────────
 // Alt her er kundens egne valg og egne hendelser. Ingen modul på klienten skal
@@ -211,7 +211,7 @@ export const accountRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       const patch: Partial<typeof customerTravelProfiles.$inferInsert> = {};
       if (input.homeAirports) {
-        const unknown = input.homeAirports.find((a) => !airportByIata(a));
+        const unknown = input.homeAirports.find((a) => !knownAirport(a));
         if (unknown) throw new AppError("VALIDATION", { message: `Vi kjenner ikke flyplassen ${unknown}.`, data: { field: "homeAirports" } });
         patch.homeAirportsJson = JSON.stringify([...new Set(input.homeAirports)]);
       }
@@ -302,7 +302,9 @@ export const accountRouter = createRouter({
       .select()
       .from(searchHistory)
       .where(eq(searchHistory.customerId, ctx.customer.customerId))
-      .orderBy(desc(searchHistory.createdAt))
+      // created_at har sekundoppløsning: to søk i samme sekund er uavgjort, og
+      // uten id som tiebreaker kommer «nyeste først» ut i vilkårlig rekkefølge.
+      .orderBy(desc(searchHistory.createdAt), desc(searchHistory.id))
       .limit(12);
     // Samme rute + dato vises én gang, nyeste først.
     const seen = new Set<string>();
@@ -317,8 +319,8 @@ export const accountRouter = createRouter({
         id: r.id,
         originIata: r.originIata,
         destinationIata: r.destinationIata,
-        originCity: airportByIata(r.originIata)?.city ?? r.originIata,
-        destinationCity: airportByIata(r.destinationIata)?.city ?? r.destinationIata,
+        originCity: airportCity(r.originIata),
+        destinationCity: airportCity(r.destinationIata),
         departDate: r.departDate,
         returnDate: r.returnDate,
         adults: r.adults,
@@ -360,7 +362,7 @@ export const accountRouter = createRouter({
         .select({ id: searchHistory.id })
         .from(searchHistory)
         .where(eq(searchHistory.customerId, ctx.customer.customerId))
-        .orderBy(desc(searchHistory.createdAt))
+        .orderBy(desc(searchHistory.createdAt), desc(searchHistory.id))
         .offset(50)
         .limit(100);
       if (old.length) await db.delete(searchHistory).where(inArray(searchHistory.id, old.map((o) => o.id)));
@@ -549,8 +551,8 @@ export const accountRouter = createRouter({
       .slice(0, 4)
       .map((r) => ({
         ...r,
-        originCity: airportByIata(r.originIata)?.city ?? r.originIata,
-        destinationCity: airportByIata(r.destinationIata)?.city ?? r.destinationIata,
+        originCity: airportCity(r.originIata),
+        destinationCity: airportCity(r.destinationIata),
       }));
 
     return {
@@ -564,7 +566,7 @@ export const accountRouter = createRouter({
         id: w.id,
         originIata: w.originIata,
         destinationIata: w.destinationIata,
-        destinationCity: airportByIata(w.destinationIata)?.city ?? w.destinationIata,
+        destinationCity: airportCity(w.destinationIata),
         lastCheckedAt: w.lastCheckedAt?.toISOString() ?? null,
         lastResult: parseJson<Record<string, unknown> | null>(w.lastResultJson, null),
       })),

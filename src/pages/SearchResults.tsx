@@ -26,6 +26,7 @@ import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { PREFERENCES, isFamily, isPreference, rank, type Preference } from "@/lib/offers";
 import { ConnectionProblemSpot, NoFlightsSpot, SkeletonFlightCard } from "@/components/graphics";
 import { cn } from "@/lib/utils";
+import { DEFAULT_CHILD_AGE, DEFAULT_INFANT_AGE, passengersFromParams } from "@/components/search/searchQuery";
 
 type SortKey = Preference | "earliest";
 
@@ -39,14 +40,6 @@ const TIME_BANDS = [
 type TimeBand = (typeof TIME_BANDS)[number]["key"];
 
 const PAGE_SIZE = 20;
-
-function parseAges(param: string | null): number[] {
-  if (!param) return [];
-  return param
-    .split(",")
-    .map((x) => Number(x))
-    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 17);
-}
 
 const inBand = (band: TimeBand, h: number) =>
   band === "all" ? true : band === "night" ? h < 6 : band === "morning" ? h >= 6 && h < 12 : band === "day" ? h >= 12 && h < 18 : h >= 18;
@@ -119,17 +112,11 @@ export default function SearchResults() {
     return s;
   }, [isMulti, legs, from, to, depart, ret]);
 
-  const childAges = useMemo(() => parseAges(params.get("childAges")), [params]);
-  const infantAges = useMemo(() => parseAges(params.get("infantAges")), [params]);
-
-  const passengers = useMemo<SearchPassengerInput[]>(() => {
-    const out: SearchPassengerInput[] = [];
-    const adults = Number(params.get("adults") ?? 1);
-    for (let i = 0; i < adults; i++) out.push({ type: "adult" });
-    childAges.forEach((age) => out.push({ type: "child", age }));
-    infantAges.forEach((age) => out.push({ type: "infant_without_seat", age }));
-    return out;
-  }, [params, childAges, infantAges]);
+  // Antallet i lenken er fasit; alderslistene presiserer den. Se
+  // passengersFromParams – lagrede og nylige søk bærer bare antall.
+  const passengers = useMemo<SearchPassengerInput[]>(() => passengersFromParams(params), [params]);
+  const childAges = useMemo(() => passengers.filter((p) => p.type === "child").map((p) => p.age ?? DEFAULT_CHILD_AGE), [passengers]);
+  const infantAges = useMemo(() => passengers.filter((p) => p.type === "infant_without_seat").map((p) => p.age ?? DEFAULT_INFANT_AGE), [passengers]);
   const family = isFamily(passengers);
 
   const search = trpc.flights.search.useMutation();
@@ -718,7 +705,12 @@ export default function SearchResults() {
 
           {/* sort + mobile filter row: stays under the header while the list scrolls on phones */}
           <div className="sticky top-16 z-20 -mx-5 mb-5 flex items-center gap-2 bg-background/95 px-5 py-1 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:py-0 lg:backdrop-blur-none">
-            <div role="radiogroup" aria-label={t("sr.sorting")} className="no-scrollbar -ml-5 flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto py-1 pl-5 pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] sm:-ml-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:pl-0 lg:pr-0 lg:[mask-image:none]">
+            <div role="radiogroup" aria-label={t("sr.sorting")} /*
+                snap-pausen legger seg på kortets kant, ikke på innrykket: uten
+                scroll-padding snapper raden 20 px forbi, og den første knappen
+                blir stående klistret til skjermkanten mens resten av siden har
+                marg. */
+              className="no-scrollbar -ml-5 flex min-w-0 flex-1 snap-x scroll-pl-5 gap-2 overflow-x-auto py-1 pl-5 pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] sm:-ml-8 sm:scroll-pl-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:scroll-pl-0 lg:pl-0 lg:pr-0 lg:[mask-image:none]">
               {/* The summary cards above already carry best/cheapest/fastest (and family); the chips only add what they don't. */}
               {PREFERENCES.filter((p) => !summaryKeys.has(p.key)).map((p) => (
                 <Chip

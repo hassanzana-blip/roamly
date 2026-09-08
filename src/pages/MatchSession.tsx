@@ -14,6 +14,7 @@ import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
 import { usePageMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { isShareToken } from "@contracts/shareTokens";
 
 /**
  * /m/:token – rommet for Par- og Venne-match. Uten deltakernøkkel: bli med
@@ -35,7 +36,7 @@ export default function MatchSession() {
   usePageMeta({ title: "ReiseMatch", description: "Finn ut hvor dere skal – sammen.", canonicalPath: `/m/${token}`, noindex: true });
   const [keys, setKeys] = useState(() => matchKeysFor(token));
   const utils = trpc.useUtils();
-  const q = trpc.match.get.useQuery({ token, participantKey: keys.participantKey, ownerKey: keys.ownerKey }, { enabled: /^[a-f0-9]{24}$/.test(token), retry: false, refetchInterval: 20_000 });
+  const q = trpc.match.get.useQuery({ token, participantKey: keys.participantKey, ownerKey: keys.ownerKey }, { enabled: isShareToken(token), retry: false, refetchInterval: 20_000 });
   const invalidate = () => utils.match.get.invalidate({ token, participantKey: keys.participantKey, ownerKey: keys.ownerKey });
   const join = trpc.match.join.useMutation({ onSuccess: (r, vars) => { saveMatchKeys(token, { participantKey: r.participantKey, name: vars.name }); rememberName(vars.name); setKeys(matchKeysFor(token)); invalidate(); } });
   const vote = trpc.match.vote.useMutation({ onSuccess: invalidate });

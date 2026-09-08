@@ -5,6 +5,7 @@ import { getDb } from "./queries/connection";
 import { tripBoardComments, tripBoardItems, tripBoardVotes, tripBoards } from "../db/schema";
 import { AppError } from "./lib/errors";
 import { randomToken, sha256Hex } from "./lib/tokens";
+import { SHARE_TOKEN_BYTES, SHARE_TOKEN_RE } from "../contracts/shareTokens";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { env } from "./lib/env";
 
@@ -14,7 +15,7 @@ import { env } from "./lib/env";
 // med navn. Elementer er øyeblikksbilder (rute, dato, pris sett da) — en tavle
 // er en idé, aldri en bestilling.
 
-const TOKEN = z.string().regex(/^[a-f0-9]{24}$/);
+const TOKEN = z.string().regex(SHARE_TOKEN_RE);
 const NAME = z.string().trim().min(1).max(40);
 const VOTER = z.string().trim().min(8).max(64);
 const MAX_BOARDS = 20;
@@ -84,7 +85,7 @@ export const boardsRouter = createRouter({
       const db = getDb();
       const [count] = await db.select({ n: sql<number>`count(*)` }).from(tripBoards).where(eq(tripBoards.ownerCustomerId, ctx.customer.customerId));
       if (Number(count?.n ?? 0) >= MAX_BOARDS) throw new AppError("VALIDATION", { message: `Du kan ha ${MAX_BOARDS} tavler. Slett en gammel for å lage en ny.` });
-      const token = randomToken(12);
+      const token = randomToken(SHARE_TOKEN_BYTES);
       await db.insert(tripBoards).values({ token, ownerCustomerId: ctx.customer.customerId, title: input.title, when: input.when ?? null, coverDestinationId: input.coverDestinationId ?? null });
       return { token, shareUrl: `${env.baseUrl}/tavler/${token}` };
     }),

@@ -139,7 +139,7 @@ function PersonalStrip() {
 }
 
 const SeeAll = ({ to, label }: { to: string; label: string }) => (
-  <Link to={to} className="inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-foreground underline-offset-4 hover:underline">
+  <Link to={to} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-foreground underline-offset-4 hover:underline sm:min-h-9">
     {label} <Icon icon={ArrowRight} size={16} />
   </Link>
 );
@@ -224,7 +224,7 @@ export default function Home() {
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Icon icon={Clock3} size={16} /> {t("home.recent")}:</span>
               {recent.slice(0, 3).map((s) => (
-                <Link key={`${s.from}-${s.to}-${s.depart}`} to={recentSearchHref(s)} className="press inline-flex min-h-9 items-center rounded-lg border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-foreground/30">{s.fromLabel} → {s.toLabel}</Link>
+                <Link key={`${s.from}-${s.to}-${s.depart}`} to={recentSearchHref(s)} className="press inline-flex min-h-11 items-center rounded-lg border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-foreground/30 sm:min-h-9">{s.fromLabel} → {s.toLabel}</Link>
               ))}
             </div>
           )}

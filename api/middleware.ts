@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { ZodError } from "zod";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { hasPermission, REAUTH_ACTIONS, type Permission } from "./lib/rbac";
@@ -14,9 +15,33 @@ import { captureException } from "./lib/monitoring";
 
 type ErrorCause = { appCode?: string; retryable?: boolean } & Record<string, unknown>;
 
+/**
+ * Zod-feil er også kundefeil.
+ *
+ * Uten appCode faller klienten tilbake på «noe gikk galt hos oss» – for et
+ * skjema der kunden bare har skrevet samme flyplass to ganger. Vi løfter derfor
+ * zod-feil til VALIDATION med feltet, og bruker den håndskrevne meldingen når
+ * regelen har en (`custom`); zods egne meldinger er engelske og tekniske, og
+ * har ingenting å gjøre i et norsk skjema.
+ */
+function zodAppError(err: unknown): AppError | null {
+  if (!(err instanceof ZodError) || err.issues.length === 0) return null;
+  const issue = err.issues.find((i) => i.code === "custom") ?? err.issues[0];
+  const field = issue.path.filter((p) => typeof p === "string" || typeof p === "number").join(".");
+  return new AppError("VALIDATION", {
+    // Zods egne meldinger er engelske og tekniske; bare håndskrevne regler
+    // (`custom`) har tekst som kan stå i et norsk skjema.
+    message: issue.code === "custom" && issue.message ? issue.message : "Sjekk feltene som er merket, og prøv igjen.",
+    ...(field ? { data: { field } } : {}),
+    cause: err,
+  });
+}
+
 function causeOf(err: TRPCError): ErrorCause | null {
   const c = err.cause;
   if (c instanceof AppError) return { appCode: c.code, retryable: c.retryable, ...(c.data ?? {}) };
+  const zod = zodAppError(c);
+  if (zod) return { appCode: zod.code, retryable: zod.retryable, ...(zod.data ?? {}) };
   if (c && typeof c === "object" && "appCode" in c) return c as ErrorCause;
   return null;
 }
@@ -62,6 +87,10 @@ const errorBoundary = t.middleware(async ({ next }) => {
       // tRPC har allerede pakket AppError inn i en TRPCError(INTERNAL) — pakk ut riktig kode
       throw toTRPCError(cause);
     }
+    // Inputvalidering er også en kundefeil: uten appCode faller klienten tilbake
+    // på «noe gikk galt hos oss» for et skjema kunden selv kan rette.
+    const zod = zodAppError(cause);
+    if (zod) throw toTRPCError(zod);
     throw err;
   }
   return result;
@@ -104,12 +133,24 @@ export const verifiedCustomerProcedure = publicQuery.use(({ ctx, next }) => {
 });
 
 /**
- * Staff-pålogging er e-post + passord. Tofaktor er avslått etter eiers
- * beslutning; kolonnene i databasen er beholdt slik at det kan slås på igjen
- * uten migrering.
+ * Staff-pålogging er e-post + passord, med totrinn som et valg per konto.
+ *
+ * Totrinn var tidligere avslått for alle, og kolonnene sto ubrukt mens både
+ * bootstrap-skriptet og sidemenyen fortalte eierne at det var påkrevd. Nå er
+ * det ekte: den som slår det på, må bekrefte en kode ved innlogging, og
+ * sesjonen bærer ingen rettigheter før den er bekreftet. Den som ikke har
+ * slått det på, merker ingen forskjell – ingen låses ute av en endring de
+ * ikke har bedt om.
  */
 function assertStaff(ctx: TrpcContext) {
   if (!ctx.staff) throw unauthorized();
+  if (ctx.staff.mfaEnabled && !ctx.staff.mfaVerified) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Bekreft koden fra autentikator-appen for å fortsette.",
+      cause: new AppError("FORBIDDEN", { message: "Totrinn ikke bekreftet.", data: { reason: "mfa_pending" } }),
+    });
+  }
   return ctx.staff;
 }
 
@@ -143,11 +184,23 @@ export const permittedProcedure = (permission: Permission) =>
  */
 export const freshSessionProcedure = (permission: Permission) =>
   permittedProcedure(permission).use(({ ctx, next }) => {
-    if (REAUTH_ACTIONS.has(permission) && !sessionIsFresh(ctx.staff)) {
+    if (!REAUTH_ACTIONS.has(permission)) return next({ ctx });
+    if (!sessionIsFresh(ctx.staff)) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "Krever nylig innlogging. Logg inn igjen og prøv på nytt.",
         cause: new AppError("FORBIDDEN", { message: "Krever nylig innlogging.", data: { reason: "reauth_required" } }),
+      });
+    }
+    // Sesjonen bærer allerede `mfaVerified`; uten denne sjekken betyr feltet
+    // ingenting, og en sesjon som ikke har fullført totrinn kan godkjenne en
+    // refusjon. Innlogging setter det i dag, så dette endrer ingen arbeidsflyt
+    // – det gjør at porten faktisk holder den dagen totrinn slås på.
+    if (!ctx.staff.mfaVerified) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Bekreft totrinnspålogging før du gjør dette.",
+        cause: new AppError("FORBIDDEN", { message: "Krever bekreftet totrinnspålogging.", data: { reason: "mfa_required" } }),
       });
     }
     return next({ ctx });

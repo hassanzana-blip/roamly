@@ -6,6 +6,7 @@ import { matchComments, matchParticipants, matchSessions, matchVotes } from "../
 import { agreementOf, QUIZ_DESTINATIONS, scoreGroup, type QuizAnswers } from "../contracts/quiz";
 import { AppError } from "./lib/errors";
 import { randomToken, sha256Hex } from "./lib/tokens";
+import { SHARE_KEY_BYTES, SHARE_KEY_RE, SHARE_TOKEN_BYTES, SHARE_TOKEN_RE } from "../contracts/shareTokens";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { env } from "./lib/env";
 
@@ -18,8 +19,8 @@ import { env } from "./lib/env";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 const MAX_PARTICIPANTS = 10;
 const NAME = z.string().trim().min(1).max(40);
-const TOKEN = z.string().regex(/^[a-f0-9]{24}$/);
-const KEY = z.string().regex(/^[a-f0-9]{32}$/);
+const TOKEN = z.string().regex(SHARE_TOKEN_RE);
+const KEY = z.string().regex(SHARE_KEY_RE);
 const DEST = z.string().regex(/^[a-z-]{2,40}$/);
 
 const answersSchema = z.object({
@@ -132,9 +133,9 @@ export const matchRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       assertRateLimit("match-create", clientIp(ctx.req), 10, 60 * 60_000);
       const db = getDb();
-      const token = randomToken(12);
-      const ownerKey = randomToken(16);
-      const participantKey = randomToken(16);
+      const token = randomToken(SHARE_TOKEN_BYTES);
+      const ownerKey = randomToken(SHARE_KEY_BYTES);
+      const participantKey = randomToken(SHARE_KEY_BYTES);
       const title = input.title?.trim() || (input.mode === "couple" ? `${input.name} + …` : `${input.name} sin tur`);
       const res = await db.insert(matchSessions).values({
         token,
@@ -173,7 +174,7 @@ export const matchRouter = createRouter({
       if (Number(count?.n ?? 0) >= max) {
         throw new AppError("CONFLICT", { message: session.mode === "couple" ? "Begge har allerede svart i denne matchen." : `Rommet er fullt (${max} deltakere).` });
       }
-      const participantKey = randomToken(16);
+      const participantKey = randomToken(SHARE_KEY_BYTES);
       const p = await db.insert(matchParticipants).values({
         sessionId: session.id,
         name: input.name,

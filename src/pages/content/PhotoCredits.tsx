@@ -70,7 +70,7 @@ export default function PhotoCredits() {
                   </span>
                   <figcaption className="mt-2.5">
                     {dest ? (
-                      <Link to={`/reisemal#${dest.id}`} className="block text-[15px] font-semibold underline-offset-4 hover:underline">
+                      <Link to={`/reisemal#${dest.id}`} className="flex min-h-11 items-center text-[15px] font-semibold underline-offset-4 hover:underline sm:min-h-0">
                         {dest.city}
                       </Link>
                     ) : (

@@ -202,7 +202,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
                 onClick={swap}
                 aria-label={t("sw.swap")}
                 className={cn(
-                  "absolute z-10 grid size-9 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm",
+                  "absolute z-10 grid size-11 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm sm:size-9",
                   "transition-[transform,color,border-color] duration-fast ease-out hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
                   "right-3 top-1/2 -translate-y-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2",
                   "active:scale-95",
@@ -266,7 +266,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
             onClick={() => setMoreOpen((o) => !o)}
             aria-expanded={moreOpen}
             aria-controls={moreId}
-            className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:min-h-9"
           >
             {moreOpen ? t("sw.pref.less") : t("sw.pref.more")}
             <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-base ease-out", moreOpen && "rotate-180")} aria-hidden="true" />

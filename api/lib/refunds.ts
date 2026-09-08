@@ -12,7 +12,7 @@ import { assertRefundTransition, assertTransition, canTransition, type BookingSt
 import { postLedger, refundCreatedEntries, refundPaidEntries, type DbOrTx } from "./ledger";
 import { issueCreditNote, vatRateFor } from "./invoices";
 import { createRefund, stripeConfigured } from "./stripe";
-import { airportByIata } from "../../contracts/airports";
+import { airportMetaByIata } from "./airportMeta";
 import type { Order } from "../../contracts/types";
 
 // ─── Refusjonssaker (OTA-051–060) ──────────────────────────────────────────
@@ -388,8 +388,8 @@ async function finishSucceeded(caseId: number): Promise<void> {
       await postLedger(tx, refundPaidEntries({ bookingId: rc.bookingId, paymentId: rc.paymentId, refundCaseId: rc.id, currency: rc.currency, customerRefundMinor: amountMinor, externalRef: rc.pspRefundId }));
       const segs = (order?.slices ?? []).flatMap((s) =>
         s.segments.map((seg) => ({
-          originCountryCode: airportByIata(seg.origin.iata)?.countryCode ?? null,
-          destinationCountryCode: airportByIata(seg.destination.iata)?.countryCode ?? null,
+          originCountryCode: airportMetaByIata(seg.origin.iata)?.countryCode ?? null,
+          destinationCountryCode: airportMetaByIata(seg.destination.iata)?.countryCode ?? null,
         })),
       );
       await issueCreditNote(tx, {

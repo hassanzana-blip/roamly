@@ -139,7 +139,7 @@ export default function MyTrip() {
             <MailWarning className="mt-0.5 h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
             <div>
               <p className="font-semibold text-warning">{t("mt.verify.title")}</p>
-              <p className="mt-1 text-sm text-warning/80">{t("mt.verify.body", { email: customer.email ?? "" })}</p>
+              <p className="mt-1 text-sm text-warning">{t("mt.verify.body", { email: customer.email ?? "" })}</p>
               <button
                 type="button"
                 onClick={() => resend.mutate()}

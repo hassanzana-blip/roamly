@@ -131,14 +131,17 @@ export async function recordReward(input: RewardEventInput, tx?: Tx): Promise<bo
   log.info({ customerId: input.customerId, kind: input.kind, amountKr: input.amountKr }, "bonus registrert");
   if (input.amountKr > 0) {
     const what = input.kind === "booking" ? "for reisen din" : input.kind === "referral" ? "fordi en du inviterte har reist" : input.kind === "referral_welcome" ? "som velkomstbonus" : "";
-    await notify({
-      customerId: input.customerId,
-      type: "rewards",
-      title: `${input.amountKr} kr i bonus ${what}`.trim(),
-      body: input.note ?? undefined,
-      href: "/profil/bonus",
-      dedupeKey: `reward:${input.kind}:${input.refType ?? "-"}:${input.refId ?? "-"}`,
-    }).catch(() => {});
+    await notify(
+      {
+        customerId: input.customerId,
+        type: "rewards",
+        title: `${input.amountKr} kr i bonus ${what}`.trim(),
+        body: input.note ?? undefined,
+        href: "/profil/bonus",
+        dedupeKey: `reward:${input.kind}:${input.refType ?? "-"}:${input.refId ?? "-"}`,
+      },
+      tx,
+    ).catch(() => {});
   }
   return true;
 }

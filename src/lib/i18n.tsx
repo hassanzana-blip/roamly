@@ -552,6 +552,10 @@ const dict = {
   "co.login.prompt": { nb: "Har du konto? Logg inn, så fyller vi ut reisende og kontaktinformasjon for deg.", en: "Have an account? Sign in and we fill in travellers and contact details for you." },
   "co.login.cta": { nb: "Logg inn", en: "Sign in" },
   "co.nooffer": { nb: "Ingen reise valgt ennå", en: "No trip selected yet" },
+  "co.nooffer.body": {
+    nb: "Tilbud holdes en kort stund før prisen må hentes på nytt. Søk igjen, så finner vi den samme reisen med gjeldende pris.",
+    en: "Offers are held briefly before the price has to be fetched again. Search again and we will find the same trip at the current price.",
+  },
   "co.startsearch": { nb: "Start et søk", en: "Start a search" },
   "co.backresults": { nb: "Tilbake til resultater", en: "Back to results" },
   "co.title": { nb: "Fullfør bestillingen", en: "Complete your booking" },

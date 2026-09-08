@@ -9,7 +9,11 @@ import type {
   SearchSliceInput,
   Segment,
 } from "../../contracts/types";
-import { airportByIata, type Airport } from "../../contracts/airports";
+import { type Airport } from "../../contracts/airports";
+// Demomotoren må kunne fly dit kunden faktisk kan søke. Slår vi bare opp i det
+// kuraterte settet, svarer et søk til Kraków «ingen treff» i stedet for å si at
+// vi ikke selger ruten – og flyplassvelgeren tilbyr hele verden.
+import { airportMetaByIata as airportByIata } from "./airportMeta";
 import { env } from "./env";
 import type { SupplierOrder } from "./duffel";
 import { fromMinor, toMinor } from "./money";

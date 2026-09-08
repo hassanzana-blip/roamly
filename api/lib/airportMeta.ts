@@ -87,13 +87,32 @@ export function searchAirportsWorldwide(query: string, limit = 12): Airport[] {
   return [...curated, ...scored.slice(0, limit - curated.length).map((s) => s.a)];
 }
 
-/** Metadata for én flyplass, kuratert først, ellers fra verdensregisteret. */
+const BY_IATA = new Map<string, Row>(ROWS.map((r) => [r.i, r]));
+const CURATED_BY_IATA = new Map<string, Airport>(AIRPORTS.map((a) => [a.iata, a]));
+
+/**
+ * Metadata for én flyplass, kuratert først, ellers fra verdensregisteret.
+ *
+ * Oppslag, ikke gjennomsøk: dette kalles én gang per rad når vi setter navn på
+ * reiser, prisvarsler og kvitteringer, og et lineært søk gjennom registeret
+ * per rad er unødvendig arbeid på hver eneste forespørsel.
+ */
 export function airportMetaByIata(iata: string): Airport | undefined {
   const code = iata.toUpperCase();
-  const curated = AIRPORTS.find((a) => a.iata === code);
+  const curated = CURATED_BY_IATA.get(code);
   if (curated) return curated;
-  const row = ROWS.find((r) => r.i === code);
+  const row = BY_IATA.get(code);
   return row ? toAirport(row) : undefined;
+}
+
+/** Byen vi viser for en kode. Er flyplassen ukjent, er koden det ærligste vi har. */
+export function airportCity(iata: string): string {
+  return airportMetaByIata(iata)?.city ?? iata;
+}
+
+/** Kjenner vi flyplassen i det hele tatt? Brukes til å validere det kunden skriver inn. */
+export function knownAirport(iata: string): boolean {
+  return airportMetaByIata(iata) !== undefined;
 }
 
 /** Antall flyplasser i verdensregisteret – vises i utviklerverktøy og tester. */

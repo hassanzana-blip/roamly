@@ -62,7 +62,7 @@ export default function Trips() {
             <Icon icon={MailWarning} size={20} className="mt-0.5 shrink-0 text-warning" />
             <div>
               <p className="font-semibold text-warning">{t("mt.verify.title")}</p>
-              <p className="mt-1 text-sm text-warning/80">{t("mt.verify.body", { email: customer.email ?? "" })}</p>
+              <p className="mt-1 text-sm text-warning">{t("mt.verify.body", { email: customer.email ?? "" })}</p>
               <button type="button" onClick={() => resend.mutate()} disabled={resend.isPending || resend.isSuccess} className="mt-2 min-h-11 rounded-lg bg-night px-5 text-sm font-semibold text-white disabled:opacity-60">
                 {resend.isSuccess ? t("common.sent") : t("common.resendlink")}
               </button>

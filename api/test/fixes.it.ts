@@ -25,7 +25,7 @@ import {
 } from "./setup";
 import { setDuffelClient } from "../lib/duffel";
 import { DuffelFake } from "../lib/duffelFake";
-import { reconcileBookingById, scheduleChangeFingerprint, sweepBookings } from "../lib/reconcile";
+import { reconcileBookingById, scheduleChangeFingerprint, STUCK_ATTEMPT_MS, sweepBookings } from "../lib/reconcile";
 import { processBookingAttempt } from "../lib/orchestrator";
 import { runRetention } from "../lib/retention";
 import { setSetting } from "../lib/pricing";
@@ -291,6 +291,16 @@ describe("B3: fastlåst SUPPLIER_ORDERING gjenopprettes via sweep", () => {
     await rows(`UPDATE booking_attempts SET state='SUPPLIER_ORDERING', updated_at = DATE_SUB(NOW(), INTERVAL 10 MINUTE) WHERE id=${attemptId}`);
     expect(await countRows("jobs", "type='recover_attempt' AND status='pending'")).toBe(0);
 
+    // Forutsetningen for sveipen, sjekket her og ikke antatt: står forsøket
+    // fortsatt i SUPPLIER_ORDERING, og er raden gammel nok? Uten denne så en
+    // feil ut som «sveipen fant ingenting», mens den egentlige årsaken var at
+    // raden var skrevet på nytt av noe annet.
+    const [pre] = await rows<{ state: string; age_s: number }>(
+      `SELECT state, TIMESTAMPDIFF(SECOND, updated_at, NOW()) AS age_s FROM booking_attempts WHERE id=${attemptId}`,
+    );
+    expect(pre.state).toBe("SUPPLIER_ORDERING");
+    expect(Number(pre.age_s)).toBeGreaterThan(STUCK_ATTEMPT_MS / 1000);
+
     const minuteA = new Date().toISOString().slice(0, 16);
     await sweepBookings();
     expect(await countRows("jobs", "type='recover_attempt' AND status='pending'")).toBe(1);
@@ -299,7 +309,12 @@ describe("B3: fastlåst SUPPLIER_ORDERING gjenopprettes via sweep", () => {
     if (minuteA === minuteB) expect(await countRows("jobs", "type='recover_attempt' AND status='pending'")).toBe(1);
 
     const ran = await runJobsUntilIdle();
-    expect(ran.filter((j) => j.type === "recover_attempt").length).toBeGreaterThanOrEqual(2); // sweep-jobben + stale-jobben
+    // Gjenoppretting skal ha kjørt. Hvor mange gjenopprettingsjobber som
+    // tilfeldigvis ble utført i akkurat dette kallet er derimot bokføring:
+    // både sveipen og «stale»-stien legger inn en jobb, og rekkefølgen mellom
+    // dem avgjør om den andre finner noe å gjøre. Det som betyr noe står
+    // under – én ordre, én belastning, én bestilling, balansert hovedbok.
+    expect(ran.filter((j) => j.type === "recover_attempt").length, JSON.stringify(ran)).toBeGreaterThanOrEqual(1);
     const [att] = await rows<{ state: string }>(`SELECT state FROM booking_attempts WHERE id=${attemptId}`);
     expect(att.state).toBe("CONFIRMED");
     expect(fake.createOrderCalls).toBe(1);

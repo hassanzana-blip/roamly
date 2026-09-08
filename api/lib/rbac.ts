@@ -13,6 +13,8 @@ export type Permission =
   | "customers:read"
   | "customers:reveal"
   | "payments:read"
+  | "expenses:read"
+  | "expenses:write"
   | "refunds:request"
   | "refunds:process"
   | "support:read"
@@ -41,6 +43,8 @@ const ADMIN_OPS: Permission[] = [
   "customers:read",
   "customers:reveal",
   "payments:read",
+  "expenses:read",
+  "expenses:write",
   "refunds:request",
   "refunds:process",
   "support:read",
@@ -75,6 +79,8 @@ export const ROLE_PERMISSIONS: Record<StaffRole, ReadonlySet<Permission>> = {
     "overview:read",
     "bookings:read",
     "payments:read",
+    "expenses:read",
+    "expenses:write",
     "refunds:request",
     "refunds:process",
     "reports:read",
@@ -89,6 +95,7 @@ export const ROLE_PERMISSIONS: Record<StaffRole, ReadonlySet<Permission>> = {
     "quotes:read",
     "customers:read",
     "payments:read",
+    "expenses:read",
     "support:read",
     "reports:read",
     "problems:read",

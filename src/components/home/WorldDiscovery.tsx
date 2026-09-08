@@ -61,21 +61,29 @@ export default function WorldDiscovery() {
       {/* `key` gjør at listen monteres på nytt når temaet skifter, og
           CSS-animasjonen spiller av. Ren CSS: en kryssfade her er ikke verdt
           136 kB på forsidens kritiske sti. */}
+      {/*
+        På telefon står listen i to spalter med et bredt kort først. Er antallet
+        partall, blir det siste kortet stående alene med et hull ved siden av –
+        derfor får det siste kortet samme bredde som det første når det ellers
+        ville blitt et enslig kort. Rytmen blir bred, par, par, bred. På store
+        skjermer er det tre spalter og seks kort går opp av seg selv.
+      */}
       <ul key={theme} className="theme-swap mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {picks.map((d, i) => {
           const air = airportByIata(d.iata);
+          const wide = i === 0 || (picks.length % 2 === 0 && i === picks.length - 1);
           return (
-            <li key={d.id} className={i === 0 ? "col-span-2 lg:col-span-1" : undefined}>
+            <li key={d.id} className={wide ? "col-span-2 lg:col-span-1" : undefined}>
               <Link
                 to={searchHref(d.iata)}
                 className="press img-zoom group relative block overflow-hidden rounded-2xl bg-night text-white outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <span className={i === 0 ? "block aspect-[16/10] lg:aspect-[4/5]" : "block aspect-[4/5]"}>
+                <span className={wide ? "block aspect-[16/10] lg:aspect-[4/5]" : "block aspect-[4/5]"}>
                   {d.image && (
                     <img
                       src={d.image}
                       srcSet={imageSrcSet(d.image)}
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 380px"
+                      sizes={wide ? "(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 380px" : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 380px"}
                       alt={d.imageAlt}
                       loading="lazy"
                       decoding="async"

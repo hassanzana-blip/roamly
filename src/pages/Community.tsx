@@ -362,7 +362,7 @@ export default function Community() {
               onClick={() => setKind(k.id)}
               aria-pressed={kind === k.id}
               className={cn(
-                "min-h-9 rounded-lg border px-4 text-[13px] font-semibold transition-colors",
+                "min-h-11 rounded-lg border px-4 text-[13px] font-semibold transition-colors sm:min-h-9",
                 kind === k.id
                   ? "border-primary bg-primary text-night"
                   : "border-border bg-card text-muted-foreground hover:text-foreground",
