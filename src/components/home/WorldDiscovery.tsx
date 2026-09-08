@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight } from "lucide-react";
 import Icon from "@/components/app/Icon";
 import CountryFlag from "@/components/brand/CountryFlag";
@@ -33,7 +32,6 @@ const THEMES: { id: ThemeId; label: I18nKey; sub: I18nKey }[] = [
 
 export default function WorldDiscovery() {
   const t = useT();
-  const reduce = useReducedMotion();
   const [theme, setTheme] = useState<ThemeId>("sol");
   const active = THEMES.find((x) => x.id === theme)!;
   const picks = spreadAcrossRegions(DESTINATIONS.filter((d) => d.themes.includes(theme) && d.image), 6);
@@ -60,13 +58,10 @@ export default function WorldDiscovery() {
 
       <p className="t-lead mt-5 max-w-xl text-muted-foreground">{t(active.sub)}</p>
 
-      <motion.ul
-        key={theme}
-        initial={reduce ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
-        className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3"
-      >
+      {/* `key` gjør at listen monteres på nytt når temaet skifter, og
+          CSS-animasjonen spiller av. Ren CSS: en kryssfade her er ikke verdt
+          136 kB på forsidens kritiske sti. */}
+      <ul key={theme} className="theme-swap mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {picks.map((d, i) => {
           const air = airportByIata(d.iata);
           return (
@@ -103,7 +98,7 @@ export default function WorldDiscovery() {
             </li>
           );
         })}
-      </motion.ul>
+      </ul>
 
       <Link to="/reisemal" className="mt-6 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold underline-offset-4 hover:underline">
         {t("world.all")} <Icon icon={ArrowRight} size={16} />

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
 import { Compass, Heart, Home, Luggage, User } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
 import Icon from "./Icon";
 import { cn } from "@/lib/utils";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -29,7 +28,6 @@ export default function BottomNav() {
   const { pathname } = useLocation();
   const hidden = HIDDEN.some((re) => re.test(pathname));
   const t = useT();
-  const reduce = useReducedMotion();
 
   useEffect(() => {
     document.body.classList.toggle("has-tabbar", !hidden);
@@ -51,14 +49,11 @@ export default function BottomNav() {
           >
             {({ isActive }) => (
               <>
-                {isActive && (
-                  <motion.span
-                    layoutId={reduce ? undefined : "bottomnav-pill"}
-                    transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 480, damping: 38 }}
-                    className="absolute inset-0 rounded-full bg-primary"
-                    aria-hidden="true"
-                  />
-                )}
+                {/* Den aktive flaten er ren CSS. Den lå i motions delte
+                    layout-animasjon, og dro dermed 136 kB inn i den kritiske
+                    stien på hver eneste mobilside – for et merke som skifter
+                    når man bytter side uansett. */}
+                {isActive && <span className="tab-pill absolute inset-0 rounded-full bg-primary" aria-hidden="true" />}
                 <span className={cn("relative z-10 flex flex-col items-center gap-0.5 transition-colors duration-fast sm:flex-row sm:gap-1.5", isActive ? "text-primary-foreground" : "text-white/75 hover:text-white")}>
                   <Icon icon={tab.icon} size={16} />
                   <span className="text-[11px] font-semibold leading-none sm:text-xs">{t(tab.label)}</span>

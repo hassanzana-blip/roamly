@@ -633,6 +633,35 @@
       animation: page-enter-fade 120ms linear both;
     }
   }
+  /* Bunnavigasjonens aktive flate: kort, rolig innfelling. Ingen bevegelse
+     mellom faner – siden bytter uansett, og en pille som flyr etter er
+     støy når man allerede ser på noe nytt. */
+  /* Bytte av tema i «Hvor vil du?»: kort innfelling, ingen sprett. */
+  .theme-swap {
+    animation: theme-swap 280ms var(--ease-out) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .theme-swap {
+      animation: none;
+    }
+  }
+  .tab-pill {
+    animation: tab-pill-in 160ms var(--ease-out) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* Bytte av tema i «Hvor vil du?»: kort innfelling, ingen sprett. */
+  .theme-swap {
+    animation: theme-swap 280ms var(--ease-out) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .theme-swap {
+      animation: none;
+    }
+  }
+  .tab-pill {
+      animation: none;
+    }
+  }
   .img-zoom img {
     transition: transform 0.5s var(--ease-out);
   }
@@ -714,5 +743,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes tab-pill-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes theme-swap {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

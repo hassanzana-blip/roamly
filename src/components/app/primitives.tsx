@@ -1,69 +1,66 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { motion, type HTMLMotionProps } from "motion/react";
 import { Heart, type LucideIcon } from "lucide-react";
 import Icon from "./Icon";
 import { cn } from "@/lib/utils";
 
 /* ─── Buttons ─────────────────────────────────────────────────────────── */
 
-// Omit event handlers whose signatures collide between React and motion.
+// Trykkfølelsen er ren CSS (`active:scale-*`). Den lå i motions `whileTap`,
+// og dro dermed animasjonsbiblioteket inn overalt der en knapp finnes – for
+// en effekt nettleseren gjør selv, uten en eneste kilobyte.
 type BtnProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "onAnimationStart" | "onAnimationEnd" | "onAnimationIteration" | "onDrag" | "onDragStart" | "onDragEnd" | "onDragOver" | "onDragEnter" | "onDragLeave" | "onDragExit" | "onDrop"
 > & {
   icon?: LucideIcon;
 };
-type MotionBtnRest = Omit<HTMLMotionProps<"button">, "ref">;
 
 const baseBtn =
-  "inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-5 text-[15px] font-semibold transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50";
+  "press inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-5 text-[15px] font-semibold transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50";
 
 /** The single action of a screen. ≥48px target. */
 export const PrimaryButton = forwardRef<HTMLButtonElement, BtnProps>(function PrimaryButton({ icon, className, children, ...rest }, ref) {
   return (
-    <motion.button
+    <button
       ref={ref}
-      whileTap={{ scale: 0.985 }}
       className={cn(baseBtn, "bg-primary text-primary-foreground shadow-xs hover:bg-[hsl(var(--primary)/0.9)]", className)}
-      {...(rest as MotionBtnRest)}
+      {...rest}
     >
       {icon ? <Icon icon={icon} size={20} /> : null}
       {children}
-    </motion.button>
+    </button>
   );
 });
 
 /** Quiet secondary action: outlined on white. */
 export const SecondaryButton = forwardRef<HTMLButtonElement, BtnProps>(function SecondaryButton({ icon, className, children, ...rest }, ref) {
   return (
-    <motion.button
+    <button
       ref={ref}
-      whileTap={{ scale: 0.985 }}
       className={cn(baseBtn, "border border-input bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60", className)}
-      {...(rest as MotionBtnRest)}
+      {...rest}
     >
       {icon ? <Icon icon={icon} size={20} /> : null}
       {children}
-    </motion.button>
+    </button>
   );
 });
 
 /** Round outline icon button – 44px touch target. */
 export const IconButton = forwardRef<HTMLButtonElement, BtnProps & { label: string }>(function IconButton({ icon, label, className, ...rest }, ref) {
   return (
-    <motion.button
+    <button
       ref={ref}
-      whileTap={{ scale: 0.92 }}
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors duration-fast hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
+        "press inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors duration-fast hover:border-foreground/40 hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
-      {...(rest as MotionBtnRest)}
+      {...rest}
     >
       {icon ? <Icon icon={icon} size={20} /> : null}
-    </motion.button>
+    </button>
   );
 });
 
@@ -81,8 +78,7 @@ export function ImageBadge({ children, className }: { children: ReactNode; class
 
 export function FavoriteButton({ active, onToggle, label, className }: { active: boolean; onToggle: () => void; label: string; className?: string }) {
   return (
-    <motion.button
-      whileTap={{ scale: 0.85 }}
+    <button
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -92,13 +88,13 @@ export function FavoriteButton({ active, onToggle, label, className }: { active:
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-soft backdrop-blur-sm transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-soft backdrop-blur-sm transition-[background-color,color,transform] duration-fast active:scale-[0.88] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active ? "text-[hsl(var(--coral))]" : "text-foreground",
         className,
       )}
     >
       <Icon icon={Heart} size={20} className={active ? "fill-current" : undefined} />
-    </motion.button>
+    </button>
   );
 }
 
