@@ -1,6 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { motion, type HTMLMotionProps } from "motion/react";
-import { Heart, Star, type LucideIcon } from "lucide-react";
+import { Heart, type LucideIcon } from "lucide-react";
 import Icon from "./Icon";
 import { cn } from "@/lib/utils";
 
@@ -69,21 +69,6 @@ export const IconButton = forwardRef<HTMLButtonElement, BtnProps & { label: stri
 
 /* ─── Floating chips over imagery ─────────────────────────────────────── */
 
-export function RatingChip({ value, className }: { value: number; className?: string }) {
-  // Editorial score from HelloSky (not user reviews); labelled so it cannot be
-  // mistaken for customer ratings (OTA-178).
-  const label = `HelloSky-favoritt ${value.toFixed(1)} av 5 (redaksjonell vurdering)`;
-  return (
-    <span
-      title={label}
-      aria-label={label}
-      className={cn("inline-flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 text-[12px] font-semibold text-foreground shadow-soft backdrop-blur-sm", className)}
-    >
-      <Icon icon={Star} size={14} className="fill-[hsl(var(--primary))] text-[hsl(var(--primary))]" />
-      <span aria-hidden="true">Vår favoritt</span>
-    </span>
-  );
-}
 
 /** Small floating label over photos (e.g. "Populær", IATA). */
 export function ImageBadge({ children, className }: { children: ReactNode; className?: string }) {

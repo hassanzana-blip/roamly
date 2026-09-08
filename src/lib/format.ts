@@ -137,44 +137,68 @@ export function previewTotalMinor(supplierAmount: string | number, currency: str
 
 // ─── Dato og tid ────────────────────────────────────────────────────────────
 
+/**
+ * En tom eller ugyldig dato skal aldri velte en side.
+ *
+ * `Intl.DateTimeFormat.format` kaster «Invalid time value» på NaN, og en
+ * lenke som mangler `depart=` er nok til å sende hele søkesiden i
+ * feilgrensen. Formatererne returnerer nå tom streng i stedet, og siden
+ * håndterer den manglende verdien der den faktisk hører hjemme.
+ */
+function safeDate(iso: string | null | undefined): Date | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export function formatClock(iso: string, locale = currentLocale()): string {
+  const d = safeDate(iso);
+  if (!d) return "";
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(new Date(iso));
+  }).format(d);
 }
 
 export function formatDateShort(iso: string, locale = currentLocale()): string {
+  const d = safeDate(iso);
+  if (!d) return "";
   return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
-  }).format(new Date(iso));
+  }).format(d);
 }
 
 /** «10. nov» – uten ukedag (titler, kompakte etiketter). */
 export function formatDayMonth(iso: string, locale = currentLocale()): string {
-  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(iso));
+  const d = safeDate(iso);
+  if (!d) return "";
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(d);
 }
 
 export function formatDateLong(iso: string, locale = currentLocale()): string {
+  const d = safeDate(iso);
+  if (!d) return "";
   return new Intl.DateTimeFormat(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(new Date(iso));
+  }).format(d);
 }
 
 export function formatDateTime(iso: string, locale = currentLocale()): string {
+  const d = safeDate(iso);
+  if (!d) return "";
   return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(iso));
+  }).format(d);
 }
 
 export function formatDuration(minutes: number): string {

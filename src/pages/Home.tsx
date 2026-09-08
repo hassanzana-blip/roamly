@@ -13,41 +13,38 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { BaggageVisual, FamilyGlyph } from "@/components/graphics";
 import { loadRecentSearches, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
-import { useT, type I18nKey } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { useCustomer } from "@/lib/useCustomer";
 import { useAccountHub } from "@/lib/useAccount";
 import { formatDateShort, formatMinor } from "@/lib/format";
 import { useRoutePrice } from "@/lib/useRoutePrice";
 import { airportByIata } from "@contracts/airports";
-import { DEAL_ROUTES, POPULAR_DESTINATIONS, imageSrcSet, type DealRoute, type DiscoverDestination } from "@/content/discover";
+import { HOMECOMING_ROUTES, POPULAR_ROUTES, imageSrcSet, type DealRoute, type DiscoverDestination } from "@/content/discover";
 import { WHATSAPP_DISPLAY, WHATSAPP_LINK, WhatsAppIcon } from "@/components/WhatsAppFab";
 import { trpc } from "@/providers/trpc";
 import ArticleCard from "@/components/journal/ArticleCard";
 import ForYou from "@/components/home/ForYou";
+import WorldDiscovery from "@/components/home/WorldDiscovery";
 import { featured } from "@/content/journal";
 import { cn } from "@/lib/utils";
 
 /**
- * Forsiden. Én reise nedover siden, sju stopp, ingen fyllseksjoner:
- *   1 foto + tittel + søket           «jeg vet hvor jeg skal»
- *   2 ditt (kun innlogget)            «jeg har allerede noe her»
- *   3 rutene hjem, med ekte priser    «dere kjenner reisen min»
- *   4 derfor reiser familier med oss  fakta, ikke merker
- *   5 fire dører etter anledning      «hjelp meg å velge»
- *   6 journalen                       det vi faktisk vet
- *   7 prisovervåking                  «jeg vet hvor, men ikke når»
- * Hotell og leiebil er forespørsler, ikke søk, og bor derfor i én linje under søket.
+ * Forsiden.
+ *
+ * HelloSky selger hele verden fra Norge. Siden er derfor bygget rundt det
+ * spørsmålet – ikke rundt én region – og veksler mellom formater i stedet
+ * for å stable like kortrader:
+ *   1 foto + tittel + søket        «hvor skal du?»
+ *   2 ditt (kun innlogget)         «jeg har allerede noe her»
+ *   3 verden etter tema            én interaktiv seksjon, ikke elleve rader
+ *   4 populære ruter, ekte priser  data, ikke bilder
+ *   5 rutene vi kjenner best       hjemreisene som én historie, ikke merkevaren
+ *   6 derfor HelloSky              tre fakta, ingen merker
+ *   7 journalen                    det vi faktisk vet
+ *   8 prisovervåking               «jeg vet hvor, men ikke når»
+ * Hotell og leiebil er forespørsler, ikke søk, og bor i én linje under søket.
  */
-
-const OCCASIONS: { id: string; to: string; label: I18nKey; sub: I18nKey; photo: string }[] = [
-  { id: "sun", to: "/utforsk?k=sol", label: "home.occ.sun", sub: "home.occ.sunsub", photo: "malaga" },
-  { id: "family", to: "/utforsk?k=familie", label: "home.occ.family", sub: "home.occ.familysub", photo: "dubai" },
-  { id: "weekend", to: "/utforsk?k=helg", label: "home.occ.weekend", sub: "home.occ.weekendsub", photo: "london" },
-  { id: "culture", to: "/utforsk?k=kultur", label: "home.occ.culture", sub: "home.occ.culturesub", photo: "rome" },
-];
-
-const ALT: Record<string, string> = Object.fromEntries(POPULAR_DESTINATIONS.map((d) => [d.id, d.imageAlt]));
 
 function inDays(n: number) {
   return new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
@@ -240,38 +237,66 @@ export default function Home() {
         {/* Alt under folden gjengis når hovedtråden er ledig. Første
             skjermbilde skal ikke vente på seks prisoppslag, fire fotokort og
             tre artikler – ingenting av det er synlig ennå. */}
+        {/* 3 · Verden etter tema: sidens ene interaktive oppdagelse. */}
         <BelowFold minHeight={3200}>
-          {/* 3 · Rutene hjem: fotoet, setningen og seks ruter med ekte fra-priser. Forsidens tyngdepunkt. */}
-          <section className="container-x mt-20 sm:mt-28">
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-16">
-            <Link to="/reisemal#hjem" className="group relative block aspect-[4/3] overflow-hidden rounded-2xl bg-night lg:aspect-[4/5]">
-              <img src="/destinations/istanbul.jpg" srcSet="/destinations/istanbul-640.jpg 640w, /destinations/istanbul.jpg 1024w" sizes="(max-width: 1024px) 100vw, 45vw" alt="Galatatårnet over Istanbuls tak" loading="lazy" decoding="async" width={1024} height={640} className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-[1.03]" />
-              <span className="photo-wash absolute inset-0" aria-hidden="true" />
-              <span className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5 text-white sm:p-6">
-                <span>
-                  <span className="block text-[13px] text-white/75">{t("home.routes.caption")}</span>
-                  <span className="block text-[20px] font-semibold leading-tight">Istanbul</span>
-                </span>
-                <span className="grid size-10 place-items-center rounded-full bg-white/15 backdrop-blur-sm transition-colors group-hover:bg-white/25"><Icon icon={ArrowUpRight} size={20} /></span>
-              </span>
-            </Link>
-            <div className="min-w-0">
-              <h2 className="t-h1">{t("home.hero.title")}</h2>
-              <p className="t-lead mt-4 max-w-xl text-muted-foreground">{t("home.hero.body")}</p>
-              <ul className="mt-8 divide-y divide-border border-y border-border">
-                {DEAL_ROUTES.map((deal) => <RouteRow key={deal.id} deal={deal} onOpen={setQuickView} />)}
-              </ul>
-              <p className="t-caption mt-3 max-w-xl">{t("home.routes.note")}</p>
-              <Button asChild variant="dark" size="lg" className="mt-6">
-                <Link to="/reisemal#hjem">{t("home.routes.cta")} <Icon icon={ArrowRight} size={20} /></Link>
-              </Button>
-            </div>
-          </div>
+          <WorldDiscovery />
+
+          {/* 4 · Populære ruter: ren data. Flagg, rute, ekte fra-pris.
+                 Ingen fotokort her – seksjonen over er allerede bilder. */}
+          <section aria-labelledby="routes" className="container-x mt-20 sm:mt-28">
+            <h2 id="routes" className="t-h1 max-w-2xl">{t("home.routes.title")}</h2>
+            <p className="t-lead mt-3 max-w-xl text-muted-foreground">{t("home.routes.sub")}</p>
+            <ul className="mt-8 divide-y divide-border border-y border-border">
+              {POPULAR_ROUTES.map((deal) => <RouteRow key={deal.id} deal={deal} onOpen={setQuickView} />)}
+            </ul>
+            <p className="t-caption mt-3 max-w-xl">{t("home.routes.note")}</p>
           </section>
 
-          {/* 4 · Derfor: tre fakta, ingen kort, ingen merker. */}
-          <section className="container-x mt-20 sm:mt-28">
-            <h2 className="t-h1 max-w-2xl">{t("home.why.title")}</h2>
+          {/* 5 · Rutene vi kjenner best: hjemreisene som én historie, i full
+                 bredde. Ikke merkevaren, men det vi faktisk kan bedre enn andre. */}
+          <section aria-labelledby="homecoming" className="relative isolate mt-20 overflow-hidden bg-night text-white sm:mt-28">
+            <img
+              src="/destinations/istanbul.jpg"
+              srcSet={imageSrcSet("/destinations/istanbul.jpg")}
+              sizes="100vw"
+              alt="Galatatårnet over Istanbuls tak"
+              loading="lazy"
+              decoding="async"
+              width={1024}
+              height={640}
+              className="absolute inset-0 h-full w-full object-cover object-[center_58%]"
+            />
+            <span
+              className="absolute inset-0"
+              aria-hidden="true"
+              style={{ backgroundImage: "linear-gradient(to top, hsl(var(--night)) 6%, hsl(var(--night) / 0.86) 34%, hsl(var(--night) / 0.5) 58%, hsl(var(--night) / 0.2) 82%)" }}
+            />
+            <div className="container-x relative flex min-h-[420px] flex-col justify-end py-12 sm:min-h-[480px] sm:py-16">
+              <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-white/80">{t("home.hero.kicker")}</p>
+              <h2 id="homecoming" className="t-h1 mt-2 max-w-2xl text-white">{t("home.home.title")}</h2>
+              <p className="t-lead mt-4 max-w-xl text-white/85">{t("home.hero.body")}</p>
+              <ul className="mt-7 flex flex-wrap gap-2">
+                {HOMECOMING_ROUTES.map((r) => (
+                  <li key={r.id}>
+                    <Link
+                      to={`/sok?from=OSL&to=${r.destination.iata}&depart=${inDays(35)}&adults=1&children=0&infants=0&cabin=economy`}
+                      className="press inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-3.5 text-sm font-semibold backdrop-blur-sm transition-colors hover:border-white/60 hover:bg-white/20"
+                    >
+                      <CountryFlag code={airportByIata(r.destination.iata)?.countryCode} size={12} />
+                      {r.destination.city}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Button asChild size="lg" className="mt-7 w-fit bg-white text-night hover:bg-white/90">
+                <Link to="/reisemal#hjem">{t("home.home.cta")} <Icon icon={ArrowRight} size={20} /></Link>
+              </Button>
+            </div>
+          </section>
+
+          {/* 6 · Derfor HelloSky: tre fakta, ingen merker, ingen tall vi ikke har. */}
+          <section aria-labelledby="why" className="container-x mt-20 sm:mt-28">
+            <h2 id="why" className="t-h1 max-w-2xl">{t("home.why.title")}</h2>
             <div className="mt-8 grid gap-6 border-t border-border pt-8 md:grid-cols-3 md:gap-10 md:pt-10">
               <Why glyph={<Icon icon={Receipt} size={24} />} title={t("home.why.1.title")} body={t("home.why.1.body")} />
               <Why glyph={<BaggageVisual kind="checked" count={2} size={26} label={t("home.why.2.title")} />} title={t("home.why.2.title")} body={t("home.why.2.body")} />
@@ -287,28 +312,6 @@ export default function Home() {
                 <WhatsAppIcon className="h-4 w-4" /> WhatsApp {WHATSAPP_DISPLAY}
               </a>
             </div>
-          </section>
-
-          {/* 5 · Fire dører etter anledning. Den du peker på trer fram, resten trer tilbake. */}
-          <section className="container-x mt-20 sm:mt-28">
-            <SectionHeader title={t("home.occasions")} action={<SeeAll to="/utforsk" label={t("home.seeall")} />} />
-            <ul className="group/occ grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-              {OCCASIONS.map((o) => (
-                <li key={o.id} className="min-w-0">
-                  <Link
-                    to={o.to}
-                    className="press group/door relative block aspect-[4/5] w-full overflow-hidden rounded-2xl bg-night text-white outline-none transition-opacity duration-slow ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:aspect-[3/4] md:group-hover/occ:opacity-70 md:hover:!opacity-100 md:focus-visible:!opacity-100"
-                  >
-                    <img src={`/destinations/${o.photo}.jpg`} srcSet={imageSrcSet(`/destinations/${o.photo}.jpg`)} sizes="(max-width: 768px) 50vw, 25vw" alt={ALT[o.photo] ?? ""} loading="lazy" decoding="async" width={1024} height={640} className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover/door:scale-[1.04]" />
-                    <span className="photo-wash absolute inset-0" aria-hidden="true" />
-                    <span className="absolute inset-x-0 bottom-0 p-4 md:p-5">
-                      <span className="block text-[18px] font-semibold leading-tight md:text-[20px]">{t(o.label)}</span>
-                      <span className="mt-1 block text-[13px] text-white/80">{t(o.sub)}</span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </section>
 
           {/* 6 · Journalen: tre artikler, håndplukket. */}
