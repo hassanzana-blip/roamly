@@ -33,6 +33,7 @@ const Auth = lazy(() => import('./pages/Auth'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Community = lazy(() => import('./pages/Community'))
 const EditProfile = lazy(() => import('./pages/account/EditProfile'))
+const AccountSettings = lazy(() => import('./pages/account/Settings'))
 const Travelers = lazy(() => import('./pages/account/Travelers'))
 const PriceAlerts = lazy(() => import('./pages/account/PriceAlerts'))
 const PriceWatches = lazy(() => import('./pages/account/PriceWatches'))
@@ -126,6 +127,7 @@ export default function App() {
             <Route path="/samfunn" element={<Community />} />
             <Route path="/bekreft-epost" element={<VerifyEmail />} />
             <Route path="/profil/rediger" element={<EditProfile />} />
+            <Route path="/profil/innstillinger" element={<AccountSettings />} />
             <Route path="/profil/reisende" element={<Travelers />} />
             <Route path="/profil/prisvarsler" element={<PriceAlerts />} />
             <Route path="/profil/prisovervaking" element={<PriceWatches />} />

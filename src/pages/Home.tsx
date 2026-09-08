@@ -236,7 +236,7 @@ export default function Home() {
                   <span className="block text-[13px] text-white/75">{t("home.routes.caption")}</span>
                   <span className="block text-[20px] font-semibold leading-tight">Istanbul</span>
                 </span>
-                <span className="grid size-10 place-items-center rounded-full bg-white/15 backdrop-blur-sm transition-colors group-hover:bg-white/25"><Icon icon={ArrowUpRight} size={18} /></span>
+                <span className="grid size-10 place-items-center rounded-full bg-white/15 backdrop-blur-sm transition-colors group-hover:bg-white/25"><Icon icon={ArrowUpRight} size={20} /></span>
               </span>
             </Link>
             <div className="min-w-0">
@@ -247,7 +247,7 @@ export default function Home() {
               </ul>
               <p className="t-caption mt-3 max-w-xl">{t("home.routes.note")}</p>
               <Button asChild variant="dark" size="lg" className="mt-6">
-                <Link to="/reisemal#hjem">{t("home.routes.cta")} <Icon icon={ArrowRight} size={18} /></Link>
+                <Link to="/reisemal#hjem">{t("home.routes.cta")} <Icon icon={ArrowRight} size={20} /></Link>
               </Button>
             </div>
           </div>
@@ -257,7 +257,7 @@ export default function Home() {
         <section className="container-x mt-20 sm:mt-28">
           <h2 className="t-h1 max-w-2xl">{t("home.why.title")}</h2>
           <div className="mt-8 grid gap-8 border-t border-border pt-8 md:grid-cols-3 md:gap-10 md:pt-10">
-            <Why glyph={<Icon icon={Receipt} size={22} />} title={t("home.why.1.title")} body={t("home.why.1.body")} />
+            <Why glyph={<Icon icon={Receipt} size={24} />} title={t("home.why.1.title")} body={t("home.why.1.body")} />
             <Why glyph={<BaggageVisual kind="checked" count={2} size={26} label={t("home.why.2.title")} />} title={t("home.why.2.title")} body={t("home.why.2.body")} />
             <Why glyph={<FamilyGlyph size={26} />} title={t("home.why.3.title")} body={t("home.why.3.body")} />
           </div>

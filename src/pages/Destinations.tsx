@@ -144,7 +144,7 @@ function HomeRoute({ d, hash }: { d: FeaturedDestination; hash: string }) {
             </dl>
             <Button asChild variant="dark" size="lg" className="mt-6 w-full sm:w-auto">
               <Link to={searchLink(gateway.iata)}>
-                {t("dest.searchTo", { city: gateway.label })} <Icon icon={ArrowRight} size={18} />
+                {t("dest.searchTo", { city: gateway.label })} <Icon icon={ArrowRight} size={20} />
               </Link>
             </Button>
           </aside>
@@ -262,7 +262,7 @@ export default function Destinations() {
             </p>
           </div>
           <Button asChild size="lg">
-            <Link to="/">Søk etter fly <Icon icon={ArrowRight} size={18} /></Link>
+            <Link to="/">Søk etter fly <Icon icon={ArrowRight} size={20} /></Link>
           </Button>
         </div>
       </section>

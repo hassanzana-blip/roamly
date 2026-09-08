@@ -68,7 +68,7 @@ function MenuRow({ row, onSelect }: { row: Row; onSelect?: () => void }) {
   return (
     <DropdownMenuItem asChild className="min-h-11 rounded-lg px-2.5 py-2">
       <Link to={row.to} onClick={onSelect} className="flex w-full items-center gap-2.5">
-        <Icon icon={row.icon} size={18} className="shrink-0 text-muted-foreground" />
+        <Icon icon={row.icon} size={20} className="shrink-0 text-muted-foreground" />
         <span className="flex-1 truncate text-[15px] font-medium">{row.label}</span>
         {row.meta ? (
           <Badge variant={row.accent ? "default" : "secondary"} className="t-num shrink-0 rounded-md px-1.5 text-xs font-semibold">
@@ -183,7 +183,7 @@ export default function UserMenu({ tone = "light" }: { tone?: "light" | "dark" }
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="min-h-11 rounded-lg px-2.5 py-2">
               <span className="flex items-center gap-2.5">
-                <Icon icon={dark ? Moon : Sun} size={18} className="text-muted-foreground" />
+                <Icon icon={dark ? Moon : Sun} size={20} className="text-muted-foreground" />
                 <span className="text-[15px] font-medium">{t("theme.appearance")}</span>
               </span>
             </DropdownMenuSubTrigger>
@@ -191,10 +191,10 @@ export default function UserMenu({ tone = "light" }: { tone?: "light" | "dark" }
               <DropdownMenuSubContent className="rounded-xl p-1">
                 <DropdownMenuRadioGroup value={dark ? "dark" : "light"} onValueChange={(v) => setDark(v === "dark")}>
                   <DropdownMenuRadioItem value="light" className="min-h-10 gap-2.5 rounded-lg text-[15px]">
-                    <Icon icon={Sun} size={18} className="text-muted-foreground" /> {t("theme.light")}
+                    <Icon icon={Sun} size={20} className="text-muted-foreground" /> {t("theme.light")}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="dark" className="min-h-10 gap-2.5 rounded-lg text-[15px]">
-                    <Icon icon={Moon} size={18} className="text-muted-foreground" /> {t("theme.dark")}
+                    <Icon icon={Moon} size={20} className="text-muted-foreground" /> {t("theme.dark")}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
@@ -243,7 +243,7 @@ export default function UserMenu({ tone = "light" }: { tone?: "light" | "dark" }
             disabled={isLoggingOut}
             className="min-h-11 gap-2.5 rounded-lg px-2.5 py-2 text-[15px] font-medium"
           >
-            <Icon icon={LogOut} size={18} className="text-muted-foreground" />
+            <Icon icon={LogOut} size={20} className="text-muted-foreground" />
             {t("profile.logout")}
           </DropdownMenuItem>
         </Section>

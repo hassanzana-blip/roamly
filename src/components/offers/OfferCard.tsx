@@ -280,11 +280,11 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
         {/* Baggage strip: the question every family asks first, answered per ticket. */}
         <div className="grid gap-2 rounded-lg bg-muted/60 p-3 sm:grid-cols-2 sm:gap-4 sm:px-4">
           <div className="flex items-center gap-2.5">
-            <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={22} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
+            <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={24} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
             <span className="text-sm" aria-hidden="true">{carryOnUnknown ? t("oc.carryon.unknown") : t("oc.carryon.included", { count: carryOn })}</span>
           </div>
           <div className={cn("flex items-center gap-2.5", !checkedUnknown && checked > 0 ? "text-foreground" : "text-muted-foreground")}>
-            <BaggageVisual kind="checked" count={checked} unknown={checkedUnknown} size={22} label={checkedUnknown ? t("bg.checked.unknown") : checked === 0 ? t("bg.checked.none") : t("bg.checked", { count: checked })} />
+            <BaggageVisual kind="checked" count={checked} unknown={checkedUnknown} size={24} label={checkedUnknown ? t("bg.checked.unknown") : checked === 0 ? t("bg.checked.none") : t("bg.checked", { count: checked })} />
             <span className="text-sm" aria-hidden="true">
               {checkedUnknown ? t("oc.checked.unknown") : checked === 0 ? t("oc.checked.addable") : t("oc.checked.included", { count: checked })}
             </span>
@@ -351,13 +351,13 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
               aria-label={comparing ? t("oc.selected") : t("oc.compare")}
               title={comparing ? t("oc.selected") : t("oc.compare")}
             >
-              <Icon icon={ArrowLeftRight} size={18} />
+              <Icon icon={ArrowLeftRight} size={20} />
             </Button>
           )}
           {shareText && (
             <Button asChild variant="outline" size="icon">
               <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" aria-label={t("oc.share")} title={t("oc.share")}>
-                <Icon icon={Share2} size={18} />
+                <Icon icon={Share2} size={20} />
               </a>
             </Button>
           )}

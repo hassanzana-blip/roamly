@@ -1,248 +1,249 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, Bell, Car, ChevronRight, CircleHelp, Gift, Globe, Heart, LayoutGrid, LogOut, Luggage, Mail, MailWarning, MessagesSquare, Moon, Plane, Radar, ShieldCheck, Sparkles, TrendingDown, UserPen, UserRound, Users, Wallet } from "lucide-react";
+import { ArrowRight, ChevronRight, Heart, LayoutGrid, LogOut, Luggage, MailWarning, MessagesSquare, Settings2, Sparkles, TrendingDown, UserRound, Users, type LucideIcon } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
 import MembershipCard from "@/components/account/MembershipCard";
-import { AccountGroup, AccountRow, ControlRow, CountBadge, Toggle } from "@/components/account/AccountRow";
-import { DocumentsModule, FamilyModule, NextTripModule, QuickActions, RoutesModule, type DocumentsStatus, type QuickAction } from "@/components/account/HubModules";
+import { AccountGroup, AccountRow } from "@/components/account/AccountRow";
+import CountryFlag from "@/components/brand/CountryFlag";
+import {
+  ActivityLine,
+  FamilyScene,
+  HistoryTimeline,
+  ModuleHead,
+  NextTripScene,
+  RewardsScene,
+  RoutesScene,
+  TravelPassport,
+  WatchesScene,
+} from "@/components/account/MyHelloSky";
+import { initialsOf } from "@/components/account/family";
+import { usePassport } from "@/components/account/passport";
 import ForYou from "@/components/home/ForYou";
+import { airportByIata } from "@contracts/airports";
 import { useCustomer } from "@/lib/useCustomer";
 import { useAccountHub } from "@/lib/useAccount";
-import { CURRENCIES, LANGS, LANG_LABELS, useLang, useLocale, useT, type Currency, type Lang } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
-import { useTheme } from "@/lib/theme";
 import { trpc } from "@/providers/trpc";
-import { humanMessage } from "@/lib/apiError";
 
 /**
- * Profil – navet for reiseverdenen din. Ikke en innstillingsside.
+ * Min HelloSky.
  *
- * Bare moduler med ekte data vises: neste reise, prisovervåking, lagret,
- * rutene dine, uleste varsler. Uten data står bare det du kan gjøre.
- * På store skjermer: identiteten (kort, moduler) til venstre, menyen til høyre.
+ * Rekkefølgen svarer på fire spørsmål, i den rekkefølgen folk stiller dem:
+ * hvem er jeg, hva er neste reise, hva bør jeg bry meg om nå, og hva har jeg
+ * bygget opp her. Innstillinger er flyttet ut til /profil/innstillinger, slik
+ * at siden handler om reiser og ikke om kontoen. Hver modul skjuler seg selv
+ * når den ikke har ekte data å vise.
  */
 
-/** Dager til avreise, regnet fra «om 30 dager»-ankeret sidevisningen allerede har (rene render). */
-function daysUntil(iso: string, soonIso: string): number {
-  const today = Date.parse(soonIso) - 30 * 86_400_000;
-  return Math.max(0, Math.ceil((Date.parse(iso) - today) / 86_400_000));
+/**
+ * Snarveiene er et rutenett med flater, ikke en liste med rader: profilen skal
+ * ikke lese som Innstillinger. Hver flate er ett sted å gå, med et tall når
+ * kontoen faktisk har et tall å vise.
+ */
+function LaunchTile({ to, icon, title, note }: { to: string; icon: LucideIcon; title: string; note?: string }) {
+  return (
+    <li>
+      <Link
+        to={to}
+        className="press flex h-full items-start gap-3 rounded-xl bg-muted/60 px-3.5 py-3.5 transition-colors hover:bg-muted"
+      >
+        <Icon icon={icon} size={20} className="mt-0.5 shrink-0 text-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-semibold leading-tight">{title}</span>
+          {note ? <span className="t-caption mt-0.5 block leading-snug">{note}</span> : null}
+        </span>
+      </Link>
+    </li>
+  );
 }
-
-
-const selectCls = "min-h-10 rounded-lg border border-border bg-card px-3 text-[13px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function Profile() {
   usePageMeta(PAGE_META.profile);
+  const t = useT();
   const { customer, isLoading, logout, isLoggingOut } = useCustomer();
   const hub = useAccountHub();
-  const t = useT();
-  const { lang, setLang } = useLang();
-  const { currency, setCurrency } = useLocale();
-  const { dark, setDark } = useTheme();
-  const utils = trpc.useUtils();
-  const resend = trpc.customerAuth.resendVerification.useMutation();
-  const prefs = trpc.customerAuth.updatePreferences.useMutation({ onSuccess: () => utils.customerAuth.me.invalidate() });
-
   const trips = trpc.customerAuth.myTrips.useQuery(undefined, { enabled: Boolean(customer?.emailVerified), retry: false });
   const travellers = trpc.extras.myTravelers.useQuery(undefined, { enabled: Boolean(customer), retry: false });
+  const resend = trpc.customerAuth.resendVerification.useMutation();
 
-  const [soon] = useState(() => new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10));
   const [now] = useState(() => Date.now());
+  const [soon] = useState(() => new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10));
   const h = hub.data;
-  const docsStatus: DocumentsStatus = !customer?.emailVerified ? "unverified" : trips.isLoading ? "loading" : trips.isError ? "error" : "ready";
   const profileStarted = Boolean(h?.profile.onboardingCompletedAt || h?.profile.onboardingSkippedAt || (h?.profile.completeness ?? 0) > 0);
-  const nextTripDays = h?.nextTrip ? daysUntil(h.nextTrip.departingAt, soon) : null;
+  const homeAirport = h?.profile.homeAirports[0] ? airportByIata(h.profile.homeAirports[0]) : null;
+  const passport = usePassport(trips.data ?? [], now);
 
-  /* ── Det du gjør oftest: fire snarveier, aldri flere ─────────────────── */
-  const quickActions: QuickAction[] = [
-    { to: "/reiser", icon: Luggage, label: t("acct.trips"), count: h?.upcomingCount ?? 0 },
-    { to: "/profil/reisende", icon: Users, label: t("acct.travelers") },
-    { to: "/profil/prisovervaking", icon: TrendingDown, label: t("acct.hub.watch"), count: h?.watches.length ?? 0 },
-    { to: "/lagret", icon: Heart, label: t("acct.saved"), count: h?.savedCount ?? 0 },
-  ];
-
-  /* ── Felles: språk, valuta, tema, hjelp ──────────────────────────────── */
-  const settings: ReactNode = (
-    <>
-      <AccountGroup label={t("profile.settings")}>
-        <ControlRow icon={Globe} title={t("profile.language")} htmlFor="pref-locale">
-          <select id="pref-locale" value={lang} onChange={(e) => setLang(e.target.value as Lang)} className={selectCls}>
-            {LANGS.map((l) => <option key={l} value={l}>{LANG_LABELS[l]}</option>)}
-          </select>
-        </ControlRow>
-        <ControlRow icon={Wallet} title={t("profile.currency")} sub={t("pf.currencyhint")} htmlFor="pref-currency">
-          <select id="pref-currency" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)} className={selectCls}>
-            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </ControlRow>
-        <ControlRow icon={Moon} title={t("profile.theme")}>
-          <Toggle checked={dark} onChange={setDark} label={t("profile.theme")} />
-        </ControlRow>
-      </AccountGroup>
-
-      <AccountGroup label={t("acct.group.more")}>
-        <AccountRow to="/hjelp" icon={CircleHelp} title={t("acct.help")} sub={t("acct.helpsub")} />
-        {customer && <AccountRow to="/profil/rediger#personvern" icon={ShieldCheck} title={t("pf.privacy")} sub={t("pf.export")} />}
-        <AccountRow to="/flystatus" icon={Radar} title={t("profile.flightstatus")} sub={t("profile.flightstatussub")} />
-        <AccountRow to="/hotell-bil" icon={Car} title={t("profile.hotelcar")} sub={t("profile.hotelcarsub")} />
-      </AccountGroup>
-
-      <div className="mt-8 flex items-center gap-3 rounded-xl bg-accent px-4 py-4">
-        <Icon icon={Plane} size={20} className="shrink-0 text-accent-foreground" />
-        <p className="text-[13px] font-medium text-accent-foreground">{t("pf.footer")}</p>
+  if (isLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-background">
+        <AppShell>
+          <AppHeader as="h1" />
+          <div className="space-y-4" aria-busy="true">
+            <div className="shimmer h-24 rounded-2xl" />
+            <div className="shimmer h-48 rounded-2xl" />
+            <div className="shimmer h-40 rounded-2xl" />
+          </div>
+        </AppShell>
       </div>
-    </>
-  );
+    );
+  }
+
+  /* ── Gjest: én vei inn ─────────────────────────────────────────────── */
+  if (!customer) {
+    return (
+      <div className="min-h-[100dvh] bg-background">
+        <AppShell>
+          <AppHeader title={t("profile.title")} as="h1" />
+          <div className="mx-auto max-w-2xl">
+            <Link to="/logg-inn" className="press flex items-center gap-4 rounded-2xl bg-night p-6 text-white transition-colors hover:bg-[hsl(240,6%,14%)]">
+              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"><Icon icon={UserRound} size={24} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="t-h3 block">{t("profile.login")}</span>
+                <span className="mt-0.5 block text-[14px] text-white/65">{t("profile.loginsub")}</span>
+              </span>
+              <Icon icon={ChevronRight} size={20} className="shrink-0 text-white/60" />
+            </Link>
+            <div className="mt-8">
+              <AccountGroup>
+                <AccountRow to="/reise" icon={Luggage} title={t("profile.mytrip")} sub={t("profile.mytripsub")} />
+                <AccountRow to="/quiz" icon={Sparkles} title={t("profile.quiz")} sub={t("profile.quizsub")} />
+                <AccountRow to="/samfunn" icon={MessagesSquare} title={t("acct.community")} sub={t("profile.communitysub")} />
+                <AccountRow to="/profil/innstillinger" icon={Settings2} title={t("profile.settings")} sub={t("settings.sub")} />
+              </AccountGroup>
+            </div>
+          </div>
+        </AppShell>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell>
-        <AppHeader title={customer ? undefined : t("profile.title")} as="h1" />
+        {/* ── Hvem er jeg ────────────────────────────────────────────── */}
+        <header className="pb-9" style={{ paddingTop: "max(24px, env(safe-area-inset-top))" }}>
+          <div className="flex items-start gap-4">
+            <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-[17px] font-semibold sm:size-16">
+              {customer.avatarUrl ? <img src={customer.avatarUrl} alt="" className="h-full w-full object-cover" /> : initialsOf(customer.firstName, customer.lastName)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h1 className="t-h1">{customer.firstName} {customer.lastName}</h1>
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-muted-foreground">
+                <span className="font-semibold text-foreground">{h?.rewards.tier.name ?? "Explorer"}</span>
+                {homeAirport && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <CountryFlag code={homeAirport.countryCode} size={12} />
+                    {t("acct.homeairport", { city: homeAirport.city })}
+                  </span>
+                )}
+                <span className="t-code text-muted-foreground">HS-{String(customer.id).padStart(6, "0")}</span>
+              </p>
+            </div>
+            <button
+              onClick={() => logout()}
+              disabled={isLoggingOut}
+              aria-label={t("profile.logout")}
+              title={t("profile.logout")}
+              className="grid size-11 shrink-0 place-items-center rounded-full border border-border bg-card transition-colors hover:bg-muted disabled:opacity-50"
+            >
+              <Icon icon={LogOut} size={20} />
+            </button>
+          </div>
 
-        {/* ── Innlogget: identitet til venstre, meny til høyre (lg) ─────── */}
-        {!isLoading && customer && (
-          <div className="lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-14">
-            <div className="lg:sticky lg:top-24">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h1 className="t-h1">{t("acct.hub.hello", { name: customer.firstName })}</h1>
-                  <p className="mt-2 text-[15px] text-muted-foreground">{t("acct.hub.sub")}</p>
+          {/* Reisebilanse rett under navnet: hvem du er her, i tre tall. */}
+          {passport.flown > 0 && (
+            <dl className="mt-6 flex flex-wrap gap-x-9 gap-y-3 border-t border-border pt-5">
+              {[
+                [t("acct.passport.trips"), passport.flown],
+                [t("acct.passport.countries"), passport.countries.length],
+                [t("acct.passport.cities"), passport.cities],
+              ].map(([label, value]) => (
+                <div key={String(label)}>
+                  <dd className="t-num text-[26px] font-bold leading-none tracking-tight">{value}</dd>
+                  <dt className="t-caption mt-1">{label}</dt>
                 </div>
-                <button
-                  onClick={() => logout()}
-                  disabled={isLoggingOut}
-                  aria-label={t("profile.logout")}
-                  title={t("profile.logout")}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors hover:bg-muted disabled:opacity-50"
-                >
-                  <Icon icon={LogOut} size={20} />
-                </button>
-              </div>
+              ))}
+            </dl>
+          )}
+        </header>
 
-              <Link to="/profil/bonus" className="press mt-6 block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring" aria-label={t("acct.card.open")}>
-                <MembershipCard
-                  name={`${customer.firstName} ${customer.lastName}`}
-                  programName={h?.rewards.programName ?? "HelloSky Bonus"}
-                  tierName={h?.rewards.tier.name ?? "Explorer"}
-                  memberNumber={`HS-${String(customer.id).padStart(6, "0")}`}
-                  memberSince={null}
-                  compact
-                  className="max-w-none"
-                />
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
+          {/* ── Venstre: reiseverdenen ──────────────────────────────── */}
+          <div className="min-w-0 space-y-12 lg:space-y-14">
+            {customer.email && !customer.emailVerified && (
+              <div className="flex items-start gap-3 rounded-2xl bg-warning/10 px-4 py-3.5 dark:bg-amber-400/10">
+                <Icon icon={MailWarning} size={20} className="mt-0.5 shrink-0 text-warning dark:text-amber-300" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-warning dark:text-amber-200">{t("profile.verify")}</p>
+                  <p className="text-[13px] text-warning/80 dark:text-amber-200/70">{t("profile.verifysub")}</p>
+                  <button onClick={() => resend.mutate()} disabled={resend.isPending || resend.isSuccess} className="mt-1.5 text-[13px] font-semibold text-warning underline underline-offset-2 disabled:opacity-60 dark:text-amber-100">
+                    {resend.isSuccess ? t("common.sent") : t("common.resendlink")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <ActivityLine unread={h?.unreadNotifications ?? 0} />
+
+            {/* Hva er neste reise */}
+            <NextTripScene trip={h?.nextTrip ?? null} now={now} />
+
+            {/* Reiseprofilen, som én invitasjon – ikke en modul til */}
+            {h && !profileStarted && (
+              <Link
+                to="/velkommen"
+                className="press group flex items-center gap-3.5 rounded-2xl bg-primary-soft p-4 text-accent-foreground transition-colors hover:bg-accent"
+              >
+                <Icon icon={Sparkles} size={24} className="shrink-0 text-foreground" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold text-foreground">{t("acct.hub.start")}</span>
+                  <span className="block text-[13px] text-accent-foreground">{t("acct.hub.startsub")}</span>
+                </span>
+                <Icon icon={ArrowRight} size={20} className="shrink-0 text-foreground transition-transform duration-fast group-hover:translate-x-0.5" />
               </Link>
+            )}
 
-              {customer.email && !customer.emailVerified && (
-                <div className="mt-4 flex items-start gap-3 rounded-xl bg-warning/10 px-4 py-3.5 dark:bg-amber-400/10">
-                  <Icon icon={MailWarning} size={20} className="mt-0.5 shrink-0 text-warning dark:text-amber-300" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold text-warning dark:text-amber-200">{t("profile.verify")}</p>
-                    <p className="text-[12px] text-warning/80 dark:text-amber-200/70">{t("profile.verifysub")}</p>
-                    <button onClick={() => resend.mutate()} disabled={resend.isPending || resend.isSuccess} className="mt-1.5 text-[12px] font-semibold text-warning underline underline-offset-2 disabled:opacity-60 dark:text-amber-100">
-                      {resend.isSuccess ? t("common.sent") : t("common.resendlink")}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Reiseprofil: én rolig invitasjon til den er startet; én linje til den er komplett. */}
-              {h && !profileStarted && (
-                <Link to="/velkommen" className="press mt-4 flex items-center gap-3 rounded-xl bg-night p-4 text-white transition-colors hover:bg-[hsl(240,6%,14%)]">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><Icon icon={Sparkles} size={20} /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold">{t("acct.hub.start")}</span>
-                    <span className="block text-[12px] text-white/65">{t("acct.hub.startsub")}</span>
-                  </span>
-                  <Icon icon={ArrowRight} size={20} className="shrink-0 text-white/70" />
-                </Link>
-              )}
-              {h && profileStarted && h.profile.completeness < 100 && (
-                <Link to="/profil/reiseprofil" className="press mt-4 block rounded-xl bg-muted/70 px-4 py-3 transition-colors hover:bg-muted">
-                  <span className="flex items-center justify-between gap-3 text-[13px]">
-                    <span className="font-semibold">{t("acct.hub.complete")}</span>
-                    <span className="text-muted-foreground">{t("acct.hub.completesub", { pct: h.profile.completeness })}</span>
-                  </span>
-                  <span className="mt-2 block h-1 overflow-hidden rounded-full bg-border"><span className="block h-full rounded-full bg-primary transition-[width] duration-slow" style={{ width: `${h.profile.completeness}%` }} /></span>
-                </Link>
-              )}
-
-            </div>
-
-            <div className="lg:-mt-7">
-              {/* Navet: reisen som kommer, det du gjør oftest, papirene, familien, rutene. */}
-              <div className="space-y-10 lg:space-y-12">
-                <NextTripModule trip={h?.nextTrip ?? null} days={nextTripDays} />
-                <QuickActions label={t("acct.group.trips")} items={quickActions} />
-                <DocumentsModule trips={trips.data ?? []} status={docsStatus} now={now} />
-                <FamilyModule travellers={travellers.data ?? []} loading={travellers.isLoading} />
-                <RoutesModule routes={h?.routes ?? []} departDate={soon} />
-              </div>
-
-              {/* Anbefalt for deg: fra reiseprofilen og søkene dine, med ekte priser. */}
-              <div className="mt-10 lg:mt-12">
-                <ForYou />
-              </div>
-
-              <div className="mt-10 lg:mt-12">
-              {/* Reiser, Reisende, Prisovervåking og Lagret ligger i snarveiene over –
-                  gruppene her fører videre, de gjentar ikke. */}
-              <AccountGroup label={t("acct.group.personal")}>
-                <AccountRow to="/profil/reiseprofil" icon={Sparkles} title={t("acct.travelprofile")} sub={h ? t("tpf.completeness", { pct: h.profile.completeness }) : t("acct.travelprofilesub")} />
-                <AccountRow to="/tavler" icon={LayoutGrid} title="Reisetavler" sub="Planlegg en tur sammen – stem og del" />
-                <AccountRow to="/quiz" icon={Sparkles} title="ReiseMatch" sub="Alene, som par eller med gjengen" />
-                <AccountRow to="/profil/varsler" icon={Bell} title={t("acct.notifications")} sub={t("acct.notificationssub")} badge={<CountBadge n={h?.unreadNotifications ?? 0} />} />
-                <AccountRow to="/profil/bonus" icon={Wallet} title={t("acct.rewards")} sub={t("acct.rewardssub", { balance: customer.bonusKr ?? 0, tier: h?.rewards.tier.name ?? "Explorer" })} />
-                <AccountRow to="/profil/inviter" icon={Gift} title={t("acct.invite")} sub={t("profile.invitesub")} />
-                <AccountRow to="/samfunn" icon={MessagesSquare} title={t("acct.community")} sub={t("profile.communitysub")} />
-              </AccountGroup>
-
-              <AccountGroup label={t("acct.group.account")}>
-                <AccountRow to="/profil/rediger" icon={UserPen} title={t("acct.edit")} sub={t("acct.editsub")} />
-                <AccountRow to="/profil/sikkerhet" icon={ShieldCheck} title={t("acct.security")} sub={t("acct.securitysub")} />
-                <ControlRow icon={Mail} title={t("pf.marketing")} sub={t("pf.marketingsub")}>
-                  <Toggle checked={customer.marketingConsent} disabled={prefs.isPending} label={t("pf.marketing")} onChange={(v) => prefs.mutate({ marketingConsent: v })} />
-                </ControlRow>
-              </AccountGroup>
-              {prefs.isError && <p role="alert" className="mt-2 text-[12px] text-destructive">{humanMessage(prefs.error)}</p>}
-
-              {settings}
-              </div>
-            </div>
+            <TravelPassport passport={passport} />
+            <RoutesScene routes={h?.routes ?? []} departDate={soon} />
+            <FamilyScene travellers={travellers.data ?? []} loading={travellers.isLoading} />
+            <WatchesScene watches={h?.watches ?? []} />
+            <ForYou />
+            <HistoryTimeline trips={trips.data ?? []} now={now} />
           </div>
-        )}
 
-        {/* ── Gjest ────────────────────────────────────────────────────── */}
-        {!isLoading && !customer && (
-          <div className="mx-auto max-w-2xl lg:mx-0 lg:grid lg:max-w-none lg:grid-cols-[400px_minmax(0,1fr)] lg:items-start lg:gap-14">
-            <Link to="/logg-inn" className="press flex items-center gap-3.5 rounded-2xl bg-night p-5 text-white transition-colors hover:bg-[hsl(240,6%,14%)] lg:sticky lg:top-24 lg:min-h-[200px] lg:flex-col lg:items-start lg:justify-between lg:p-6">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><Icon icon={UserRound} size={20} /></span>
-              <span className="min-w-0 flex-1 lg:flex-none">
-                <span className="block text-[16px] font-semibold lg:font-display lg:text-[26px] lg:font-medium">{t("profile.login")}</span>
-                <span className="block text-[13px] text-white/60 lg:mt-1 lg:text-[14px]">{t("profile.loginsub")}</span>
-              </span>
-              <Icon icon={ChevronRight} size={20} className="shrink-0 text-white/60 lg:hidden" />
+          {/* ── Høyre: identiteten og veiene videre ─────────────────── */}
+          <aside className="min-w-0 space-y-10 lg:sticky lg:top-24">
+            <Link to="/profil/bonus" className="press hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring lg:block" aria-label={t("acct.card.open")}>
+              <MembershipCard
+                name={`${customer.firstName} ${customer.lastName}`}
+                programName={h?.rewards.programName ?? "HelloSky Bonus"}
+                tierName={h?.rewards.tier.name ?? "Explorer"}
+                memberNumber={`HS-${String(customer.id).padStart(6, "0")}`}
+                memberSince={null}
+                className="max-w-none"
+              />
             </Link>
-            <div className="lg:-mt-7">
-              <AccountGroup>
-                <AccountRow to="/reise" icon={Luggage} title={t("profile.mytrip")} sub={t("profile.mytripsub")} />
-                <AccountRow to="/flystatus" icon={Radar} title={t("profile.flightstatus")} sub={t("profile.flightstatussub")} />
-                <AccountRow to="/hotell-bil" icon={Car} title={t("profile.hotelcar")} sub={t("profile.hotelcarsub")} />
-                <AccountRow to="/quiz" icon={Sparkles} title={t("profile.quiz")} sub={t("profile.quizsub")} />
-                <AccountRow to="/samfunn" icon={MessagesSquare} title={t("acct.community")} sub={t("profile.communitysub")} />
-              </AccountGroup>
-              {settings}
-            </div>
-          </div>
-        )}
 
-        {isLoading && (
-          <div className="space-y-3" aria-busy="true">
-            <div className="shimmer h-40 rounded-2xl" />
-            <div className="shimmer h-16 rounded-xl" />
-            <div className="shimmer h-16 rounded-xl" />
-          </div>
-        )}
+            {h && <RewardsScene rewards={h.rewards} bonusKr={customer.bonusKr ?? 0} />}
+
+            <section>
+              <ModuleHead title={t("acct.group.personal")} />
+              <ul className="grid grid-cols-2 gap-2.5">
+                <LaunchTile to="/reiser" icon={Luggage} title={t("acct.trips")} />
+                <LaunchTile to="/lagret" icon={Heart} title={t("acct.saved")} note={h && h.savedCount > 0 ? t("acct.savedsub", { count: h.savedCount }) : undefined} />
+                <LaunchTile to="/tavler" icon={LayoutGrid} title={t("acct.boards")} />
+                <LaunchTile to="/profil/reiseprofil" icon={Sparkles} title={t("acct.travelprofile")} note={h ? t("tpf.completeness", { pct: h.profile.completeness }) : undefined} />
+                <LaunchTile to="/profil/prisovervaking" icon={TrendingDown} title={t("acct.hub.watch")} />
+                <LaunchTile to="/profil/reisende" icon={Users} title={t("acct.travelers")} />
+                <LaunchTile to="/samfunn" icon={MessagesSquare} title={t("acct.community")} />
+                <LaunchTile to="/profil/innstillinger" icon={Settings2} title={t("profile.settings")} />
+              </ul>
+            </section>
+          </aside>
+        </div>
       </AppShell>
     </div>
   );
