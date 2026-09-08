@@ -269,7 +269,7 @@ export default function Home() {
             <span
               className="absolute inset-0"
               aria-hidden="true"
-              style={{ backgroundImage: "linear-gradient(to top, hsl(var(--night)) 6%, hsl(var(--night) / 0.86) 34%, hsl(var(--night) / 0.5) 58%, hsl(var(--night) / 0.2) 82%)" }}
+              style={{ backgroundImage: "linear-gradient(to top, hsl(var(--night)) 4%, hsl(var(--night) / 0.93) 40%, hsl(var(--night) / 0.8) 66%, hsl(var(--night) / 0.55) 88%, hsl(var(--night) / 0.35) 100%)" }}
             />
             <div className="container-x relative flex min-h-[420px] flex-col justify-end py-12 sm:min-h-[480px] sm:py-16">
               <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-white/80">{t("home.hero.kicker")}</p>

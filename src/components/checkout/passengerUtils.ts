@@ -126,6 +126,39 @@ export function buildPassengerDetails(ctx: PassengerContext, pax: Record<string,
   });
 }
 
+
+/**
+ * Er denne reisende ferdig utfylt?
+ *
+ * Brukes til å avgjøre hvilken reisende som skal stå åpen i kassen. Speiler
+ * kravene i `validatePassengers`, men uten aldersgrensene: her handler det om
+ * «har du fylt ut feltene», ikke «er datoen gyldig». Feilene vises der de hører
+ * hjemme – ved feltet – når man prøver å gå videre.
+ */
+export function passengerComplete(p: PaxSlot, d: PaxForm | undefined, identityDocumentsRequired: boolean): boolean {
+  if (!d) return false;
+  if (!NAME_RE.test(normalizeName(d.givenName))) return false;
+  if (!NAME_RE.test(normalizeName(d.familyName))) return false;
+  if (!isValidDate(d.bornOn)) return false;
+  if (p.type === "infant_without_seat") {
+    if (!d.infantPassengerId) return false;
+  } else {
+    if (!d.title || !d.gender) return false;
+  }
+  if (identityDocumentsRequired) {
+    if (!/^[A-Z0-9]{5,20}$/.test(d.passportNumber.replace(/\s/g, "").toUpperCase())) return false;
+    if (!/^[A-Z]{2}$/.test(d.passportCountry)) return false;
+    if (!isValidDate(d.passportExpiry)) return false;
+  }
+  return true;
+}
+
+/** Navnet slik det står nå, til sammendragslinjen på en lukket reisende. */
+export function passengerSummary(d: PaxForm | undefined): string {
+  if (!d) return "";
+  return [d.givenName.trim(), d.familyName.trim()].filter(Boolean).join(" ");
+}
+
 /** «Voksen 1», «Barn 2», «Baby 1 (reiser i fanget)» */
 export function passengerLabel(p: PaxSlot, all: PaxSlot[], t: T): string {
   const n = all.filter((x) => x.type === p.type).indexOf(p) + 1;

@@ -279,6 +279,8 @@ const dict = {
   "home.occ.weekend": { nb: "Helgetur", en: "Weekend trip" },
   "home.occ.weekendsub": { nb: "Fredag ut, søndag hjem", en: "Out Friday, home Sunday" },
   // ── Verden, etter tema ────────────────────────────────────────────────
+  "co.pax.empty": { nb: "Ikke fylt ut", en: "Not filled in" },
+  "co.pax.hasError": { nb: "Mangler noe – åpne og se", en: "Something is missing – open to see" },
   "world.title": { nb: "Hvor vil du?", en: "Where do you want to go?" },
   "world.sub": { nb: "Velg en følelse, så viser vi steder vi faktisk flyr til – over hele verden.", en: "Pick a feeling and we will show places we actually fly to – all over the world." },
   "world.all": { nb: "Se alle reisemål", en: "See all destinations" },
@@ -306,7 +308,7 @@ const dict = {
   "home.occ.culturesub": { nb: "Roma, Athen, Istanbul, Delhi", en: "Rome, Athens, Istanbul, Delhi" },
   "home.hero.kicker": { nb: "Hjem til familien", en: "Home to family" },
   "home.hero.title": { nb: "Vi kjenner reisen hjem.", en: "We know the journey home." },
-  "home.hero.body": { nb: "Vi selger hele verden, men noen ruter kan vi bedre enn andre. Reiser du til familien i Istanbul, Erbil, Beirut eller Islamabad, kjenner vi bagasjen som må være med og mellomlandingene som funker med barn.", en: "We sell the whole world, but some routes we know better than others. Travelling to family in Istanbul, Erbil, Beirut or Islamabad, we know the baggage that has to come along and the layovers that work with children." },
+  "home.hero.body": { nb: "Vi flyr hele verden, men noen ruter kan vi bedre enn andre: bagasjen som må være med, og mellomlandinger som funker med barn.", en: "We fly the whole world, but some routes we know better: the baggage that has to come along, and layovers that work with children." },
   "home.hero.cta": { nb: "Se reisemålene", en: "See the destinations" },
   "home.watch.title": { nb: "Vet du hvor, men ikke når?", en: "Know where, but not when?" },
   "home.watch.body": { nb: "Fortell oss ruten, perioden og maksprisen. Vi sjekker ekte priser og sier fra når noe faktisk passer – med gebyrer regnet inn.", en: "Tell us the route, the period and your max price. We check real prices and tell you when something actually fits – fees included." },

@@ -1,10 +1,13 @@
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import * as Collapsible from "@radix-ui/react-collapsible";
+import { Check, ChevronDown } from "lucide-react";
 import DateField from "@/components/search/DateField";
 import SelectWrap from "./SelectWrap";
 import { Chip } from "@/components/ui/chip";
 import { COUNTRIES } from "@/content/countries";
 import type { Gender, Title } from "@contracts/types";
-import { emptyPax, inputCls, passengerLabel, selectCls, type PassengerContext, type PaxForm, type T } from "./passengerUtils";
+import { emptyPax, inputCls, passengerComplete, passengerLabel, passengerSummary, selectCls, type PassengerContext, type PaxForm, type T } from "./passengerUtils";
+import { cn } from "@/lib/utils";
 
 /** A short fixed choice is one tap, not open-a-menu-then-tap. Radio semantics for screen readers. */
 function ChoiceRow<V extends string>({ id, label, value, options, onChange, describedBy, invalid }: { id: string; label: string; value: V | undefined; options: { value: V; label: string }[]; onChange: (v: V) => void; describedBy?: string; invalid: boolean }) {
@@ -78,6 +81,35 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
   const adults = passengers.filter((p) => p.type === "adult");
   const year = new Date().getFullYear();
   const today = new Date().toISOString().slice(0, 10);
+
+  /**
+   * Én reisende av gangen.
+   *
+   * Tre reisende med pass ga trettifem felt på rad på en telefon. Nå står den
+   * du holder på med åpen, resten hviler som sammendragslinjer, og neste
+   * åpner seg av seg selv når den forrige er ferdig. Alt er fortsatt på
+   * samme side – ingenting er gjemt bak et nytt steg.
+   */
+  const complete = useMemo(
+    () => passengers.map((p) => passengerComplete(p, pax[p.id], identityDocumentsRequired)),
+    [passengers, pax, identityDocumentsRequired],
+  );
+  const [chosen, setChosen] = useState<number | null>(null);
+  const firstErrorIndex = passengers.findIndex((_, i) => Object.keys(errors).some((key) => key.startsWith(`passengers.${i}.`)));
+  const firstIncomplete = complete.findIndex((c) => !c);
+
+  // Åpen rad utledes, den lagres ikke: en feil vinner alltid, deretter et
+  // bevisst valg så lenge den raden ikke er ferdig, ellers den første som
+  // mangler noe. Da flytter den seg av seg selv uten en eneste effekt.
+  const open =
+    firstErrorIndex !== -1
+      ? firstErrorIndex
+      : chosen !== null && !complete[chosen]
+        ? chosen
+        : firstIncomplete === -1
+          ? null
+          : firstIncomplete;
+  const setOpen = (i: number | null) => setChosen(i);
   return (
     <div className="space-y-6">
       {errors.passengers && (
@@ -89,9 +121,34 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
         const d = pax[p.id] ?? emptyPax();
         const k = (f: string) => `passengers.${i}.${f}`;
         const idp = `${idPrefix}-${i}`;
+        const done = complete[i];
+        const summary = passengerSummary(pax[p.id]);
+        const hasError = Object.keys(errors).some((key) => key.startsWith(`passengers.${i}.`));
         return (
-          <fieldset key={p.id} className="border-t border-border pt-5">
-            <legend className="t-h3 pr-3 text-foreground">{passengerLabel(p, passengers, t)}</legend>
+          <Collapsible.Root
+            key={p.id}
+            open={open === i}
+            onOpenChange={(o) => setOpen(o ? i : null)}
+            className={cn("overflow-hidden rounded-xl border transition-colors", open === i ? "border-foreground/30" : hasError ? "border-destructive/40" : "border-border")}
+          >
+            {/* Sammendragslinjen er reisendens hvilestilling: navn når det er
+                fylt ut, en hake når alt er på plass, og en tydelig vei inn. */}
+            <Collapsible.Trigger asChild>
+              <button type="button" className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/50">
+                <span className={cn("grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold", done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                  {done ? <Check className="size-4" aria-hidden="true" /> : i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold leading-tight">{passengerLabel(p, passengers, t)}</span>
+                  <span className={cn("mt-0.5 block truncate text-[13px]", hasError ? "text-destructive" : "text-muted-foreground")}>
+                    {hasError ? t("co.pax.hasError") : summary || t("co.pax.empty")}
+                  </span>
+                </span>
+                <ChevronDown className={cn("size-5 shrink-0 text-muted-foreground transition-transform duration-base ease-out", open === i && "rotate-180")} aria-hidden="true" />
+              </button>
+            </Collapsible.Trigger>
+            <Collapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+              <div className="border-t border-border px-4 pb-5 pt-4">
             {savedTravelers.length > 0 && (
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="eyebrow">{t("co.pax.fromsaved")}</span>
@@ -221,7 +278,9 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
                 </>
               )}
             </div>
-          </fieldset>
+              </div>
+            </Collapsible.Content>
+          </Collapsible.Root>
         );
       })}
     </div>
