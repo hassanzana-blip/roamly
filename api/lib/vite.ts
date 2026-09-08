@@ -67,9 +67,18 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
   app.get("/index.html", (c) => c.redirect("/", 301));
   app.use("*", serveStatic({ root: path.relative(process.cwd(), distPath) || ".", precompressed: true }));
 
+  /**
+   * SPA-fallback: en rute får appskallet, en fil som ikke finnes får 404.
+   *
+   * Skillet gikk før på `Accept: text/html`. Nettlesere sender det, men
+   * lenkeforhåndsvisninger, oppetidsovervåking og curl sender en vilkårlig
+   * innholdstype, og fikk en JSON-404 for en helt gyldig side. Skillet går nå
+   * på om stien ser ut som en fil: da er 404 riktig svar uansett hvem som spør.
+   */
+  const looksLikeFile = (p: string) => /\.[a-z0-9]{2,8}$/i.test(p);
+
   app.notFound((c) => {
-    const accept = c.req.header("accept") ?? "";
-    if (c.req.path.startsWith("/api/") || !accept.includes("text/html")) {
+    if (c.req.path.startsWith("/api/") || looksLikeFile(c.req.path)) {
       return c.json({ error: "Not Found" }, 404);
     }
     if (indexCache === null || process.env.NODE_ENV !== "production") {
