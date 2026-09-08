@@ -33,6 +33,20 @@ async function listTables(): Promise<string[]> {
   return tableCache;
 }
 
+/**
+ * TRUNCATE nullstiller auto_increment, så neste test får igjen id 1 – og
+ * dermed de samme jobbnøklene («attempt:1», «recover:1:…»). Kjøres en
+ * bakgrunnsjobb fra forrige test ferdig etter at vi har tømt (og det gjør de:
+ * flere steder legges jobber i kø uten at noen venter på dem), står det en rad
+ * igjen med en aktiv dedupe-nøkkel som stille sluker neste tests innlegging.
+ * Da kjører ingenting, og testen feiler et helt annet sted.
+ *
+ * Løsningen er å la id-ene løpe videre: nøklene kan da ikke kollidere på tvers
+ * av tester, uansett rekkefølge.
+ */
+const ID_STEP = 1000;
+let idFloor = 0;
+
 export async function truncateAll(): Promise<void> {
   resetAccessTokenCache();
   const db = getDb();
@@ -42,6 +56,10 @@ export async function truncateAll(): Promise<void> {
     for (const t of tables) await db.execute(sql.raw(`TRUNCATE TABLE \`${t}\``));
   } finally {
     await db.execute(sql`SET FOREIGN_KEY_CHECKS=1`);
+  }
+  idFloor += ID_STEP;
+  for (const t of ["jobs", "booking_attempts", "checkout_sessions", "bookings"]) {
+    if (tables.includes(t)) await db.execute(sql.raw(`ALTER TABLE \`${t}\` AUTO_INCREMENT = ${idFloor}`));
   }
 }
 

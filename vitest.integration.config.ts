@@ -23,6 +23,11 @@ export default defineConfig({
     fileParallelism: false,
     sequence: { concurrent: false },
     pool: "forks",
+    // Én prosess per testfil. Filene deler ellers modulnivå-tilstand – Stripe-
+    // mocken, DuffelFake, rategrenser i minnet – og en fil som kjørte før kan
+    // avgjøre hva den neste ser. Hver fil var stabil alene og ustabil i følge;
+    // det er den forskjellen dette fjerner.
+    poolOptions: { forks: { singleFork: false, isolate: true } },
     maxWorkers: 1,
     testTimeout: 60_000,
     hookTimeout: 60_000,

@@ -705,7 +705,12 @@ export default function SearchResults() {
 
           {/* sort + mobile filter row: stays under the header while the list scrolls on phones */}
           <div className="sticky top-16 z-20 -mx-5 mb-5 flex items-center gap-2 bg-background/95 px-5 py-1 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:py-0 lg:backdrop-blur-none">
-            <div role="radiogroup" aria-label={t("sr.sorting")} className="no-scrollbar -ml-5 flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto py-1 pl-5 pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] sm:-ml-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:pl-0 lg:pr-0 lg:[mask-image:none]">
+            <div role="radiogroup" aria-label={t("sr.sorting")} /*
+                snap-pausen legger seg på kortets kant, ikke på innrykket: uten
+                scroll-padding snapper raden 20 px forbi, og den første knappen
+                blir stående klistret til skjermkanten mens resten av siden har
+                marg. */
+              className="no-scrollbar -ml-5 flex min-w-0 flex-1 snap-x scroll-pl-5 gap-2 overflow-x-auto py-1 pl-5 pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] sm:-ml-8 sm:scroll-pl-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:scroll-pl-0 lg:pl-0 lg:pr-0 lg:[mask-image:none]">
               {/* The summary cards above already carry best/cheapest/fastest (and family); the chips only add what they don't. */}
               {PREFERENCES.filter((p) => !summaryKeys.has(p.key)).map((p) => (
                 <Chip

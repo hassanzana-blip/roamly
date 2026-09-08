@@ -20,6 +20,11 @@ interface Props<T extends string> {
 /**
  * Segmented control: one of N, always has a value. Built on Radix
  * ToggleGroup for roving focus and keyboard support.
+ *
+ * På telefon er pillen 44 px høy, ikke 36. En usynlig trykkflate rundt en
+ * mindre pille høres pent ut, men den lar seg ikke måle og den lot seg ikke
+ * treffe da den ble prøvd. Kontrollen er full høyde der fingeren er, og faller
+ * tilbake til den kompakte høyden fra sm og opp, der det er en peker.
  */
 export function Segmented<T extends string>({ value, onValueChange, options, className, size = "md", ...a11y }: Props<T>) {
   return (
@@ -39,7 +44,7 @@ export function Segmented<T extends string>({ value, onValueChange, options, cla
             "transition-[background-color,color,box-shadow] duration-fast ease-out",
             "hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
             "data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm",
-            size === "md" ? "h-9 text-sm" : "h-8 text-xs",
+            size === "md" ? "h-11 text-sm sm:h-9" : "h-10 text-xs sm:h-8",
           )}
         >
           {o.label}

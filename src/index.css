@@ -49,6 +49,9 @@
     --destructive-foreground: 0 0% 100%;
     --success: 145 63% 30%;
     --success-foreground: 0 0% 100%;
+    /* Advarselstekst brukes i full styrke. Dempet til 80 % lander den på 3,65:1
+       mot sin egen bakgrunn – under AA, på nettopp den teksten som forklarer at
+       noe må gjøres. */
     --warning: 32 92% 30%;
     --warning-foreground: 0 0% 100%;
 

@@ -178,7 +178,7 @@ export default function Profile() {
                 <Icon icon={MailWarning} size={20} className="mt-0.5 shrink-0 text-warning dark:text-amber-300" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] font-semibold text-warning dark:text-amber-200">{t("profile.verify")}</p>
-                  <p className="text-[13px] text-warning/80 dark:text-amber-200/70">{t("profile.verifysub")}</p>
+                  <p className="text-[13px] text-warning dark:text-amber-200/70">{t("profile.verifysub")}</p>
                   <button onClick={() => resend.mutate()} disabled={resend.isPending || resend.isSuccess} className="mt-1.5 text-[13px] font-semibold text-warning underline underline-offset-2 disabled:opacity-60 dark:text-amber-100">
                     {resend.isSuccess ? t("common.sent") : t("common.resendlink")}
                   </button>

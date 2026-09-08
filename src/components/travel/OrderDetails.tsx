@@ -133,7 +133,7 @@ export function ScheduleChanges({ changes }: { changes: OrderGetResult["schedule
       <h2 className="flex items-center gap-2 font-display text-2xl text-warning">
         <AlertTriangle className="h-5 w-5" aria-hidden="true" /> {t("od.schedule.title")}
       </h2>
-      <p className="mt-1 text-sm text-warning/80">{t("od.schedule.body")}</p>
+      <p className="mt-1 text-sm text-warning">{t("od.schedule.body")}</p>
       <div className="mt-4 space-y-4">
         {changes.map((c) => {
           const oldSegs = Array.isArray(c.oldSegments) ? (c.oldSegments as SegLike[]) : [];
