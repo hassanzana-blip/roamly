@@ -78,17 +78,30 @@ function HomeRoute({ d, hash }: { d: FeaturedDestination; hash: string }) {
           <span className="min-w-0">
             <span className="t-h2 block">{d.country}</span>
             <span className="t-body mt-1 block text-muted-foreground">{d.headline}</span>
-            <span className="t-caption mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-              {d.gateways.map((g, i) => (
-                <span key={g.iata} className="inline-flex items-center gap-2">
-                  {i > 0 && <span aria-hidden="true">·</span>}
-                  <span className="text-foreground">{g.label}</span>
-                  <span className="t-code">{g.iata}</span>
-                </span>
-              ))}
-              <span className="inline-flex items-center gap-2">
-                <span aria-hidden="true">·</span>
-                <Icon icon={Clock3} size={14} /> {d.flightTime}
+            {/* Phones show the two main gateways and a count; the guide lists them all. */}
+            <span className="t-caption mt-2.5 block">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {d.gateways.slice(0, 2).map((g, i) => (
+                  <span key={g.iata} className="inline-flex items-center gap-1.5">
+                    {i > 0 && <span aria-hidden="true">·</span>}
+                    <span className="text-foreground">{g.label}</span>
+                    <span className="t-code">{g.iata}</span>
+                  </span>
+                ))}
+                {d.gateways.length > 2 && (
+                  <>
+                    <span className="hidden sm:inline" aria-hidden="true">·</span>
+                    <span className="hidden sm:inline-flex sm:items-center sm:gap-1.5">
+                      <span className="text-foreground">{d.gateways[2].label}</span>
+                      <span className="t-code">{d.gateways[2].iata}</span>
+                    </span>
+                    <span className="sm:hidden">+{d.gateways.length - 2}</span>
+                    {d.gateways.length > 3 && <span className="hidden sm:inline">+{d.gateways.length - 3}</span>}
+                  </>
+                )}
+              </span>
+              <span className="mt-1 flex items-center gap-1.5">
+                <Icon icon={Clock3} size={14} className="shrink-0" /> {d.flightTime}
               </span>
             </span>
           </span>
