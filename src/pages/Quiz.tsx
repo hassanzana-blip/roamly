@@ -73,13 +73,13 @@ function Hub() {
           {MODES.map((m) => (
             <li key={m.id}>
               <Link to={`/quiz/${m.id}`} className="group flex min-h-[172px] flex-col justify-between rounded-2xl border border-white/15 bg-white/5 p-5 transition-colors hover:border-white/40 hover:bg-white/10">
-                <span className="flex items-center justify-between"><m.icon className="h-6 w-6 text-primary" /><span className="font-mono-label text-[9px] uppercase tracking-[0.18em] text-white/50">{m.kicker}</span></span>
+                <span className="flex items-center justify-between"><m.icon className="h-6 w-6 text-primary" /><span className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-white/70">{m.kicker}</span></span>
                 <span><span className="font-display block text-[26px] leading-tight">{m.title}</span><span className="mt-1.5 block text-[13px] leading-relaxed text-white/65">{m.sub}</span></span>
               </Link>
             </li>
           ))}
         </ul>
-        <p className="font-mono-label mt-8 text-[9px] text-white/40">Finn min reise, Overrask meg, Helgerulett og Budsjett lagrer ingenting. Par- og Venne-match lagrer svarene i 30 dager, bare for dem med lenken.</p>
+        <p className="font-mono-label mt-8 text-[11px] text-white/70">Finn min reise, Overrask meg, Helgerulett og Budsjett lagrer ingenting. Par- og Venne-match lagrer svarene i 30 dager, bare for dem med lenken.</p>
       </motion.section>
     </Shell>
   );
@@ -95,8 +95,8 @@ function SoloResult({ answers, onRestart }: { answers: QuizAnswers; onRestart: (
       <p className="font-mono-label text-[10px] text-white/60">{result.isCouple ? "Vi to drar til …" : "Reisemålet ditt er …"}</p>
       <h2 className="font-display mt-3 text-5xl leading-[0.95] sm:text-7xl">{result.top.city}<span className="italic text-white/70" style={{ fontWeight: 400 }}>, {result.top.country}</span></h2>
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        <label className="block"><span className="font-mono-label mb-1.5 block text-[9px] text-white/50">{result.isCouple ? "Ditt navn" : "Navn på kortet (valgfritt)"}</span><input value={names[0]} onChange={(e) => setNames([e.target.value, names[1]])} placeholder={result.isCouple ? "Deg" : "Den reisende"} maxLength={24} className={darkInput} /></label>
-        {result.isCouple && <label className="block"><span className="font-mono-label mb-1.5 block text-[9px] text-white/50">Den du inviterer</span><input value={names[1]} onChange={(e) => setNames([names[0], e.target.value])} placeholder="Hen/han" maxLength={24} className={darkInput} /></label>}
+        <label className="block"><span className="font-mono-label mb-1.5 block text-[11px] text-white/70">{result.isCouple ? "Ditt navn" : "Navn på kortet (valgfritt)"}</span><input value={names[0]} onChange={(e) => setNames([e.target.value, names[1]])} placeholder={result.isCouple ? "Deg" : "Den reisende"} maxLength={24} className={darkInput} /></label>
+        {result.isCouple && <label className="block"><span className="font-mono-label mb-1.5 block text-[11px] text-white/70">Den du inviterer</span><input value={names[1]} onChange={(e) => setNames([names[0], e.target.value])} placeholder="Hen/han" maxLength={24} className={darkInput} /></label>}
       </div>
       <div className="mt-6"><ScratchReveal hint="Skrap frem boardingkortet ✦" onRevealed={() => setRevealed(true)}><BoardingPass destination={result.top} isCouple={result.isCouple} names={names} /></ScratchReveal></div>
       {result.isCouple && revealed && (
@@ -109,7 +109,7 @@ function SoloResult({ answers, onRestart }: { answers: QuizAnswers; onRestart: (
         <button type="button" onClick={onRestart} className={ghostBtn}><RotateCcw className="h-4 w-4" /> På nytt</button>
       </div>
       <div className="mt-12 border-t border-white/10 pt-8">
-        <p className="font-mono-label text-[10px] text-white/50">To andre som passer deg</p>
+        <p className="font-mono-label text-[11px] text-white/70">To andre som passer deg</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {result.alternatives.map((alt) => (
             <Link key={alt.id} to={searchHref(alt.iata)} className="group relative overflow-hidden rounded-xl">
@@ -138,7 +138,7 @@ function SoloMode() {
             <h1 className="font-display mt-7 max-w-3xl text-5xl leading-[0.98] sm:text-7xl">Vet du ikke hvor du vil dra?<span className="block italic" style={{ fontWeight: 400 }}>Vi skraper det frem.</span></h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70">Svar på fem kjappe spørsmål om stemning, vær og hvem du reiser med – så matcher vi deg med reisemålet ditt og lager et boardingkort du kan sende til noen du er glad i.</p>
             <button type="button" onClick={() => setPhase("questions")} className={cn(primaryBtn, "mt-10 px-9 py-4 text-base active:scale-[0.98]")}>Start <ArrowRight className="h-5 w-5" /></button>
-            <p className="font-mono-label mt-5 text-[9px] text-white/40">Ingen innlogging · ingenting lagres</p>
+            <p className="font-mono-label mt-5 text-[11px] text-white/70">Ingen innlogging · ingenting lagres</p>
           </motion.section>
         )}
         {phase === "questions" && <QuestionFlow key="q" onDone={(a) => { setAnswers(a); setPhase("result"); }} onExit={() => setPhase("intro")} />}
@@ -177,8 +177,8 @@ function GroupStart({ mode }: { mode: "par" | "venner" }) {
                 : "Du lager rommet og får en lenke til gjengen. Hver enkelt svarer for seg, sier når de ikke kan, og stemmer på forslagene. Budsjett er privat for hver enkelt til alle har delt."}
             </p>
             <div className="mt-8 grid max-w-xl gap-3">
-              <label className="block"><span className="font-mono-label mb-1.5 block text-[9px] text-white/50">Navnet ditt</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Slik de andre ser deg" maxLength={40} className={darkInput} /></label>
-              {!couple && <label className="block"><span className="font-mono-label mb-1.5 block text-[9px] text-white/50">Hva heter turen? (valgfritt)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Sommerturen 2027" maxLength={80} className={darkInput} /></label>}
+              <label className="block"><span className="font-mono-label mb-1.5 block text-[11px] text-white/70">Navnet ditt</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Slik de andre ser deg" maxLength={40} className={darkInput} /></label>
+              {!couple && <label className="block"><span className="font-mono-label mb-1.5 block text-[11px] text-white/70">Hva heter turen? (valgfritt)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Sommerturen 2027" maxLength={80} className={darkInput} /></label>}
               <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/15 px-4 text-sm">
                 <span>Del budsjettsvaret mitt med de andre</span>
                 <input type="checkbox" checked={shareBudget} onChange={(e) => setShareBudget(e.target.checked)} className="h-5 w-5 accent-[hsl(var(--primary))]" />
@@ -258,7 +258,7 @@ function SurpriseMode() {
             </motion.div>
           </AnimatePresence>
         )}
-        {!profile && <p className="font-mono-label mt-8 text-[9px] text-white/40">Logg inn og fyll ut reiseprofilen, så treffer ruletten bedre.</p>}
+        {!profile && <p className="font-mono-label mt-8 text-[11px] text-white/70">Logg inn og fyll ut reiseprofilen, så treffer ruletten bedre.</p>}
       </section>
     </Shell>
   );

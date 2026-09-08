@@ -18,10 +18,6 @@ const AVAILABLE = new Set([
   "qa", "sa", "se", "sg", "so", "sy", "th", "tr", "us", "za",
 ]);
 
-export function hasFlag(countryCode: string | null | undefined): boolean {
-  return Boolean(countryCode) && AVAILABLE.has(countryCode!.toLowerCase());
-}
-
 export default function CountryFlag({
   code,
   countryName,

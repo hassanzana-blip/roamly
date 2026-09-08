@@ -61,9 +61,9 @@ export default function AirlineLogo({
       role="img"
       aria-label={airline.name || code}
       title={airline.name || undefined}
-      style={{ height: size, width: size, fontSize: Math.max(10, Math.round(size * 0.34)) }}
+      style={{ height: size, width: size, fontSize: Math.max(11, Math.round(size * 0.4)) }}
       className={cn(
-        "grid shrink-0 place-items-center rounded-lg bg-muted font-semibold tracking-[0.06em] text-foreground",
+        "grid shrink-0 place-items-center rounded-lg bg-muted font-bold leading-none tracking-[0.02em] text-foreground",
         className,
       )}
     >

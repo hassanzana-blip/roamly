@@ -1271,7 +1271,7 @@ const dict = {
   "sw.err.where": { nb: "Velg hvor du reiser fra og hvor du skal.", en: "Choose where you travel from and where you are going." },
   // ── Resultater: familie, filtre ─────────────────────────────────────────
   "sr.perperson": { nb: "ca. {price} per person", en: "approx. {price} per person" },
-  "sr.family.hint": { nb: "Totalpris for {count} reisende. Barn og babyer er priset etter alder.", en: "Total for {count} travellers. Children and infants are priced by age." },
+  "sr.family.hint": { nb: "Totalpris for {count} reisende, inkl. skatter og vårt gebyr", en: "Total for {count} travellers, incl. taxes and our fee" },
   "sr.filter.show_one": { nb: "Vis {count} alternativ", en: "Show {count} option" },
   "sr.filter.show_other": { nb: "Vis {count} alternativer", en: "Show {count} options" },
   "sr.sorted.by": { nb: "Sortert etter", en: "Sorted by" },

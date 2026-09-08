@@ -338,6 +338,11 @@
   .text-primary {
     color: hsl(var(--skyline));
   }
+  /* …but on a dark surface the olive goes muddy. There the lime itself is the
+     readable one, so dark cards ask for it by name instead of text-primary. */
+  .text-lime-dark {
+    color: hsl(var(--primary));
+  }
   /* Lime surfaces always carry dark text, also for older components with text-white */
   .bg-primary.text-white,
   .bg-gold.text-white {
