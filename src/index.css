@@ -387,12 +387,16 @@
     padding-top: env(safe-area-inset-top);
   }
   /* Photo readability wash */
+  /* Skyggen over et foto skal samle seg der teksten står, ikke ligge som et
+     jevnt teppe: himmelen blir stående, og hvit tekst har alltid nok mørke
+     under seg – også over lyse motiver som strand, snø og hvite fasader. */
   .photo-wash {
     background: linear-gradient(
       180deg,
-      hsl(var(--night) / 0.05) 0%,
-      hsl(var(--night) / 0.35) 55%,
-      hsl(var(--night) / 0.72) 100%
+      hsl(var(--night) / 0.02) 0%,
+      hsl(var(--night) / 0.16) 42%,
+      hsl(var(--night) / 0.62) 74%,
+      hsl(var(--night) / 0.93) 100%
     );
   }
 }

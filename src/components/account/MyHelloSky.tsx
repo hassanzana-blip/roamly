@@ -397,7 +397,7 @@ export function HistoryTimeline({ trips, now }: { trips: TripSummary[]; now: num
                   <li key={trip.orderId}>
                     <Link to={confirmationHref(trip.orderId)} className="group flex items-center gap-3.5 py-3">
                       <span className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted">
-                        {photo?.image && <img src={photo.image} srcSet={imageSrcSet(photo.image)} sizes="44px" alt="" aria-hidden="true" loading="lazy" decoding="async" width={44} height={44} className="h-full w-full object-cover" />}
+                        {photo?.image && <img src={photo.image} srcSet={imageSrcSet(photo.image)} sizes="44px" alt="" aria-hidden="true" loading="lazy" decoding="async" width={44} height={44} className="h-full w-full object-cover object-[center_62%]" />}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">

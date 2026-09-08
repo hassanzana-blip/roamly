@@ -332,11 +332,11 @@ const dict = {
   "home.routes.cta": { nb: "Se alle rutene hjem", en: "See all the routes home" },
   "home.why.title": { nb: "Derfor reiser familier med oss", en: "Why families travel with us" },
   "home.why.1.title": { nb: "Totalprisen fra første søk", en: "The total price from the first search" },
-  "home.why.1.body": { nb: "Skatter, bagasje og vårt gebyr er regnet inn før du velger. Ingen overraskelser i kassen.", en: "Taxes, baggage and our fee are included before you choose. No surprises at checkout." },
+  "home.why.1.body": { nb: "Skatter, bagasje og gebyret er regnet inn før du velger.", en: "Taxes, baggage and our fee are counted in before you choose." },
   "home.why.2.title": { nb: "Bagasje som faktisk må være med", en: "Baggage that actually has to come along" },
-  "home.why.2.body": { nb: "Vi viser hva hver billett inkluderer, sier «ikke oppgitt» når flyselskapet ikke har sagt det, og lar deg legge til kolli før du betaler.", en: "We show what each ticket includes, say 'not stated' when the airline has not said, and let you add bags before you pay." },
+  "home.why.2.body": { nb: "Hver billett sier hva den inkluderer – og «ikke oppgitt» når vi ikke vet.", en: "Every ticket says what it includes – and “not stated” when we do not know." },
   "home.why.3.title": { nb: "Mennesker som svarer", en: "People who answer" },
-  "home.why.3.body": { nb: "Norsk, engelsk og kurdisk, alle dager 06–24 – på telefon, e-post og WhatsApp.", en: "Norwegian, English and Kurdish, every day 06–24, by phone, e-mail and WhatsApp." },
+  "home.why.3.body": { nb: "Norsk, engelsk og kurdisk, alle dager 06–24.", en: "Norwegian, English and Kurdish, every day 06–24." },
 
   // ── Explore / Saved ────────────────────────────────────────────────────
   "explore.title": { nb: "Utforsk reisemål", en: "Explore destinations" },

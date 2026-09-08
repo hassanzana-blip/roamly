@@ -7,6 +7,7 @@ import { GreetingBar } from "@/components/app/TopBar";
 import SearchWidget from "@/components/search/SearchWidget";
 import DestinationSheet from "@/components/app/DestinationSheet";
 import Icon from "@/components/app/Icon";
+import CountryFlag from "@/components/brand/CountryFlag";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { BaggageVisual, FamilyGlyph } from "@/components/graphics";
@@ -17,6 +18,7 @@ import { useCustomer } from "@/lib/useCustomer";
 import { useAccountHub } from "@/lib/useAccount";
 import { formatDateShort, formatMinor } from "@/lib/format";
 import { useRoutePrice } from "@/lib/useRoutePrice";
+import { airportByIata } from "@contracts/airports";
 import { DEAL_ROUTES, POPULAR_DESTINATIONS, imageSrcSet, type DealRoute, type DiscoverDestination } from "@/content/discover";
 import { WHATSAPP_DISPLAY, WHATSAPP_LINK, WhatsAppIcon } from "@/components/WhatsAppFab";
 import { trpc } from "@/providers/trpc";
@@ -74,12 +76,17 @@ function RouteRow({ deal, onOpen }: { deal: DealRoute; onOpen: (d: DiscoverDesti
   return (
     <li>
       <button type="button" onClick={() => onOpen(d)} className="group flex w-full min-w-0 items-center gap-3 py-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:gap-4 sm:py-4">
-        <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted sm:size-16">
-          {d.image && <img src={d.image} srcSet={imageSrcSet(d.image)} sizes="64px" alt="" loading="lazy" decoding="async" width={64} height={64} className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]" />}
+        <span className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-night sm:size-16">
+          {d.image && <img src={d.image} srcSet={imageSrcSet(d.image)} sizes="64px" alt="" loading="lazy" decoding="async" width={64} height={64} className="h-full w-full object-cover object-[center_62%] transition-transform duration-500 ease-out group-hover:scale-[1.06]" />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] font-semibold leading-tight">{deal.originCity} → {d.city}</span>
-          <span className="mt-0.5 block truncate text-sm text-muted-foreground">{d.country}{d.tagline ? ` · ${d.tagline}` : ""}</span>
+          {/* Flagget er orientering: hvilket land denne ruten faktisk går til.
+              Slagordet er pynt, og forsvinner der plassen er knapp. */}
+          <span className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+            <CountryFlag code={airportByIata(d.iata)?.countryCode} size={11} />
+            <span className="truncate">{d.country}<span className="hidden sm:inline">{d.tagline ? ` · ${d.tagline}` : ""}</span></span>
+          </span>
         </span>
         <span className="min-w-0 shrink text-right">
           {price ? (
@@ -141,10 +148,14 @@ const SeeAll = ({ to, label }: { to: string; label: string }) => (
 
 function Why({ glyph, title, body }: { glyph: ReactNode; title: string; body: string }) {
   return (
-    <div>
-      <span className="grid size-12 place-items-center rounded-full bg-muted text-foreground">{glyph}</span>
-      <h3 className="t-h3 mt-5">{title}</h3>
-      <p className="t-body mt-2 max-w-sm text-muted-foreground">{body}</p>
+    // På telefon står glyfen ved siden av teksten; tre stablede sirkler med
+    // avsnitt under er en tekstvegg. Fra md får hver sin egen spalte.
+    <div className="flex items-start gap-4 md:block">
+      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-muted text-foreground md:size-12">{glyph}</span>
+      <div className="min-w-0 md:mt-5">
+        <h3 className="t-h3">{title}</h3>
+        <p className="t-body mt-1.5 max-w-sm text-muted-foreground md:mt-2">{body}</p>
+      </div>
     </div>
   );
 }
@@ -256,7 +267,7 @@ export default function Home() {
         {/* 4 · Derfor: tre fakta, ingen kort, ingen merker. */}
         <section className="container-x mt-20 sm:mt-28">
           <h2 className="t-h1 max-w-2xl">{t("home.why.title")}</h2>
-          <div className="mt-8 grid gap-8 border-t border-border pt-8 md:grid-cols-3 md:gap-10 md:pt-10">
+          <div className="mt-8 grid gap-6 border-t border-border pt-8 md:grid-cols-3 md:gap-10 md:pt-10">
             <Why glyph={<Icon icon={Receipt} size={24} />} title={t("home.why.1.title")} body={t("home.why.1.body")} />
             <Why glyph={<BaggageVisual kind="checked" count={2} size={26} label={t("home.why.2.title")} />} title={t("home.why.2.title")} body={t("home.why.2.body")} />
             <Why glyph={<FamilyGlyph size={26} />} title={t("home.why.3.title")} body={t("home.why.3.body")} />
