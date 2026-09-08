@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 import { Eye, EyeOff, LockKeyhole, Rocket } from "lucide-react";
 import SkyMark from "@/components/brand/SkyMark";
 import { trpc } from "@/providers/trpc";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
+import { Avatar } from "@/components/admin/Avatar";
+import { forgetStaff, readRecentStaff, rememberStaff } from "@/lib/adminRecent";
 
 const inputCls =
   "w-full min-h-12 rounded-xl border border-input bg-white px-4 py-3 text-base text-night outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30 placeholder:text-muted-foreground/70";
@@ -27,6 +29,10 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [setupName, setSetupName] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+  // Leses én gang ved montering: lista endrer seg ikke mens siden står åpen.
+  const [recent, setRecent] = useState(() => readRecentStaff());
+  const [otherAccount, setOtherAccount] = useState(false);
 
   const utils = trpc.useUtils();
   const setupStatus = trpc.staffAuth.setupStatus.useQuery(undefined, { staleTime: 30_000, retry: false });
@@ -46,7 +52,11 @@ export default function AdminLogin() {
   });
 
   const login = trpc.staffAuth.login.useMutation({
-    onSuccess: () => { setError(null); finish(); },
+    onSuccess: (res) => {
+      setError(null);
+      rememberStaff({ name: res.name, email: email.trim().toLowerCase() });
+      finish();
+    },
     onError: (err) => setError(err.message),
   });
 
@@ -93,15 +103,45 @@ export default function AdminLogin() {
                 Logg inn
               </h1>
 
+              {/* Brukervelgeren: den som var her sist slipper å skrive adressen
+                  sin igjen. Ansiktet gjør det til en person, ikke en streng. */}
+              {recent.length > 0 && !otherAccount && (
+                <ul className="mt-6 space-y-2">
+                  {recent.map((r) => (
+                    <li key={r.email}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmail(r.email);
+                          setError(null);
+                          requestAnimationFrame(() => passwordRef.current?.focus());
+                        }}
+                        aria-pressed={email === r.email}
+                        className={
+                          "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors " +
+                          (email === r.email ? "border-primary bg-primary/5" : "border-border hover:border-foreground/30")
+                        }
+                      >
+                        <Avatar name={r.name} size={40} />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-foreground">Fortsett som {r.name}</span>
+                          <span className="block truncate text-[12px] text-muted-foreground">{r.email}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
               <form className="mt-6 space-y-4" onSubmit={(e) => { e.preventDefault(); login.mutate({ email, password }); }}>
-                <div>
+                <div className={recent.length > 0 && !otherAccount ? "sr-only" : undefined}>
                   <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-foreground">E-post</label>
                   <input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="deg@hellosky.no" />
                 </div>
                 <div>
                   <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-foreground">Passord</label>
                   <div className="relative">
-                    <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls + " pr-14"} placeholder="••••••••••••" />
+                    <input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls + " pr-14"} placeholder="••••••••••••" />
                     <button type="button" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? "Skjul passord" : "Vis passord"} aria-pressed={showPassword} className="absolute right-1.5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
                     </button>
@@ -109,6 +149,20 @@ export default function AdminLogin() {
                 </div>
                 {error && <p role="alert" className="rounded-xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">{error}</p>}
                 <button type="submit" disabled={login.isPending} className={btnCls}>{login.isPending ? "Logger inn …" : "Logg inn"}</button>
+                {recent.length > 0 && !otherAccount && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOtherAccount(true);
+                      forgetStaff();
+                      setRecent([]);
+                      setEmail("");
+                    }}
+                    className="min-h-11 w-full text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    Bruk en annen konto
+                  </button>
+                )}
               </form>
             </>
           )}
