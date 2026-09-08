@@ -119,7 +119,7 @@ export default function UserMenu({ tone = "light" }: { tone?: "light" | "dark" }
       )}
     >
       {customer ? (
-        <span className={cn("hidden max-w-[9rem] truncate pl-2.5 text-[14px] font-medium sm:block", onDark ? "text-white/85" : "text-foreground")}>
+        <span className={cn("hidden max-w-[9rem] truncate pl-2.5 text-[14px] font-medium xl:block", onDark ? "text-white/85" : "text-foreground")}>
           {t("greet.name", { name: customer.firstName })}
         </span>
       ) : null}

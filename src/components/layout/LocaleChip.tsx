@@ -42,7 +42,7 @@ export function LocaleChip({ className }: { className?: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
+        className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
       >
         <Globe className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="tabular-nums">
