@@ -104,7 +104,7 @@ export default function Support() {
 
         {/* 1 · Spørsmålet + søk */}
         <div className="max-w-2xl">
-          <h2 className="font-display text-[34px] leading-[1.04] sm:text-[48px]">{t("sp.ask")}</h2>
+          <h2 className="t-h1">{t("sp.ask")}</h2>
           <p className="mt-3 text-[16px] leading-relaxed text-muted-foreground">{t("sp.ask.sub")}</p>
         </div>
         <div className="relative mt-6 max-w-2xl">
@@ -193,7 +193,7 @@ export default function Support() {
         {/* 3 · Skriv til oss + hjelpesekken */}
         <section className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
           <div>
-            <h2 className="font-display text-[28px]">{t("sp.write")}</h2>
+            <h2 className="t-h2">{t("sp.write")}</h2>
             <p className="mt-1 text-[14px] text-muted-foreground">{t("sp.write.sub")}</p>
 
             {sent ? (
@@ -284,7 +284,7 @@ export default function Support() {
 
         {/* 4 · Kanaler + menneskene */}
         <section className="mt-14">
-          <h2 className="font-display text-[28px]">{t("sp.channels")}</h2>
+          <h2 className="t-h2">{t("sp.channels")}</h2>
           <p className="mt-1 max-w-xl text-[14px] text-muted-foreground">{t("sp.channels.sub")}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, "")}`} className="press surface flex items-center gap-4 p-5 transition-colors hover:border-foreground/25">
@@ -324,7 +324,7 @@ export default function Support() {
         {/* 5 · Dine saker */}
         {customer && (
           <section className="mt-14">
-            <h2 className="font-display text-[28px]">{t("sp.cases")}</h2>
+            <h2 className="t-h2">{t("sp.cases")}</h2>
             {casesErrCode === "EMAIL_NOT_VERIFIED" && (
               <div className="mt-4 flex items-start gap-3 rounded-xl bg-warning/10 p-4 text-sm">
                 <MailWarning className="mt-0.5 h-5 w-5 shrink-0 text-warning" aria-hidden="true" />
@@ -364,7 +364,7 @@ export default function Support() {
 
         {/* 6 · FAQ */}
         <section className="mt-14 max-w-3xl">
-          <h2 className="font-display text-[28px]">{t("sp.faq")}</h2>
+          <h2 className="t-h2">{t("sp.faq")}</h2>
           <Accordion type="single" collapsible value={openFaq} onValueChange={setOpenFaq} className="mt-4">
             {faq.map((f) => (
               <AccordionItem key={f.n} id={`faq-${f.n}`} value={`faq-${f.n}`} className="border-b border-border">
