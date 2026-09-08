@@ -2,8 +2,8 @@ import { Link } from "react-router";
 import { FileText, ReceiptText } from "lucide-react";
 import Icon from "@/components/app/Icon";
 import { bookingStateLabel, formatDateShort, formatPrice } from "@/lib/format";
+import { confirmationHref, receiptHref, type TripBucket, type TripSummary } from "@/components/account/tripUtils";
 import { useT } from "@/lib/i18n";
-import type { RouterOutputs } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,33 +11,8 @@ import { cn } from "@/lib/utils";
  * dokumentene (billett/bekreftelse og kvittering) rett under. Brukes på
  * /reiser, /reise og i navet på /profil, så en reise ser lik ut overalt.
  */
-export type TripSummary = RouterOutputs["customerAuth"]["myTrips"][number];
-export type TripBucket = "upcoming" | "past" | "cancelled";
-
-/** En reise regnes som «tidligere» seks timer etter avgang – da er man framme. */
-const DEPARTED_GRACE_MS = 6 * 3_600_000;
-
-/** Tilstander der reisen ikke blir noe av – hører hjemme under «Kansellerte». */
-const NOT_TRAVELLING = new Set(["CANCELLED", "CANCELLATION_REQUESTED", "REFUND_PENDING", "REFUNDED", "BOOKING_FAILED", "EXPIRED"]);
-
-export function bucketOf(trip: TripSummary, now: number): TripBucket {
-  if (trip.cancelledAt || NOT_TRAVELLING.has(trip.state)) return "cancelled";
-  return Date.parse(trip.departingAt) >= now - DEPARTED_GRACE_MS ? "upcoming" : "past";
-}
-
-/** Kommende først (nærmeste øverst), tidligere og kansellerte nyeste øverst. */
-export function groupTrips(trips: TripSummary[], now: number): Record<TripBucket, TripSummary[]> {
-  const groups: Record<TripBucket, TripSummary[]> = { upcoming: [], past: [], cancelled: [] };
-  for (const trip of trips) groups[bucketOf(trip, now)].push(trip);
-  groups.upcoming.sort((a, b) => a.departingAt.localeCompare(b.departingAt));
-  groups.past.sort((a, b) => b.departingAt.localeCompare(a.departingAt));
-  groups.cancelled.sort((a, b) => b.departingAt.localeCompare(a.departingAt));
-  return groups;
-}
 
 /** Bekreftelsen er også e-billetten; kvitteringen er salgsdokumentet. Innlogget eier trenger ingen token. */
-export const confirmationHref = (orderId: string) => `/bekreftelse/${encodeURIComponent(orderId)}`;
-export const receiptHref = (orderId: string) => `/kvittering/${encodeURIComponent(orderId)}`;
 
 const POSITIVE = new Set(["CONFIRMED", "TRAVELLED"]);
 
@@ -134,3 +109,5 @@ export function TripCard({ trip, bucket, className }: { trip: TripSummary; bucke
     </article>
   );
 }
+
+export type { TripBucket, TripSummary };

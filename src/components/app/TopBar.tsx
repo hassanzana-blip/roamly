@@ -1,9 +1,8 @@
 import { Link, useNavigate } from "react-router";
-import { ChevronLeft, User } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Icon from "./Icon";
 import SkyMark from "@/components/brand/SkyMark";
 import UserMenu from "@/components/account/UserMenu";
-import { useCustomer } from "@/lib/useCustomer";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,6 @@ import { cn } from "@/lib/utils";
  * All targets ≥ 44px.
  */
 export function GreetingBar({ tone = "light" }: { tone?: "light" | "dark" }) {
-  const { customer } = useCustomer();
   const t = useT();
   const onDark = tone === "dark";
   return (

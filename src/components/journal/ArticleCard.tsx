@@ -2,18 +2,14 @@ import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
 import Icon from "@/components/app/Icon";
 import { TypeCover, type CoverVariant } from "@/components/journal/TypeCover";
-import { destinationById, imageSrcSet } from "@/content/discover";
+import { imageSrcSet } from "@/content/discover";
 import { readingMinutes, TAG_LABELS, type Article } from "@/content/journal";
+import { articlePhoto } from "@/components/journal/articlePhoto";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const fmtDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "short", year: "numeric" });
 
-/** Det verifiserte fotoet artikkelen peker på, om det finnes. */
-export function articlePhoto(a: Article): { src: string; alt: string } | undefined {
-  const dest = a.hero ? destinationById(a.hero) : undefined;
-  return dest?.image ? { src: dest.image, alt: a.heroAlt ?? dest.imageAlt } : undefined;
-}
 
 /** Ett bilde eller én typografisk flate; aldri et tomt grått felt. */
 export function ArticleCover({

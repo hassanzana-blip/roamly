@@ -13,10 +13,8 @@ import { useAccountHub } from "@/lib/useAccount";
 import { CURRENCIES, LANGS, LANG_LABELS, useLang, useLocale, useT, type Currency, type Lang } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { useTheme } from "@/lib/theme";
-import { formatDateShort, formatMinor } from "@/lib/format";
 import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
-import { cn } from "@/lib/utils";
 
 /**
  * Profil – navet for reiseverdenen din. Ikke en innstillingsside.
@@ -32,26 +30,6 @@ function daysUntil(iso: string, soonIso: string): number {
   return Math.max(0, Math.ceil((Date.parse(iso) - today) / 86_400_000));
 }
 
-function Tile({ to, icon, eyebrow, title, sub, accent }: { to: string; icon: typeof Plane; eyebrow: string; title: string; sub?: string; accent?: boolean }) {
-  return (
-    <Link
-      to={to}
-      className={cn(
-        "press flex min-h-[112px] flex-col justify-between rounded-xl p-4 transition-colors",
-        accent ? "bg-primary-soft hover:bg-primary/30" : "bg-muted/70 hover:bg-muted",
-      )}
-    >
-      <span className="flex items-center justify-between gap-2">
-        <span className="eyebrow">{eyebrow}</span>
-        <Icon icon={icon} size={20} className="text-muted-foreground" />
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-[17px] font-semibold leading-tight">{title}</span>
-        {sub ? <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">{sub}</span> : null}
-      </span>
-    </Link>
-  );
-}
 
 const selectCls = "min-h-10 rounded-lg border border-border bg-card px-3 text-[13px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -76,8 +54,6 @@ export default function Profile() {
   const docsStatus: DocumentsStatus = !customer?.emailVerified ? "unverified" : trips.isLoading ? "loading" : trips.isError ? "error" : "ready";
   const profileStarted = Boolean(h?.profile.onboardingCompletedAt || h?.profile.onboardingSkippedAt || (h?.profile.completeness ?? 0) > 0);
   const nextTripDays = h?.nextTrip ? daysUntil(h.nextTrip.departingAt, soon) : null;
-  const firstWatch = h?.watches[0];
-  const watchResult = firstWatch?.lastResult as { priceMinor?: number; currency?: string; live?: boolean } | null | undefined;
 
   /* ── Det du gjør oftest: fire snarveier, aldri flere ─────────────────── */
   const quickActions: QuickAction[] = [
@@ -109,6 +85,7 @@ export default function Profile() {
       <AccountGroup label={t("acct.group.more")}>
         <AccountRow to="/hjelp" icon={CircleHelp} title={t("acct.help")} sub={t("acct.helpsub")} />
         {customer && <AccountRow to="/profil/rediger#personvern" icon={ShieldCheck} title={t("pf.privacy")} sub={t("pf.export")} />}
+        <AccountRow to="/flystatus" icon={Radar} title={t("profile.flightstatus")} sub={t("profile.flightstatussub")} />
         <AccountRow to="/hotell-bil" icon={Car} title={t("profile.hotelcar")} sub={t("profile.hotelcarsub")} />
       </AccountGroup>
 
@@ -208,16 +185,10 @@ export default function Profile() {
               </div>
 
               <div className="mt-10 lg:mt-12">
-              <AccountGroup label={t("acct.group.trips")}>
-                <AccountRow to="/reiser" icon={Luggage} title={t("acct.trips")} sub={t("acct.tripssub")} badge={<CountBadge n={h?.upcomingCount ?? 0} />} />
-                <AccountRow to="/profil/reisende" icon={Users} title={t("acct.travelers")} sub={t("acct.travelerssub")} />
-                <AccountRow to="/profil/prisovervaking" icon={TrendingDown} title={t("acct.hub.watch")} sub={t("acct.watchessub")} badge={<CountBadge n={h?.watches.length ?? 0} />} />
-                <AccountRow to="/flystatus" icon={Radar} title={t("profile.flightstatus")} sub={t("profile.flightstatussub")} />
-              </AccountGroup>
-
+              {/* Reiser, Reisende, Prisovervåking og Lagret ligger i snarveiene over –
+                  gruppene her fører videre, de gjentar ikke. */}
               <AccountGroup label={t("acct.group.personal")}>
                 <AccountRow to="/profil/reiseprofil" icon={Sparkles} title={t("acct.travelprofile")} sub={h ? t("tpf.completeness", { pct: h.profile.completeness }) : t("acct.travelprofilesub")} />
-                <AccountRow to="/lagret" icon={Heart} title={t("acct.saved")} sub={h && h.savedCount > 0 ? t("acct.savedsub", { count: h.savedCount }) : t("acct.savedempty")} />
                 <AccountRow to="/tavler" icon={LayoutGrid} title="Reisetavler" sub="Planlegg en tur sammen – stem og del" />
                 <AccountRow to="/quiz" icon={Sparkles} title="ReiseMatch" sub="Alene, som par eller med gjengen" />
                 <AccountRow to="/profil/varsler" icon={Bell} title={t("acct.notifications")} sub={t("acct.notificationssub")} badge={<CountBadge n={h?.unreadNotifications ?? 0} />} />

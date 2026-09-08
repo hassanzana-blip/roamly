@@ -9,12 +9,7 @@ import { cn } from "@/lib/utils";
  */
 export type CoverVariant = "ink" | "lime" | "paper";
 
-export const COVER_VARIANTS: CoverVariant[] = ["ink", "lime", "paper"];
 
-/** Variant for kort nr. i i et rutenett: naboer til venstre/høyre og over/under (tre kolonner) får alltid ulik variant. */
-export function coverVariantAt(i: number): CoverVariant {
-  return COVER_VARIANTS[(i + Math.floor(i / 3)) % 3];
-}
 
 /** Vingene fra merket, i én farge, så flaten bestemmer paletten. */
 function Wings({ className }: { className?: string }) {
