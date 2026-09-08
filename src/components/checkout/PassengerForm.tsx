@@ -90,8 +90,8 @@ export default function PassengerForm({ passengers, lastArrival, identityDocumen
         const k = (f: string) => `passengers.${i}.${f}`;
         const idp = `${idPrefix}-${i}`;
         return (
-          <fieldset key={p.id} className="rounded-xl border border-border bg-muted/40 p-4 sm:p-5">
-            <legend className="px-1 text-base font-semibold text-foreground">{passengerLabel(p, passengers, t)}</legend>
+          <fieldset key={p.id} className="border-t border-border pt-5">
+            <legend className="t-h3 pr-3 text-foreground">{passengerLabel(p, passengers, t)}</legend>
             {savedTravelers.length > 0 && (
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="eyebrow">{t("co.pax.fromsaved")}</span>

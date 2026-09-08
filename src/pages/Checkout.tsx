@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, CalendarClock, CheckCircle2, Info, Loader2, Lock, Luggage, TimerReset, TriangleAlert, User, Wallet } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import { ArrowLeft, CalendarClock, CheckCircle2, Info, Loader2, Lock, Luggage, Mail, MessageCircle, ShieldCheck, TimerReset, TriangleAlert, User, Wallet } from "lucide-react";
 import { trpc, type RouterOutputs } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -97,7 +97,7 @@ function Row({ label, value, strong, muted }: { label: string; value: string; st
   return (
     <div className={cn("flex justify-between gap-3", strong ? "border-t border-border pt-3 text-base font-semibold" : muted ? "text-muted-foreground" : "")}>
       <span>{label}</span>
-      <span className={strong ? "text-2xl font-semibold tabular text-foreground" : undefined}>{value}</span>
+      <span className={strong ? "t-price text-foreground" : undefined}>{value}</span>
     </div>
   );
 }
@@ -434,7 +434,7 @@ export default function Checkout() {
   const statusErrCode = status.data?.errorCode ?? null;
 
   const stepIndex = STEPS.findIndex((s) => s.key === step);
-  const stepCls = "rounded-xl border border-border bg-card p-5 sm:p-6";
+  const stepCls = "fade-up rounded-2xl border border-border bg-card p-5 sm:p-7";
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -536,13 +536,13 @@ export default function Checkout() {
 
                   {/* Reisen */}
                   <section className={stepCls} aria-label={t("co.trip")}>
-                    <h2 className="mb-5 flex items-center gap-2.5 font-display text-2xl">
+                    <h2 className="t-h2 mb-5 flex items-center gap-2.5">
                       <CalendarClock className="h-5 w-5 text-foreground" aria-hidden="true" /> {t("co.trip")}
                     </h2>
                     <div className="space-y-6">
                       {offer.slices.map((s, i) => (
                         <div key={s.id}>
-                          <p className="eyebrow mb-3 text-foreground">
+                          <p className="mb-3 text-sm font-semibold text-foreground">
                             {offer.slices.length === 1 ? t("co.leg.single") : i === 0 ? t("co.leg.out") : offer.slices.length === 2 ? t("co.leg.return") : t("co.leg.n", { n: i + 1 })} · {formatDateLong(s.departingAt)}
                           </p>
                           <SliceViz slice={s} />
@@ -575,7 +575,7 @@ export default function Checkout() {
                   {/* Steg 1: Reisende */}
                   {step === "reisende" && (
                     <section className={stepCls} aria-labelledby="reisende-heading">
-                      <h2 id="reisende-heading" className="mb-1 flex items-center gap-2.5 font-display text-2xl">
+                      <h2 id="reisende-heading" className="t-h2 mb-1 flex items-center gap-2.5">
                         <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">1</span>
                         {t("co.pax.title")}
                       </h2>
@@ -583,6 +583,14 @@ export default function Checkout() {
                         <User className="mt-0.5 h-4 w-4 shrink-0 text-foreground" aria-hidden="true" />
                         {t("co.pax.note")}
                       </p>
+                      {!customer && (
+                        <div className="mb-5 flex flex-col gap-3 rounded-lg bg-muted/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-sm text-foreground">{t("co.login.prompt")}</p>
+                          <Button asChild variant="outline" size="sm" className="w-fit shrink-0">
+                            <Link to={`/logg-inn?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`}>{t("co.login.cta")}</Link>
+                          </Button>
+                        </div>
+                      )}
                       <PassengerForm {...paxCtx} pax={pax} onChange={setP} errors={errors} savedTravelers={savedTravelers} t={t} />
                       <div className="mt-6 flex justify-end">
                         <Button type="button" size="lg" onClick={() => goNext("reisende")}>
@@ -595,7 +603,7 @@ export default function Checkout() {
                   {/* Steg 2: Kontakt */}
                   {step === "kontakt" && (
                     <section className={stepCls} aria-labelledby="kontakt-heading">
-                      <h2 id="kontakt-heading" className="mb-1 flex items-center gap-2.5 font-display text-2xl">
+                      <h2 id="kontakt-heading" className="t-h2 mb-1 flex items-center gap-2.5">
                         <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">2</span>
                         {t("co.contact.title")}
                       </h2>
@@ -740,7 +748,7 @@ export default function Checkout() {
                   {/* Steg 5: Bekreftelse / venting */}
                   {step === "bekreft" && (
                     <section className={stepCls} aria-live="polite" aria-busy={!status.data || !TERMINAL.has(status.data.status)}>
-                      <h2 className="mb-1 flex items-center gap-2.5 font-display text-2xl">
+                      <h2 className="t-h2 mb-1 flex items-center gap-2.5">
                         <span className="grid size-7 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-accent-foreground" aria-hidden="true">5</span>
                         {t("co.step.confirm")}
                       </h2>
@@ -804,10 +812,10 @@ export default function Checkout() {
                 </div>
 
                 {/* ── Prissammendrag ── */}
-                <aside className="lg:sticky lg:top-24">
-                  <div className="rounded-xl border border-border bg-card p-6">
+                <aside className="space-y-4 lg:sticky lg:top-24">
+                  <div className="surface p-6">
                     <div className="flex items-start justify-between gap-3">
-                      <h2 className="font-display text-2xl">{t("common.price")}</h2>
+                      <h2 className="t-h2">{t("common.price")}</h2>
                       {Number.isFinite(remainingMs) && (
                         <p
                           className={cn("rounded-md px-2.5 py-1 text-xs font-semibold tabular-nums", remainingMs < 120_000 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground")}
@@ -855,6 +863,15 @@ export default function Checkout() {
                       {t("co.issuedby", { name: offer.owner.name, email: contact.email || t("co.youremail") })}
                     </p>
                   </div>
+                  {/* Why this is safe: three facts, no badges. */}
+                  <div className="rounded-2xl bg-muted/60 p-5">
+                    <h2 className="t-h3">{t("co.reassure.title")}</h2>
+                    <ul className="mt-3 space-y-2.5 text-sm text-foreground">
+                      <li className="flex items-start gap-2.5"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />{t("co.reassure.1")}</li>
+                      <li className="flex items-start gap-2.5"><Mail className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />{t("co.reassure.2")}</li>
+                      <li className="flex items-start gap-2.5"><MessageCircle className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />{t("co.reassure.3")}</li>
+                    </ul>
+                  </div>
                 </aside>
               </div>
             )}
@@ -867,22 +884,17 @@ export default function Checkout() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
             <div>
-              <p className="eyebrow">{breakdown ? t("common.total") : t("co.total.est")}</p>
-              <p className="text-xl font-semibold leading-none tracking-tight tabular text-foreground">{formatMinor(displayTotalMinor, currency)}</p>
+              <p className="t-label">{breakdown ? t("common.total") : t("co.total.est")}</p>
+              <p className="t-num mt-0.5 text-[22px] font-semibold leading-none tracking-tight text-foreground">{formatMinor(displayTotalMinor, currency)}</p>
             </div>
             {step === "tilvalg" ? (
-              <button
-                onClick={() => startSession()}
-                disabled={createSession.isPending}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60"
-              >
-                <Lock className="h-4 w-4" aria-hidden="true" />
-                {createSession.isPending ? t("co.confirming") : t("co.topay")}
-              </button>
+              <Button type="button" size="lg" onClick={() => startSession()} disabled={offerExpired} loading={createSession.isPending}>
+                <Lock aria-hidden="true" /> {t("co.topay")}
+              </Button>
             ) : (
-              <button onClick={() => goNext(step)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-[hsl(var(--primary)/0.9)] disabled:opacity-60">
-                {t("common.next")}
-              </button>
+              <Button type="button" size="lg" onClick={() => goNext(step)}>
+                {step === "reisende" ? t("co.next.contact") : t("co.next.bags")}
+              </Button>
             )}
           </div>
         </div>

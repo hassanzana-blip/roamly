@@ -167,6 +167,17 @@
     background: hsl(var(--primary) / 0.9);
     color: hsl(var(--primary-foreground));
   }
+  /* The parts we did not draw still carry the design: caret, underlines, numerals. */
+  input, textarea, [contenteditable] {
+    caret-color: hsl(var(--foreground));
+  }
+  a {
+    text-underline-offset: 0.16em;
+    text-decoration-thickness: 1px;
+  }
+  table, time, [data-num] {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
   h1, h2, h3, h4 {
     text-wrap: balance;
   }
@@ -211,30 +222,32 @@
      One scale for every page. Display/H1/H2 are the serif voice; everything
      else is Manrope. Sizes are fluid between 390px and 1280px so a heading
      never needs a per-page pixel value again. */
+  /* Display sizes grow with the viewport and tighten as they grow (size-specific
+     tracking); body copy stays 16/1.6 so long paragraphs read like print. */
   .t-display {
     font-family: "Newsreader Variable", "Newsreader", "Iowan Old Style", "Times New Roman", Georgia, serif;
     font-weight: 500;
-    font-size: clamp(2.5rem, 1.6rem + 3.8vw, 4.25rem);   /* 40 → 68 */
-    line-height: 1.02;
-    letter-spacing: -0.018em;
+    font-size: clamp(2.75rem, 1.7rem + 4.6vw, 5rem);       /* 44 → 80 */
+    line-height: 0.98;
+    letter-spacing: -0.026em;
     font-feature-settings: "ss01", "kern";
     text-wrap: balance;
   }
   .t-h1 {
     font-family: "Newsreader Variable", "Newsreader", "Iowan Old Style", "Times New Roman", Georgia, serif;
     font-weight: 500;
-    font-size: clamp(1.875rem, 1.4rem + 1.9vw, 2.625rem); /* 30 → 42 */
-    line-height: 1.06;
-    letter-spacing: -0.014em;
+    font-size: clamp(2.125rem, 1.5rem + 2.5vw, 3.25rem);   /* 34 → 52 */
+    line-height: 1.04;
+    letter-spacing: -0.02em;
     font-feature-settings: "ss01", "kern";
     text-wrap: balance;
   }
   .t-h2 {
     font-family: "Newsreader Variable", "Newsreader", "Iowan Old Style", "Times New Roman", Georgia, serif;
     font-weight: 500;
-    font-size: clamp(1.5rem, 1.25rem + 1vw, 1.875rem);    /* 24 → 30 */
-    line-height: 1.12;
-    letter-spacing: -0.01em;
+    font-size: clamp(1.625rem, 1.3rem + 1.4vw, 2.25rem);   /* 26 → 36 */
+    line-height: 1.1;
+    letter-spacing: -0.014em;
     font-feature-settings: "ss01", "kern";
     text-wrap: balance;
   }
@@ -242,15 +255,21 @@
     font-weight: 600;
     font-size: 1.125rem;                                   /* 18 */
     line-height: 1.3;
-    letter-spacing: -0.008em;
+    letter-spacing: -0.01em;
+  }
+  /* Same-family emphasis inside a serif headline: italic, never a second face. */
+  .t-em {
+    font-style: italic;
+    font-weight: 400;
   }
   .t-lead {
-    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);    /* 16 → 18 */
-    line-height: 1.55;
+    font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);   /* 17 → 20 */
+    line-height: 1.5;
+    text-wrap: pretty;
   }
   .t-body {
-    font-size: 0.9375rem;                                  /* 15 */
-    line-height: 1.55;
+    font-size: 1rem;                                       /* 16 */
+    line-height: 1.6;
   }
   .t-caption {
     font-size: 0.8125rem;                                  /* 13 */
@@ -261,17 +280,17 @@
     font-size: 0.75rem;                                    /* 12 */
     font-weight: 600;
     line-height: 1.3;
+    letter-spacing: 0.01em;
     color: hsl(var(--muted-foreground));
   }
   /* Money: tabular, tight, always the heaviest thing in its row */
   .t-price {
     font-weight: 700;
-    font-size: clamp(1.5rem, 1.35rem + 0.6vw, 1.75rem);    /* 24 → 28 */
+    font-size: clamp(1.625rem, 1.4rem + 0.9vw, 2rem);      /* 26 → 32 */
     line-height: 1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.024em;
     font-variant-numeric: tabular-nums lining-nums;
   }
-  /* Times, durations, IATA codes, counts */
   .t-num {
     font-variant-numeric: tabular-nums lining-nums;
     letter-spacing: 0.01em;
@@ -443,8 +462,9 @@
   display: inline-block;
   overflow: hidden;
   vertical-align: bottom;
-  padding-bottom: 0.08em;
-  margin-bottom: -0.08em;
+  /* Room for ascenders/dots and descenders so the clip never cuts a glyph. */
+  padding: 0.14em 0 0.1em;
+  margin: -0.14em 0 -0.1em;
 }
 .wr-i {
   display: inline-block;
