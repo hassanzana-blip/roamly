@@ -37,6 +37,10 @@ export default defineConfig(async ({ command }) => {
       rollupOptions: {
         output: {
           manualChunks(id: string) {
+            // Delte CJS-interop-hjelpere hører hjemme i basischunken. Havner de i
+            // en leverandør-chunk, importerer react-vendor fra den chunken, og da
+            // kan den kjøre før React er initialisert («undefined.useLayoutEffect»).
+            if (id.includes("commonjsHelpers") || id.includes("\u0000commonjs")) return "react-vendor"
             if (!id.includes("node_modules")) return undefined
             if (/node_modules\/(react|react-dom|react-router|scheduler|@tanstack|@trpc|superjson|clsx|tailwind-merge|class-variance-authority)\//.test(id)) return "react-vendor"
             if (id.includes("node_modules/lucide-react/")) return "icons"
