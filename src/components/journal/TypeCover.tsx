@@ -67,7 +67,8 @@ export function TypeCover({
       {variant === "paper" && <span className={cn("absolute left-0 top-0 h-2.5 w-2.5 rounded-full bg-primary", size === "sm" ? "m-3" : size === "lg" ? "m-6 sm:m-8" : "m-5")} />}
       {(label || title) && (
         <span className="relative block">
-          {label && <span className={cn("t-label mb-2 block", LABEL[variant])}>{label}</span>}
+          {/* Ikke t-label her: den utilityen setter sin egen dempede farge og ville overstyrt kontrasten på mørkt omslag. */}
+          {label && <span className={cn("mb-2 block text-xs font-semibold leading-tight tracking-[0.01em]", LABEL[variant])}>{label}</span>}
           {title && <span className={cn("block text-balance", TITLE[size], size === "sm" ? "line-clamp-2" : "line-clamp-4")}>{title}</span>}
         </span>
       )}
