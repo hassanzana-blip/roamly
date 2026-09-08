@@ -592,7 +592,8 @@ export default function Checkout() {
                         </div>
                       )}
                       <PassengerForm {...paxCtx} pax={pax} onChange={setP} errors={errors} savedTravelers={savedTravelers} t={t} />
-                      <div className="mt-6 flex justify-end">
+                      {/* Below lg the sticky bar carries the step action; one "next" per screen. */}
+                      <div className="mt-6 hidden justify-end lg:flex">
                         <Button type="button" size="lg" onClick={() => goNext("reisende")}>
                           {t("co.next.contact")}
                         </Button>
@@ -640,7 +641,7 @@ export default function Checkout() {
                         <Button type="button" variant="outline" size="lg" onClick={() => setStep("reisende")}>
                           {t("common.back")}
                         </Button>
-                        <Button type="button" size="lg" onClick={() => goNext("kontakt")}>
+                        <Button type="button" size="lg" className="hidden lg:inline-flex" onClick={() => goNext("kontakt")}>
                           {t("co.next.bags")}
                         </Button>
                       </div>
@@ -698,7 +699,7 @@ export default function Checkout() {
                         <Button type="button" variant="outline" size="lg" onClick={() => setStep("kontakt")}>
                           {t("common.back")}
                         </Button>
-                        <Button type="button" size="lg" onClick={() => startSession()} disabled={offerExpired} loading={createSession.isPending}>
+                        <Button type="button" size="lg" className="hidden lg:inline-flex" onClick={() => startSession()} disabled={offerExpired} loading={createSession.isPending}>
                           <Lock aria-hidden="true" /> {t("co.topay")}
                         </Button>
                       </div>
