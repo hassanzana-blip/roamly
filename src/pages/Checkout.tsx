@@ -5,6 +5,7 @@ import { trpc, type RouterOutputs } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { SliceViz } from "@/components/offers/OfferCard";
+import AirlineLogo from "@/components/brand/AirlineLogo";
 import ExtrasSection from "@/components/checkout/ExtrasSection";
 import PassengerForm, { Field } from "@/components/checkout/PassengerForm";
 import SelectWrap from "@/components/checkout/SelectWrap";
@@ -546,14 +547,21 @@ export default function Checkout() {
                             {offer.slices.length === 1 ? t("co.leg.single") : i === 0 ? t("co.leg.out") : offer.slices.length === 2 ? t("co.leg.return") : t("co.leg.n", { n: i + 1 })} · {formatDateLong(s.departingAt)}
                           </p>
                           <SliceViz slice={s} />
-                          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          {/* Hvem som faktisk flyr, med selskapets eget merke:
+                              det er det siste man vil ha bekreftet før man betaler. */}
+                          <ul className="mt-3 space-y-1.5">
                             {s.segments.map((seg) => (
-                              <span key={seg.id}>
-                                {seg.carrier.iata} {seg.flightNumber}
-                                {seg.operatingCarrier && seg.operatingCarrier.iata !== seg.carrier.iata ? ` ${t("co.operatedby", { name: seg.operatingCarrier.name })}` : ""} · {seg.aircraft}
-                              </span>
+                              <li key={seg.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                <AirlineLogo airline={{ iata: seg.carrier.iata, name: seg.carrier.name }} size={16} className="rounded" />
+                                <span className="font-semibold text-foreground">{seg.carrier.name}</span>
+                                <span className="t-code">{seg.carrier.iata} {seg.flightNumber}</span>
+                                <span>· {seg.aircraft}</span>
+                                {seg.operatingCarrier && seg.operatingCarrier.iata !== seg.carrier.iata && (
+                                  <span>· {t("co.operatedby", { name: seg.operatingCarrier.name })}</span>
+                                )}
+                              </li>
                             ))}
-                          </div>
+                          </ul>
                         </div>
                       ))}
                     </div>

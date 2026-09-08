@@ -21,6 +21,8 @@ export type Intent = {
   links: { to: string; label: I18nKey }[];
   /** FAQ-numre som passer. */
   faq: number[];
+  /** Haster: skjema er feil svar, et menneske er riktig. */
+  urgent?: boolean;
   /** Journal-artikler som passer. */
   articles: string[];
 };
@@ -32,6 +34,7 @@ export const INTENTS: Intent[] = [
   { id: "refund", topic: "refund", label: "sp.i.refund", sub: "sp.i.refund.sub", needs: ["sp.need.ref", "sp.need.reason"], links: [{ to: "/reise", label: "sp.link.mytrip" }], faq: [4, 7], articles: ["forsinket-eller-innstilt"] },
   { id: "payment", topic: "booking", label: "sp.i.payment", sub: "sp.i.payment.sub", needs: ["sp.need.ref", "sp.need.email"], links: [{ to: "/reise", label: "sp.link.mytrip" }], faq: [1, 2], articles: ["hva-totalpris-betyr-hos-oss"] },
   { id: "kids", topic: "other", label: "sp.i.kids", sub: "sp.i.kids.sub", needs: ["sp.need.ages", "sp.need.dates"], links: [{ to: "/journal?t=familie", label: "sp.link.family" }], faq: [9], articles: ["mellomlanding-med-barn", "reiser-du-alene-med-barn", "reise-med-spedbarn"] },
+  { id: "soon", topic: "other", label: "sp.i.soon", sub: "sp.i.soon.sub", urgent: true, needs: ["sp.need.ref", "sp.need.dates"], links: [{ to: "/reise", label: "sp.link.mytrip" }], faq: [3], articles: ["forsinket-eller-innstilt"] },
   { id: "other", topic: "other", label: "sp.i.other", sub: "sp.i.other.sub", needs: ["sp.need.what"], links: [{ to: "/journal", label: "sp.link.journal" }], faq: [], articles: [] },
 ];
 

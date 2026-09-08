@@ -500,6 +500,27 @@ export default function SearchResults() {
   }, [summary, t]);
   const summaryKeys = new Set(summaryCards.flatMap((c) => c.keys));
 
+  /**
+   * En lenke uten reisemål eller dato er ikke en feil, det er et uferdig søk.
+   * Før falt siden i feilgrensen fordi datoformatereren fikk en tom streng.
+   * Nå får du søket, ferdig åpnet, i stedet for et teknisk sammenbrudd.
+   */
+  if (!isMulti && slices.length === 0) {
+    return (
+      <div className="relative min-h-screen bg-background">
+        <SiteHeader />
+        <main id="main" tabIndex={-1} className="container-narrow pb-20 pt-28 outline-none sm:pt-32">
+          <h1 className="t-h1">{t("sr.nosearch.title")}</h1>
+          <p className="t-lead mt-3 max-w-lg text-muted-foreground">{t("sr.nosearch.body")}</p>
+          <div className="surface-lift mt-8 p-4 sm:p-6">
+            <SearchWidget initial={widgetInitial} />
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-background">
       <SiteHeader />

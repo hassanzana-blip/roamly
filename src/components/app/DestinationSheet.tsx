@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { CalendarDays, Plane } from "lucide-react";
 import BottomSheet from "./BottomSheet";
 import Icon from "./Icon";
-import { FavoriteButton, PrimaryButton, RatingChip } from "./primitives";
+import { FavoriteButton, PrimaryButton } from "./primitives";
 import { trpc } from "@/providers/trpc";
 import { departDate, searchHref, VISA_NOTES, type DiscoverDestination } from "@/content/discover";
 import { VisaStampGlyph } from "@/components/graphics";
@@ -70,9 +70,6 @@ export default function DestinationSheet({
               <div className="flex h-full w-full items-center justify-center bg-night text-white/70">
                 <Icon icon={Plane} size={24} />
               </div>
-            )}
-            {typeof d.rating === "number" && (
-              <RatingChip value={d.rating} className="absolute left-3 top-3" />
             )}
             <FavoriteButton
               active={favs.has(d.id)}

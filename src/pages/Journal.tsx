@@ -1,13 +1,14 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ArticleCard from "@/components/journal/ArticleCard";
-import { coverVariantAt } from "@/components/journal/coverVariants";
+import { articlePhoto } from "@/components/journal/articlePhoto";
 import { Chip } from "@/components/account/AccountRow";
 import { articlesByTag, featured, TAG_LABELS, tagsInUse, type JournalTag } from "@/content/journal";
 import { PAGE_META, breadcrumbJsonLd, itemListJsonLd, usePageMeta } from "@/lib/seo";
+import { useT } from "@/lib/i18n";
 
 /**
  * HelloSky Journal – nyttig, ikke pent. Én toppsak, to sekundære, så alt
@@ -27,6 +28,10 @@ export default function Journal() {
     const used = new Set([lead?.slug, ...secondary.map((a) => a.slug)]);
     return { lead, secondary, rest: list.filter((a) => !used.has(a.slug)) };
   }, [tag, list]);
+
+  const t = useT();
+  const photoStories = rest.filter((a) => articlePhoto(a));
+  const guides = rest.filter((a) => !articlePhoto(a));
 
   usePageMeta({
     ...PAGE_META.journal,
@@ -64,10 +69,38 @@ export default function Journal() {
           </section>
         )}
 
-        {rest.length > 0 && (
-          <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {rest.map((a, i) => <ArticleCard key={a.slug} a={a} variant={coverVariantAt(i)} />)}
-          </div>
+        {/* Resten deles etter det eneste ekte signalet vi har: har saken et
+            kontrollert fotografi, eller er den en praktisk gjennomgang?
+            Fotosakene får bredden, de praktiske får en indeks. Da leser siden
+            som en publikasjon med avdelinger, ikke som ett rutenett som aldri
+            tar slutt. */}
+        {photoStories.length > 0 && (
+          <section className="mt-14">
+            <h2 className="t-h2">{t("jn.band.places")}</h2>
+            <div className="mt-6 grid gap-x-5 gap-y-10 sm:grid-cols-2">
+              {photoStories.map((a) => <ArticleCard key={a.slug} a={a} />)}
+            </div>
+          </section>
+        )}
+
+        {guides.length > 0 && (
+          <section className="mt-14">
+            <h2 className="t-h2">{t("jn.band.practical")}</h2>
+            <p className="t-caption mt-1.5 max-w-xl">{t("jn.band.practicalsub")}</p>
+            <ul className="mt-6 divide-y divide-border border-y border-border">
+              {guides.map((a) => (
+                <li key={a.slug}>
+                  <Link to={`/journal/${a.slug}`} className="group flex items-baseline gap-4 py-4">
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-display text-[19px] leading-tight sm:text-[21px]">{a.title}</span>
+                      <span className="mt-1 line-clamp-2 block text-[14px] leading-relaxed text-muted-foreground">{a.deck}</span>
+                    </span>
+                    <span className="t-caption shrink-0 whitespace-nowrap">{TAG_LABELS[a.tags[0]]}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <p className="t-caption mt-14 max-w-2xl">

@@ -37,7 +37,7 @@ import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { sendLoginAlertEmail, sendPasswordResetEmail, sendVerifyEmail } from "./lib/mailer";
 import { sendSms } from "./lib/sms";
 import { AppError } from "./lib/errors";
-import { env } from "./lib/env";
+import { env, configuredOAuthProviders } from "./lib/env";
 import { logAudit } from "./lib/audit";
 import { log } from "./lib/logger";
 import { normalizePhone } from "./lib/validation";
@@ -392,6 +392,18 @@ export const customerAuthRouter = createRouter({
     clearCustomerCookie(ctx.resHeaders);
     return { ok: true };
   }),
+
+  /**
+   * Hvilke innloggingsmetoder som faktisk er satt opp.
+   *
+   * Frontend gjetter ikke: den spør. Da kan Google skrus på ved å sette to
+   * miljøvariabler i Railway, uten at noen rører koden – og en leverandør som
+   * ikke er konfigurert blir aldri en død knapp.
+   */
+  authProviders: publicQuery.query(() => ({
+    oauth: configuredOAuthProviders(),
+    passkeys: false as const,
+  })),
 
   me: publicQuery.query(async ({ ctx }) => {
     if (!ctx.customer) return null;

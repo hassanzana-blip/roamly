@@ -29,6 +29,7 @@ const LEGAL: { to: string; label: I18nKey }[] = [
   { to: "/personvern", label: "footer.privacy" },
   { to: "/bagasje", label: "footer.baggage" },
   { to: "/visum", label: "footer.visa" },
+  { to: "/fotokreditering", label: "footer.photocredits" },
 ];
 
 const linkCls = "nav-underline inline-flex min-h-8 items-center text-muted-foreground transition-colors hover:text-foreground";

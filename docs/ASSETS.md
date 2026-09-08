@@ -41,23 +41,21 @@ Source of truth for vectors is the official HelloSky SVG pack (`public/icons/*.s
 | `SkyMark` | brand mark | header, footer, admin | custom from logo (`brand/SkyMark.tsx`) | 24–32 px | decorative | no |
 | `/brand/klarna.jpg`, `/brand/vipps.jpg` | official brand asset | payment methods | provider brand files (existing) | 70×28 | brand name | no |
 | Visa, Mastercard, Apple Pay, Google Pay logos | official brand asset | payment section | **not added**: fetch official packs from the provider brand centres, never AI-generate | | | |
-| Airline logos | official asset | offer header | **not available in offer data** (Duffel `Carrier` mapped without logo URL); shows IATA initials until `logo_symbol_url` is mapped | | airline name | yes |
-| Flags | open-source set | not used yet | `flag-icons` (MIT) available on npm if country flags are needed | | | |
-| `/destinations/*.jpg` (+`-640`) | photography | destination cards | Unsplash/Pexels licence, manually verified real places (existing) | 1024 / 640 | `imageAlt` | no |
-| `arrivals-reunion-osl` | Higgsfield photo (nano_banana_2, 2k, 3:2) | home hero candidate | generated 2026-09-07, job `2a9cb25e…` | fetch via `scripts/fetch-photos.mjs` | "Familie møter besteforeldre i ankomsthallen" | no |
-| `gate-family-itinerary` | Higgsfield photo | support page / My Trip hero | job `0449685e…` | same | "Mor og to barn ser på reiseruten ved gaten" | no |
-| `rental-car-luggage` | Higgsfield photo | car rental | job `1d592a67…` | same | "Far løfter koffert inn i leiebil" | no |
-| `hotel-arrival-couple` (4:3) | Higgsfield photo | hotel | job `eb44daa1…` | same | "Par ankommer hotell med kofferter" | no |
-| `checkin-family-stroller` | Higgsfield photo | family/baggage explainer | job `4e583b88…` | same | "Familie med barnevogn ved innsjekking" | no |
-| `gate-solo-dawn` | Higgsfield photo | flight status / empty state | job `bb5a0a73…` | same | "Alene ved gaten i morgenlys" | no |
-| `arrivals-reunion-ebl` | Higgsfield photo | destinations (Kurdistan) | job `51df3e6e…` | same | "Gjensyn i ankomsthallen i Erbil" | no |
-| `luggage-lineup` | Higgsfield photo | baggage rules page | job `522e7354…` | same | "Familiens bagasje klar i gangen" | no |
-| `asmara-harnet-avenue` | Higgsfield photo | Asmara destination card (had no photo) | job `d8147813…` | same | "Harnet Avenue i Asmara" | no |
-| cabin boarding photo | Higgsfield photo | (job failed, not registered) | | | | |
+| Airline logos | official asset | results, flight details | `AirlineLogo` shows the supplier's own logo when mapped, otherwise a clean IATA monogram. Never drawn by us, never taken from image search, never stretched. | 16–32 px | airline name | yes |
+| Flags | open-source set | airport picker, routes, trips, passport | `flag-icons` (MIT), vendored as static SVG in `public/flags` – never in the JS bundle | 4:3 | country name | yes |
+| `/destinations/*.jpg` (+`-640`, `-256`) | photography | destination cards, discovery, journal | Unsplash/Pexels licence, manually verified real places | 1024 / 640 / 256 | `imageAlt` | no |
+| `/photos/hero-wing*.jpg` | photography | home hero | Unsplash/Pexels licence | 2400 / 1280 / 800 | `home.hero.photo` | no |
+| Photo provenance | registry | `/fotokreditering` | `src/content/photos.ts` – key, caption, destination, source, licence, photographer when confirmed | | | yes |
 
 ## Rules
 
+- **Customer-facing travel photography is real photography.** No AI-generated
+  travel images: no invented landmarks, no invented hotels, no generated people.
+  A photo of Istanbul has to be Istanbul.
 - Photos are reviewed by a person before use; anything that reads as generated is rejected.
+- Provenance lives in `src/content/photos.ts` and is published at `/fotokreditering`.
+  Where a photographer's name is not yet recorded, the page says so once — it never
+  invents a name to fill a column.
 - No overlays or pills on photographs. Captions go under the image.
 - Baggage weight is shown only when the supplier provides it; counts otherwise.
 - Seat maps render from API data with `SeatGlyph`, never from a bitmap.

@@ -9,6 +9,7 @@ import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { WhatsAppIcon, WHATSAPP_LINK, WHATSAPP_DISPLAY, WHATSAPP_NUMBER } from "@/components/WhatsAppFab";
+import { COMPANY } from "@/pages/content/company";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,10 +103,19 @@ export default function Support() {
       <AppShell>
         <AppHeader title={t("nav.support")} as="h1" />
 
-        {/* 1 · Spørsmålet + søk */}
+        {/* 1 · Spørsmålet, og veien til et menneske – med én gang, ikke nederst. */}
         <div className="max-w-2xl">
           <h2 className="t-h1">{t("sp.ask")}</h2>
           <p className="mt-3 text-[16px] leading-relaxed text-muted-foreground">{t("sp.ask.sub")}</p>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <a href={COMPANY.supportPhoneTel} className="press inline-flex min-h-11 items-center gap-2 rounded-lg bg-night px-4 text-[14px] font-semibold text-white transition-colors hover:bg-[hsl(240,6%,14%)]">
+            <Icon icon={Phone} size={20} /> {COMPANY.supportPhone}
+          </a>
+          <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="press inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[14px] font-semibold transition-colors hover:border-foreground/30">
+            <WhatsAppIcon className="h-4 w-4" /> WhatsApp
+          </a>
+          <span className="t-caption">{t("sp.human.sub")}</span>
         </div>
         <div className="relative mt-6 max-w-2xl">
           <label htmlFor="support-search" className="sr-only">{t("sp.search.ph")}</label>
@@ -169,6 +179,21 @@ export default function Support() {
               );
             })}
           </ul>
+
+          {intent?.urgent && (
+            <div className="mt-6 rounded-2xl bg-night p-5 text-white sm:p-6">
+              <h3 className="t-h3 text-white">{t("sp.urgent.title")}</h3>
+              <p className="mt-2 max-w-lg text-[15px] text-white/80">{t("sp.urgent.body")}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href={COMPANY.supportPhoneTel} className="press inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-4 text-[14px] font-semibold text-night">
+                  <Icon icon={Phone} size={20} /> {COMPANY.supportPhone}
+                </a>
+                <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="press inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-[14px] font-semibold text-white">
+                  <WhatsAppIcon className="h-4 w-4" /> WhatsApp
+                </a>
+              </div>
+            </div>
+          )}
 
           {intent && (intentFaq.length > 0 || intentArticles.length > 0 || intent.links.length > 0) && (
             <div className="mt-6 rounded-2xl bg-muted/60 p-5 sm:p-6">

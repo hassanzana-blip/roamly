@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { oauthAuthProviders, upcomingAuthProviders } from "@/lib/authProviders";
+import { useAuthProviders } from "@/lib/authProviders";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -16,8 +16,7 @@ function joinNames(names: string[], and: string): string {
  */
 export function AuthProviderButtons({ className }: { className?: string }) {
   const t = useT();
-  const buttons = oauthAuthProviders();
-  const upcoming = upcomingAuthProviders();
+  const { oauth: buttons, upcoming } = useAuthProviders();
   if (buttons.length === 0 && upcoming.length === 0) return null;
   return (
     <div className={className}>

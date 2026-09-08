@@ -1,10 +1,17 @@
 import type { AirportPoint } from "./types";
 
 export interface Airport extends AirportPoint {
-  /** IANA-tidssone for flyplassen (brukes til lokal klokketid og ankomst-/avreisevarsler). */
-  timeZone: string;
+  /**
+   * IANA-tidssone. Satt for det kuraterte settet under, som er flyplassene
+   * HelloSky kjenner godt. Flyplasser som kommer fra det utvidede
+   * OurAirports-registeret har den ikke – der er leverandørens `time_zone`
+   * per strekning fasit, og `zoneFor()` faller tilbake på den.
+   */
+  timeZone?: string;
   countryCode: string;
   popular?: boolean;
+  /** Fra det utvidede verdensregisteret, ikke det kuraterte settet. */
+  world?: boolean;
 }
 
 // Nordic-first airport directory with world hubs.
@@ -123,17 +130,38 @@ export const AIRPORTS: Airport[] = [
 
 const BY_IATA = new Map(AIRPORTS.map((a) => [a.iata, a]));
 
+
+/**
+ * Normaliserer tekst for søk.
+ *
+ * En kunde som skriver «Malaga» skal finne Málaga, «Kobenhavn» skal finne
+ * København og «Zurich» skal finne Zürich. NFKD tar hånd om aksenter, men
+ * ikke om ø, æ og ß – de må mappes eksplisitt.
+ */
+export function foldForSearch(input: string): string {
+  return input
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/ø/g, "o")
+    .replace(/æ/g, "ae")
+    .replace(/ß/g, "ss")
+    .replace(/ð/g, "d")
+    .replace(/þ/g, "th")
+    .replace(/ł/g, "l");
+}
+
 export function airportByIata(iata: string): Airport | undefined {
   return BY_IATA.get(iata.toUpperCase());
 }
 
 export function searchAirports(query: string, limit = 8): Airport[] {
-  const q = query.trim().toLowerCase();
+  const q = foldForSearch(query.trim());
   if (!q) return AIRPORTS.filter((a) => a.popular).slice(0, limit);
   const scored = AIRPORTS.map((a) => {
     const iata = a.iata.toLowerCase();
-    const city = a.city.toLowerCase();
-    const name = a.name.toLowerCase();
+    const city = foldForSearch(a.city);
+    const name = foldForSearch(a.name);
     let score = -1;
     if (iata === q) score = 100;
     else if (iata.startsWith(q)) score = 80;

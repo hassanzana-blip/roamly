@@ -79,7 +79,14 @@ export default defineConfig(async ({ command }) => {
             // en leverandør-chunk, importerer react-vendor fra den chunken, og da
             // kan den kjøre før React er initialisert («undefined.useLayoutEffect»).
             if (id.includes("commonjsHelpers") || id.includes("\u0000commonjs")) return "react-vendor"
-            if (!id.includes("node_modules")) return undefined
+            // Førti forespørsler for én forside koster mer i ventetid enn de
+            // sparer i overføring. Delte byggeklosser – ui-primitiver,
+            // hjelpefunksjoner, glyfer og innhold – samles i én chunk i stedet
+            // for å bli femten filer på 2 kB.
+            if (!id.includes("node_modules")) {
+              if (/\/src\/(components\/(ui|brand)|lib)\//.test(id)) return "app-shared"
+              return undefined
+            }
             if (/node_modules\/(react|react-dom|react-router|scheduler|@tanstack|@trpc|superjson|clsx|tailwind-merge|class-variance-authority)\//.test(id)) return "react-vendor"
             if (id.includes("node_modules/lucide-react/")) return "icons"
             if (id.includes("node_modules/luxon/")) return "luxon"
