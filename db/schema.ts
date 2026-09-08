@@ -1303,3 +1303,58 @@ export const tripBoardComments = mysqlTable(
   },
   (t) => [index("idx_boardcomment_board").on(t.boardId, t.createdAt)],
 );
+
+// ─── Utgifter ───────────────────────────────────────────────────────────────
+//
+// Regnskapsbilag for et lite byrå: en kvittering fotografert på telefonen,
+// beløp, mva og kategori, og en månedlig eksport til regnskapsføreren.
+//
+// Kvitteringen ligger i databasen, ikke i en bøtte. For to personer med noen
+// hundre bilag i året er det riktig avveining: ingen ny infrastruktur, samme
+// sikkerhetskopi som resten av regnskapet, og ingen fil som overlever en
+// sletting. Bildet skaleres ned i nettleseren før det sendes; grensen ligger
+// på 2 MB per bilag og håndheves på serveren.
+
+export const expenses = mysqlTable(
+  "expenses",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    /** Hvem la den inn. Bilaget følger personen, ikke bare selskapet. */
+    staffUserId: ref("staff_user_id").references((): AnyMySqlColumn => staffUsers.id).notNull(),
+    /** Dato på kvitteringen, ikke dagen den ble lagt inn. */
+    spentOn: varchar("spent_on", { length: 10 }).notNull(),
+    vendor: varchar("vendor", { length: 120 }).notNull(),
+    category: varchar("category", { length: 32 }).notNull().default("annet"),
+    /** Bruttobeløp inkl. mva, i minste enhet. */
+    grossMinor: minor("gross_minor").notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("NOK"),
+    /** Mva-sats i basispunkter: 2500 = 25 %. Null når bilaget er uten mva. */
+    vatRateBp: int("vat_rate_bp"),
+    /** Mva-beløpet, regnet ut på serveren og lagret slik det ble bokført. */
+    vatMinor: minor("vat_minor").notNull().default(0),
+    note: varchar("note", { length: 500 }),
+    /** «draft» → «bokført». Bokførte bilag kan ikke endres. */
+    status: varchar("status", { length: 16 }).notNull().default("draft"),
+    /** Måneden bilaget hører til, YYYY-MM. Utledet av spentOn ved lagring. */
+    period: varchar("period", { length: 7 }).notNull(),
+    receiptMime: varchar("receipt_mime", { length: 64 }),
+    receiptName: varchar("receipt_name", { length: 160 }),
+    receiptBytes: int("receipt_bytes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (t) => [index("idx_expense_period").on(t.period, t.staffUserId), index("idx_expense_staff").on(t.staffUserId, t.spentOn)],
+);
+
+/**
+ * Selve kvitteringsbildet, i egen tabell.
+ *
+ * Listevisningen henter aldri bildet – den henter bare beløp, dato og
+ * leverandør. Ligger bildet i samme rad, drar hver eneste listespørring med
+ * seg megabyte den ikke skal bruke.
+ */
+export const expenseReceipts = mysqlTable("expense_receipts", {
+  expenseId: ref("expense_id").references((): AnyMySqlColumn => expenses.id).primaryKey(),
+  data: mediumtext("data").notNull(), // base64
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
