@@ -25,6 +25,18 @@ const schema = z.object({
   TRAVELPORT_AUTH_URL: z.string().url().optional(),
   TRAVELPORT_BASE_URL: z.string().url().optional(),
   TRAVELPORT_SEARCH_ENABLED: z.string().optional(),
+
+  // ── Sosial innlogging for kunder ──────────────────────────────────────
+  // En leverandør er «konfigurert» først når både id og hemmelighet finnes.
+  // Uten det vises den ikke i innloggingen – aldri en død knapp.
+  OAUTH_APPLE_CLIENT_ID: z.string().optional(),
+  OAUTH_APPLE_CLIENT_SECRET: z.string().optional(),
+  OAUTH_GOOGLE_CLIENT_ID: z.string().optional(),
+  OAUTH_GOOGLE_CLIENT_SECRET: z.string().optional(),
+  OAUTH_FACEBOOK_CLIENT_ID: z.string().optional(),
+  OAUTH_FACEBOOK_CLIENT_SECRET: z.string().optional(),
+  OAUTH_X_CLIENT_ID: z.string().optional(),
+  OAUTH_X_CLIENT_SECRET: z.string().optional(),
   TRAVELPORT_CONTENT_SOURCE: z.string().optional(),
 
   // Sanntids flystatus (AviationStack). Uten nøkkel svarer flystatus-siden
@@ -104,6 +116,26 @@ export function assertProductionSafety(): void {
   if (errors.length) {
     throw new Error(`Produksjonssikring feilet:\n - ${errors.join("\n - ")}`);
   }
+}
+
+/**
+ * Leverandører for sosial innlogging som faktisk er satt opp.
+ *
+ * Kilden er miljøet, ikke en liste i frontend. Å skru på Google er å sette to
+ * miljøvariabler i Railway – ikke å endre kode og deploye på nytt. Er bare
+ * den ene satt, teller leverandøren som ikke konfigurert: en halvveis
+ * oppsatt OAuth-knapp er verre enn ingen knapp.
+ */
+export type OAuthProviderId = "apple" | "google" | "facebook" | "x";
+
+export function configuredOAuthProviders(): OAuthProviderId[] {
+  const pairs: [OAuthProviderId, string | undefined, string | undefined][] = [
+    ["apple", raw.OAUTH_APPLE_CLIENT_ID, raw.OAUTH_APPLE_CLIENT_SECRET],
+    ["google", raw.OAUTH_GOOGLE_CLIENT_ID, raw.OAUTH_GOOGLE_CLIENT_SECRET],
+    ["facebook", raw.OAUTH_FACEBOOK_CLIENT_ID, raw.OAUTH_FACEBOOK_CLIENT_SECRET],
+    ["x", raw.OAUTH_X_CLIENT_ID, raw.OAUTH_X_CLIENT_SECRET],
+  ];
+  return pairs.filter(([, id, secret]) => Boolean(id?.trim()) && Boolean(secret?.trim())).map(([id]) => id);
 }
 
 export const env = {

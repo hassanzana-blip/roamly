@@ -279,6 +279,10 @@ const dict = {
   "home.occ.weekend": { nb: "Helgetur", en: "Weekend trip" },
   "home.occ.weekendsub": { nb: "Fredag ut, søndag hjem", en: "Out Friday, home Sunday" },
   // ── Verden, etter tema ────────────────────────────────────────────────
+  "sec.linked": { nb: "Tilkoblede kontoer", en: "Connected accounts" },
+  "sec.linkedsub": { nb: "Logg inn raskere ved å koble til en konto du allerede har.", en: "Sign in faster by connecting an account you already have." },
+  "sec.linked.none": { nb: "Ingen sosiale innlogginger er satt opp for HelloSky ennå. Du logger inn med e-post og passord.", en: "No social sign-in is set up for HelloSky yet. You sign in with e-mail and password." },
+  "sec.linked.connect": { nb: "Koble til", en: "Connect" },
   "co.pax.empty": { nb: "Ikke fylt ut", en: "Not filled in" },
   "co.pax.hasError": { nb: "Mangler noe – åpne og se", en: "Something is missing – open to see" },
   "world.title": { nb: "Hvor vil du?", en: "Where do you want to go?" },
