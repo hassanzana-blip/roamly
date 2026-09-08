@@ -48,14 +48,28 @@ describe("sikkerhetshoder og CSRF", () => {
     expect(await res.json()).toEqual({ ready: true });
   });
 
-  it("POST /api/trpc med fremmed Origin → 403; kjent Origin → passerer", async () => {
-    const body = JSON.stringify({ json: null });
-    const bad = await app.request("/api/trpc/ping", { method: "POST", headers: { origin: "https://evil.example", "content-type": "application/json" }, body });
+  it("muterende POST med fremmed Origin → 403; kjent Origin slipper forbi porten", async () => {
+    // Vakten gjelder mutasjoner. En query som POSTes svarer 405 fra tRPC før
+    // noen middleware kjører, så en query her ville målt ingenting.
+    const body = JSON.stringify({ json: { publicId: "00000000-0000-4000-8000-000000000000" } });
+    const headers = { "content-type": "application/json" };
+    const bad = await app.request("/api/trpc/checkout.cancelSession", { method: "POST", headers: { ...headers, origin: "https://evil.example" }, body });
     expect(bad.status).toBe(403);
-    const ok = await app.request("/api/trpc/ping?batch=1", { method: "GET", headers: { origin: "http://localhost:3000" } });
-    expect(ok.status).toBe(200);
-    const okPost = await app.request("/api/trpc/flights.airports", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json" }, body: JSON.stringify({ json: { query: "osl" } }) });
-    expect(okPost.status).not.toBe(403);
+    const badBody = (await bad.json()) as { error?: { json?: { data?: { appCode?: string } }; data?: { appCode?: string } } };
+    expect(badBody.error?.json?.data?.appCode ?? badBody.error?.data?.appCode).toBe("FORBIDDEN");
+
+    // Uten Origin i det hele tatt (curl, serverkall) slipper vi gjennom med vilje:
+    // nettlesere sender alltid Origin på muterende forespørsler, så et manglende
+    // felt er ikke et angrep – det er en klient som ikke er en nettleser.
+    const noOrigin = await app.request("/api/trpc/checkout.cancelSession", { method: "POST", headers, body });
+    expect(noOrigin.status).not.toBe(403);
+
+    // Egen opprinnelse: slipper gjennom porten og feiler på innholdet i stedet.
+    const ok = await app.request("/api/trpc/checkout.cancelSession", { method: "POST", headers: { ...headers, origin: "http://localhost:3000" }, body });
+    expect(ok.status).not.toBe(403);
+
+    const query = await app.request("/api/trpc/ping?batch=1", { method: "GET", headers: { origin: "http://localhost:3000" } });
+    expect(query.status).toBe(200);
   });
 
   it("rate limit → 429 med appCode RATE_LIMITED og retryAfterSec i data.details", async () => {

@@ -29,3 +29,8 @@ delete process.env.SMTP_URL;
 delete process.env.SMTP_HOST;
 delete process.env.OPS_ALERT_WEBHOOK_URL;
 process.env.MAX_DAILY_LIVE_AMOUNT_MINOR = "0";
+// Førstegangsoppsettet er avslått som standard og helt avslått i produksjon.
+// Testene må slå det på for i det hele tatt å kunne dekke at det er
+// selvdeaktiverende – uten dette svarte setupStatus alltid «nei» og regelen
+// ble aldri prøvd.
+process.env.STAFF_BOOTSTRAP_ENABLED = "true";

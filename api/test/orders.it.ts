@@ -151,8 +151,10 @@ describe("orders: avbestilling og refusjon (demo)", () => {
     const support = caller({ staff: fakeStaff({ role: "SUPPORT" }) });
     await expect(support.admin.approveRefund({ refundCaseId: rc.id })).rejects.toMatchObject({ code: "FORBIDDEN" });
 
+    // Innlogget, men uten bekreftet totrinn: autentisert nok til å bli sett,
+    // ikke nok til å godkjenne penger. Det er 403, ikke 401.
     const noMfa = caller({ staff: { ...owner, mfaVerified: false } });
-    await expect(noMfa.admin.approveRefund({ refundCaseId: rc.id })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(noMfa.admin.approveRefund({ refundCaseId: rc.id })).rejects.toMatchObject({ code: "FORBIDDEN" });
 
     const ok = await admin.admin.approveRefund({ refundCaseId: rc.id, note: "Godkjent" });
     expect(ok.amountMinor).toBe(5_000);

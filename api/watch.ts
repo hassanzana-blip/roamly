@@ -12,7 +12,7 @@ import { computeServiceFeeMinor, loadPricingOverrides } from "./lib/pricing";
 import { toMinor } from "./lib/money";
 import { notify, notificationPrefsFor } from "./lib/notifications";
 import { sendTemplatedEmail } from "./lib/mailer";
-import { airportByIata } from "../contracts/airports";
+import { airportCity, knownAirport } from "./lib/airportMeta";
 import { log } from "./lib/logger";
 
 // ─── Prisovervåking ──────────────────────────────────────────────────────────
@@ -87,8 +87,8 @@ function serialize(w: typeof priceWatches.$inferSelect) {
     id: w.id,
     originIata: w.originIata,
     destinationIata: w.destinationIata,
-    originCity: airportByIata(w.originIata)?.city ?? w.originIata,
-    destinationCity: airportByIata(w.destinationIata)?.city ?? w.destinationIata,
+    originCity: airportCity(w.originIata),
+    destinationCity: airportCity(w.destinationIata),
     dateFrom: w.dateFrom,
     dateTo: w.dateTo,
     weekendsOnly: w.weekendsOnly,
@@ -124,7 +124,7 @@ export const watchRouter = createRouter({
 
   create: customerProcedure.input(watchInput).mutation(async ({ input, ctx }) => {
     const db = getDb();
-    if (!airportByIata(input.origin) || !airportByIata(input.destination)) {
+    if (!knownAirport(input.origin) || !knownAirport(input.destination)) {
       throw new AppError("VALIDATION", { message: "Vi kjenner ikke en av flyplassene." });
     }
     const [count] = await db
@@ -309,7 +309,7 @@ export async function checkPriceWatches(now = new Date()): Promise<{ checked: nu
 }
 
 async function notifyMatch(w: typeof priceWatches.$inferSelect, best: WatchResult): Promise<void> {
-  const route = `${airportByIata(w.originIata)?.city ?? w.originIata} → ${airportByIata(w.destinationIata)?.city ?? w.destinationIata}`;
+  const route = `${airportCity(w.originIata)} → ${airportCity(w.destinationIata)}`;
   const q = new URLSearchParams({ from: w.originIata, to: w.destinationIata, depart: best.departDate, adults: String(w.adults), children: String(w.children), infants: String(w.infants), cabin: w.cabin });
   if (best.returnDate) q.set("ret", best.returnDate);
   const href = `/sok?${q.toString()}`;

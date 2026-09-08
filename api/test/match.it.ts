@@ -2,6 +2,11 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { appRouter } from "../router";
 import { createCallerFactory } from "../middleware";
 import { caller, closeDb, countRows, expectAppCode, makeCtx, truncateAll } from "./setup";
+import { SHARE_KEY_BYTES, SHARE_TOKEN_BYTES, SHARE_TOKEN_RE } from "../../contracts/shareTokens";
+
+/** Riktig format, ukjent verdi — det er tilgangen som skal avvises, ikke formen. */
+const WRONG_KEY = "0".repeat(Math.ceil((SHARE_KEY_BYTES * 4) / 3));
+const WRONG_TOKEN = "f".repeat(Math.ceil((SHARE_TOKEN_BYTES * 4) / 3));
 
 const factory = createCallerFactory(appRouter);
 
@@ -29,7 +34,7 @@ describe("ReiseMatch: par og venner", () => {
   it("par: A svarer, B blir med via lenke, ingen ser den andres rå svar, budsjett skjules til begge deler", async () => {
     const a = caller();
     const created = await a.match.create({ mode: "couple", name: "Zana", answers: A, shareBudget: true });
-    expect(created.token).toMatch(/^[a-f0-9]{24}$/);
+    expect(created.token).toMatch(SHARE_TOKEN_RE);
     expect(created.shareUrl).toContain(`/m/${created.token}`);
 
     const waiting = await caller().match.get({ token: created.token, participantKey: created.participantKey });
@@ -78,8 +83,8 @@ describe("ReiseMatch: par og venner", () => {
     await expectAppCode(caller().match.decide({ token: created.token, destinationId: dest }), "FORBIDDEN");
     await caller().match.decide({ token: created.token, ownerKey: created.ownerKey, destinationId: dest });
     expect((await caller().match.get({ token: created.token })).decided?.id).toBe(dest);
-    await expectAppCode(caller().match.vote({ token: created.token, participantKey: "0".repeat(32), destinationId: dest, value: 1 }), "FORBIDDEN");
-    await expectAppCode(caller().match.get({ token: "f".repeat(24) }), "NOT_FOUND");
+    await expectAppCode(caller().match.vote({ token: created.token, participantKey: WRONG_KEY, destinationId: dest, value: 1 }), "FORBIDDEN");
+    await expectAppCode(caller().match.get({ token: WRONG_TOKEN }), "NOT_FOUND");
   });
 });
 

@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../queries/connection";
 import { customerNotifications, customerTravelProfiles } from "../../db/schema";
 import { isDuplicateKeyError } from "./jobs";
+import type { DbOrTx } from "./ledger";
 
 /**
  * Varslingsinnboks for kunder.
@@ -52,8 +53,8 @@ export function cleanNotificationPrefs(raw: unknown): NotificationPrefs {
   return { email: pick(r.email, DEFAULT_NOTIFICATION_PREFS.email), inApp: pick(r.inApp, DEFAULT_NOTIFICATION_PREFS.inApp) };
 }
 
-export async function notificationPrefsFor(customerId: number): Promise<NotificationPrefs> {
-  const [row] = await getDb()
+export async function notificationPrefsFor(customerId: number, tx?: DbOrTx): Promise<NotificationPrefs> {
+  const [row] = await (tx ?? getDb())
     .select({ json: customerTravelProfiles.notificationPrefsJson })
     .from(customerTravelProfiles)
     .where(eq(customerTravelProfiles.customerId, customerId))
@@ -76,12 +77,23 @@ export type NotifyInput = {
   dedupeKey?: string;
 };
 
-/** Legg et varsel i innboksen. Respekterer kundens innboks-valg; returnerer false om det ble hoppet over. */
-export async function notify(input: NotifyInput): Promise<boolean> {
-  const prefs = await notificationPrefsFor(input.customerId);
+/**
+ * Legg et varsel i innboksen. Respekterer kundens innboks-valg; returnerer
+ * false om det ble hoppet over.
+ *
+ * `tx` er ikke valgfritt av bekvemmelighet. Kalles dette uten transaksjonen
+ * mens kalleren står midt i en, går innsettingen på en annen tilkobling og
+ * venter på låser den åpne transaksjonen holder – som ikke kan commite før
+ * innsettingen er ferdig. Da står bestillingen i femti sekunder til
+ * `innodb_lock_wait_timeout` løser det opp. Varselet hører til den samme
+ * hendelsen; det skal skrives i den samme transaksjonen.
+ */
+export async function notify(input: NotifyInput, tx?: DbOrTx): Promise<boolean> {
+  const db = tx ?? getDb();
+  const prefs = await notificationPrefsFor(input.customerId, tx);
   if (prefs.inApp[input.type] === false) return false;
   try {
-    await getDb().insert(customerNotifications).values({
+    await db.insert(customerNotifications).values({
       customerId: input.customerId,
       type: input.type,
       title: input.title.slice(0, 160),

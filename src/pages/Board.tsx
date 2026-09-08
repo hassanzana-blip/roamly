@@ -15,6 +15,7 @@ import { usePageMeta } from "@/lib/seo";
 import { trpc, type RouterOutputs } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
+import { isShareToken } from "@contracts/shareTokens";
 
 type Board = RouterOutputs["boards"]["get"];
 type Item = Board["items"][number];
@@ -74,7 +75,7 @@ export default function BoardPage() {
   const { customer } = useCustomer();
   const utils = trpc.useUtils();
   const [vk] = useState(voterKey);
-  const q = trpc.boards.get.useQuery({ token, voterKey: vk }, { enabled: /^[a-f0-9]{24}$/.test(token), retry: false, refetchInterval: 30_000 });
+  const q = trpc.boards.get.useQuery({ token, voterKey: vk }, { enabled: isShareToken(token), retry: false, refetchInterval: 30_000 });
   const invalidate = () => utils.boards.get.invalidate({ token, voterKey: vk });
   const [name, setName] = useState(rememberedName);
   const guestName = customer ? undefined : name.trim() || undefined;
