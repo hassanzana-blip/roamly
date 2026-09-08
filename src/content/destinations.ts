@@ -17,6 +17,8 @@ export interface FeaturedDestination {
   bestTime: string;
   flightTime: string;
   typicalRoute: string;
+  /** Destinasjons-id fra discover.ts: gir et verifisert foto og alt-tekst i indeksen. Utelatt der vi ikke har et ekte bilde av landet. */
+  photo?: string;
 }
 
 export interface ContinentPlace {
@@ -36,6 +38,7 @@ export interface Continent {
 export const FEATURED: FeaturedDestination[] = [
   {
     id: "tyrkia-kurdistan",
+    photo: "istanbul",
     country: "Tyrkia og Kurdistan",
     headline: "Bazaren, fjellene og familiens bord",
     community:
@@ -88,6 +91,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "libanon",
+    photo: "beirut",
     country: "Libanon",
     headline: "Middelhav, fjell og verdens beste meze",
     community:
@@ -110,6 +114,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "marokko",
+    photo: "marrakech",
     country: "Marokko",
     headline: "Souker, Atlasfjell og myntete på takterrassen",
     community:
@@ -157,6 +162,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "afghanistan",
+    photo: "kabul",
     country: "Afghanistan",
     headline: "Hindukush, granatepler og gjestfrihet uten sidestykke",
     community:
@@ -182,6 +188,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "pakistan",
+    photo: "islamabad",
     country: "Pakistan",
     headline: "Fra Lahores festmåltider til Karakorams giganter",
     community:
@@ -208,6 +215,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "india",
+    photo: "delhi",
     country: "India",
     headline: "Et kontinent av smaker, språk og farger",
     community:
@@ -233,6 +241,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "bangladesh",
+    photo: "dhaka",
     country: "Bangladesh",
     headline: "Elvelandet der alle kjenner alle",
     community:
@@ -255,6 +264,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "sri-lanka",
+    photo: "colombo",
     country: "Sri Lanka",
     headline: "Teplantasjer, templer og tamilske tradisjoner",
     community:
@@ -277,6 +287,7 @@ export const FEATURED: FeaturedDestination[] = [
   },
   {
     id: "polen",
+    photo: "warszawa",
     country: "Polen",
     headline: "Norges nærmeste naboland – og største fellesskap",
     community:

@@ -4,21 +4,29 @@ import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ArticleCard from "@/components/journal/ArticleCard";
+import { coverVariantAt } from "@/components/journal/TypeCover";
 import { Chip } from "@/components/account/AccountRow";
 import { articlesByTag, featured, TAG_LABELS, tagsInUse, type JournalTag } from "@/content/journal";
 import { PAGE_META, breadcrumbJsonLd, itemListJsonLd, usePageMeta } from "@/lib/seo";
 
 /**
- * HelloSky Journal – nyttig, ikke pent. Én stor sak øverst, så alt annet.
- * Ingen «trending», ingen tellere; rekkefølgen er sist oppdatert først.
+ * HelloSky Journal – nyttig, ikke pent. Én toppsak, to sekundære, så alt
+ * annet i et rutenett. Ingen «trending», ingen tellere; rekkefølgen er sist
+ * oppdatert først. Artikler uten foto får et typografisk omslag, og naboer
+ * får aldri samme variant.
  */
 export default function Journal() {
   const [params, setParams] = useSearchParams();
   const tags = tagsInUse();
   const tag = (tags as string[]).includes(params.get("t") ?? "") ? (params.get("t") as JournalTag) : "alle";
   const list = useMemo(() => articlesByTag(tag), [tag]);
-  const lead = tag === "alle" ? featured()[0] : list[0];
-  const rest = list.filter((a) => a.slug !== lead?.slug);
+  const { lead, secondary, rest } = useMemo(() => {
+    const top = tag === "alle" ? featured() : list;
+    const lead = top[0];
+    const secondary = top.slice(1, 3);
+    const used = new Set([lead?.slug, ...secondary.map((a) => a.slug)]);
+    return { lead, secondary, rest: list.filter((a) => !used.has(a.slug)) };
+  }, [tag, list]);
 
   usePageMeta({
     ...PAGE_META.journal,
@@ -32,7 +40,7 @@ export default function Journal() {
     <div className="min-h-[100dvh] bg-background">
       <AppShell>
         <AppHeader title="Journal" as="h1" />
-        <p className="-mt-2 max-w-2xl text-[16px] leading-relaxed text-muted-foreground sm:text-[17px]">
+        <p className="t-lead -mt-2 max-w-2xl text-muted-foreground">
           Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og rutene hjem. Ingen priser, ingen visumregler som tall. Bare det som holder seg.
         </p>
 
@@ -44,16 +52,25 @@ export default function Journal() {
         </div>
 
         {lead && (
-          <div className="mt-8">
-            <ArticleCard a={lead} wide />
+          <section className="mt-8 sm:mt-10">
+            <ArticleCard a={lead} layout="lead" variant="ink" />
+            {secondary.length > 0 && (
+              <div className="mt-10 grid gap-6 border-y border-border py-6 md:grid-cols-2 md:gap-8">
+                {secondary.map((a, i) => (
+                  <ArticleCard key={a.slug} a={a} layout="row" variant={i === 0 ? "lime" : "paper"} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {rest.length > 0 && (
+          <div className="mt-10 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {rest.map((a, i) => <ArticleCard key={a.slug} a={a} variant={coverVariantAt(i)} />)}
           </div>
         )}
 
-        <div className="mt-10 grid gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
-          {rest.map((a) => <ArticleCard key={a.slug} a={a} />)}
-        </div>
-
-        <p className="mt-12 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+        <p className="t-caption mt-14 max-w-2xl">
           Artiklene skrives og oppdateres av folk hos HelloSky som reiser rutene selv. Hver artikkel viser når den sist ble sett over. Finner du noe som ikke stemmer lenger, si fra til oss, så retter vi det.
         </p>
       </AppShell>

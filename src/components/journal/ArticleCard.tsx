@@ -1,61 +1,147 @@
 import { Link } from "react-router";
-import SkyMark from "@/components/brand/SkyMark";
+import { ArrowRight } from "lucide-react";
+import Icon from "@/components/app/Icon";
+import { TypeCover, type CoverVariant } from "@/components/journal/TypeCover";
 import { destinationById, imageSrcSet } from "@/content/discover";
 import { readingMinutes, TAG_LABELS, type Article } from "@/content/journal";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const fmtDate = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "short", year: "numeric" });
 
-/** Ett bilde eller én typografisk flate; aldri et tomt grått felt. */
-export function ArticleCover({ a, className, sizes, wide = false }: { a: Article; className?: string; sizes?: string; wide?: boolean }) {
+/** Det verifiserte fotoet artikkelen peker på, om det finnes. */
+export function articlePhoto(a: Article): { src: string; alt: string } | undefined {
   const dest = a.hero ? destinationById(a.hero) : undefined;
-  if (dest?.image) {
+  return dest?.image ? { src: dest.image, alt: a.heroAlt ?? dest.imageAlt } : undefined;
+}
+
+/** Ett bilde eller én typografisk flate; aldri et tomt grått felt. */
+export function ArticleCover({
+  a,
+  variant = "ink",
+  forceType = false,
+  size = "md",
+  mode = "title",
+  className,
+  sizes,
+}: {
+  a: Article;
+  variant?: CoverVariant;
+  /** Bruk typografisk omslag selv om fotoet finnes, f.eks. når det ville gjentatt heroen over. */
+  forceType?: boolean;
+  size?: "sm" | "md" | "lg";
+  /** Hva den typografiske flaten bærer: tittelen, kategorien (når tittelen står ved siden av) eller ingenting (miniatyr). */
+  mode?: "title" | "category" | "none";
+  className?: string;
+  sizes?: string;
+}) {
+  const photo = forceType ? undefined : articlePhoto(a);
+  if (photo) {
     return (
       <img
-        src={dest.image}
-        srcSet={imageSrcSet(dest.image)}
+        src={photo.src}
+        srcSet={imageSrcSet(photo.src)}
         sizes={sizes ?? "(max-width: 640px) 90vw, 400px"}
-        alt={a.heroAlt ?? dest.imageAlt}
+        alt={photo.alt}
         loading="lazy"
         decoding="async"
         width={1024}
         height={640}
-        className={cn("h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]", className)}
+        className={cn("h-full w-full object-cover", className)}
       />
     );
   }
+  const category = TAG_LABELS[a.tags[0]];
   return (
-    <span className={cn("relative flex h-full w-full flex-col justify-end overflow-hidden bg-night text-white", wide ? "p-6 sm:p-10" : "p-5", className)} aria-hidden="true">
-      <SkyMark className="absolute -right-8 -top-10 h-[140%] w-auto text-primary opacity-[0.18]" />
-      <span className={cn("relative font-display leading-tight", wide ? "max-w-3xl text-[28px] sm:text-[44px] sm:leading-[1.05]" : "text-[22px] sm:text-[24px]")}>{a.title}</span>
+    <TypeCover
+      variant={variant}
+      size={size}
+      title={mode === "title" ? a.title : mode === "category" ? category : undefined}
+      label={mode === "category" ? "Journal" : undefined}
+      className={className}
+    />
+  );
+}
+
+/** «Kategori · 3 min · Oppdatert 7. sep. 2026» – enkle midtprikker, én linje. */
+export function ArticleMeta({ a, withCategory = true, className }: { a: Article; withCategory?: boolean; className?: string }) {
+  const t = useT();
+  const rest = `${t("journal.minutes", { count: readingMinutes(a) })} · ${t("journal.updated", { date: fmtDate.format(new Date(`${a.updated}T12:00:00`)) })}`;
+  return (
+    <span className={cn("t-caption block", className)}>
+      {withCategory ? (
+        <>
+          <span className="font-semibold text-foreground">{TAG_LABELS[a.tags[0]]}</span>
+          {` · ${rest}`}
+        </>
+      ) : (
+        rest
+      )}
     </span>
   );
 }
 
-export function ArticleMeta({ a, className }: { a: Article; className?: string }) {
-  return (
-    <span className={cn("flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground", className)}>
-      <span className="font-semibold text-foreground">{TAG_LABELS[a.tags[0]]}</span>
-      <span aria-hidden="true">·</span>
-      <span>{readingMinutes(a)} min</span>
-      <span aria-hidden="true">·</span>
-      <span>Oppdatert {fmtDate.format(new Date(`${a.updated}T12:00:00`))}</span>
-    </span>
-  );
-}
+export type ArticleCardProps = {
+  a: Article;
+  className?: string;
+  /** Typografisk variant når artikkelen ikke har foto. Gi naboer ulik variant. */
+  variant?: CoverVariant;
+  /** Bruk typografisk omslag selv om fotoet finnes (unngår at samme foto står to ganger på en side). */
+  forceType?: boolean;
+  /** stack: omslag over tekst (rutenett). row: miniatyr til venstre (sekundær). lead: omslag ved siden av stor tittel (toppsak). */
+  layout?: "stack" | "row" | "lead";
+};
 
-export default function ArticleCard({ a, className, wide = false }: { a: Article; className?: string; wide?: boolean }) {
-  const dest = a.hero ? destinationById(a.hero) : undefined;
-  const hasPhoto = Boolean(dest?.image);
+const LINK =
+  "press img-zoom group block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+
+export default function ArticleCard({ a, className, variant = "ink", forceType = false, layout = "stack" }: ArticleCardProps) {
+  const t = useT();
+  const hasPhoto = !forceType && Boolean(articlePhoto(a));
+  const href = `/journal/${a.slug}`;
+
+  if (layout === "lead") {
+    return (
+      <Link to={href} className={cn(LINK, "grid gap-5 md:grid-cols-2 md:items-center md:gap-8 lg:gap-12", className)}>
+        <span className="block aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
+          <ArticleCover a={a} variant={variant} forceType={forceType} size="lg" mode="category" sizes="(max-width: 768px) 100vw, 50vw" />
+        </span>
+        <span className="block md:pr-4">
+          <ArticleMeta a={a} />
+          <span className="t-h1 mt-3 block">{a.title}</span>
+          <span className="t-lead mt-4 block text-muted-foreground">{a.deck}</span>
+          <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold">
+            {t("journal.readArticle")} <Icon icon={ArrowRight} size={16} />
+          </span>
+        </span>
+      </Link>
+    );
+  }
+
+  if (layout === "row") {
+    return (
+      <Link to={href} className={cn(LINK, "grid grid-cols-[104px_minmax(0,1fr)] gap-4 sm:grid-cols-[144px_minmax(0,1fr)] sm:gap-5", className)}>
+        <span className="block aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
+          <ArticleCover a={a} variant={variant} forceType={forceType} size="sm" mode="none" sizes="144px" />
+        </span>
+        <span className="block min-w-0">
+          <ArticleMeta a={a} />
+          <span className="mt-1.5 block font-display text-[19px] leading-[1.2] sm:text-[20px]">{a.title}</span>
+          <span className="mt-1 line-clamp-2 block text-[14px] leading-relaxed text-muted-foreground">{a.deck}</span>
+        </span>
+      </Link>
+    );
+  }
+
   return (
-    <Link to={`/journal/${a.slug}`} className={cn("press group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)}>
-      <span className={cn("relative block overflow-hidden rounded-xl bg-muted", wide ? (hasPhoto ? "aspect-[16/9]" : "aspect-[16/9] sm:aspect-[21/9]") : "aspect-[4/3]")}>
-        <ArticleCover a={a} wide={wide} sizes={wide ? "(max-width: 1024px) 100vw, 1024px" : undefined} />
+    <Link to={href} className={cn(LINK, className)}>
+      <span className="block aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
+        <ArticleCover a={a} variant={variant} forceType={forceType} mode="title" />
       </span>
       <span className="block px-1 pt-3">
         <ArticleMeta a={a} />
-        {hasPhoto && <span className={cn("mt-1.5 block font-display leading-tight", wide ? "text-[26px] sm:text-[34px]" : "text-[20px]")}>{a.title}</span>}
-        <span className={cn("mt-1 block text-[14px] leading-relaxed text-muted-foreground", !wide && "line-clamp-2")}>{a.deck}</span>
+        {hasPhoto && <span className="mt-1.5 block font-display text-[20px] leading-[1.2]">{a.title}</span>}
+        <span className="mt-1 line-clamp-2 block text-[14px] leading-relaxed text-muted-foreground">{a.deck}</span>
       </span>
     </Link>
   );

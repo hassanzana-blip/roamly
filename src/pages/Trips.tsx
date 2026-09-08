@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
 import { EmptyState } from "@/components/app/primitives";
 import { Segmented } from "@/components/ui/segmented";
+import { TripCard } from "@/components/account/TripCard";
 import { NoTripsSpot } from "@/components/graphics";
 import { useCustomer } from "@/lib/useCustomer";
 import { useT } from "@/lib/i18n";
@@ -85,28 +86,10 @@ export default function Trips() {
                 action={tab === "upcoming" ? <Link to="/" className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-night px-5 text-[14px] font-semibold text-white">{t("tr.search")} <Icon icon={ArrowRight} size={16} /></Link> : undefined}
               />
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {rows.map((trip) => (
                   <li key={trip.orderId}>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/bekreftelse/${encodeURIComponent(trip.orderId)}`)}
-                      className={cn("flex min-h-11 w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-foreground/40", tab === "cancelled" && "opacity-75")}
-                    >
-                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-muted"><Icon icon={Plane} size={20} /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] font-semibold">{trip.originCity || trip.originIata} → {trip.destinationCity || trip.destinationIata}</span>
-                        <span className="block text-xs text-muted-foreground">
-                          {trip.departingAt ? formatDateShort(trip.departingAt) : ""} · {t("common.pax", { count: trip.passengerCount })} · {t("mt.trip.ref", { ref: trip.bookingReference || "—" })}
-                          {trip.demoMode ? ` · ${t("mt.demo")}` : ""}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-sm font-semibold">{formatPrice(trip.totalAmount || "0", trip.totalCurrency)}</span>
-                        <span className="text-[11px] text-muted-foreground">{bookingStateLabel(trip.state)}</span>
-                      </span>
-                      <Icon icon={ChevronRight} size={16} className="shrink-0 text-muted-foreground" />
-                    </button>
+                    <TripCard trip={trip} bucket={tab} className={cn(tab === "cancelled" && "opacity-80")} />
                   </li>
                 ))}
               </ul>

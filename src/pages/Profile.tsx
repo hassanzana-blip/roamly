@@ -6,6 +6,8 @@ import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
 import MembershipCard from "@/components/account/MembershipCard";
 import { AccountGroup, AccountRow, ControlRow, CountBadge, Toggle } from "@/components/account/AccountRow";
+import { DocumentsModule, FamilyModule, NextTripModule, QuickActions, RoutesModule, type DocumentsStatus, type QuickAction } from "@/components/account/HubModules";
+import ForYou from "@/components/home/ForYou";
 import { useCustomer } from "@/lib/useCustomer";
 import { useAccountHub } from "@/lib/useAccount";
 import { CURRENCIES, LANGS, LANG_LABELS, useLang, useLocale, useT, type Currency, type Lang } from "@/lib/i18n";
@@ -65,12 +67,25 @@ export default function Profile() {
   const resend = trpc.customerAuth.resendVerification.useMutation();
   const prefs = trpc.customerAuth.updatePreferences.useMutation({ onSuccess: () => utils.customerAuth.me.invalidate() });
 
+  const trips = trpc.customerAuth.myTrips.useQuery(undefined, { enabled: Boolean(customer?.emailVerified), retry: false });
+  const travellers = trpc.extras.myTravelers.useQuery(undefined, { enabled: Boolean(customer), retry: false });
+
   const [soon] = useState(() => new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10));
+  const [now] = useState(() => Date.now());
   const h = hub.data;
+  const docsStatus: DocumentsStatus = !customer?.emailVerified ? "unverified" : trips.isLoading ? "loading" : trips.isError ? "error" : "ready";
   const profileStarted = Boolean(h?.profile.onboardingCompletedAt || h?.profile.onboardingSkippedAt || (h?.profile.completeness ?? 0) > 0);
   const nextTripDays = h?.nextTrip ? daysUntil(h.nextTrip.departingAt, soon) : null;
   const firstWatch = h?.watches[0];
   const watchResult = firstWatch?.lastResult as { priceMinor?: number; currency?: string; live?: boolean } | null | undefined;
+
+  /* ── Det du gjør oftest: fire snarveier, aldri flere ─────────────────── */
+  const quickActions: QuickAction[] = [
+    { to: "/reiser", icon: Luggage, label: t("acct.trips"), count: h?.upcomingCount ?? 0 },
+    { to: "/profil/reisende", icon: Users, label: t("acct.travelers") },
+    { to: "/profil/prisovervaking", icon: TrendingDown, label: t("acct.hub.watch"), count: h?.watches.length ?? 0 },
+    { to: "/lagret", icon: Heart, label: t("acct.saved"), count: h?.savedCount ?? 0 },
+  ];
 
   /* ── Felles: språk, valuta, tema, hjelp ──────────────────────────────── */
   const settings: ReactNode = (
@@ -115,7 +130,7 @@ export default function Profile() {
             <div className="lg:sticky lg:top-24">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="font-display text-[34px] leading-none sm:text-[40px]">{t("acct.hub.hello", { name: customer.firstName })}</h1>
+                  <h1 className="t-h1">{t("acct.hub.hello", { name: customer.firstName })}</h1>
                   <p className="mt-2 text-[15px] text-muted-foreground">{t("acct.hub.sub")}</p>
                 </div>
                 <button
@@ -175,55 +190,24 @@ export default function Profile() {
                 </Link>
               )}
 
-              {/* ── Moduler: kun med data ───────────────────────────────── */}
-              {h && (h.nextTrip || h.watches.length > 0 || h.savedCount > 0 || h.unreadNotifications > 0) && (
-                <div className="mt-5 grid grid-cols-2 gap-2.5">
-                  {h.nextTrip && (
-                    <Tile
-                      to={`/bekreftelse/${encodeURIComponent(h.nextTrip.orderId)}`}
-                      icon={Plane}
-                      eyebrow={t("acct.hub.nexttrip")}
-                      title={`${h.nextTrip.originCity || h.nextTrip.originIata} → ${h.nextTrip.destinationCity || h.nextTrip.destinationIata}`}
-                      sub={nextTripDays === 0 ? t("acct.hub.today") : `${t("acct.hub.daysto", { count: nextTripDays ?? 0 })} · ${formatDateShort(h.nextTrip.departingAt)}`}
-                      accent
-                    />
-                  )}
-                  {firstWatch && (
-                    <Tile
-                      to="/profil/prisovervaking"
-                      icon={TrendingDown}
-                      eyebrow={t("acct.hub.watch")}
-                      title={h.watches.length === 1 ? `${firstWatch.originIata} → ${firstWatch.destinationCity}` : t("acct.hub.watchsub", { count: h.watches.length })}
-                      sub={watchResult?.live && watchResult.priceMinor ? t("acct.hub.watchfound", { price: formatMinor(watchResult.priceMinor, watchResult.currency ?? "NOK") }) : t("acct.hub.watchchecking")}
-                    />
-                  )}
-                  {h.savedCount > 0 && <Tile to="/lagret" icon={Heart} eyebrow={t("acct.saved")} title={t("acct.savedsub", { count: h.savedCount })} sub={t("acct.savedempty")} />}
-                  {h.unreadNotifications > 0 && <Tile to="/profil/varsler" icon={Bell} eyebrow={t("acct.notifications")} title={t("acct.unread", { count: h.unreadNotifications })} />}
-                </div>
-              )}
-
-              {h && h.routes.length > 0 && (
-                <section className="mt-6">
-                  <div className="mb-2 flex items-end justify-between">
-                    <h2 className="font-display text-xl">{t("acct.hub.routes")}</h2>
-                    <span className="text-[12px] text-muted-foreground">{t("acct.hub.routessub")}</span>
-                  </div>
-                  <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:flex-wrap lg:px-0">
-                    {h.routes.map((r) => (
-                      <Link
-                        key={`${r.originIata}-${r.destinationIata}`}
-                        to={`/sok?from=${r.originIata}&to=${r.destinationIata}&depart=${soon}&adults=1&children=0&infants=0&cabin=economy`}
-                        className="press inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3.5 text-[14px] font-semibold transition-colors hover:border-foreground/30"
-                      >
-                        {r.originCity} <Icon icon={ArrowRight} size={14} className="text-muted-foreground" /> {r.destinationCity}
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              )}
             </div>
 
             <div className="lg:-mt-7">
+              {/* Navet: reisen som kommer, det du gjør oftest, papirene, familien, rutene. */}
+              <div className="space-y-10 lg:space-y-12">
+                <NextTripModule trip={h?.nextTrip ?? null} days={nextTripDays} />
+                <QuickActions label={t("acct.group.trips")} items={quickActions} />
+                <DocumentsModule trips={trips.data ?? []} status={docsStatus} now={now} />
+                <FamilyModule travellers={travellers.data ?? []} loading={travellers.isLoading} />
+                <RoutesModule routes={h?.routes ?? []} departDate={soon} />
+              </div>
+
+              {/* Anbefalt for deg: fra reiseprofilen og søkene dine, med ekte priser. */}
+              <div className="mt-10 lg:mt-12">
+                <ForYou />
+              </div>
+
+              <div className="mt-10 lg:mt-12">
               <AccountGroup label={t("acct.group.trips")}>
                 <AccountRow to="/reiser" icon={Luggage} title={t("acct.trips")} sub={t("acct.tripssub")} badge={<CountBadge n={h?.upcomingCount ?? 0} />} />
                 <AccountRow to="/profil/reisende" icon={Users} title={t("acct.travelers")} sub={t("acct.travelerssub")} />
@@ -252,6 +236,7 @@ export default function Profile() {
               {prefs.isError && <p role="alert" className="mt-2 text-[12px] text-destructive">{humanMessage(prefs.error)}</p>}
 
               {settings}
+              </div>
             </div>
           </div>
         )}
