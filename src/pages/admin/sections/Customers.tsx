@@ -5,6 +5,7 @@ import { trpc } from "@/providers/trpc";
 import { BookingStatePill, Btn, Card, ClickableRow, EmptyState, ErrorState, KV, LoadingRows, PageHeader, Pager, Pill, TableCard } from "../ui";
 import { formatDate, formatDateTime, formatMoney, inputCls, tdCls, thCls } from "../helpers";
 import { useActionFeedback } from "../useActionFeedback";
+import { useRecordParam } from "../useRecordParam";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   AlertDialog,
@@ -135,7 +136,7 @@ export function AdminCustomers() {
   const [input, setInput] = useState("");
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState("customers");
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useRecordParam("kunde");
   const perms = trpc.staffAuth.myPermissions.useQuery(undefined, { staleTime: 60_000, retry: false });
   const canReveal = perms.data?.permissions.includes("customers:reveal") ?? false;
   const list = trpc.admin.customersList.useQuery({ query: query || undefined, page, pageSize: 25 }, { retry: false, placeholderData: (p) => p, enabled: tab === "customers" });

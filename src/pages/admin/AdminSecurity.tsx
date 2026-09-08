@@ -3,6 +3,7 @@ import { Check, Copy, KeyRound, ShieldAlert, ShieldCheck, Smartphone } from "luc
 import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
+import { copyText } from "@/lib/clipboard";
 
 /**
  * Totrinn, slått på av den som eier kontoen.
@@ -16,20 +17,23 @@ const inputCls =
   "t-num w-full min-h-12 rounded-xl border border-input bg-white px-4 py-3 text-center text-2xl tracking-[0.3em] text-night outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-ring/30";
 
 function CopyButton({ text, label }: { text: string; label: string }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "ok" | "failed">("idle");
   return (
     <button
       type="button"
       onClick={() => {
-        void navigator.clipboard?.writeText(text).then(() => {
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1600);
+        void copyText(text).then((ok) => {
+          // Koder man tror man har kopiert, men ikke har, er verre enn ingen
+          // knapp. Si det rett ut når nettleseren nekter.
+          setState(ok ? "ok" : "failed");
+          window.setTimeout(() => setState("idle"), ok ? 1600 : 4000);
         });
       }}
+      aria-live="polite"
       className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold hover:border-foreground/40"
     >
-      {copied ? <Check className="size-4 text-success" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
-      {copied ? "Kopiert" : label}
+      {state === "ok" ? <Check className="size-4 text-success" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+      {state === "ok" ? "Kopiert" : state === "failed" ? "Kopier selv – nettleseren nektet" : label}
     </button>
   );
 }

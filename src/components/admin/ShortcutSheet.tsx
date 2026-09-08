@@ -30,6 +30,7 @@ const GROUPS: { label: string; rows: { keys: string[]; what: string }[] }[] = [
     rows: [
       { keys: ["↑", "↓"], what: "Bla i treffene" },
       { keys: ["⏎"], what: "Åpne det valgte" },
+      { keys: ["⌘", "C"], what: "Kopier referansen på treffet" },
       { keys: ["⌃", "N / P"], what: "Bla, for de som lever i terminalen" },
     ],
   },

@@ -5,6 +5,7 @@ import { trpc } from "@/providers/trpc";
 import { Btn, Card, ClickableRow, CopyButton, EmptyState, ErrorState, Field, KV, LoadingRows, PageHeader, Pager, Pill, TableCard } from "../ui";
 import { formatDateTime, formatMoney, inputCls, selectCls, tdCls, thCls } from "../helpers";
 import { useActionFeedback } from "../useActionFeedback";
+import { useRecordParam } from "../useRecordParam";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
@@ -233,7 +234,7 @@ export function AdminQuotes() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useRecordParam("tilbud");
   const perms = trpc.staffAuth.myPermissions.useQuery(undefined, { staleTime: 60_000, retry: false });
   const canWrite = perms.data?.permissions.includes("quotes:write") ?? false;
   const list = trpc.admin.quotesList.useQuery({ status: status || undefined, page, pageSize: 25 }, { retry: false, placeholderData: (p) => p });

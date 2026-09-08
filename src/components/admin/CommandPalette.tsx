@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { CornerDownLeft, Search } from "lucide-react";
+import { Check, CornerDownLeft, FileText, Search, Ticket, User } from "lucide-react";
+import { trpc } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 import { rankByQuery } from "@/lib/fuzzy";
+import { copyText } from "@/lib/clipboard";
 import { visibleItems, type NavItem } from "@/pages/admin/nav";
 
 /**
@@ -23,6 +25,8 @@ export type Command = {
   keywords?: string;
   icon?: NavItem["icon"];
   run: () => void;
+  /** Verdi ⌘C legger på utklippstavla uten å forlate paletten. */
+  copy?: string;
 };
 
 /**
@@ -37,6 +41,7 @@ function Panel({ onClose, perms, extra }: { onClose: () => void; perms: Set<stri
   const listRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  const [copied, setCopied] = useState<{ value: string; ok: boolean } | null>(null);
 
   const commands = useMemo<Command[]>(() => {
     const nav = visibleItems(perms).map<Command>((item) => ({
@@ -50,7 +55,36 @@ function Panel({ onClose, perms, extra }: { onClose: () => void; perms: Set<stri
     return [...nav, ...extra];
   }, [perms, extra, navigate]);
 
-  const results = useMemo(() => rankByQuery(commands, query), [commands, query]);
+  /**
+   * Data, ikke bare sider.
+   *
+   * Etter to tegn spør vi serveren om bestillinger, kunder og tilbud som
+   * ligner. Søket er utsatt (`useDeferredValue`) slik at skrivingen aldri
+   * venter på nettet, og resultatene legges under navigasjonen – man leter
+   * som regel etter en side, og av og til etter en bestilling.
+   */
+  const deferred = useDeferredValue(query.trim());
+  const spotlight = trpc.admin.spotlight.useQuery(
+    { query: deferred },
+    { enabled: deferred.length >= 2, staleTime: 15_000, retry: false, placeholderData: (prev) => prev },
+  );
+
+  const dataCommands = useMemo<Command[]>(() => {
+    const icons = { booking: Ticket, customer: User, quote: FileText } as const;
+    const groups = { booking: "Bestillinger", customer: "Kunder", quote: "Tilbud" } as const;
+    return (spotlight.data ?? []).map((hit) => ({
+      id: `${hit.type}:${hit.id}`,
+      label: hit.title,
+      hint: hit.subtitle,
+      group: groups[hit.type],
+      icon: icons[hit.type],
+      run: () => navigate(hit.href),
+      copy: hit.copy ?? undefined,
+    }));
+  }, [spotlight.data, navigate]);
+
+  // Sidene rangeres mot søket; datatreffene kommer ferdig sortert fra serveren.
+  const results = useMemo(() => [...rankByQuery(commands, query), ...dataCommands], [commands, query, dataCommands]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => inputRef.current?.focus());
@@ -63,6 +97,12 @@ function Panel({ onClose, perms, extra }: { onClose: () => void; perms: Set<stri
     listRef.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView({ block: "nearest" });
   }, [active]);
 
+  // Kvitteringen gjelder raden du står på. Flytter du deg, er den ikke sann lenger.
+  const move = (next: number) => {
+    setActive(next);
+    setCopied(null);
+  };
+
   const choose = (cmd: Command | undefined) => {
     if (!cmd) return;
     onClose();
@@ -72,10 +112,21 @@ function Panel({ onClose, perms, extra }: { onClose: () => void; perms: Set<stri
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown" || (e.key === "n" && e.ctrlKey)) {
       e.preventDefault();
-      setActive((i) => (results.length ? (i + 1) % results.length : 0));
+      move(results.length ? (active + 1) % results.length : 0);
     } else if (e.key === "ArrowUp" || (e.key === "p" && e.ctrlKey)) {
       e.preventDefault();
-      setActive((i) => (results.length ? (i - 1 + results.length) % results.length : 0));
+      move(results.length ? (active - 1 + results.length) % results.length : 0);
+    } else if (e.key === "c" && (e.metaKey || e.ctrlKey) && results[active]?.copy && !window.getSelection()?.toString()) {
+      /**
+       * Referansen, uten å miste plassen.
+       *
+       * Det vanligste kundeservice gjør med et treff er å lime referansen inn
+       * et annet sted – i en e-post, i leverandørportalen. Da skal paletten bli
+       * stående: du kopierer, og fortsetter å lete.
+       */
+      e.preventDefault();
+      const value = results[active].copy!;
+      void copyText(value).then((ok) => setCopied({ value, ok }));
     } else if (e.key === "Enter") {
       e.preventDefault();
       choose(results[active]);
@@ -100,7 +151,7 @@ function Panel({ onClose, perms, extra }: { onClose: () => void; perms: Set<stri
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
-                setActive(0);
+                move(0);
               }}
               onKeyDown={onKeyDown}
               placeholder="Søk etter side eller handling …"
@@ -129,7 +180,7 @@ function Panel({ onClose, perms, extra }: { onClose: () => void; perms: Set<stri
                       role="option"
                       aria-selected={isActive}
                       data-active={isActive}
-                      onMouseMove={() => setActive(i)}
+                      onMouseMove={() => isActive || move(i)}
                       onClick={() => choose(cmd)}
                       className={cn(
                         "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
@@ -155,7 +206,26 @@ function Panel({ onClose, perms, extra }: { onClose: () => void; perms: Set<stri
             <span className="flex items-center gap-1.5">
               <kbd className="admin-kbd">⏎</kbd> åpne
             </span>
-            <span className="ml-auto tabular-nums">{results.length} treff</span>
+            {results[active]?.copy && (
+              <span className="flex items-center gap-1.5">
+                <kbd className="admin-kbd">⌘</kbd>
+                <kbd className="admin-kbd">C</kbd> kopier referanse
+              </span>
+            )}
+            <span role="status" aria-live="polite" className="ml-auto flex items-center gap-1.5 tabular-nums">
+              {copied?.ok ? (
+                <>
+                  <Check className="size-3.5 text-success" aria-hidden="true" />
+                  {copied.value} kopiert
+                </>
+              ) : copied ? (
+                <span className="text-destructive">Nettleseren tillot ikke kopiering</span>
+              ) : spotlight.isFetching ? (
+                "søker …"
+              ) : (
+                `${results.length} treff`
+              )}
+            </span>
           </div>
         </div>
       </div>

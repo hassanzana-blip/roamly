@@ -33,6 +33,7 @@ import {
   problemReports,
 } from "../db/schema";
 import { assertTransition, REFUND_STATE_LABELS, STATE_LABELS, type BookingState, type RefundState } from "./lib/statemachine";
+import { hasPermission, type Permission } from "./lib/rbac";
 import { addAmounts, toMinor } from "./lib/money";
 import { getSetting, priceWithServiceFee, SETTING_KEYS, setSetting } from "./lib/pricing";
 import { DEFAULT_REWARD_RULES, rewardRules } from "./lib/rewards";
@@ -592,6 +593,77 @@ export const adminRouter = createRouter({
     }),
 
   // ─── KUNDER ───────────────────────────────────────────────────────────────
+
+  /**
+   * Søk på tvers, for kommandopaletten (⌘K).
+   *
+   * Én forespørsel, tre slags treff: bestillinger, kunder og tilbud. Hver del
+   * hentes bare når den som spør faktisk har lov til å se den – paletten skal
+   * ikke kunne brukes til å slå opp noe rollen ikke gir tilgang til. Kunde-
+   * kontakt maskeres her som ellers; hele adressen krever `customers:reveal`
+   * og havner i revisjonsloggen.
+   */
+  spotlight: staffProcedure
+    .input(z.object({ query: z.string().trim().min(2).max(80) }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const term = `%${input.query}%`;
+      const can = (p: Permission) => hasPermission(ctx.staff.role, p);
+      const out: { type: "booking" | "customer" | "quote"; id: number; title: string; subtitle: string; href: string; copy: string | null }[] = [];
+
+      if (can("bookings:read")) {
+        const rows = await db
+          .select({ id: bookings.id, orderId: bookings.orderId, ref: bookings.bookingReference, email: bookings.contactEmail, state: bookings.state })
+          .from(bookings)
+          .where(or(like(bookings.orderId, term), like(bookings.bookingReference, term), like(bookings.contactEmail, term)))
+          .orderBy(desc(bookings.id))
+          .limit(6);
+        for (const r of rows) {
+          out.push({
+            type: "booking",
+            id: r.id,
+            title: r.ref || r.orderId,
+            subtitle: `${STATE_LABELS[r.state as BookingState] ?? r.state} · ${maskEmail(r.email)}`,
+            href: `/admin/bestillinger/${r.id}`,
+            copy: r.ref || r.orderId,
+          });
+        }
+      }
+
+      if (can("customers:read")) {
+        const rows = await db
+          .select({ id: customers.id, email: customers.email, name: customers.name, phone: customers.phone })
+          .from(customers)
+          .where(or(like(customers.email, term), like(customers.name, term), like(customers.phone, term)))
+          .orderBy(desc(customers.updatedAt))
+          .limit(6);
+        for (const r of rows) {
+          out.push({
+            type: "customer",
+            id: r.id,
+            title: r.name || maskEmail(r.email),
+            subtitle: maskEmail(r.email),
+            href: `/admin/kunder?kunde=${r.id}`,
+            // E-posten er maskert her; å kopiere «am***@…» hjelper ingen.
+            copy: null,
+          });
+        }
+      }
+
+      if (can("quotes:read")) {
+        const rows = await db
+          .select({ id: quotes.id, reference: quotes.reference, name: quotes.customerName, status: quotes.status })
+          .from(quotes)
+          .where(or(like(quotes.reference, term), like(quotes.customerName, term), like(quotes.customerEmail, term)))
+          .orderBy(desc(quotes.id))
+          .limit(6);
+        for (const r of rows) {
+          out.push({ type: "quote", id: r.id, title: r.reference, subtitle: `${r.name} · ${r.status}`, href: `/admin/tilbud?tilbud=${r.id}`, copy: r.reference });
+        }
+      }
+
+      return out;
+    }),
 
   customersList: permittedProcedure("customers:read")
     .input(z.object({
