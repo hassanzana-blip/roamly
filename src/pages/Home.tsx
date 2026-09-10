@@ -539,8 +539,10 @@ export default function Home() {
               />
             </picture>
           </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-b from-night/55 via-night/10 to-night/70" aria-hidden="true" />
-          <div className="absolute inset-0 bg-gradient-to-r from-night/45 via-night/10 to-transparent" aria-hidden="true" />
+          {/* Tittelen sto i lime mot lys himmel og forsvant. Nedtoningen er
+              kraftigere øverst til venstre, der teksten faktisk ligger. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-night/70 via-night/25 to-night/75" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-r from-night/75 via-night/35 to-transparent" aria-hidden="true" />
           <div className="container-x relative flex flex-col pb-8 pt-4 sm:pb-12 lg:min-h-[min(940px,100svh)] lg:justify-center lg:py-14">
             <div className="lg:hidden"><GreetingBar tone="dark" /></div>
             <div className="mt-8 max-w-3xl sm:mt-14 lg:mt-4">
