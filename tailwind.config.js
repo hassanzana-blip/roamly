@@ -14,6 +14,7 @@ module.exports = {
         skyline: "hsl(var(--skyline))",
         night: "hsl(var(--night))",
         coral: "hsl(var(--coral))",
+        like: "hsl(var(--like) / <alpha-value>)",
         sand: "hsl(var(--sand))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

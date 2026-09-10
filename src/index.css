@@ -71,6 +71,8 @@
     --skyline: 74 95% 24%;               /* readable lime-olive for text accents */
     --cream: 0 0% 100%;
     --coral: 4 72% 46%;
+    /* Hjerter og favoritter har egen farge – ikke feilrød, ikke brand-lime. */
+    --like: 348 82% 52%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5% 10%;
@@ -105,6 +107,7 @@
     --night: 240 6% 12%;
     --sand: 240 5% 16%;
     --skyline: 74 80% 62%;
+    --like: 348 90% 66%;
     --sidebar-background: 240 6% 9%;
     --sidebar-foreground: 0 0% 96%;
     --sidebar-accent: 240 5% 15%;
@@ -677,16 +680,8 @@
     animation: tab-pill-in 160ms var(--ease-out) both;
   }
   @media (prefers-reduced-motion: reduce) {
-    /* Bytte av tema i «Hvor vil du?»: kort innfelling, ingen sprett. */
-  .theme-swap {
-    animation: theme-swap 280ms var(--ease-out) both;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .theme-swap {
-      animation: none;
-    }
-  }
-  .tab-pill {
+    .theme-swap,
+    .tab-pill {
       animation: none;
     }
   }
@@ -849,6 +844,109 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (prefers-reduced-motion: reduce) {
   .palette-panel,
   .palette-scrim {
+    animation: none;
+  }
+}
+
+/* ─── Premium media-behandling ─────────────────────────────────────────────
+   Bilder skal aldri «slås på». De tones inn fra en dempet, litt forstørret
+   tilstand idet de er dekodet – samme ro som åpningen av en god redaksjonell
+   artikkel. Komponenten setter data-loaded når onLoad har fyret. */
+.img-reveal {
+  opacity: 0;
+  transform: scale(1.04);
+  transition:
+    opacity 0.9s var(--ease-out),
+    transform 1.4s var(--ease-out);
+  will-change: opacity, transform;
+}
+.img-reveal[data-loaded="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Kinematisk zoom på store medieflater: langsommere og roligere enn
+   img-zoom, ment for full-bleed-seksjoner og kategorikort. */
+@media (hover: hover) and (pointer: fine) {
+  .media-zoom .media-zoom-img {
+    transition: transform 1.2s var(--ease-out);
+  }
+  .media-zoom:hover .media-zoom-img {
+    transform: scale(1.06);
+  }
+}
+
+/* Frostet mørk chip oppå foto: tekst og små fakta leses uten at motivet
+   kvelves av et tungt slør. */
+.glass-dark {
+  background: hsl(240 10% 8% / 0.46);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  color: #fff;
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-dark {
+    background: hsl(240 10% 8% / 0.72);
+  }
+}
+
+/* Diskré glans som sveiper over premium-kort ved hover – én gang, rolig. */
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    hsl(0 0% 100% / 0.14) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card-shine:hover::after {
+    transform: translateX(120%);
+    transition: transform 1.1s var(--ease-out);
+  }
+}
+
+/* Dekorasjon som svever nesten umerkelig – aldri på elementer med tekst. */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+/* Myk overgang mellom lys side og mørk full-bleed-seksjon. */
+.veil-to-night {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background)) 0%,
+    hsl(var(--night)) 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .img-reveal {
+    transition: opacity 0.2s linear;
+    transform: none;
+  }
+  .media-zoom .media-zoom-img,
+  .media-zoom:hover .media-zoom-img {
+    transition: none;
+    transform: none;
+  }
+  .card-shine::after {
+    display: none;
+  }
+  .float-slow {
     animation: none;
   }
 }

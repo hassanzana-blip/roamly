@@ -108,6 +108,105 @@ export function searchHotels(place: string, checkin: string, checkout: string, g
   return out.sort((a, b) => a.totalPrice - b.totalPrice);
 }
 
+// ─── Cruisedata ─────────────────────────────────────────────────────────────
+
+export interface CruiseResult {
+  id: string;
+  line: string;        // cruiserederi
+  ship: string;
+  region: string;
+  departurePort: string;
+  nights: number;
+  cabinType: string;
+  image: string;
+  includes: string[];
+  departureDate: string; // ISO-dato, avledet fra søkemåned
+  pricePerPerson: number; // NOK, veiledende demopris
+  guests: number;
+  totalPrice: number;    // pricePerPerson * guests
+}
+
+interface CruiseRoute {
+  region: string;
+  port: string;
+  image: string;
+  nights: [number, number]; // min, maks
+  base: number;             // grunnpris per person
+}
+
+// Bilder ligger i public/photos (Unsplash-lisens, vannmerkefrie)
+const CRUISE_ROUTES: CruiseRoute[] = [
+  { region: "Norske fjorder", port: "Bergen", image: "/photos/cruise-fjord.jpg", nights: [6, 8], base: 8900 },
+  { region: "Middelhavet", port: "Barcelona", image: "/photos/cruise-sunset.jpg", nights: [7, 11], base: 7400 },
+  { region: "Karibien", port: "Miami", image: "/photos/cruise-caribbean.jpg", nights: [7, 10], base: 9900 },
+  { region: "Vestlige Middelhavet", port: "Roma (Civitavecchia)", image: "/photos/cruise-hero.jpg", nights: [7, 9], base: 8200 },
+  { region: "Adriaterhavet", port: "Venezia", image: "/photos/ocean-wave.jpg", nights: [5, 7], base: 6400 },
+];
+
+const CRUISE_LINES: { line: string; ships: string[] }[] = [
+  { line: "Norwegian Cruise Line", ships: ["Norwegian Prima", "Norwegian Viva", "Norwegian Escape"] },
+  { line: "MSC Cruises", ships: ["MSC Euribia", "MSC Seaview", "MSC Fantasia"] },
+  { line: "Royal Caribbean", ships: ["Wonder of the Seas", "Symphony of the Seas", "Odyssey of the Seas"] },
+  { line: "Costa Cruises", ships: ["Costa Smeralda", "Costa Toscana"] },
+  { line: "Hurtigruten", ships: ["MS Trollfjord", "MS Kong Harald"] },
+  { line: "Princess Cruises", ships: ["Sky Princess", "Enchanted Princess"] },
+];
+
+const CABIN_TYPES: { type: string; factor: number }[] = [
+  { type: "Innvendig lugar", factor: 1 },
+  { type: "Utvendig lugar", factor: 1.25 },
+  { type: "Balkonglugar", factor: 1.55 },
+  { type: "Suite", factor: 2.4 },
+];
+
+const CRUISE_INCLUDES = [
+  "Helpensjon om bord", "Underholdning hver kveld", "Barneklubb",
+  "Basseng og spa-avdeling", "Landutflukter kan bestilles",
+];
+
+/**
+ * Deterministisk cruisekatalog. Samme avreisedato + antall gjester gir
+ * alltid samme resultater. Priser er veiledende demopriser.
+ * `depart` er ønsket tidligste avreise (ISO-dato); seilingsdatoene
+ * spres deterministisk over de neste tre ukene.
+ */
+export function searchCruises(depart: string, guests: number): CruiseResult[] {
+  const g = Math.max(1, guests);
+  const baseMs = Date.parse(depart) || Date.now();
+  const key = depart.trim().toLowerCase();
+  const out: CruiseResult[] = [];
+  for (const route of CRUISE_ROUTES) {
+    const nLines = 1 + Math.floor(hash(key + route.region + "n") * 2); // 1–2 rederier per rute
+    for (let li = 0; li < nLines; li++) {
+      const seed = hash(`${key}:${route.region}:${li}`);
+      const lineEntry = CRUISE_LINES[Math.floor(seed * CRUISE_LINES.length)];
+      const ship = pick(lineEntry.ships, hash(key + route.region + li + "skip"));
+      const nights = route.nights[0] + Math.floor(hash(key + route.region + li + "nett") * (route.nights[1] - route.nights[0] + 1));
+      const cabin = pick(CABIN_TYPES, hash(key + route.region + li + "lug"));
+      const dayOffset = Math.floor(hash(key + route.region + li + "dato") * 21);
+      const departureDate = new Date(baseMs + dayOffset * 86_400_000).toISOString().slice(0, 10);
+      const pricePerPerson = Math.round((route.base * cabin.factor * (0.85 + seed * 0.4) * (nights / 7)) / 50) * 50;
+      const inc = [...CRUISE_INCLUDES].sort((a, b) => hash(key + li + a) - hash(key + li + b)).slice(0, 3);
+      out.push({
+        id: `cru_${hash(key + route.region + li + "id").toString(36).slice(2, 10)}`,
+        line: lineEntry.line,
+        ship,
+        region: route.region,
+        departurePort: route.port,
+        nights,
+        cabinType: cabin.type,
+        image: route.image,
+        includes: inc,
+        departureDate,
+        pricePerPerson,
+        guests: g,
+        totalPrice: pricePerPerson * g,
+      });
+    }
+  }
+  return out.sort((a, b) => a.totalPrice - b.totalPrice);
+}
+
 // ─── Bildata ────────────────────────────────────────────────────────────────
 
 const CAR_MODELS: Record<string, { models: string[]; seats: number; doors: number; bags: number; base: number }> = {

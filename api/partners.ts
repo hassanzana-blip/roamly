@@ -7,7 +7,7 @@ import { partnerRequests } from "../db/schema";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { logAudit } from "./lib/audit";
 import { sendOpsAlert } from "./lib/mailer";
-import { searchHotels, searchCars, type CarResult, type HotelResult } from "../contracts/stay";
+import { searchHotels, searchCars, searchCruises, type CarResult, type CruiseResult, type HotelResult } from "../contracts/stay";
 
 /**
  * Katalogen er demodata (OTA-160). Vi viser ALDRI fabrikkerte «rating»,
@@ -31,7 +31,11 @@ function stripCar(c: CarResult): Omit<CarResult, "freeCancellation"> & { note: s
   return { ...(rest as Omit<CarResult, "freeCancellation">), note: PARTNER_NOTE };
 }
 
-const PARTNER_TYPES = ["hotel", "car"] as const;
+function stripCruise(c: CruiseResult): CruiseResult & { note: string } {
+  return { ...c, note: PARTNER_NOTE };
+}
+
+const PARTNER_TYPES = ["hotel", "car", "cruise"] as const;
 const PARTNER_STATUSES = ["new", "in_progress", "done", "cancelled"] as const;
 
 const requestSchema = z.object({
@@ -93,6 +97,23 @@ export const partnersRouter = createRouter({
       };
     }),
 
+  searchCruises: publicQuery
+    .input(
+      z.object({
+        depart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        guests: z.number().int().min(1).max(8).default(2),
+      }),
+    )
+    .query(({ input, ctx }) => {
+      assertRateLimit("cruise-search", clientIp(ctx.req), 30, 60_000);
+      assertRateLimit("cruise-search-hourly", clientIp(ctx.req), 300, 60 * 60_000);
+      return {
+        demoMode: true,
+        note: PARTNER_NOTE,
+        results: searchCruises(input.depart, input.guests).map(stripCruise),
+      };
+    }),
+
   // ─── Offentlig forespørsel fra kundesiden ────────────────────────────────
 
   submitRequest: publicQuery.input(requestSchema).mutation(async ({ input, ctx }) => {
@@ -112,8 +133,12 @@ export const partnersRouter = createRouter({
       customerPhone: input.customerPhone ?? null,
       detailsJson: JSON.stringify(details),
     });
+    const alertTitle =
+      input.type === "hotel" ? "Ny hotellforespørsel"
+      : input.type === "cruise" ? "Ny cruiseforespørsel"
+      : "Ny forespørsel om leiebil";
     void sendOpsAlert(
-      input.type === "hotel" ? "Ny hotellforespørsel" : "Ny forespørsel om leiebil",
+      alertTitle,
       `Kunde: ${input.customerName}\nE-post: ${input.customerEmail}\nTelefon: ${input.customerPhone ?? "—"}\nPartner: ${input.partner ?? "valgfri"}\nDetaljer: ${JSON.stringify(details)}\n\nÅpne admin → Hotell og bil for å følge opp.`,
     );
     return { ok: true };

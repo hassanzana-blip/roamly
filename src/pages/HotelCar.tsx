@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
   BedDouble,
   Car,
   CheckCircle2,
   ChevronDown,
+  Ship,
   ShieldCheck,
   Clock,
   Sparkles,
@@ -26,12 +27,17 @@ const inputCls =
   "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary";
 const labelCls = "mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground";
 
-type Tab = "hotel" | "car";
+type Tab = "hotel" | "car" | "cruise";
+
+const CRUISE_REGIONS = ["Norske fjorder", "Middelhavet", "Karibien", "Adriaterhavet", "Vet ikke ennå – finn noe fint"];
+const CRUISE_LINES_LIST = ["Norwegian Cruise Line", "MSC Cruises", "Royal Caribbean", "Costa Cruises", "Hurtigruten", "Princess Cruises"];
+const CABIN_WISHES = ["Ingen preferanse", "Innvendig lugar", "Utvendig lugar", "Balkonglugar", "Suite"];
 
 export default function HotelCar() {
   usePageMeta(PAGE_META.hotelCar);
   const [params] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(params.get("fane") === "bil" ? "car" : "hotel");
+  const fane = params.get("fane");
+  const [tab, setTab] = useState<Tab>(fane === "bil" ? "car" : fane === "cruise" ? "cruise" : "hotel");
 
   // Kommer man fra forsidesøket, rulles man rett til skjemaet
   useEffect(() => {
@@ -53,14 +59,14 @@ export default function HotelCar() {
             Mer enn fly
           </p>
           <h1 className="mt-2 font-display text-4xl leading-[1.05] sm:text-5xl">
-            Hotell og leiebil, ordnet av oss
+            Hotell, cruise og leiebil, ordnet av oss
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             Fortell oss hvor du skal – vi sjekker pris og tilgjengelighet hos partnerne våre
             og kommer tilbake til deg med et konkret tilbud. {PARTNER_NOTE}.
           </p>
 
-          <div className="mt-8 grid gap-4 pb-10 sm:grid-cols-2">
+          <div className="mt-8 grid gap-4 pb-10 sm:grid-cols-2 lg:grid-cols-3">
             {(
               [
                 {
@@ -69,6 +75,13 @@ export default function HotelCar() {
                   icon: BedDouble,
                   title: "Hotell",
                   sub: "Håndplukkede hoteller over hele verden",
+                },
+                {
+                  key: "cruise" as Tab,
+                  img: "/photos/cruise-hero.jpg",
+                  icon: Ship,
+                  title: "Cruise",
+                  sub: "Karibien, Middelhavet og norske fjorder",
                 },
                 {
                   key: "car" as Tab,
@@ -113,6 +126,13 @@ export default function HotelCar() {
               </button>
             ))}
           </div>
+
+          <p className="pb-10 text-sm text-muted-foreground">
+            Vil du se veiledende priser med en gang?{" "}
+            <Link to={`/overnatting-bil?type=${tab === "car" ? "bil" : tab === "cruise" ? "cruise" : "hotell"}`} className="font-semibold text-foreground underline underline-offset-4">
+              Bla i katalogen først
+            </Link>
+          </p>
         </div>
       </section>
 
@@ -148,7 +168,7 @@ export default function HotelCar() {
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="rounded-lg border border-border bg-card p-5 shadow-sm sm:p-8">
-              {tab === "hotel" ? <HotelForm /> : <CarForm />}
+              {tab === "hotel" ? <HotelForm /> : tab === "cruise" ? <CruiseForm /> : <CarForm />}
             </div>
           </motion.div>
         </AnimatePresence>
@@ -334,6 +354,116 @@ function CarForm() {
         <label className="block">
           <span className={labelCls}>Førerens alder</span>
           <input required inputMode="numeric" className={cn(inputCls, "min-h-11")} value={f.driverAge} onChange={set("driverAge")} placeholder="30" />
+        </label>
+        <ContactFields f={f} set={set} />
+        <SubmitRow pending={submit.isPending} error={submit.error ? humanMessage(submit.error) : undefined} label="Send forespørsel" />
+      </form>
+    </div>
+  );
+}
+
+/* ── Cruiseskjema ─────────────────────────────────────────────────────────── */
+
+function CruiseForm() {
+  const submit = trpc.partners.submitRequest.useMutation();
+  const [params] = useSearchParams();
+  const [f, setF] = useState({
+    region: params.get("region") ?? CRUISE_REGIONS[0],
+    departureDate: params.get("fra") ?? "",
+    guests: params.get("antall") ?? "2",
+    cabinType: CABIN_WISHES[0],
+    wishes: "",
+    customerName: "", customerEmail: "", customerPhone: "", website: "",
+  });
+  const [line, setLine] = useState<string>("Beste pris");
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setF((p) => ({ ...p, [k]: e.target.value }));
+
+  if (submit.isSuccess) return <SuccessMessage what="cruiseforespørselen" />;
+
+  return (
+    <div>
+      <h2 className="font-display text-2xl sm:text-3xl">
+        <Ship className="mr-2 inline h-7 w-7 text-primary" aria-hidden="true" /> Be om cruisetilbud
+      </h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Karibien, Middelhavet eller norske fjorder – vi finner seilingen som passer, med pris fra rederiet.
+      </p>
+
+      <div className="mt-6 flex flex-wrap gap-2">
+        {[...CRUISE_LINES_LIST, "Beste pris"].map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setLine(p)}
+            aria-pressed={line === p}
+            className={cn(
+              "min-h-11 rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors",
+              line === p
+                ? "border-primary bg-primary text-white shadow-md shadow-primary/25"
+                : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
+            )}
+          >
+            {p === "Beste pris" ? "✦ Beste pris" : p}
+          </button>
+        ))}
+      </div>
+
+      <form
+        className="mt-6 grid gap-4 sm:grid-cols-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit.mutate({
+            type: "cruise",
+            partner: line === "Beste pris" ? undefined : line,
+            customerName: f.customerName,
+            customerEmail: f.customerEmail,
+            customerPhone: f.customerPhone || undefined,
+            website: f.website,
+            details: {
+              region: f.region,
+              departureDate: f.departureDate,
+              guests: f.guests,
+              cabinType: f.cabinType,
+              wishes: f.wishes,
+            },
+          });
+        }}
+      >
+        <label className="block sm:col-span-2">
+          <span className={labelCls}>Hvor vil du seile?</span>
+          <div className="relative">
+            <select className={cn(inputCls, "min-h-11 appearance-none")} value={f.region} onChange={set("region")}>
+              {CRUISE_REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          </div>
+        </label>
+        <label className="block">
+          <span className={labelCls}>Tidligste avreise</span>
+          <input required type="date" className={cn(inputCls, "min-h-11")} value={f.departureDate} onChange={set("departureDate")} />
+        </label>
+        <label className="block">
+          <span className={labelCls}>Gjester</span>
+          <div className="relative">
+            <select className={cn(inputCls, "min-h-11 appearance-none")} value={f.guests} onChange={set("guests")}>
+              {["1", "2", "3", "4", "5+"].map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          </div>
+        </label>
+        <label className="block">
+          <span className={labelCls}>Lugartype</span>
+          <div className="relative">
+            <select className={cn(inputCls, "min-h-11 appearance-none")} value={f.cabinType} onChange={set("cabinType")}>
+              {CABIN_WISHES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          </div>
+        </label>
+        <label className="block">
+          <span className={labelCls}>Ønsker (valgfritt)</span>
+          <input className={cn(inputCls, "min-h-11")} value={f.wishes} onChange={set("wishes")} placeholder="Bryllupsreise, familie, landutflukter …" />
         </label>
         <ContactFields f={f} set={set} />
         <SubmitRow pending={submit.isPending} error={submit.error ? humanMessage(submit.error) : undefined} label="Send forespørsel" />

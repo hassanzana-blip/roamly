@@ -798,8 +798,8 @@ export default function SearchResults() {
           )}
 
           {result && filtered.length > 0 && (
-            <div className="space-y-4" aria-live="polite">
-              <p className="text-sm text-muted-foreground">
+            <div className="space-y-3 sm:space-y-4" aria-live="polite">
+              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
                 <span className="font-semibold text-foreground">{t("sr.results", { count: filtered.length })}</span>
                 {activeFilters > 0 ? ` ${t("sr.results.of", { count: allOffers.length })}` : ""}
                 {" · "}

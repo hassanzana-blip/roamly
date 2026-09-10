@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
-import { Link } from "react-router";
-import { ArrowRight, ArrowUpRight, Clock3, Globe, Headphones, Receipt, ShieldCheck, TrendingDown } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { useRef, useState, type ImgHTMLAttributes, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router";
+import { ArrowRight, ArrowUpRight, BedDouble, CarFront, Clock3, Heart, Plane, Receipt, ShieldCheck, Ship, Tag, TrendingDown } from "lucide-react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import AppShell, { SectionHeader } from "@/components/app/AppShell";
 import BelowFold from "@/components/app/BelowFold";
 import { GreetingBar } from "@/components/app/TopBar";
@@ -36,14 +36,15 @@ import { cn } from "@/lib/utils";
  * spørsmålet – ikke rundt én region – og veksler mellom formater i stedet
  * for å stable like kortrader:
  *   1 foto + tittel + søket        «hvor skal du?»
- *   2 ditt (kun innlogget)         «jeg har allerede noe her»
- *   3 verden etter tema            én interaktiv seksjon, ikke elleve rader
- *   4 populære ruter, ekte priser  data, ikke bilder
- *   5 rutene vi kjenner best       hjemreisene som én historie, ikke merkevaren
- *   6 derfor HelloSky              tre fakta, ingen merker
- *   7 journalen                    det vi faktisk vet
- *   8 prisovervåking               «jeg vet hvor, men ikke når»
- * Hotell og leiebil er forespørsler, ikke søk, og bor i én linje under søket.
+ *   2 mer enn fly                  cruise, hotell og leiebil som kinematisk inngang
+ *   3 ditt (kun innlogget)         «jeg har allerede noe her»
+ *   4 verden etter tema            én interaktiv seksjon, ikke elleve rader
+ *   5 populære ruter, ekte priser  data, ikke bilder
+ *   6 cruise                       seilinger fra katalogen, veiledende priser
+ *   7 rutene vi kjenner best       hjemreisene som én historie, ikke merkevaren
+ *   8 derfor HelloSky              tre fakta, ingen merker
+ *   9 journalen                    det vi faktisk vet
+ *  10 prisovervåking               «jeg vet hvor, men ikke når»
  */
 
 function inDays(n: number) {
@@ -158,6 +159,342 @@ function Why({ glyph, title, body }: { glyph: ReactNode; title: string; body: st
   );
 }
 
+/** Rull-inn-avdekking: seksjoner tones opp og løftes idet de blir synlige. */
+function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 26 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-70px" }}
+      transition={{ duration: 0.7, delay, ease: [0.23, 1, 0.32, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Bilde som tones inn idet det er dekodet – aldri et tomt hvitt felt. */
+function RevealImage(props: ImgHTMLAttributes<HTMLImageElement>) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <img
+      {...props}
+      data-loaded={loaded || undefined}
+      onLoad={(e) => { setLoaded(true); props.onLoad?.(e); }}
+      className={cn("img-reveal", props.className)}
+    />
+  );
+}
+
+type Product = "fly" | "hotell" | "cruise" | "bil";
+
+/**
+ * Søkekortet: flysøket er uendret – fanene over bytter produkt. Hotell,
+ * cruise og leiebil har sine egne lette skjemaer som leder til katalogene
+ * på /overnatting-bil. Én overflate, fire måter å starte reisen på.
+ */
+function SearchCard() {
+  const t = useT();
+  const navigate = useNavigate();
+  const reduce = useReducedMotion();
+  const [product, setProduct] = useState<Product>("fly");
+  const [sted, setSted] = useState("");
+  const [fra, setFra] = useState(inDays(35));
+  const [til, setTil] = useState(inDays(42));
+  const [antall, setAntall] = useState("2");
+
+  const tabs: { id: Product; label: string; icon: typeof Plane }[] = [
+    { id: "fly", label: t("home.search.fly"), icon: Plane },
+    { id: "hotell", label: t("home.search.hotell"), icon: BedDouble },
+    { id: "cruise", label: t("home.search.cruise"), icon: Ship },
+    { id: "bil", label: t("home.search.bil"), icon: CarFront },
+  ];
+
+  const needsPlace = product === "hotell" || product === "bil";
+  const canGo = !needsPlace || sted.trim().length >= 2;
+  const go = () => {
+    if (!canGo) return;
+    const q = new URLSearchParams({ type: product, fra });
+    if (needsPlace) q.set("sted", sted.trim());
+    if (product !== "cruise") q.set("til", til);
+    if (product !== "bil") q.set("antall", antall);
+    navigate(`/overnatting-bil?${q.toString()}`);
+  };
+
+  const inputCls =
+    "min-h-12 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary";
+  const labelCls = "mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground";
+
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
+      className="surface-lift scroll-mt-24 p-4 sm:p-6 lg:p-7"
+    >
+      <div className="no-scrollbar -mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-0.5" role="tablist" aria-label={t("home.search.fly")}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={product === tab.id}
+            onClick={() => setProduct(tab.id)}
+            className={cn(
+              "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-semibold transition-colors",
+              product === tab.id ? "bg-night text-white" : "bg-muted text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon icon={tab.icon} size={16} /> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {product === "fly" ? (
+        <SearchWidget />
+      ) : (
+        <motion.div
+          key={product}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+        >
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {needsPlace && (
+              <label className="block">
+                <span className={labelCls}>{t("home.search.place")}</span>
+                <input
+                  value={sted}
+                  onChange={(e) => setSted(e.target.value)}
+                  placeholder={t("home.search.place.ph")}
+                  className={inputCls}
+                />
+              </label>
+            )}
+            <label className="block">
+              <span className={labelCls}>
+                {product === "hotell" ? t("home.search.checkin") : product === "cruise" ? t("home.search.depart") : t("home.search.pickup")}
+              </span>
+              <input type="date" value={fra} onChange={(e) => setFra(e.target.value)} className={inputCls} />
+            </label>
+            {product !== "cruise" && (
+              <label className="block">
+                <span className={labelCls}>{product === "hotell" ? t("home.search.checkout") : t("home.search.dropoff")}</span>
+                <input type="date" value={til} min={fra} onChange={(e) => setTil(e.target.value)} className={inputCls} />
+              </label>
+            )}
+            {product !== "bil" && (
+              <label className="block">
+                <span className={labelCls}>{t("home.search.guests")}</span>
+                <select value={antall} onChange={(e) => setAntall(e.target.value)} className={inputCls}>
+                  {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </label>
+            )}
+            <div className="flex items-end">
+              <Button
+                type="button"
+                size="lg"
+                disabled={!canGo}
+                onClick={go}
+                className="min-h-12 w-full rounded-xl text-sm font-bold"
+              >
+                {product === "hotell" ? t("home.search.go.hotell") : product === "cruise" ? t("home.search.go.cruise") : t("home.search.go.bil")}
+                <Icon icon={ArrowRight} size={16} />
+              </Button>
+            </div>
+          </div>
+          <p className="t-caption mt-3">{t("home.search.note")}</p>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * 2 · Mer enn fly: cruise, hotell og leiebil som tre kinematisk innganger.
+ * Én stor og to små – rutenettet veksler, kortene bæres av ekte fotografier.
+ * Ingen priser her: dette er innganger til katalogene, ikke tilbud.
+ */
+function MoreThanFlights() {
+  const t = useT();
+  const depart = inDays(35);
+  const back = inDays(42);
+  const cards = [
+    {
+      key: "cruise",
+      icon: Ship,
+      img: "/photos/cruise-hero.jpg",
+      to: `/overnatting-bil?type=cruise&fra=${depart}&antall=2`,
+      title: t("home.more.cruise.title"),
+      body: t("home.more.cruise.body"),
+      cta: t("home.more.cruise.cta"),
+    },
+    {
+      key: "hotel",
+      icon: BedDouble,
+      img: "/photos/hotel-villa.jpg",
+      to: `/overnatting-bil?type=hotell&sted=Barcelona&fra=${depart}&til=${back}&antall=2`,
+      title: t("home.more.hotel.title"),
+      body: t("home.more.hotel.body"),
+      cta: t("home.more.hotel.cta"),
+    },
+    {
+      key: "car",
+      icon: CarFront,
+      img: "/photos/car-roadtrip.jpg",
+      to: `/overnatting-bil?type=bil&sted=Oslo lufthavn&fra=${depart}&til=${back}`,
+      title: t("home.more.car.title"),
+      body: t("home.more.car.body"),
+      cta: t("home.more.car.cta"),
+    },
+  ];
+  return (
+    <section aria-labelledby="more-than-flights" className="container-x mt-16 sm:mt-24">
+      <Reveal>
+        <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{t("home.more.kicker")}</p>
+        <h2 id="more-than-flights" className="t-h1 mt-2 max-w-2xl">{t("home.more.title")}</h2>
+        <p className="t-lead mt-3 max-w-xl text-muted-foreground">{t("home.more.sub")}</p>
+      </Reveal>
+      <div className="mt-8 grid gap-4 sm:gap-5 lg:grid-cols-2">
+        {cards.map((c, i) => (
+          <Reveal key={c.key} delay={i * 0.09} className={i === 0 ? "lg:row-span-2" : undefined}>
+            <Link
+              to={c.to}
+              className={cn(
+                "media-zoom card-shine group relative block overflow-hidden rounded-2xl bg-night text-white shadow-lift outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                i === 0 ? "h-[420px] sm:h-[480px] lg:h-full lg:min-h-[560px]" : "h-[280px] sm:h-[300px] lg:h-[268px]",
+              )}
+            >
+              <RevealImage
+                src={c.img.replace(".jpg", "-640.jpg")}
+                srcSet={`${c.img.replace(".jpg", "-640.jpg")} 640w, ${c.img} 1024w`}
+                sizes={i === 0 ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1024px) 50vw, 100vw"}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="media-zoom-img absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="photo-wash absolute inset-0" aria-hidden="true" />
+              <div className="relative flex h-full flex-col justify-end p-6 sm:p-7">
+                <span className="glass-dark mb-auto inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]">
+                  <Icon icon={c.icon} size={14} /> {c.key === "cruise" ? "Cruise" : c.key === "hotel" ? "Hotell" : "Leiebil"}
+                </span>
+                <h3 className={cn("font-display text-white", i === 0 ? "text-3xl sm:text-4xl" : "text-2xl sm:text-[28px]")}>{c.title}</h3>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/85">{c.body}</p>
+                <span className="mt-4 inline-flex w-fit items-center gap-2 text-sm font-semibold text-white">
+                  <span className="border-b border-white/40 pb-0.5 transition-colors group-hover:border-white">{c.cta}</span>
+                  <span className="grid size-8 place-items-center rounded-full bg-white text-night transition-transform duration-300 ease-out group-hover:translate-x-1">
+                    <Icon icon={ArrowRight} size={16} />
+                  </span>
+                </span>
+              </div>
+            </Link>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * 6 · Cruise: seilinger fra demokatalogen, med veiledende priser og tydelig
+ * merking. Mørk full-bleed-seksjon – kontrasten mot de lyse listene rundt.
+ */
+function CruiseShowcase() {
+  const t = useT();
+  const depart = inDays(35);
+  const cruises = trpc.partners.searchCruises.useQuery(
+    { depart, guests: 2 },
+    { staleTime: 600_000, retry: false },
+  );
+  const top = cruises.data?.results.slice(0, 3) ?? [];
+  return (
+    <section aria-labelledby="cruise" className="relative isolate mt-20 overflow-hidden bg-night text-white sm:mt-28">
+      <RevealImage
+        src="/photos/cruise-sunset-640.jpg"
+        srcSet="/photos/cruise-sunset-640.jpg 640w, /photos/cruise-sunset.jpg 1024w"
+        sizes="100vw"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover opacity-45"
+      />
+      <div
+        className="absolute inset-0"
+        aria-hidden="true"
+        style={{ backgroundImage: "linear-gradient(to right, hsl(var(--night)) 20%, hsl(var(--night) / 0.72) 55%, hsl(var(--night) / 0.25) 100%)" }}
+      />
+      <div className="container-x relative py-16 sm:py-20">
+        <Reveal>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-mono-label text-[10px] uppercase tracking-[0.18em] text-white/70">{t("home.cruise.kicker")}</p>
+              <h2 id="cruise" className="t-h1 mt-2 max-w-xl text-white">{t("home.cruise.title")}</h2>
+              <p className="t-lead mt-3 max-w-lg text-white/80">{t("home.cruise.sub")}</p>
+            </div>
+            <Link
+              to={`/overnatting-bil?type=cruise&fra=${depart}&antall=2`}
+              className="press inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition-transform hover:scale-[1.02]"
+            >
+              {t("home.cruise.cta")} <Icon icon={ArrowRight} size={16} />
+            </Link>
+          </div>
+        </Reveal>
+
+        <div className="no-scrollbar snap-row -mx-5 mt-9 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0">
+          {cruises.isLoading &&
+            [0, 1, 2].map((i) => (
+              <div key={i} className="shimmer h-[360px] w-[300px] shrink-0 rounded-2xl lg:w-auto" aria-hidden="true" />
+            ))}
+          {top.map((c, i) => (
+            <Reveal key={c.id} delay={i * 0.09} className="w-[300px] shrink-0 lg:w-auto">
+              <Link
+                to={`/overnatting-bil?type=cruise&fra=${depart}&antall=2`}
+                className="media-zoom group block overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06] backdrop-blur-sm transition-colors hover:border-white/25"
+              >
+                <div className="relative h-44 overflow-hidden">
+                  <RevealImage
+                    src={c.image.replace(".jpg", "-640.jpg")}
+                    srcSet={`${c.image.replace(".jpg", "-640.jpg")} 640w, ${c.image} 1024w`}
+                    sizes="(min-width: 1024px) 33vw, 300px"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="media-zoom-img h-full w-full object-cover"
+                  />
+                  <span className="glass-dark absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold">
+                    {c.nights} {t("home.cruise.nights")}
+                  </span>
+                </div>
+                <div className="p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/60">{c.line}</p>
+                  <h3 className="mt-1 text-lg font-semibold leading-snug text-white">{c.ship}</h3>
+                  <p className="mt-1 text-[13px] text-white/70">
+                    {c.region} · {t("home.cruise.fromport")} {c.departurePort} · {formatDateShort(c.departureDate)}
+                  </p>
+                  <div className="mt-4 flex items-baseline justify-between border-t border-white/12 pt-4">
+                    <span>
+                      <span className="t-num block text-xl font-bold text-white">{formatMinor(c.pricePerPerson * 100, "NOK")}</span>
+                      <span className="text-[11px] text-white/60">{t("home.cruise.perperson")}</span>
+                    </span>
+                    <span className="grid size-9 place-items-center rounded-full border border-white/25 text-white transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary">
+                      <Icon icon={ArrowUpRight} size={16} />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+        <p className="mt-4 text-[12px] text-white/55">{t("home.cruise.note")}</p>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   usePageMeta(PAGE_META.home);
   const t = useT();
@@ -172,99 +509,104 @@ export default function Home() {
   const h1a = t("home.h1a");
   const h1b = t("home.h1b");
 
+  // Parallakse: fotografinen beveger seg roligere enn innholdet, så siden
+  // får dybde. Ken Burns kjører på selve bildet, parallaksen på wrapperen.
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "12%"]);
+
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell bleed>
-        {/* 1 · Åpningen: ett ekte foto, én setning, søket over fotokanten. */}
-        <section className="relative isolate overflow-hidden bg-night text-white">
-          <img
-            src="/photos/hero-wing-1280.jpg"
-            srcSet="/photos/hero-wing-800.jpg 800w, /photos/hero-wing-1280.jpg 1280w, /photos/hero-wing.jpg 2400w"
-            sizes="100vw"
-            alt={t("home.hero.photo")}
-            width={2400}
-            height={1603}
-            fetchPriority="high"
-            decoding="async"
-            className={cn("absolute inset-0 h-full w-full object-cover object-[62%_45%]", !reduce && "ken-burns")}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-night/60 via-night/20 to-night/75" aria-hidden="true" />
-          <div className="absolute inset-0 bg-gradient-to-r from-night/50 via-night/10 to-transparent" aria-hidden="true" />
-          <div className="container-x relative flex min-h-[560px] flex-col sm:min-h-[600px] lg:min-h-[680px] lg:pt-16">
+        {/* 1 · Åpningen: ett ekte foto, én setning – og søket med alle fire
+            produkter inne i selve bildet, som hos de store. */}
+        <section ref={heroRef} className="relative isolate overflow-hidden bg-night text-white">
+          <motion.div style={reduce ? undefined : { y: heroY }} className="absolute inset-0 scale-[1.15]">
+            <picture>
+              {/* Portrettvariant på telefon: vertikalt foto, vertikal hero.
+                  Desktop (lg og opp) bruker landskapsvarianten. */}
+              <source media="(max-width: 1023px)" srcSet="/photos/hero-bay-mobile-480.jpg 480w, /photos/hero-bay-mobile-800.jpg 800w, /photos/hero-bay-mobile.jpg 941w" sizes="100vw" />
+              <img
+                src="/photos/hero-bay-1280.jpg"
+                srcSet="/photos/hero-bay-800.jpg 800w, /photos/hero-bay-1280.jpg 1280w, /photos/hero-bay.jpg 1672w"
+                sizes="100vw"
+                alt={t("home.hero.photo")}
+                width={1672}
+                height={941}
+                fetchPriority="high"
+                decoding="async"
+                className={cn("h-full w-full object-cover object-[center_62%]", !reduce && "ken-burns")}
+              />
+            </picture>
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-b from-night/55 via-night/10 to-night/70" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-r from-night/45 via-night/10 to-transparent" aria-hidden="true" />
+          <div className="container-x relative flex flex-col pb-8 pt-4 sm:pb-12 lg:min-h-[min(940px,100svh)] lg:justify-center lg:py-14">
             <div className="lg:hidden"><GreetingBar tone="dark" /></div>
-            <div className="mt-auto pb-28 sm:pb-36 lg:pb-44">
-              <h1 className="t-display max-w-4xl">
+            <div className="mt-8 max-w-3xl sm:mt-14 lg:mt-4">
+              <h1 className="t-display [text-shadow:0_2px_28px_rgb(0_0_0/0.4)]">
                 <Words text={h1a} />
-                <span className="t-em block text-white/95"><Words text={h1b} from={h1a.split(" ").length} /></span>
+                <span className="t-em block text-primary"><Words text={h1b} from={h1a.split(" ").length} /></span>
               </h1>
               <p className="fade-up fade-up-4 t-lead mt-5 max-w-xl text-white/85">{t("home.sub2")}</p>
+            </div>
+
+            {/* Søkekortet: fire produkter i én flate – fly, hotell, cruise, bil. */}
+            <div className="mt-8 max-w-5xl sm:mt-10">
+              <SearchCard />
+              {/* Tre løfter under kortet. Kun på større skjermer – på mobil
+                  skal veien til resultatet være kort. */}
+              <ul className="mt-6 hidden gap-6 sm:grid sm:grid-cols-3">
+                {([
+                  { icon: Tag, title: t("home.hero.trust.1.title"), body: t("home.hero.trust.1.body") },
+                  { icon: ShieldCheck, title: t("home.hero.trust.2.title"), body: t("home.hero.trust.2.body") },
+                  { icon: Heart, title: t("home.hero.trust.3.title"), body: t("home.hero.trust.3.body") },
+                ]).map((item) => (
+                  <li key={item.title} className="flex items-center gap-3">
+                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 backdrop-blur-sm">
+                      <Icon icon={item.icon} size={16} className="text-white" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-bold text-white">{item.title}</span>
+                      <span className="block text-[13px] text-white/70">{item.body}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
 
-        {/* Søkekortet: løftet, ikke rammet. Ligger over fotokanten. Bare fly: hotell og bil er forespørsler. */}
-        <div className="container-x relative z-10 -mt-20 sm:-mt-28 lg:-mt-32">
-          <motion.div
-            initial={reduce ? false : { opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
-            className="surface-lift scroll-mt-24 p-4 sm:p-6 lg:p-7"
-          >
-            <SearchWidget />
-          </motion.div>
-          {/*
-            Tre løfter, ikke én linje med liten skrift.
-            Det man vil vite rett etter søkefeltet er om prisen holder, om noen
-            svarer hvis det går galt, og om siden hjelper med annet enn å være
-            billigst. Alle tre er ting vi faktisk gjør – ingen påstand her er
-            uten dekning i produktet.
-          */}
-          <ul className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-3 sm:gap-6">
-            {[
-              { icon: ShieldCheck, title: t("home.assure.total"), sub: t("home.assure.total.sub") },
-              { icon: Headphones, title: t("home.assure.help"), sub: t("home.assure.help.sub") },
-              { icon: Globe, title: t("home.assure.fit"), sub: t("home.assure.fit.sub") },
-            ].map((a) => (
-              <li key={a.title} className="flex items-start gap-3">
-                <Icon icon={a.icon} size={20} className="mt-0.5 shrink-0 text-foreground" />
-                <span className="min-w-0">
-                  <span className="block text-[14px] font-semibold leading-snug text-foreground">{a.title}</span>
-                  <span className="t-caption mt-0.5 block leading-snug">{a.sub}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        {/* Under heroen: stille. Bare det praktiske – betalingsmerknaden og
+            kundens egne siste søk. */}
+        <div className="container-x relative z-10 mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
             {/* Betalingspåstanden vises bare når Stripe faktisk er satt opp. */}
             <p className="t-caption">{status.data?.paymentsConfigured ? t("home.trust") : t("home.trust.nopay")}</p>
-            <p className="t-caption">
-              {t("home.hotelcar")}{" "}
-              <Link to="/hotell-bil" className="font-semibold text-foreground underline underline-offset-4">{t("home.hotelcar.cta")}</Link>
-            </p>
-          </div>
-          {recent.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Icon icon={Clock3} size={16} /> {t("home.recent")}:</span>
-              {recent.slice(0, 3).map((s) => (
-                <Link key={`${s.from}-${s.to}-${s.depart}`} to={recentSearchHref(s)} className="press inline-flex min-h-11 items-center rounded-lg border border-border bg-card px-3 text-sm font-medium transition-colors hover:border-foreground/30 sm:min-h-9">{s.fromLabel} → {s.toLabel}</Link>
-              ))}
-            </div>
-          )}
+            {recent.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Icon icon={Clock3} size={16} /> {t("home.recent")}:</span>
+                {recent.slice(0, 3).map((s) => (
+                  <Link key={`${s.from}-${s.to}-${s.depart}`} to={recentSearchHref(s)} className="press inline-flex min-h-9 items-center rounded-full border border-border bg-card px-3 text-[13px] font-medium transition-colors hover:border-foreground/30">{s.fromLabel} → {s.toLabel}</Link>
+                ))}
+              </div>
+            )}
         </div>
 
-        {/* 2 · Ditt: kun innlogget, kun med data. */}
+        {/* 2 · Mer enn fly: cruise, hotell og leiebil med egne kataloger. */}
+        <MoreThanFlights />
+
+        {/* 3 · Ditt: kun innlogget, kun med data. */}
         {customer && <PersonalStrip />}
         {customer && <ForYou />}
 
         {/* Alt under folden gjengis når hovedtråden er ledig. Første
             skjermbilde skal ikke vente på seks prisoppslag, fire fotokort og
             tre artikler – ingenting av det er synlig ennå. */}
-        {/* 3 · Verden etter tema: sidens ene interaktive oppdagelse. */}
-        <BelowFold minHeight={3200}>
+        {/* 4 · Verden etter tema: sidens ene interaktive oppdagelse. */}
+        <BelowFold minHeight={3900}>
           <WorldDiscovery />
 
-          {/* 4 · Populære ruter: ren data. Flagg, rute, ekte fra-pris.
+          {/* 5 · Populære ruter: ren data. Flagg, rute, ekte fra-pris.
                  Ingen fotokort her – seksjonen over er allerede bilder. */}
           <section aria-labelledby="routes" className="container-x mt-20 sm:mt-28">
             <h2 id="routes" className="t-h1 max-w-2xl">{t("home.routes.title")}</h2>
@@ -275,7 +617,10 @@ export default function Home() {
             <p className="t-caption mt-3 max-w-xl">{t("home.routes.note")}</p>
           </section>
 
-          {/* 5 · Rutene vi kjenner best: hjemreisene som én historie, i full
+          {/* 6 · Cruise: seilinger fra katalogen, veiledende priser, mørk flate. */}
+          <CruiseShowcase />
+
+          {/* 7 · Rutene vi kjenner best: hjemreisene som én historie, i full
                  bredde. Ikke merkevaren, men det vi faktisk kan bedre enn andre. */}
           <section aria-labelledby="homecoming" className="relative isolate mt-20 overflow-hidden bg-night text-white sm:mt-28">
             <img
@@ -317,7 +662,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* 6 · Derfor HelloSky: tre fakta, ingen merker, ingen tall vi ikke har. */}
+          {/* 8 · Derfor HelloSky: tre fakta, ingen merker, ingen tall vi ikke har. */}
           <section aria-labelledby="why" className="container-x mt-20 sm:mt-28">
             <h2 id="why" className="t-h1 max-w-2xl">{t("home.why.title")}</h2>
             <div className="mt-8 grid gap-6 border-t border-border pt-8 md:grid-cols-3 md:gap-10 md:pt-10">
@@ -337,7 +682,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* 6 · Journalen: tre artikler, håndplukket. */}
+          {/* 9 · Journalen: tre artikler, håndplukket. */}
           <section className="container-x mt-20 sm:mt-28">
             <SectionHeader title={t("home.journal")} action={<SeeAll to="/journal" label={t("home.journal.all")} />} />
             <div className="no-scrollbar snap-row -mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0">
@@ -345,7 +690,7 @@ export default function Home() {
             </div>
           </section>
 
-          {/* 7 · Prisovervåking: lys flate, mørk handling. */}
+          {/* 10 · Prisovervåking: lys flate, mørk handling. */}
           <section className="container-x mt-20 sm:mt-28">
             <div className="surface grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-10">
               <div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BedDouble, Car, Phone, Mail, ArrowRight, CheckCircle2, CircleSlash } from "lucide-react";
+import { BedDouble, Car, Ship, Phone, Mail, ArrowRight, CheckCircle2, CircleSlash } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import { cn } from "@/lib/utils";
 import { Btn, Card, EmptyState, ErrorState, LoadingRows, PageHeader, Pill } from "./ui";
@@ -15,6 +15,7 @@ const STATUS = {
 const TYPE = {
   hotel: { label: "Hotell", icon: BedDouble },
   car: { label: "Leiebil", icon: Car },
+  cruise: { label: "Cruise", icon: Ship },
 };
 
 const DETAIL_LABELS: Record<string, string> = {
@@ -28,6 +29,13 @@ const DETAIL_LABELS: Record<string, string> = {
   returnDate: "Returdato",
   carClass: "Bilklasse",
   driverAge: "Førerens alder",
+  region: "Region",
+  ship: "Skip",
+  line: "Rederi",
+  departurePort: "Avgangshavn",
+  departureDate: "Avreise",
+  nights: "Netter",
+  cabinType: "Lugartype",
 };
 
 export function AdminPartners() {
@@ -43,7 +51,7 @@ export function AdminPartners() {
   return (
     <div>
       <PageHeader
-        title="Hotell og leiebil"
+        title="Hotell, cruise og leiebil"
         description="Forespørsler fra kundesiden – book hos partner og svar kunden."
       />
 
@@ -130,7 +138,9 @@ export function AdminPartners() {
                 )}
                 <a
                   href={`mailto:${r.customerEmail}?subject=${encodeURIComponent(
-                    r.type === "hotel" ? "Hotellforespørselen din – HelloSky" : "Leiebilforespørselen din – HelloSky",
+                    r.type === "hotel" ? "Hotellforespørselen din – HelloSky"
+                      : r.type === "cruise" ? "Cruiseforespørselen din – HelloSky"
+                      : "Leiebilforespørselen din – HelloSky",
                   )}`}
                   className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-border px-3.5 py-2 text-xs font-semibold text-foreground hover:border-foreground/40"
                 >

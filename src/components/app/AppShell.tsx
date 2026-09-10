@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useLocation } from "react-router";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -28,13 +29,17 @@ export function SkipLink({ className }: { className?: string }) {
 
 /** `bleed`: the page manages its own containers (full-width photo sections). */
 export default function AppShell({ children, className, bleed = false }: { children: ReactNode; className?: string; bleed?: boolean }) {
+  // Forsidens hero går helt til toppen, og headeren flyter over bildet.
+  // Alle andre sider trenger 64px avstand under den faste headeren.
+  const { pathname } = useLocation();
+  const underHero = pathname === "/";
   return (
     <>
       <SkipLink />
       {/* Desktop (≥ lg): full site header. Phone/tablet: app top bar + bottom nav. */}
       <div className="hidden lg:block">
         <SiteHeader />
-        <div className="h-16" aria-hidden="true" />
+        <div className={underHero ? undefined : "h-16"} aria-hidden="true" />
       </div>
       {/* Sideinngangen er ren CSS. Den lå før i motion, og dro dermed
           animasjonsbiblioteket inn i basischunken på hver eneste side – for et

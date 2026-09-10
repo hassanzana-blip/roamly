@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowUpDown,
   BedDouble,
+  CalendarDays,
   Car,
   ChevronDown,
   CircleCheck,
@@ -13,6 +14,7 @@ import {
   Luggage,
   MapPin,
   Moon,
+  Ship,
   Star,
   Users,
   X,
@@ -31,6 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 
 type HotelItem = RouterOutputs["partners"]["searchHotels"]["results"][number];
 type CarItem = RouterOutputs["partners"]["searchCars"]["results"][number];
+type CruiseItem = RouterOutputs["partners"]["searchCruises"]["results"][number];
 
 const inputCls =
   "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary";
@@ -60,7 +63,7 @@ function BookDialog({
   details,
   onClose,
 }: {
-  kind: "hotel" | "car";
+  kind: "hotel" | "car" | "cruise";
   summary: string;
   details: Record<string, string | number>;
   onClose: () => void;
@@ -238,12 +241,74 @@ function CarCard({ c, onBook }: { c: CarItem; onBook: () => void }) {
   );
 }
 
+/* ─── Cruisekort ──────────────────────────────────────────────────────────── */
+
+function CruiseCard({ c, onBook }: { c: CruiseItem; onBook: () => void }) {
+  return (
+    <article className="card-lift media-zoom overflow-hidden rounded-xl border border-border bg-card">
+      <div className="relative h-44 overflow-hidden sm:h-52">
+        <img
+          src={c.image.replace(".jpg", "-640.jpg")}
+          srcSet={`${c.image.replace(".jpg", "-640.jpg")} 640w, ${c.image} 1024w`}
+          sizes="(min-width: 896px) 830px, 100vw"
+          alt=""
+          loading="lazy"
+          className="media-zoom-img h-full w-full object-cover"
+        />
+        <div className="photo-wash absolute inset-0" aria-hidden="true" />
+        <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/80">{c.line}</p>
+            <h3 className="font-display text-xl text-white sm:text-2xl">{c.ship}</h3>
+          </div>
+          <span className="glass-dark shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold">
+            {c.nights} netter
+          </span>
+        </div>
+      </div>
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-muted-foreground">
+          <span className="flex items-center gap-1"><Icon icon={MapPin} size={16} /> {c.region}</span>
+          <span className="flex items-center gap-1"><Icon icon={Ship} size={16} /> Fra {c.departurePort}</span>
+          <span className="flex items-center gap-1"><Icon icon={CalendarDays} size={16} /> {fmtDate(c.departureDate)}</span>
+          <span className="flex items-center gap-1"><Icon icon={BedDouble} size={16} /> {c.cabinType}</span>
+        </div>
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {c.includes.map((i) => (
+            <span key={i} className="rounded-md bg-muted px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+              {i}
+            </span>
+          ))}
+        </div>
+        <p className="mt-2 text-[12px] text-muted-foreground">{c.note}</p>
+        <div className="mt-3 flex items-end justify-between gap-3 border-t border-border pt-3">
+          <div>
+            <p className="text-[11px] text-muted-foreground">
+              {formatPrice(c.pricePerPerson)} per person · {c.guests} {c.guests === 1 ? "gjest" : "gjester"}
+            </p>
+            <p className="mt-0.5 text-[22px] font-semibold leading-none">{formatPrice(c.totalPrice)}</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">veiledende for seilingen</p>
+          </div>
+          <button
+            type="button"
+            onClick={onBook}
+            className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:opacity-90 active:scale-[0.98]"
+          >
+            Be om tilbud
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 /* ─── Siden ───────────────────────────────────────────────────────────────── */
 
 export default function StayResults() {
   usePageMeta(PAGE_META.stayResults);
   const [params, setParams] = useSearchParams();
-  const type = params.get("type") === "bil" ? "bil" : "hotell";
+  const rawType = params.get("type");
+  const type = rawType === "bil" ? "bil" : rawType === "cruise" ? "cruise" : "hotell";
   const place = params.get("sted") ?? "";
   const from = params.get("fra") ?? "";
   const to = params.get("til") ?? "";
@@ -258,6 +323,10 @@ export default function StayResults() {
   const cars = trpc.partners.searchCars.useQuery(
     { place, pickupDate: from, returnDate: to },
     { enabled: type === "bil" && place.length >= 2 && Boolean(from && to), retry: 1 },
+  );
+  const cruises = trpc.partners.searchCruises.useQuery(
+    { depart: from, guests: count },
+    { enabled: type === "cruise" && Boolean(from), retry: 1 },
   );
 
   const hotelList = useMemo(() => {
@@ -274,9 +343,16 @@ export default function StayResults() {
     return list;
   }, [cars.data, sort]);
 
-  const loading = type === "hotell" ? hotels.isLoading : cars.isLoading;
-  const error = type === "hotell" ? hotels.error : cars.error;
-  const valid = place.length >= 2 && from && to;
+  const cruiseList = useMemo(() => {
+    const list = [...(cruises.data?.results ?? [])];
+    if (sort === "class") list.sort((a, b) => b.nights - a.nights || a.totalPrice - b.totalPrice);
+    else list.sort((a, b) => a.totalPrice - b.totalPrice);
+    return list;
+  }, [cruises.data, sort]);
+
+  const loading = type === "hotell" ? hotels.isLoading : type === "cruise" ? cruises.isLoading : cars.isLoading;
+  const error = type === "hotell" ? hotels.error : type === "cruise" ? cruises.error : cars.error;
+  const valid = type === "cruise" ? Boolean(from) : place.length >= 2 && from && to;
 
   const updateQuery = (patch: Record<string, string>) => {
     const next = new URLSearchParams(params);
@@ -292,17 +368,50 @@ export default function StayResults() {
           <Icon icon={ArrowLeft} size={16} /> Tilbake til forsiden
         </Link>
 
+        {/* Type-faner: hotell, leiebil og cruise deler samme side. */}
+        <div className="mb-5 flex gap-2" role="tablist" aria-label="Katalog">
+          {(
+            [
+              { id: "hotell", label: "Hotell", icon: BedDouble },
+              { id: "bil", label: "Leiebil", icon: Car },
+              { id: "cruise", label: "Cruise", icon: Ship },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={type === tab.id}
+              onClick={() => updateQuery({ type: tab.id })}
+              className={cn(
+                "inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[13px] font-semibold transition-colors",
+                type === tab.id ? "bg-night text-white" : "bg-muted text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon icon={tab.icon} size={16} /> {tab.label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-display text-3xl sm:text-4xl">
             {type === "hotell" ? (
               <>Hoteller i <span className="hl">{place}</span></>
+            ) : type === "cruise" ? (
+              <><span className="hl">Cruise</span> til havs</>
             ) : (
               <>Leiebil i <span className="hl">{place}</span></>
             )}
           </h1>
           <p className="text-[13px] text-muted-foreground">
-            {fmtDate(from)} – {fmtDate(to)}
-            {type === "hotell" ? ` · ${count} ${count === 1 ? "gjest" : "gjester"}` : ""}
+            {type === "cruise" ? (
+              <>Tidligst {fmtDate(from)} · {count} {count === 1 ? "gjest" : "gjester"}</>
+            ) : (
+              <>
+                {fmtDate(from)} – {fmtDate(to)}
+                {type === "hotell" ? ` · ${count} ${count === 1 ? "gjest" : "gjester"}` : ""}
+              </>
+            )}
           </p>
         </div>
 
@@ -313,19 +422,23 @@ export default function StayResults() {
             <Icon icon={ChevronDown} size={16} className="text-muted-foreground" />
           </summary>
           <div className="grid gap-3 border-t border-border p-4 sm:grid-cols-2 lg:grid-cols-4">
+            {type !== "cruise" && (
+              <label>
+                <span className={labelCls}>Sted</span>
+                <input value={place} onChange={(e) => updateQuery({ sted: e.target.value })} className={inputCls} />
+              </label>
+            )}
             <label>
-              <span className={labelCls}>Sted</span>
-              <input value={place} onChange={(e) => updateQuery({ sted: e.target.value })} className={inputCls} />
-            </label>
-            <label>
-              <span className={labelCls}>{type === "hotell" ? "Innsjekk" : "Hentes"}</span>
+              <span className={labelCls}>{type === "hotell" ? "Innsjekk" : type === "cruise" ? "Tidligste avreise" : "Hentes"}</span>
               <input type="date" value={from} onChange={(e) => updateQuery({ fra: e.target.value })} className={inputCls} />
             </label>
-            <label>
-              <span className={labelCls}>{type === "hotell" ? "Utsjekk" : "Leveres"}</span>
-              <input type="date" value={to} min={from} onChange={(e) => updateQuery({ til: e.target.value })} className={inputCls} />
-            </label>
-            {type === "hotell" && (
+            {type !== "cruise" && (
+              <label>
+                <span className={labelCls}>{type === "hotell" ? "Utsjekk" : "Leveres"}</span>
+                <input type="date" value={to} min={from} onChange={(e) => updateQuery({ til: e.target.value })} className={inputCls} />
+              </label>
+            )}
+            {type !== "bil" && (
               <label>
                 <span className={labelCls}>Gjester</span>
                 <select value={count} onChange={(e) => updateQuery({ antall: e.target.value })} className={inputCls}>
@@ -339,12 +452,15 @@ export default function StayResults() {
         {/* Sortering */}
         <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-muted/50 px-4 py-3 text-[13px] leading-relaxed">
           <Icon icon={Info} size={16} className="mt-0.5 shrink-0" />
-          {PARTNER_NOTE}. Prisene er veiledende{(hotels.data?.demoMode || cars.data?.demoMode) ? " (demodata)" : ""}.
+          {PARTNER_NOTE}. Prisene er veiledende{(hotels.data?.demoMode || cars.data?.demoMode || cruises.data?.demoMode) ? " (demodata)" : ""}.
         </p>
 
         <div className="mt-5 flex items-center gap-2" role="radiogroup" aria-label="Sortering">
           <Icon icon={ArrowUpDown} size={16} className="text-muted-foreground" />
-          {SORTS.map((s) => (
+          {(type === "cruise"
+            ? [{ id: "price" as Sort, label: "Billigst først" }, { id: "class" as Sort, label: "Lengst seiling" }]
+            : SORTS
+          ).map((s) => (
             <button
               key={s.id}
               type="button"
@@ -365,7 +481,9 @@ export default function StayResults() {
         <div className="mt-5 space-y-4">
           {!valid && (
             <p className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              Fyll inn sted og datoer for å se {type === "hotell" ? "hoteller" : "biler"}.
+              {type === "cruise"
+                ? "Velg tidligste avreise for å se seilinger."
+                : `Fyll inn sted og datoer for å se ${type === "hotell" ? "hoteller" : "biler"}.`}
             </p>
           )}
           {loading && (
@@ -411,6 +529,31 @@ export default function StayResults() {
             </div>
           )}
 
+          {type === "cruise" && cruiseList.map((c) => (
+            <CruiseCard
+              key={c.id}
+              c={c}
+              onBook={() =>
+                setBooking({
+                  summary: `${c.ship} (${c.line}) · ${c.region} · avreise ${fmtDate(c.departureDate)} fra ${c.departurePort} · ${c.nights} netter · ${c.cabinType} · ${formatPrice(c.totalPrice)} totalt for ${c.guests}`,
+                  details: {
+                    tilbud: `${c.ship} – ${c.region}`,
+                    line: c.line,
+                    ship: c.ship,
+                    region: c.region,
+                    departurePort: c.departurePort,
+                    departureDate: c.departureDate,
+                    nights: c.nights,
+                    cabinType: c.cabinType,
+                    gjester: c.guests,
+                    total: c.totalPrice,
+                    valuta: "NOK",
+                  },
+                })
+              }
+            />
+          ))}
+
           {valid && !loading && !error && type === "hotell" && hotelList.length === 0 && (
             <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
               <NoHotelsSpot />
@@ -420,7 +563,7 @@ export default function StayResults() {
         </div>
 
         <p className="mt-6 flex items-start gap-2 text-[12px] leading-relaxed text-muted-foreground">
-          <Icon icon={type === "hotell" ? BedDouble : Moon} size={16} className="mt-0.5 shrink-0" />
+          <Icon icon={type === "hotell" ? BedDouble : type === "cruise" ? Ship : Moon} size={16} className="mt-0.5 shrink-0" />
           Prisene er veiledende. Du betaler ingenting nå – vi bekrefter pris og vilkår hos partneren og
           sender deg et tilbud du kan takke ja eller nei til.
         </p>
@@ -429,7 +572,7 @@ export default function StayResults() {
 
       {booking && (
         <BookDialog
-          kind={type === "hotell" ? "hotel" : "car"}
+          kind={type === "hotell" ? "hotel" : type === "cruise" ? "cruise" : "car"}
           summary={booking.summary}
           details={booking.details}
           onClose={() => setBooking(null)}

@@ -30,10 +30,10 @@ export function SliceViz({ slice, tone = "light" }: { slice: OfferSlice; tone?: 
   const dark = tone === "dark";
   const muted = dark ? "text-white/65" : "text-muted-foreground";
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-14 shrink-0 text-right sm:w-16">
-        <p className="t-num text-xl font-semibold leading-none sm:text-[22px]">{formatClock(slice.departingAt)}</p>
-        <p className={cn("t-code mt-1", muted)}>{slice.origin.iata}</p>
+    <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="w-12 shrink-0 text-right sm:w-16">
+        <p className="t-num text-lg font-semibold leading-none sm:text-[22px]">{formatClock(slice.departingAt)}</p>
+        <p className={cn("t-code mt-0.5 sm:mt-1", muted)}>{slice.origin.iata}</p>
       </div>
       <div className="relative min-w-0 flex-1 px-1">
         <div className="flex items-center">
@@ -50,7 +50,7 @@ export function SliceViz({ slice, tone = "light" }: { slice: OfferSlice; tone?: 
           </span>
           <span className="size-1.5 rounded-full bg-primary" />
         </div>
-        <p className={cn("mt-1.5 truncate text-center text-xs", muted)}>
+        <p className={cn("mt-1 truncate text-center text-[11px] sm:mt-1.5 sm:text-xs", muted)}>
           {formatDuration(slice.durationMinutes)}
           {" · "}
           {slice.stops === 0 ? (
@@ -63,8 +63,8 @@ export function SliceViz({ slice, tone = "light" }: { slice: OfferSlice; tone?: 
           )}
         </p>
       </div>
-      <div className="w-14 shrink-0 sm:w-16">
-        <p className="t-num text-xl font-semibold leading-none sm:text-[22px]">
+      <div className="w-12 shrink-0 sm:w-16">
+        <p className="t-num text-lg font-semibold leading-none sm:text-[22px]">
           {formatClock(slice.arrivingAt)}
           {dayShift > 0 && (
             <sup className={cn("ml-0.5 text-[10px] font-semibold", muted)} aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
@@ -72,7 +72,7 @@ export function SliceViz({ slice, tone = "light" }: { slice: OfferSlice; tone?: 
             </sup>
           )}
         </p>
-        <p className={cn("t-code mt-1", muted)}>{slice.destination.iata}</p>
+        <p className={cn("t-code mt-0.5 sm:mt-1", muted)}>{slice.destination.iata}</p>
       </div>
     </div>
   );
@@ -193,13 +193,13 @@ function BaggageLine({ offer, tone = "light" }: { offer: Offer; tone?: "light" |
   // På mørk flate må glyfen lyse; ellers arver den forgrunnsfargen som vanlig.
   const glyph = dark ? "text-white" : undefined;
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px]">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:gap-x-4 sm:gap-y-1.5 sm:text-[13px]">
       <span className="flex items-center gap-1.5">
-        <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={20} className={glyph} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
+        <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={18} className={glyph} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
         <span aria-hidden="true">{carryOnUnknown ? t("oc.carryon.unknown") : t("oc.carryon.included", { count: carryOn })}</span>
       </span>
       <span className={cn("flex items-center gap-1.5", checkedUnknown || checked === 0 ? muted : undefined)}>
-        <BaggageVisual kind="checked" count={checked} unknown={checkedUnknown} size={20} className={checkedUnknown || checked === 0 ? undefined : glyph} label={checkedUnknown ? t("bg.checked.unknown") : checked === 0 ? t("bg.checked.none") : t("bg.checked", { count: checked })} />
+        <BaggageVisual kind="checked" count={checked} unknown={checkedUnknown} size={18} className={checkedUnknown || checked === 0 ? undefined : glyph} label={checkedUnknown ? t("bg.checked.unknown") : checked === 0 ? t("bg.checked.none") : t("bg.checked", { count: checked })} />
         <span aria-hidden="true">{checkedUnknown ? t("oc.checked.unknown") : checked === 0 ? t("oc.checked.addable") : t("oc.checked.included", { count: checked })}</span>
       </span>
     </div>
@@ -368,23 +368,23 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
         className="overflow-hidden rounded-2xl bg-night text-white"
         aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
       >
-        <div className="px-4 pb-5 pt-4 sm:px-6 sm:pt-5">
+        <div className="px-4 pb-4 pt-3.5 sm:px-6 sm:pb-5 sm:pt-5">
           <p className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[12px] font-bold text-primary-foreground">
             {t("oc.ourpick")} · {t(recommendedLabel)}
           </p>
 
           {/* Begrunnelsen står først, som verifiserte fakta – ikke en påstand. */}
           {reasons.length > 0 && (
-            <ul className="mt-3.5 flex flex-wrap gap-x-5 gap-y-1.5 text-[15px] font-semibold">
+            <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold sm:mt-3.5 sm:gap-x-5 sm:gap-y-1.5 sm:text-[15px]">
               {reasons.map((r) => (
                 <li key={r} className="flex items-center gap-1.5">
-                  <Check className="size-4 shrink-0 text-lime-dark" aria-hidden="true" /> {r}
+                  <Check className="size-3.5 shrink-0 text-lime-dark sm:size-4" aria-hidden="true" /> {r}
                 </li>
               ))}
             </ul>
           )}
 
-          <div className="mt-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div className="mt-3.5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 sm:mt-5 sm:gap-y-4">
             <div className="flex min-w-0 items-center gap-2.5">
               {/* Flyselskapets merke står på hvit plate, slik selskapene selv
                   krever det på mørk bakgrunn – og slik monogrammet forblir lesbart. */}
@@ -398,26 +398,26 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
             </div>
             <div className="text-right">
               <p className="t-price leading-none text-white">{formatMinor(totalMinor, currency)}</p>
-              <p className="mt-1.5 text-[13px] font-medium text-white/75">{priceLabel}</p>
+              <p className="mt-1 text-xs font-medium text-white/75 sm:mt-1.5 sm:text-[13px]">{priceLabel}</p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 bg-white/[0.06] px-4 py-5 sm:px-6">
+        <div className="space-y-3 bg-white/[0.06] px-4 py-4 sm:space-y-4 sm:px-6 sm:py-5">
           {offer.slices.map((slice, i) => (
             <div key={slice.id}>
-              {offer.slices.length > 1 && <p className="mb-1.5 text-xs font-semibold text-white/60">{sliceLabel(offer.slices.length, i)}</p>}
+              {offer.slices.length > 1 && <p className="mb-1 text-[11px] font-semibold text-white/60 sm:mb-1.5 sm:text-xs">{sliceLabel(offer.slices.length, i)}</p>}
               <SliceViz slice={slice} tone="dark" />
             </div>
           ))}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-0.5 sm:gap-x-5 sm:gap-y-2 sm:pt-1">
             <BaggageLine offer={offer} tone="dark" />
             <OfferTags keys={flags} tone="dark" />
           </div>
         </div>
 
         <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-          <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-4">
             <div className="flex min-w-0 items-center gap-4 text-white/80">
               <Collapsible.Trigger asChild>
                 <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-medium text-white underline-offset-4 hover:underline">
@@ -449,36 +449,36 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
       )}
       aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
     >
-      <div className="space-y-3.5 p-4 sm:p-5">
+      <div className="space-y-3 p-3.5 sm:space-y-3.5 sm:p-5">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <AirlineLogo airline={airline} size={28} />
+          <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+            <AirlineLogo airline={airline} size={26} />
             <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold">{offer.owner.name}</span>
+              <span className="block truncate text-sm font-semibold sm:text-[15px]">{offer.owner.name}</span>
               {operatedBy.length > 0 && <span className="block truncate text-xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
             </span>
           </div>
           <div className="shrink-0 text-right">
-            <p className="t-num text-[22px] font-bold leading-none tracking-tight sm:text-[26px]">{formatMinor(totalMinor, currency)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{priceLabel}</p>
+            <p className="t-num text-xl font-bold leading-none tracking-tight sm:text-[26px]">{formatMinor(totalMinor, currency)}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">{priceLabel}</p>
           </div>
         </div>
 
         {offer.slices.map((slice, i) => (
           <div key={slice.id}>
-            {offer.slices.length > 1 && <p className="mb-1 text-xs font-semibold text-muted-foreground">{sliceLabel(offer.slices.length, i)}</p>}
+            {offer.slices.length > 1 && <p className="mb-1 text-[11px] font-semibold text-muted-foreground sm:text-xs">{sliceLabel(offer.slices.length, i)}</p>}
             <SliceViz slice={slice} />
           </div>
         ))}
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 sm:gap-x-5 sm:gap-y-2">
           <BaggageLine offer={offer} />
           <OfferTags keys={flags} />
         </div>
       </div>
 
       <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-        <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
+        <div className="flex items-center justify-between gap-3 border-t border-border px-3.5 py-2.5 sm:px-5 sm:py-3">
           <div className="flex min-w-0 items-center gap-4">
             <Collapsible.Trigger asChild>
               <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">

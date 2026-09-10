@@ -196,11 +196,11 @@ function PostCard({ post }: { post: FeedPost }) {
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors",
             post.likedByMe
-              ? "bg-coral/10 text-coral"
+              ? "bg-like/10 text-like"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
-          <Icon icon={Heart} size={16} className={post.likedByMe ? "fill-coral" : ""} />
+          <Icon icon={Heart} size={16} className={post.likedByMe ? "fill-like" : ""} />
           {post.likes > 0 ? post.likes : "Liker"}
         </button>
         <button
@@ -318,7 +318,7 @@ export default function Community() {
                     maxLength={7}
                     className={cn(
                       "min-h-10 w-36 rounded-full border bg-background px-4 text-[12px] font-semibold uppercase outline-none",
-                      routeTag && !routeValid ? "border-coral" : "border-border focus:border-foreground/30",
+                      routeTag && !routeValid ? "border-destructive" : "border-border focus:border-foreground/30",
                     )}
                   />
                   {create.isError && (

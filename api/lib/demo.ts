@@ -148,6 +148,12 @@ function wallIso(d: Date): string {
   return d.toISOString().slice(0, 19);
 }
 
+// Naive wall-strings must be read back as UTC — `new Date(s)` would parse
+// them in the server's own timezone and scramble segment order when TZ≠UTC.
+function wallMs(iso: string): number {
+  return Date.parse(`${iso}Z`);
+}
+
 function buildSegment(
   from: Airport,
   to: Airport,
@@ -207,7 +213,7 @@ function buildSlice(
     } else {
       const first = buildSegment(origin, hub, departAt, carrier, seed, cabinClass);
       const layover = 55 + Math.floor(hash(carrier.iata + input.departureDate) * 120);
-      const secondDepart = new Date(new Date(first.arrivingAt).getTime() + layover * 60_000);
+      const secondDepart = new Date(wallMs(first.arrivingAt) + layover * 60_000);
       const second = buildSegment(hub, dest, secondDepart, carrier, hash(secondDepart.toISOString()), cabinClass);
       segments.push(first, second);
     }
@@ -222,7 +228,7 @@ function buildSlice(
     departingAt: first.departingAt,
     arrivingAt: last.arrivingAt,
     durationMinutes: Math.round(
-      (new Date(last.arrivingAt).getTime() - new Date(first.departingAt).getTime()) / 60_000,
+      (wallMs(last.arrivingAt) - wallMs(first.departingAt)) / 60_000,
     ),
     stops: segments.length - 1,
     segments,

@@ -89,7 +89,7 @@ export function FavoriteButton({ active, onToggle, label, className }: { active:
       title={label}
       className={cn(
         "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-soft backdrop-blur-sm transition-[background-color,color,transform] duration-fast active:scale-[0.88] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        active ? "text-[hsl(var(--coral))]" : "text-foreground",
+        active ? "text-like" : "text-foreground",
         className,
       )}
     >

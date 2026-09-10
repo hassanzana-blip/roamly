@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { searchHotels, searchCars } from "./stay";
+import { searchHotels, searchCars, searchCruises } from "./stay";
 
 describe("stay-katalog (demomodus)", () => {
   it("hoteller: deterministisk for samme søk", () => {
@@ -29,6 +29,25 @@ describe("stay-katalog (demomodus)", () => {
     for (const c of list) {
       expect(c.days).toBe(4);
       expect(c.totalPrice).toBe(c.pricePerDay * c.days);
+    }
+  });
+
+  it("cruise: deterministisk, totalpris = pris per person × gjester", () => {
+    const a = searchCruises("2026-10-05", 2);
+    const b = searchCruises("2026-10-05", 2);
+    expect(a).toEqual(b);
+    expect(a.length).toBeGreaterThanOrEqual(5);
+    const regions = new Set(a.map((c) => c.region));
+    expect(regions.size).toBeGreaterThanOrEqual(4);
+    for (const c of a) {
+      expect(c.totalPrice).toBe(c.pricePerPerson * 2);
+      expect(c.totalPrice).toBeGreaterThan(0);
+      expect(c.nights).toBeGreaterThanOrEqual(5);
+      expect(c.image).toMatch(/^\/photos\//);
+      expect(c.departureDate >= "2026-10-05").toBe(true);
+    }
+    for (let i = 1; i < a.length; i++) {
+      expect(a[i].totalPrice).toBeGreaterThanOrEqual(a[i - 1].totalPrice);
     }
   });
 });
