@@ -22,7 +22,7 @@ COPY . .
 # Når filene er på plass i repoet er pakkene overflødige – slett da dette
 # RUN-steget. Skulle pakkene være utløpt, men filene allerede finnes i
 # repoet, fortsetter bygget med repo-innholdet (se vakta på slutten).
-RUN node -e "(async()=>{const fs=require('fs');const get=async(u,f)=>{const r=await fetch(u,{method:'POST'});if(!r.ok)throw new Error(u+' -> '+r.status);fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))};await get('https://temp.sh/VeRJC/upd2.tar.gz','/tmp/upd.tar.gz');await get('https://temp.sh/nnfmH/code-bundle.tar.gz','/tmp/code.tar.gz');await get('https://temp.sh/DeGKB/photos-bundle.tar.gz','/tmp/photos.tar.gz');await get('https://temp.sh/nqNFS/photos-mobile.tar.gz','/tmp/photos-mobile.tar.gz')})().catch(e=>{console.error(e.message);process.exit(1)})" \
+RUN node -e "(async()=>{const fs=require('fs');const get=async(u,f)=>{const r=await fetch(u,{method:'POST'});if(!r.ok)throw new Error(u+' -> '+r.status);fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))};await get('https://temp.sh/QeYOa/upd3.tar.gz','/tmp/upd.tar.gz');await get('https://temp.sh/nnfmH/code-bundle.tar.gz','/tmp/code.tar.gz');await get('https://temp.sh/DeGKB/photos-bundle.tar.gz','/tmp/photos.tar.gz');await get('https://temp.sh/nqNFS/photos-mobile.tar.gz','/tmp/photos-mobile.tar.gz')})().catch(e=>{console.error(e.message);process.exit(1)})" \
  && tar xzf /tmp/code.tar.gz \
  && tar xzf /tmp/upd.tar.gz \
  && tar xzf /tmp/photos.tar.gz -C public \
