@@ -99,8 +99,9 @@ export function AdminMessages() {
               rows={1}
               className={cn(inputCls, "min-h-[44px] resize-none")}
             />
-            <Btn onClick={submit} disabled={!body.trim() || send.isPending} className="h-11 w-11 !rounded-xl !px-0">
-              <Send className="h-4 w-4" />
+            {/* Bare et ikon: uten navn heter knappen ingenting for en skjermleser. */}
+            <Btn onClick={submit} disabled={!body.trim() || send.isPending} aria-label="Send melding" className="h-11 w-11 !rounded-xl !px-0">
+              <Send className="h-4 w-4" aria-hidden="true" />
             </Btn>
           </div>
         </div>

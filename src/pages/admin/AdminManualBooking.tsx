@@ -143,7 +143,7 @@ export function AdminManualBooking() {
             </div>
             <div className="sm:max-w-[220px]">
               <label className={labelCls}>Reisedato</label>
-              <input className={inputCls} type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} />
+              <input className={inputCls} type="date" aria-label="Reisedato" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} />
             </div>
           </div>
         </Card>

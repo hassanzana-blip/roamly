@@ -153,10 +153,16 @@ export function TableCard({ children, minWidth = 720, caption }: { children: Rea
 /** Tastaturfokuserbar rad: Enter/Space aktiverer onClick. */
 export function ClickableRow({ onClick, children, className, selected }: { onClick: () => void; children: ReactNode; className?: string; selected?: boolean }) {
   return (
+    /*
+      Raden er en rad, ikke en knapp.
+      `role="button"` overstyrte tabellsemantikken, så en skjermleser mistet
+      «rad 3 av 12» og kolonneoverskriftene. Den gjorde også `aria-selected`
+      ulovlig og alt inni raden til en knapp inni en knapp. Raden beholder
+      tastaturet sitt; markeringen sier `aria-current`, som er lov overalt.
+    */
     <tr
       tabIndex={0}
-      role="button"
-      aria-selected={selected}
+      aria-current={selected ? true : undefined}
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

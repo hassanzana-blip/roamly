@@ -100,7 +100,21 @@ export function AdminReports() {
                 <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
                 <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={64} tickFormatter={(v: number) => new Intl.NumberFormat("nb-NO", { notation: "compact" }).format(v)} />
+                {/*
+                  Recharts tegner sin egen tooltip med hvit bakgrunn, uansett
+                  tema. I mørkt tema ble lys tekst stående på hvitt – 1,09:1,
+                  altså uleselig. Flatene må komme fra temaet, ikke fra
+                  bibliotekets standard.
+                */}
                 <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 12,
+                    color: "hsl(var(--foreground))",
+                  }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
                   cursor={{ fill: "hsl(var(--primary) / 0.08)" }}
                   formatter={(v, name) => [name === "sales" ? formatMoney(Number(v), activeCurrency) : String(v ?? ""), name === "sales" ? "Salg" : "Bookinger"]}
                   labelFormatter={(l) => String(l)}
