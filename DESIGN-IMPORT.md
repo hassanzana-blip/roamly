@@ -1,14 +1,15 @@
 # DESIGN-IMPORT (midlertidig)
 
 Denne grenen (`kimi/design-refresh`) inneholder den nye designoppdateringen:
-ny hero på forsiden («Større verden. Nærmere deg.»), søkekort med fire
-produkter (Fly / Hotell / Cruise / Leiebil), cruise-katalog, kompakte
-billettkort på mobil, og 39 nye fotografier under `public/photos/`.
+ny hero på forsiden («Større verden. Nærmere deg.») med portrett-foto på
+telefon og landskapsfoto på desktop, søkekort med fire produkter
+(Fly / Hotell / Cruise / Leiebil), cruise-katalog, kompakte billettkort på
+mobil, og 42 nye fotografier under `public/photos/`.
 
 ## Hvorfor et import-steg i Dockerfile?
 
-De berørte filene (17 kodefiler + 39 bilder) pushes til Git fortløpende.
-Inntil videre henter `Dockerfile` dem inn under bygg fra to midlertidige
+De berørte filene (18 kodefiler + 42 bilder) pushes til Git fortløpende.
+Inntil videre henter `Dockerfile` dem inn under bygg fra midlertidige
 pakker (se RUN-steget merket «Midlertidig import av designoppdateringen»).
 Bygget gir derfor alltid den komplette nye versjonen.
 

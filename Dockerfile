@@ -16,17 +16,19 @@ FROM deps AS build
 COPY . .
 
 # ── Midlertidig import av designoppdateringen ───────────────────────────────
-# Den nye designen (17 kodefiler + 39 fotografier under public/photos) pushes
+# Den nye designen (18 kodefiler + 42 fotografier under public/photos) pushes
 # til Git fortløpende. Inntil alle filene ligger i repoet som vanlige
-# Git-filer, hentes de inn her under bygg fra to midlertidige pakker.
+# Git-filer, hentes de inn her under bygg fra midlertidige pakker.
 # Når filene er på plass i repoet er pakkene overflødige – slett da dette
 # RUN-steget. Skulle pakkene være utløpt, men filene allerede finnes i
 # repoet, fortsetter bygget med repo-innholdet (se vakta på slutten).
-RUN node -e "(async()=>{const fs=require('fs');const get=async(u,f)=>{const r=await fetch(u,{method:'POST'});if(!r.ok)throw new Error(u+' -> '+r.status);fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))};await get('https://temp.sh/nnfmH/code-bundle.tar.gz','/tmp/code.tar.gz');await get('https://temp.sh/DeGKB/photos-bundle.tar.gz','/tmp/photos.tar.gz')})().catch(e=>{console.error(e.message);process.exit(1)})" \
+RUN node -e "(async()=>{const fs=require('fs');const get=async(u,f)=>{const r=await fetch(u,{method:'POST'});if(!r.ok)throw new Error(u+' -> '+r.status);fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))};await get('https://temp.sh/VeRJC/upd2.tar.gz','/tmp/upd.tar.gz');await get('https://temp.sh/nnfmH/code-bundle.tar.gz','/tmp/code.tar.gz');await get('https://temp.sh/DeGKB/photos-bundle.tar.gz','/tmp/photos.tar.gz');await get('https://temp.sh/nqNFS/photos-mobile.tar.gz','/tmp/photos-mobile.tar.gz')})().catch(e=>{console.error(e.message);process.exit(1)})" \
  && tar xzf /tmp/code.tar.gz \
+ && tar xzf /tmp/upd.tar.gz \
  && tar xzf /tmp/photos.tar.gz -C public \
- && rm /tmp/code.tar.gz /tmp/photos.tar.gz \
- || { test -f public/photos/hero-bay.jpg && echo "ADVARSEL: import-pakkene var utilgjengelige – bygger videre fra repo-innholdet"; }
+ && tar xzf /tmp/photos-mobile.tar.gz -C public/photos \
+ && rm /tmp/upd.tar.gz /tmp/code.tar.gz /tmp/photos.tar.gz /tmp/photos-mobile.tar.gz \
+ || { test -f public/photos/hero-bay-mobile.jpg && echo "ADVARSEL: import-pakkene var utilgjengelige – bygger videre fra repo-innholdet"; }
 
 RUN npm run build
 
