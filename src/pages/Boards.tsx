@@ -14,7 +14,7 @@ import { humanMessage } from "@/lib/apiError";
 
 const inputCls = "w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none transition-colors focus:border-foreground/30 placeholder:text-muted-foreground/60";
 
-/** Reisetavler – «Ibiza med gutta», «Familie Kurdistan». Dine, med private lenker. */
+/** Reisetavler – «Ibiza med gutta», «Familieferie Tenerife». Dine, med private lenker. */
 export default function Boards() {
   usePageMeta(PAGE_META.boards);
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ export default function Boards() {
         <p className="mb-5 max-w-lg text-[14px] text-muted-foreground">Samle reisemål, flyreiser og notater for én tur. Del lenken, la gjengen stemme. En tavle er en idé – aldri en bestilling.</p>
 
         {list.data && list.data.length === 0 ? (
-          <EmptyState icon={LayoutGrid} title="Ingen tavler ennå" body="Lag en for neste tur – «Sommer 2027», «Ibiza med gutta», «Familie Kurdistan»." action={<PrimaryButton icon={Plus} onClick={() => setOpen(true)} className="mt-2">Ny tavle</PrimaryButton>} />
+          <EmptyState icon={LayoutGrid} title="Ingen tavler ennå" body="Lag en for neste tur – «Sommer 2027», «Ibiza med gutta», «Familieferie Tenerife»." action={<PrimaryButton icon={Plus} onClick={() => setOpen(true)} className="mt-2">Ny tavle</PrimaryButton>} />
         ) : (
           <>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">

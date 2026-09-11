@@ -7,7 +7,7 @@
  * har en «oppdatert»-dato som vises til leseren.
  */
 
-export type JournalTag = "kurdistan" | "midtosten" | "storby" | "familie" | "bagasje" | "mellomlanding" | "billetter" | "planlegging" | "forste-gang" | "helg";
+export type JournalTag = "midtosten" | "storby" | "familie" | "bagasje" | "mellomlanding" | "billetter" | "planlegging" | "forste-gang" | "helg";
 
 export type Block =
   | { t: "p"; text: string }
@@ -36,7 +36,6 @@ export interface Article {
 }
 
 export const TAG_LABELS: Record<JournalTag, string> = {
-  kurdistan: "Kurdistan",
   midtosten: "Midtøsten",
   storby: "Storby",
   familie: "Familie",
