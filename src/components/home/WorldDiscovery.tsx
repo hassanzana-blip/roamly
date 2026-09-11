@@ -27,7 +27,6 @@ const THEMES: { id: ThemeId; label: I18nKey; sub: I18nKey }[] = [
   { id: "mat", label: "theme.mat", sub: "theme.mat.sub" },
   { id: "natur", label: "theme.natur", sub: "theme.natur.sub" },
   { id: "langtur", label: "theme.langtur", sub: "theme.langtur.sub" },
-  { id: "hjem", label: "theme.hjem", sub: "theme.hjem.sub" },
 ];
 
 export default function WorldDiscovery() {

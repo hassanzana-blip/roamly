@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useNavigate } from "react-router";
 import { CalendarDays, Plane } from "lucide-react";
@@ -7,6 +7,7 @@ import Icon from "./Icon";
 import { FavoriteButton, PrimaryButton } from "./primitives";
 import { trpc } from "@/providers/trpc";
 import { departDate, searchHref, VISA_NOTES, type DiscoverDestination } from "@/content/discover";
+import { recordDestinationView } from "@/lib/recent";
 import { VisaStampGlyph } from "@/components/graphics";
 import { useSavedDestinations } from "@/lib/useAccount";
 import AddToBoard from "@/components/account/AddToBoard";
@@ -45,6 +46,12 @@ export default function DestinationSheet({
   );
 
   const d = destination;
+
+  // «Nylig sett» på forsiden: registreres når et reisemål faktisk åpnes.
+  useEffect(() => {
+    if (d) recordDestinationView(d.id);
+  }, [d]);
+
   const prices = (hints.data ?? []).map((h) => ({
     ...h,
     amount: h.amount == null ? null : Number(h.amount),
