@@ -22,17 +22,18 @@ COPY . .
 # Når filene er på plass i repoet er pakkene overflødige – slett da dette
 # RUN-steget. Skulle pakkene være utløpt, men filene allerede finnes i
 # repoet, fortsetter bygget med repo-innholdet (se vakta på slutten).
-RUN node -e "(async()=>{const fs=require('fs');const get=async(u,f)=>{const r=await fetch(u,{method:'POST'});if(!r.ok)throw new Error(u+' -> '+r.status);fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))};await get('https://temp.sh/QeYOa/upd3.tar.gz','/tmp/upd.tar.gz');await get('https://temp.sh/nnfmH/code-bundle.tar.gz','/tmp/code.tar.gz');await get('https://temp.sh/DeGKB/photos-bundle.tar.gz','/tmp/photos.tar.gz');await get('https://temp.sh/nqNFS/photos-mobile.tar.gz','/tmp/photos-mobile.tar.gz');await get('https://temp.sh/BFVqp/upd4-code.tar.gz','/tmp/upd4.tar.gz');await get('https://temp.sh/Hkpzy/photos-new.tar.gz','/tmp/photos-new.tar.gz');await get('https://temp.sh/yskbl/upd5-code.tar.gz','/tmp/upd5.tar.gz');await get('https://temp.sh/hMhVc/upd6-code.tar.gz','/tmp/upd6.tar.gz');await get('https://temp.sh/rNeEb/upd7-code.tar.gz','/tmp/upd7.tar.gz')})().catch(e=>{console.error(e.message);process.exit(1)})" \
+RUN node -e "(async()=>{const fs=require('fs');const get=async(u,f)=>{const r=await fetch(u,{method:'POST'});if(!r.ok)throw new Error(u+' -> '+r.status);fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))};await get('https://temp.sh/QeYOa/upd3.tar.gz','/tmp/upd.tar.gz');await get('https://temp.sh/nnfmH/code-bundle.tar.gz','/tmp/code.tar.gz');await get('https://temp.sh/DeGKB/photos-bundle.tar.gz','/tmp/photos.tar.gz');await get('https://temp.sh/nqNFS/photos-mobile.tar.gz','/tmp/photos-mobile.tar.gz');await get('https://temp.sh/BFVqp/upd4-code.tar.gz','/tmp/upd4.tar.gz');await get('https://temp.sh/Hkpzy/photos-new.tar.gz','/tmp/photos-new.tar.gz');await get('https://temp.sh/yskbl/upd5-code.tar.gz','/tmp/upd5.tar.gz');await get('https://temp.sh/hMhVc/upd6-code.tar.gz','/tmp/upd6.tar.gz');await get('https://temp.sh/rNeEb/upd7-code.tar.gz','/tmp/upd7.tar.gz');await get('https://temp.sh/fkNyd/upd8-code.tar.gz','/tmp/upd8.tar.gz')})().catch(e=>{console.error(e.message);process.exit(1)})" \
  && tar xzf /tmp/code.tar.gz \
  && tar xzf /tmp/upd.tar.gz \
  && tar xzf /tmp/upd4.tar.gz \
  && tar xzf /tmp/upd5.tar.gz \
  && tar xzf /tmp/upd6.tar.gz \
  && tar xzf /tmp/upd7.tar.gz \
+ && tar xzf /tmp/upd8.tar.gz \
  && tar xzf /tmp/photos.tar.gz -C public \
  && tar xzf /tmp/photos-mobile.tar.gz -C public/photos \
  && tar xzf /tmp/photos-new.tar.gz \
- && rm /tmp/upd.tar.gz /tmp/code.tar.gz /tmp/upd4.tar.gz /tmp/upd5.tar.gz /tmp/upd6.tar.gz /tmp/upd7.tar.gz /tmp/photos.tar.gz /tmp/photos-mobile.tar.gz /tmp/photos-new.tar.gz \
+ && rm /tmp/upd.tar.gz /tmp/code.tar.gz /tmp/upd4.tar.gz /tmp/upd5.tar.gz /tmp/upd6.tar.gz /tmp/upd7.tar.gz /tmp/upd8.tar.gz /tmp/photos.tar.gz /tmp/photos-mobile.tar.gz /tmp/photos-new.tar.gz \
  || { test -f public/photos/hero-bay-mobile.jpg && echo "ADVARSEL: import-pakkene var utilgjengelige – bygger videre fra repo-innholdet"; }
 
 RUN npm run build
