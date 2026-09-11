@@ -46,7 +46,7 @@ export default function Journal() {
       <AppShell>
         <AppHeader title="Journal" as="h1" />
         <p className="t-lead -mt-2 max-w-2xl text-muted-foreground">
-          Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og rutene hjem. Ingen priser, ingen visumregler som tall. Bare det som holder seg.
+          Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og de beste tidene å dra. Ingen priser, ingen visumregler som tall. Bare det som holder seg.
         </p>
 
         <div className="no-scrollbar -mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8" role="group" aria-label="Tema">
