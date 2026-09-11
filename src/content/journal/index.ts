@@ -9,7 +9,7 @@ export * from "./types";
 export const ARTICLES: Article[] = [...PLACES, ...FAMILY, ...PRACTICAL].sort((a, b) => (a.updated < b.updated ? 1 : a.updated > b.updated ? -1 : 0));
 
 /** Rekkefølgen på forsiden og i toppen av journalen: én per tema, håndplukket. */
-export const FEATURED_SLUGS = ["mellomlanding-med-barn", "bagasje-slik-leser-du-billetten", "istanbul-to-flyplasser", "reise-hjem-til-hoytidene"];
+export const FEATURED_SLUGS = ["mellomlanding-med-barn", "bagasje-slik-leser-du-billetten", "istanbul-to-flyplasser", "reise-i-hoytidene"];
 
 export function articleBySlug(slug: string): Article | undefined {
   return ARTICLES.find((a) => a.slug === slug);
@@ -25,7 +25,7 @@ export function articlesByTag(tag: JournalTag | "alle"): Article[] {
 
 /** Tagger som faktisk er i bruk, i visningsrekkefølge. */
 export function tagsInUse(): JournalTag[] {
-  const order: JournalTag[] = ["familie", "bagasje", "mellomlanding", "billetter", "planlegging", "kurdistan", "midtosten", "storby", "helg", "forste-gang"];
+  const order: JournalTag[] = ["familie", "bagasje", "mellomlanding", "billetter", "planlegging", "midtosten", "storby", "helg", "forste-gang"];
   return order.filter((t) => ARTICLES.some((a) => a.tags.includes(t)));
 }
 

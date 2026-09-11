@@ -22,7 +22,6 @@ import type { JournalTag } from "@/content/journal";
  * alle er de samme vi bruker ellers i produktet.
  */
 const STORY_GLYPH = {
-  kurdistan: HsRoute,
   midtosten: HsPlaneArrival,
   storby: HsTrain,
   familie: HsFamily,
