@@ -88,12 +88,20 @@ const multiSchema = z.object({
   providers: z.array(providerSchema).default([]),
   destination: destinationSchema.nullable().optional(),
 });
-const singleSchema = z.object({
+/** SingleHotelSearchResponse: hotellet ligger på toppnivå, prisene under `results`, omtaler under `reviews`. */
+const singleSchema = resultSchema.omit({ rates: true, guestRating: true, numberOfReviews: true, guestRatingSentiment: true }).extend({
   isComplete: z.boolean().default(true),
   currencyCode: z.string().optional(),
   providers: z.array(providerSchema).default([]),
-  result: resultSchema.optional(),
-  results: z.array(resultSchema).optional(),
+  results: z.array(rateSchema).optional(),
+  reviews: z
+    .object({
+      numberOfReviews: z.number().optional(),
+      sentiment: z.string().optional(),
+      quotes: z.array(z.object({ text: z.string() })).optional(),
+      guestRatings: z.record(z.string(), z.number()).optional(),
+    })
+    .optional(),
 });
 const autocompleteSchema = z.object({
   results: z
@@ -294,7 +302,7 @@ export async function kayakHotelDetail(
     includeTaxesInTotal: "true",
     includeLocalTaxesInTotal: "true",
     searchTimeout: String(SEARCH_TIMEOUT_MS),
-    responseOptions: "images,allrates,reviews,description,policies,featuresummary",
+    responseOptions: "images,description,featureSummary,reviews,place",
   };
   const started = Date.now();
   let cookies: string[] = [];
@@ -308,20 +316,30 @@ export async function kayakHotelDetail(
     if (body.isComplete || Date.now() - started > POLL_BUDGET_MS) break;
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
-  const raw = body.result ?? body.results?.[0];
-  if (!raw) throw new KayakError("Fant ikke hotellet hos leverandøren.", { status: 404 });
   const cur = body.currencyCode ?? currency;
-  const hotel = mapHotel(raw, body.providers, cur, nights);
+  const overall = body.reviews?.guestRatings?.OVERALL;
+  const hotel = mapHotel(
+    {
+      ...body,
+      rates: body.results ?? [],
+      guestRating: typeof overall === "number" ? overall : null,
+      numberOfReviews: body.reviews?.numberOfReviews ?? 0,
+      guestRatingSentiment: body.reviews?.sentiment,
+    },
+    body.providers,
+    cur,
+    nights,
+  );
   return {
     provider: "kayak",
     sandbox: kayakHotelsConfig.sandbox,
     complete: body.isComplete,
     hotel: {
       ...hotel,
-      description: raw.description,
-      policies: raw.policies ?? [],
-      featureSummary: raw.featureSummary ?? [],
-      reviewQuotes: raw.reviewQuotes ?? [],
+      description: body.description,
+      policies: body.policies ?? [],
+      featureSummary: body.featureSummary ?? [],
+      reviewQuotes: (body.reviews?.quotes ?? []).map((q) => q.text).filter(Boolean),
     },
   };
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { CarAgency, CarOffer, CarPlace, CarSearchResult } from "../../contracts/cars";
 import { env } from "./env";
 import { log } from "./logger";
-import { kayakConfig, kayakRequest, KayakError, normalizeUserTrackId } from "./kayak";
+import { kayakAutocomplete, kayakConfig, kayakRequest, KayakError, normalizeUserTrackId } from "./kayak";
 
 /**
  * KAYAK Cars Search API – POST /i/api/affiliate/search/car/v1/poll.
@@ -83,26 +83,27 @@ const responseSchema = z.object({
   days: z.number().optional(),
   totalCount: z.number().optional(),
 });
-const autocompleteSchema = z.object({
-  results: z
-    .array(
-      z.object({
-        placeId: z.number().optional(),
-        id: z.number().optional(),
-        cityId: z.number().optional(),
-        ctid: z.number().optional(),
-        airportCode: z.string().optional(),
-        primaryPlaceType: z.string().optional(),
-        name: z.string(),
-        fullName: z.string().optional(),
-        cityName: z.string().optional(),
-        countryName: z.string().optional(),
-        countryCode: z.string().optional(),
-        iataCode: z.string().optional(),
-      }),
-    )
-    .default([]),
-});
+const autocompleteItemSchema = z
+  .object({
+    placeId: z.union([z.number(), z.string()]).optional(),
+    id: z.union([z.number(), z.string()]).optional(),
+    cityId: z.union([z.number(), z.string()]).optional(),
+    ctid: z.union([z.number(), z.string()]).optional(),
+    locationId: z.union([z.number(), z.string()]).optional(),
+    airportCode: z.string().optional(),
+    primaryPlaceType: z.string().optional(),
+    type: z.string().optional(),
+    name: z.string().optional(),
+    displayName: z.string().optional(),
+    fullName: z.string().optional(),
+    cityName: z.string().optional(),
+    countryName: z.string().optional(),
+    countryCode: z.string().optional(),
+    iataCode: z.string().optional(),
+  })
+  .passthrough();
+/** Svaret kan være `{results:[…]}` eller en ren liste – begge godtas. */
+const autocompleteSchema = z.union([z.object({ results: z.array(autocompleteItemSchema).default([]) }), z.array(autocompleteItemSchema).transform((results) => ({ results }))]);
 
 function isHttps(url: string | undefined): url is string {
   if (!url) return false;
@@ -294,26 +295,46 @@ export async function kayakCarPlaces(searchTerm: string, ctx: { userAgent?: stri
   if (now - placeWindow.start >= 60 * 60_000) placeWindow = { start: now, count: 0 };
   if (placeWindow.count >= 80) return [];
   placeWindow.count += 1;
+  const places: CarPlace[] = [];
+  const seen = new Set<string>();
+  const push = (p: CarPlace) => {
+    const k = `${p.type}:${p.value}`;
+    if (!seen.has(k)) {
+      seen.add(k);
+      places.push(p);
+    }
+  };
   try {
     const res = await kayakRequest({ method: "GET", path: AUTOCOMPLETE_CARS_PATH, query: { searchTerm: term }, userAgent: ctx.userAgent, clientIp: ctx.clientIp });
     const parsed = autocompleteSchema.safeParse(res.json);
-    if (!parsed.success) return [];
-    const places: CarPlace[] = [];
-    for (const r of parsed.data.results) {
-      const iata = (r.iataCode ?? r.airportCode)?.toUpperCase();
-      const id = r.placeId ?? r.cityId ?? r.ctid ?? r.id;
-      if (iata && /^[A-Z]{3}$/.test(iata)) places.push({ type: "airport", value: iata, name: r.name, fullName: r.fullName ?? [r.name, r.cityName, r.countryName].filter(Boolean).join(", "), countryCode: r.countryCode });
-      else if (id) places.push({ type: "city", value: String(id), name: r.name, fullName: r.fullName ?? [r.name, r.countryName].filter(Boolean).join(", "), countryCode: r.countryCode });
+    if (!parsed.success) {
+      const j = res.json as Record<string, unknown> | unknown[] | null;
+      log.warn({ shape: Array.isArray(j) ? "array" : j && typeof j === "object" ? Object.keys(j).slice(0, 10) : typeof j }, "KAYAK cars: ukjent form på stedssøk");
+    } else {
+      for (const r of parsed.data.results) {
+        const name = r.name ?? r.displayName ?? "";
+        if (!name) continue;
+        const iata = (r.iataCode ?? r.airportCode)?.toUpperCase();
+        const id = r.cityId ?? r.ctid ?? r.placeId ?? r.locationId ?? r.id;
+        const kind = (r.primaryPlaceType ?? r.type ?? "").toLowerCase();
+        const full = r.fullName ?? [name, r.cityName, r.countryName].filter(Boolean).join(", ");
+        if (iata && /^[A-Z]{3}$/.test(iata) && kind !== "city") push({ type: "airport", value: iata, name, fullName: full, countryCode: r.countryCode });
+        else if (id !== undefined && String(id).length > 0) push({ type: "city", value: String(id), name, fullName: full, countryCode: r.countryCode });
+      }
+      if (!places.length && parsed.data.results.length) {
+        log.warn({ fields: Object.keys(parsed.data.results[0] as object).slice(0, 20) }, "KAYAK cars: forslag uten by-id/IATA");
+      }
     }
-    if (!places.length && parsed.data.results.length) {
-      // Feltnavn (aldri verdier) så vi ser om KAYAK har endret formen på svaret.
-      log.warn({ fields: Object.keys(parsed.data.results[0] as object).slice(0, 20) }, "KAYAK cars: forslag uten by-id/IATA");
-    }
-    if (placeCache.size >= 500) placeCache.delete(placeCache.keys().next().value as string);
-    placeCache.set(term, { at: now, places });
-    return places;
   } catch (err) {
     log.warn({ err: err instanceof Error ? err.message : String(err) }, "KAYAK cars: stedssøk feilet");
-    return [];
   }
+  // Flyplasser fra flysøkets stedssøk (IATA) er alltid gyldige hentesteder for leiebil.
+  try {
+    for (const a of await kayakAutocomplete(term, ctx)) push({ type: "airport", value: a.iata, name: `${a.name}`, fullName: `${a.name} (${a.iata}), ${a.country}`, countryCode: a.countryCode });
+  } catch {
+    /* lokalt register er valgfritt her */
+  }
+  if (placeCache.size >= 500) placeCache.delete(placeCache.keys().next().value as string);
+  placeCache.set(term, { at: now, places });
+  return places;
 }

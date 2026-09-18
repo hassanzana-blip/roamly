@@ -102,12 +102,18 @@ describe("kayakHotels", () => {
   });
 
   it("henter ett hotell med beskrivelse og vilkår når leverandøren sender dem", async () => {
-    const calls = fetchJson(() => ({ isComplete: true, currencyCode: "NOK", providers: PROVIDERS, result: { ...RESULT, description: "Fra leverandøren.", policies: [{ code: "checkin", name: "Check-in", description: "From 2:00 pm" }], reviewQuotes: ["friendly staff"] } }));
+    // Dokumentert SingleHotelSearchResponse: hotellet på toppnivå, priser i `results`, omtaler i `reviews`.
+    const { rates, ...top } = Object.fromEntries(Object.entries(RESULT).filter(([k]) => !["guestRating", "numberOfReviews", "guestRatingSentiment"].includes(k))) as typeof RESULT;
+    const calls = fetchJson(() => ({ ...top, isComplete: true, searchTime: 141, totalResults: 2, currencyCode: "NOK", languageCode: "EN", countryCode: "NO", providers: PROVIDERS, results: rates, description: "Fra leverandøren.", policies: [{ code: "checkin", name: "Check-in", description: "From 2:00 pm" }], reviews: { numberOfReviews: 3118, sentiment: "Fabulous, 8.6", quotes: [{ text: "friendly staff", polarity: 1 }], aspects: [], reviewerTypes: [], guestRatings: { OVERALL: 8.6, LOCATION: 9.6 } } }));
     const res = await kayakHotelDetail({ hotelKey: "khotel:2589314", checkin: "2026-10-24", checkout: "2026-10-27", rooms: [{ adults: 2 }] });
     expect(calls[0].pathname).toBe("/api/3.0/hotel");
     expect(calls[0].searchParams.get("hotel")).toBe("khotel:2589314");
     expect(res.hotel.description).toBe("Fra leverandøren.");
     expect(res.hotel.policies[0].description).toBe("From 2:00 pm");
     expect(res.hotel.reviewQuotes).toEqual(["friendly staff"]);
+    expect(res.hotel.guestRating).toBe(8.6);
+    expect(res.hotel.numberOfReviews).toBe(3118);
+    expect(res.hotel.rates).toHaveLength(2);
+    expect(res.hotel.rates[0].provider.name).toBe("Booking.com");
   });
 });
