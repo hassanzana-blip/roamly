@@ -247,6 +247,15 @@ describe("KAYAK: kartlegging", () => {
     expect(kiwi.conditions).toBeUndefined();
   });
 
+  it("«operert av» vises bare når operatøren er en annen enn det markedsførende selskapet", () => {
+    const body = structuredClone(POLL_COMPLETE) as unknown as { segments: Record<string, Record<string, unknown>> };
+    body.segments["1750604400000B614881155"].operationalDisplay = "JetBlue";
+    body.segments["1751104800000B614870630"].operationalDisplay = "Operated by Cape Air";
+    const [offer] = mapPollResponse(parsePollResponse(body), input, ctx);
+    expect(offer.slices[0].segments[0].operatingCarrier).toBeUndefined();
+    expect(offer.slices[1].segments[0].operatingCarrier).toEqual({ iata: "", name: "Operated by Cape Air" });
+  });
+
   it("hopper over resultater som peker på manglende leg/segment (misdannet svar)", () => {
     const broken = structuredClone(POLL_COMPLETE) as typeof POLL_COMPLETE;
     delete (broken.segments as Record<string, unknown>)["1751104800000B614870630"];

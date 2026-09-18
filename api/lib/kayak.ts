@@ -502,10 +502,16 @@ export function mapPollResponse(body: KayakPollResponse, input: KayakSearchInput
           }
           itineraryAirlines.add(seg.airline.toUpperCase());
           const carrier = carrierOf(seg.airline, body.airlines);
+          // operationalDisplay skal vises når operatøren er en annen enn det
+          // markedsførende selskapet. Sandkassen sender den også når de er like –
+          // da er «Operert av Norwegian» på en Norwegian-flygning bare støy.
+          const operatingText = seg.operationalDisplay?.trim();
           const operating = seg.operationalIATA
-            ? carrierOf(seg.operationalIATA, body.airlines)
-            : seg.operationalDisplay
-              ? { iata: "", name: seg.operationalDisplay }
+            ? seg.operationalIATA.toUpperCase() === seg.airline.toUpperCase()
+              ? undefined
+              : carrierOf(seg.operationalIATA, body.airlines)
+            : operatingText && operatingText.toLowerCase() !== carrier.name.toLowerCase()
+              ? { iata: "", name: operatingText }
               : undefined;
           const cabinCode = cabinBySegment.get(ls.id);
           segments.push({
