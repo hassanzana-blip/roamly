@@ -32,6 +32,8 @@ export interface AirportPoint {
 export interface Carrier {
   iata: string;
   name: string;
+  /** Flyselskapets eget merke, levert av leverandøren (Duffel/KAYAK). Aldri gjettet. */
+  logoUrl?: string;
 }
 
 export interface Segment {
@@ -109,13 +111,46 @@ export interface Offer {
   slices: OfferSlice[];
   passengers: OfferPassenger[];
   baggage: BaggageAllowance;
-  emissionsKg: number;
+  /** Utelatt når leverandøren ikke oppgir utslipp (KAYAK) – vi regner aldri ut et tall selv. */
+  emissionsKg?: number;
   refundable: boolean;
   changeable: boolean;
   conditions?: OfferConditions;
   /** true når flyselskapet krever pass/ID for denne ruten. */
   identityDocumentsRequired?: boolean;
   services?: OfferServices;
+  /** Hvilken leverandør tilbudet kom fra. Mangler = Duffel/demo (bestilles hos HelloSky). */
+  source?: FlightSource;
+  /**
+   * Satt når bestillingen skjer HOS EN EKSTERN LEVERANDØR (metasøk/affiliat).
+   * HelloSky selger da ikke billetten: kunden sendes til `url` (KAYAKs
+   * offisielle klikklenke), servicegebyr legges ikke på, og /bestill avviser
+   * tilbudet.
+   */
+  booking?: ExternalBooking;
+  /** Bagasjegebyr leverandøren oppga for første kolli (formatert av leverandøren). */
+  baggageFees?: { carryOn?: string; checked?: string };
+}
+
+export type FlightSource = "duffel" | "travelport" | "kayak" | "demo";
+
+/** Hvem som faktisk selger billetten når bestillingen skjer utenfor HelloSky. */
+export type SellerKind = "airline" | "agency" | "unknown";
+
+export interface ExternalBooking {
+  kind: "external";
+  /** Leverandørens offisielle klikklenke – brukes urørt. */
+  url: string;
+  provider: { code: string; name: string; logoUrl?: string };
+  /**
+   * airline = selgeren er (etter dokumentert kartlegging) flyselskapet selv,
+   * agency = reisebyrå/OTA, unknown = leverandøren ga ikke nok informasjon.
+   */
+  sellerKind: SellerKind;
+  /** Leverandørens egne merkelapper (f.eks. «freeCancellation»), kun til visning. */
+  badges?: string[];
+  /** Ordlyd leverandøren krever at vi viser (ikke-refunderbar-erklæring o.l.). */
+  disclosure?: string;
 }
 
 export interface SearchResult {
@@ -126,6 +161,17 @@ export interface SearchResult {
   slices: SearchSliceInput[];
   passengers: SearchPassengerInput[];
   offers: Offer[];
+  /** Leverandøren som svarte. Mangler = Duffel/demo (eldre svar). */
+  provider?: FlightSource;
+  /**
+   * true når svaret kommer fra et sandkassemiljø (KAYAK sandbox): priser og
+   * lenker er testdata og skal aldri vises som ekte inventar uten merking.
+   */
+  sandbox?: boolean;
+  /** «external» = kunden bestiller hos leverandøren, ikke hos HelloSky. */
+  bookingMode?: "hellosky" | "external";
+  /** Sant når leverandøren ikke rakk å bli ferdig innen tidsbudsjettet (delvise resultater). */
+  partial?: boolean;
 }
 
 // ─── Booking / orders ───────────────────────────────────────────────────────
@@ -275,6 +321,22 @@ export interface ServiceStatus {
   stripePublishableKey: string | null;
   /** Valgfri til backend eksponerer den (OTA fee preview). */
   feeConfig?: FeeConfig;
+  /** Flyleverandører: hva som er aktivt og hva som kan velges per søk. */
+  flightProviders?: FlightProvidersStatus;
+}
+
+export interface FlightProvidersStatus {
+  /** Leverandøren et vanlig søk går til. */
+  active: FlightSource;
+  /** Leverandører som kan bes om eksplisitt (`provider=` i søket). */
+  selectable: FlightSource[];
+  kayak: {
+    enabled: boolean;
+    mode: "sandbox" | "production";
+    /** Om kunden bestiller hos leverandøren (alltid sant for KAYAK). */
+    externalBooking: true;
+    airlineDirect: "off" | "prefer" | "only";
+  };
 }
 
 // ─── Kvittering / faktura (OTA-172) ─────────────────────────────────────────

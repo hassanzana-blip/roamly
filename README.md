@@ -9,12 +9,17 @@ Stripe som betalingsleverandør, én worker-prosess for alt asynkront arbeid. Al
 
 Se [DEPLOYMENT.md](DEPLOYMENT.md) for drift, [RUNBOOK.md](RUNBOOK.md) for hendelser og [CHANGELOG.md](CHANGELOG.md) for
 hva som er nytt.
+Flysøk kan i tillegg gå via KAYAK Affiliate API som metasøk (kunden bestiller hos flyselskapet/leverandøren) – se
+[docs/KAYAK.md](docs/KAYAK.md).
 
 ## Arkitektur
 
 ```
 Nettleser ──tRPC──▶ Web (Hono)                     Worker (poll jobs)
-                     │ flights.search → Duffel/demo   │ process_booking_attempt → orkestrator
+                     │ flights.search → FlightProvider │ process_booking_attempt → orkestrator
+                     │   duffel | travelport | kayak   │   (Duffel/demo-tilbud)
+                     │   (KAYAK: kunden bestiller hos  │
+                     │    leverandøren, ikke hos oss)  │
                      │ checkout.createSession         │ recover_attempt        → gjenoppretting (SUPPLIER_UNKNOWN)
                      │   → checkout_sessions          │ process_refund         → refusjon (Stripe/demo) + hovedbok
                      │   → Stripe PaymentIntent       │ reconcile_order/sweep  → avstemming mot Duffel

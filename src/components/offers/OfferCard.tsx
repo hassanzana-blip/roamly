@@ -1,12 +1,12 @@
 import { useId, useState } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { ArrowLeftRight, Briefcase, Check, ChevronDown, Leaf, Luggage, Moon, Share2 } from "lucide-react";
+import { ArrowLeftRight, Briefcase, Check, ChevronDown, ExternalLink, Leaf, Luggage, Moon, Share2 } from "lucide-react";
 import type { Offer, OfferPassenger, OfferSlice, Segment } from "@contracts/types";
 import { cabinLabel, crossesMidnight, fareConditionLabel, formatClock, formatDuration, formatMinor, layoverInfo, previewTotalMinor, toMinor } from "@/lib/format";
 import Icon from "@/components/app/Icon";
 import { Button } from "@/components/ui/button";
 import { useFeeConfig } from "@/lib/useFeeConfig";
-import { useT } from "@/lib/i18n";
+import { useT, type I18nKey } from "@/lib/i18n";
 import { PREFERENCES, hasAirportChange, highlights, payingPassengers, type Preference } from "@/lib/offers";
 import { cn } from "@/lib/utils";
 import { sliceBaggage, sliceLabel } from "./offerUtils";
@@ -296,15 +296,64 @@ function OfferDetails({ offer, supplierMinor, currency }: { offer: Offer; suppli
             })()}
             {changeLabel}
           </li>
-          <li>{t("oc.supplierprice", { price: formatMinor(supplierMinor, currency) })}</li>
-          <li className="flex items-center gap-2 text-muted-foreground">
-            <Leaf className="size-3.5" aria-hidden="true" /> {offer.emissionsKg} kg CO₂
-          </li>
-          <li className="text-muted-foreground">{t("oc.conditions.note")}</li>
+          {offer.baggageFees?.checked && <li>{t("oc.bagfee.checked", { price: offer.baggageFees.checked })}</li>}
+          {offer.baggageFees?.carryOn && <li>{t("oc.bagfee.carryon", { price: offer.baggageFees.carryOn })}</li>}
+          <li>{offer.booking ? t("oc.price.external", { price: formatMinor(supplierMinor, currency) }) : t("oc.supplierprice", { price: formatMinor(supplierMinor, currency) })}</li>
+          {typeof offer.emissionsKg === "number" && (
+            <li className="flex items-center gap-2 text-muted-foreground">
+              <Leaf className="size-3.5" aria-hidden="true" /> {offer.emissionsKg} kg CO₂
+            </li>
+          )}
+          {offer.booking?.disclosure && <li className="text-muted-foreground">{offer.booking.disclosure}</li>}
+          <li className="text-muted-foreground">{offer.booking ? t("oc.price.external.note") : t("oc.conditions.note")}</li>
         </ul>
       </div>
     </div>
   );
+}
+
+const BADGE_KEYS: Record<string, I18nKey> = {
+  freeCancellation: "oc.badge.freeCancellation",
+  instantBook: "oc.badge.instantBook",
+  selfTransferProtection: "oc.badge.selfTransferProtection",
+  virtualInterline: "oc.badge.virtualInterline",
+};
+
+/**
+ * Hvem som selger når bestillingen skjer utenfor HelloSky: leverandørens
+ * navn, om det er flyselskapet selv, og leverandørens egne merkelapper. Alt
+ * er lest fra svaret – vi hevder ikke mer enn leverandøren har sagt.
+ */
+function SellerLine({ offer, tone = "light" }: { offer: Offer; tone?: "light" | "dark" }) {
+  const t = useT();
+  const b = offer.booking;
+  if (!b) return null;
+  const dark = tone === "dark";
+  const muted = dark ? "text-white/65" : "text-muted-foreground";
+  const pill = dark ? "bg-white/15 text-white" : "bg-muted text-foreground";
+  const good = dark ? "bg-lime-dark/25 text-white" : "bg-success/10 text-success";
+  const badges = (b.badges ?? []).filter((code) => code !== "direct" && BADGE_KEYS[code]);
+  return (
+    <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-xs", muted)}>
+      <span>{t("oc.seller.via", { name: b.provider.name })}</span>
+      {b.sellerKind === "airline" && <span className={cn("rounded-md px-2 py-0.5 font-semibold", good)}>{t("oc.seller.airline")}</span>}
+      {b.sellerKind === "agency" && <span className={cn("rounded-md px-2 py-0.5 font-medium", pill)}>{t("oc.seller.agency")}</span>}
+      {badges.map((code) => (
+        <span key={code} className={cn("rounded-md px-2 py-0.5 font-medium", pill)}>
+          {t(BADGE_KEYS[code])}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** «Bestill hos Norwegian» / «Se tilbud hos Kiwi.com» / «Velg» – sier hvor kunden faktisk skal. */
+function ctaLabel(offer: Offer, t: ReturnType<typeof useT>): string {
+  const b = offer.booking;
+  if (!b) return t("oc.select");
+  const name = b.provider.name.trim();
+  if (!name) return t("oc.view");
+  return b.sellerKind === "airline" ? t("oc.book.at", { name }) : t("oc.view.at", { name });
 }
 
 /**
@@ -323,7 +372,9 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   const detailsId = useId();
   const currency = offer.totalCurrency;
   const supplierMinor = toMinor(offer.totalAmount, currency);
-  const totalMinor = previewTotalMinor(offer.totalAmount, currency, feeConfig);
+  // Ekstern bestilling: leverandørens pris er prisen. Gebyret er HelloSkys og gjelder bare egne bestillinger.
+  const external = offer.booking?.kind === "external";
+  const totalMinor = external ? supplierMinor : previewTotalMinor(offer.totalAmount, currency, feeConfig);
   const paying = payingPassengers(offer.passengers);
   const party = useParty(offer.passengers);
   const flags = offerFlags(offer);
@@ -331,7 +382,18 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   const recommendedLabel = recommended ? PREFERENCES.find((p) => p.key === recommended)?.label : undefined;
   // Hvorfor akkurat denne: de sterkeste faktaene, aldri en poengsum.
   const reasons = recommended ? flags.all.slice(0, 3).map((k) => t(k)) : [];
-  const airline = { iata: offer.owner.iata, name: offer.owner.name };
+  const airline = { iata: offer.owner.iata, name: offer.owner.name, logoSymbolUrl: offer.owner.logoUrl };
+  const cta = ctaLabel(offer, t);
+  const ctaProps = external
+    ? ({ asChild: true } as const)
+    : ({ onClick: () => onSelect(offer) } as const);
+  const ctaInner = external ? (
+    <a href={offer.booking!.url} target="_blank" rel="noopener noreferrer nofollow sponsored" title={t("oc.external.hint")} onClick={() => onSelect(offer)}>
+      {cta} <ExternalLink className="size-4" aria-hidden="true" />
+    </a>
+  ) : (
+    cta
+  );
   const priceLabel = offer.passengers.length > 1 ? t("oc.totalfor.party", { party }) : t("oc.forpax", { count: 1 });
   const perPerson = paying > 1 ? t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying / 100) * 100, currency) }) : null;
 
@@ -414,6 +476,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
             <BaggageLine offer={offer} tone="dark" />
             <OfferTags keys={flags} tone="dark" />
           </div>
+          <SellerLine offer={offer} tone="dark" />
         </div>
 
         <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
@@ -427,8 +490,8 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
               </Collapsible.Trigger>
               {perPerson && <span className="t-num truncate text-xs text-white/60">{perPerson}</span>}
             </div>
-            <Button size="lg" onClick={() => onSelect(offer)} className="w-full sm:w-auto sm:px-8">
-              {t("oc.select")}
+            <Button size="lg" {...ctaProps} className="w-full sm:w-auto sm:px-8">
+              {ctaInner}
             </Button>
           </div>
           <Collapsible.Content id={detailsId} className="overflow-hidden bg-background text-foreground data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
@@ -475,21 +538,24 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
           <BaggageLine offer={offer} />
           <OfferTags keys={flags} />
         </div>
+        <SellerLine offer={offer} />
       </div>
 
       <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-        <div className="flex items-center justify-between gap-3 border-t border-border px-3.5 py-2.5 sm:px-5 sm:py-3">
-          <div className="flex min-w-0 items-center gap-4">
+        {/* Ekstern bestilling har en lengre knapp («Se tilbud hos Kiwi.com»): på telefon
+            får den hele bredden under detaljlenken i stedet for å klemmes ved kanten. */}
+        <div className={cn("flex gap-3 border-t border-border px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3", external ? "flex-col items-stretch" : "items-center justify-between")}>
+          <div className="flex min-w-0 items-center justify-between gap-4 sm:justify-start">
             <Collapsible.Trigger asChild>
               <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
                 {expanded ? t("oc.hide") : t("oc.show")}
                 <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
               </button>
             </Collapsible.Trigger>
-            {perPerson && <span className="t-num hidden truncate text-xs text-muted-foreground sm:inline">{perPerson}</span>}
+            {perPerson && <span className={cn("t-num truncate text-xs text-muted-foreground", external ? "inline" : "hidden sm:inline")}>{perPerson}</span>}
           </div>
-          <Button size="md" onClick={() => onSelect(offer)} className="shrink-0 px-6">
-            {t("oc.select")}
+          <Button size="md" {...ctaProps} className={cn("min-w-0 px-4 sm:px-6", external ? "w-full sm:w-auto [&>a]:min-w-0 [&>a]:truncate" : "shrink-0")}>
+            {ctaInner}
           </Button>
         </div>
         <Collapsible.Content id={detailsId} className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">

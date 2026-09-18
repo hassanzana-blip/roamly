@@ -22,10 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-# Environment variables
+# Environment variables – alle varianter (kun *.example er versjonert)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.it.example
+credentials/
+*.pem
+*.key
 # Database
 *.db
 *.sqlite

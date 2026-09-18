@@ -25,6 +25,10 @@ export interface SearchParamsState {
   pref: Preference;
   /** Open the price strip/calendar on the results page */
   flex: boolean;
+  /** Bare direktefly (sendes til leverandøren når den støtter det). */
+  direct: boolean;
+  /** Eksplisitt leverandør (`provider=kayak`) – beholdes når søket redigeres. */
+  provider?: string;
 }
 
 export function todayPlus(days: number): string {
@@ -47,6 +51,7 @@ export function defaultState(): SearchParamsState {
     cabin: "economy",
     pref: "best",
     flex: false,
+    direct: false,
   };
 }
 
@@ -116,5 +121,7 @@ export function buildSearchQuery(s: SearchParamsState): string {
   }
   if (s.pref !== "best") q.set("sort", s.pref);
   if (s.flex && s.tripType !== "multicity") q.set("flex", "1");
+  if (s.direct) q.set("direct", "1");
+  if (s.provider) q.set("provider", s.provider);
   return q.toString();
 }

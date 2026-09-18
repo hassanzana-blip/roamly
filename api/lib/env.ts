@@ -39,6 +39,28 @@ const schema = z.object({
   OAUTH_X_CLIENT_SECRET: z.string().optional(),
   TRAVELPORT_CONTENT_SOURCE: z.string().optional(),
 
+  // ── KAYAK Affiliate Flights API (metasøk: kunden bestiller hos leverandøren) ──
+  // Nøkkelen finnes KUN her på serveren. Sandbox-nøkkel og produksjonsnøkkel
+  // er separate variabler så ingen kan «glemme» hvilken som er i bruk.
+  KAYAK_SANDBOX_API_KEY: z.string().optional(),
+  KAYAK_API_KEY: z.string().optional(),
+  KAYAK_API_MODE: z.enum(["sandbox", "production"]).default("sandbox"),
+  /** Base-URL for produksjon (kommer med produksjonsnøkkelen). Sandbox har dokumentert standard. */
+  KAYAK_BASE_URL: z.string().url().optional(),
+  KAYAK_FLIGHTS_ENABLED: z.string().optional(),
+  /** Standardvaluta KAYAK skal prise i når kunden ikke har valgt (HelloSky Norge → NOK). */
+  KAYAK_DEFAULT_CURRENCY: z.string().regex(/^[A-Z]{3}$/).default("NOK"),
+  /** Tillat `provider=kayak` per søk selv om KAYAK ikke er standardleverandør (intern test/forhåndsvisning). */
+  KAYAK_PREVIEW: z.string().optional(),
+  /** Må settes bevisst før KAYAK *sandbox* får bli standardleverandør i APP_ENV=production. */
+  KAYAK_ALLOW_SANDBOX_IN_PRODUCTION: z.string().optional(),
+  /** Hvilken leverandør et vanlig søk går til. auto = som før (Travelport hvis slått på, ellers Duffel, ellers demo). */
+  FLIGHT_PROVIDER: z.enum(["auto", "duffel", "travelport", "kayak"]).default("auto"),
+  /** Flyselskap-direkte: off | prefer (sorter først) | only (skjul reisebyråer). */
+  AIRLINE_DIRECT_MODE: z.enum(["off", "prefer", "only"]).optional(),
+  /** Kortform: AIRLINE_DIRECT_ONLY=true ⇒ AIRLINE_DIRECT_MODE=only. */
+  AIRLINE_DIRECT_ONLY: z.string().optional(),
+
   // Sanntids flystatus (AviationStack). Uten nøkkel svarer flystatus-siden
   // ærlig at sanntidsdata ikke er tilgjengelig.
   // Førstegangsoppsett av eierkonto via nett. Av som standard: må slås på
@@ -93,6 +115,10 @@ const isProdEnv = raw.APP_ENV === "production";
 const duffelLive = raw.DUFFEL_API_KEY.startsWith("duffel_live_");
 const duffelConfigured = raw.DUFFEL_API_KEY.length > 0 && !raw.DUFFEL_API_KEY.includes("*");
 const smtpConfigured = Boolean(raw.SMTP_URL || raw.SMTP_HOST);
+const kayakKey = raw.KAYAK_API_MODE === "production" ? raw.KAYAK_API_KEY : raw.KAYAK_SANDBOX_API_KEY;
+const kayakConfigured = Boolean(kayakKey && kayakKey.trim().length > 0 && !kayakKey.includes("*"));
+const kayakEnabled = raw.KAYAK_FLIGHTS_ENABLED === "true" && kayakConfigured;
+const airlineDirectMode: "off" | "prefer" | "only" = raw.AIRLINE_DIRECT_ONLY === "true" ? "only" : (raw.AIRLINE_DIRECT_MODE ?? "prefer");
 const stripeConfigured = Boolean(raw.STRIPE_SECRET_KEY && raw.STRIPE_PUBLISHABLE_KEY);
 
 /** Harde produksjonsregler — kjøres ved oppstart av web og worker. */
@@ -107,11 +133,22 @@ export function assertProductionSafety(): void {
     if (!raw.STRIPE_WEBHOOK_SECRET) errors.push("STRIPE_WEBHOOK_SECRET mangler");
     if (!raw.DUFFEL_WEBHOOK_SECRET) errors.push("DUFFEL_WEBHOOK_SECRET mangler");
     if (!smtpConfigured) errors.push("SMTP må være konfigurert i produksjon (ellers logges tokens)");
+    // Sandkassepriser er ikke inventar. KAYAK sandbox får bare være standard
+    // søkeleverandør i produksjon når noen har skrevet det med rene ord.
+    if (raw.FLIGHT_PROVIDER === "kayak" && raw.KAYAK_API_MODE === "sandbox" && raw.KAYAK_ALLOW_SANDBOX_IN_PRODUCTION !== "true") {
+      errors.push("FLIGHT_PROVIDER=kayak med KAYAK_API_MODE=sandbox krever KAYAK_ALLOW_SANDBOX_IN_PRODUCTION=true (sandkassepriser skal ikke vises som ekte)");
+    }
+    if (raw.KAYAK_API_MODE === "production" && kayakEnabled && !raw.KAYAK_BASE_URL) {
+      errors.push("KAYAK_API_MODE=production krever KAYAK_BASE_URL (produksjonsdomenet fra KAYAK)");
+    }
     if (!raw.PII_ENCRYPTION_KEY) errors.push("PII_ENCRYPTION_KEY mangler (kryptering av passdata)");
     if (!raw.APP_BASE_URL?.startsWith("https://")) errors.push("APP_BASE_URL må være https i produksjon");
   } else {
     if (duffelLive) errors.push(`Live Duffel-nøkkel er ikke tillatt når APP_ENV=${raw.APP_ENV}`);
     if (raw.STRIPE_SECRET_KEY?.startsWith("sk_live_")) errors.push(`Live Stripe-nøkkel er ikke tillatt når APP_ENV=${raw.APP_ENV}`);
+  }
+  if (raw.FLIGHT_PROVIDER === "kayak" && !kayakEnabled) {
+    errors.push("FLIGHT_PROVIDER=kayak krever KAYAK_FLIGHTS_ENABLED=true og en KAYAK-nøkkel (KAYAK_SANDBOX_API_KEY eller KAYAK_API_KEY)");
   }
   if (errors.length) {
     throw new Error(`Produksjonssikring feilet:\n - ${errors.join("\n - ")}`);
@@ -144,6 +181,12 @@ export const env = {
   isProdEnv,
   duffelConfigured,
   duffelLive,
+  /** KAYAK-nøkkelen for aktiv modus. Leses KUN av api/lib/kayak.ts – aldri logg den. */
+  kayakApiKey: kayakKey ?? "",
+  kayakConfigured,
+  kayakEnabled,
+  kayakPreview: raw.KAYAK_PREVIEW === "true" && kayakEnabled,
+  airlineDirectMode,
   smtpConfigured,
   stripeConfigured,
   databaseUrl: raw.DATABASE_URL ?? "",

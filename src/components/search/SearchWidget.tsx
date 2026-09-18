@@ -1,6 +1,6 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeftRight, CalendarRange, ChevronDown, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, CalendarRange, ChevronDown, MoveRight, Plus, Search, X } from "lucide-react";
 import AirportField from "./AirportField";
 import DateField, { DateRangeField } from "./DateField";
 import PassengerCabinPicker from "./PassengerCabinPicker";
@@ -276,6 +276,9 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
               {t("sw.flex")}
             </Chip>
           )}
+          <Chip selected={state.direct} onClick={() => setState((s) => ({ ...s, direct: !s.direct }))} title={t("sw.direct.hint")} icon={<MoveRight aria-hidden="true" />}>
+            {t("sw.direct")}
+          </Chip>
         </div>
       </div>
       {moreOpen && (

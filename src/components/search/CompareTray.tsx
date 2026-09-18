@@ -23,7 +23,9 @@ function bagCell(bag: BaggageAllowance, kind: "carryOn" | "checked"): string {
   return bag.checkedUnknown ? "–" : String(bag.checkedBags);
 }
 
-const totalOf = (o: Offer, cfg: FeeConfig) => formatMinor(previewTotalMinor(o.totalAmount, o.totalCurrency, cfg), o.totalCurrency);
+/** Ekstern bestilling (metasøk): leverandørens pris uten HelloSky-gebyr. */
+const totalOf = (o: Offer, cfg: FeeConfig) =>
+  formatMinor(o.booking?.kind === "external" ? toMinor(o.totalAmount, o.totalCurrency) : previewTotalMinor(o.totalAmount, o.totalCurrency, cfg), o.totalCurrency);
 
 function CompareTable({ offers, onSelect, feeConfig }: { offers: Offer[]; onSelect: (offer: Offer) => void; feeConfig: FeeConfig }) {
   const rows: { label: string; value: (o: Offer) => string }[] = [
@@ -41,10 +43,11 @@ function CompareTable({ offers, onSelect, feeConfig }: { offers: Offer[]; onSele
     // «–» når flyselskapet ikke har oppgitt tillatelsen: et tall her ville vært en påstand vi ikke har dekning for.
     { label: "Håndbagasje", value: (o) => o.slices.map((s) => bagCell(sliceBaggage(s, o.baggage), "carryOn")).join(" / ") },
     { label: "Innsjekket bagasje", value: (o) => o.slices.map((s) => bagCell(sliceBaggage(s, o.baggage), "checked")).join(" / ") },
-    { label: "CO₂-utslipp", value: (o) => `${o.emissionsKg} kg` },
+    { label: "CO₂-utslipp", value: (o) => (typeof o.emissionsKg === "number" ? `${o.emissionsKg} kg` : "–") },
     { label: "Refusjon", value: (o) => fareConditionLabel("refund", o.conditions?.refundBeforeDeparture, o.refundable) },
     { label: "Endring", value: (o) => fareConditionLabel("change", o.conditions?.changeBeforeDeparture, o.changeable) },
     { label: "Flyselskapets pris", value: (o) => formatMinor(toMinor(o.totalAmount, o.totalCurrency), o.totalCurrency) },
+    { label: "Selges av", value: (o) => (o.booking ? `${o.booking.provider.name}${o.booking.sellerKind === "airline" ? " (flyselskapet)" : ""}` : "HelloSky") },
   ];
 
   return (
@@ -59,9 +62,9 @@ function CompareTable({ offers, onSelect, feeConfig }: { offers: Offer[]; onSele
               <th key={o.id} scope="col" className="rounded-lg bg-night p-4 text-left align-top text-white">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">{o.owner.iata}</p>
                 <p className="mt-1 text-xl font-semibold tabular sm:text-2xl">{totalOf(o, feeConfig)}</p>
-                <p className="text-[11px] text-white/60">ca. inkl. servicegebyr</p>
+                <p className="text-[11px] text-white/60">{o.booking ? "leverandørens pris" : "ca. inkl. servicegebyr"}</p>
                 <button type="button" onClick={() => onSelect(o)} className="mt-3 min-h-11 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-[hsl(var(--primary)/0.9)]">
-                  Velg denne
+                  {o.booking ? `Se tilbud hos ${o.booking.provider.name}` : "Velg denne"}
                 </button>
               </th>
             ))}
@@ -134,7 +137,9 @@ export default function CompareTray({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[92dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-xl bg-background p-5 sm:p-7">
           <DialogTitle className="font-display text-2xl">Sammenlign {offers.length} tilbud</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">Priser vises ca. inkl. servicegebyr. Bagasje per strekning.</DialogDescription>
+          <DialogDescription className="text-sm text-muted-foreground">
+            {offers.some((o) => o.booking?.kind === "external") ? "Priser slik leverandøren oppgir dem – du bestiller hos leverandøren. Bagasje per strekning." : "Priser vises ca. inkl. servicegebyr. Bagasje per strekning."}
+          </DialogDescription>
           <CompareTable
             offers={offers}
             feeConfig={feeConfig}

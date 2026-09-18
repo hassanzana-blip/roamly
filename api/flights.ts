@@ -5,14 +5,16 @@ import { getDb } from "./queries/connection";
 import { bookings, supportCases, supportMessages } from "../db/schema";
 import { env } from "./lib/env";
 import { AppError, toTRPCError } from "./lib/errors";
-import { duffelConfig, duffelGetOffer, duffelSearch } from "./lib/duffel";
-import { demoFlightStatus, demoGetOffer, demoPaxFactor, demoPriceHint, demoSearch } from "./lib/demo";
+import { duffelConfig, duffelGetOffer } from "./lib/duffel";
+import { demoFlightStatus, demoGetOffer, demoPaxFactor, demoPriceHint } from "./lib/demo";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { enqueueJob } from "./lib/jobs";
 import { issueBookingAccessToken } from "./lib/bookingAccess";
 import { FLAT_FEE_BY_CURRENCY, instantBookingEnabled, loadPricingOverrides, SERVICE_FEE_PERCENT } from "./lib/pricing";
 import { searchAirportsWorldwide } from "./lib/airportMeta";
-import { travelportConfig, travelportSearch, isTravelportOffer } from "./lib/travelport";
+import { isTravelportOffer } from "./lib/travelport";
+import { isKayakOffer, kayakAutocomplete, kayakConfig } from "./lib/kayak";
+import { flightProvidersStatus, getFlightProvider, type FlightProviderId } from "./lib/flightProviders";
 import { fetchFlightStatus, flightStatusConfig } from "./lib/flightStatus";
 import type { FlightStatus, Offer, Order, PriceHint, SearchResult, ServiceStatus } from "../contracts/types";
 
@@ -30,25 +32,41 @@ const sliceSchema = z.object({
   departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
+const providerSchema = z.enum(["duffel", "travelport", "kayak", "demo"]);
+
 const searchSchema = z.object({
   slices: z.array(sliceSchema).min(1).max(3),
   passengers: z.array(passengerSearchSchema).min(1).max(9),
   cabinClass: z.enum(["economy", "premium_economy", "business", "first"]),
+  /** Be om en bestemt leverandør (må være valgbar, se flights.status().flightProviders). */
+  provider: providerSchema.optional(),
+  /** Visningsvaluta for metasøk (KAYAK priser om). ISO 4217. */
+  currency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  /** Bare direktefly. */
+  directOnly: z.boolean().optional(),
+  /** Anonym økt-ID (UUID) fra nettleseren – KAYAKs userTrackId. Aldri knyttet til konto. */
+  sessionId: z.string().uuid().optional(),
 });
 
 type SearchInput = z.infer<typeof searchSchema>;
+
+/** YYYY-MM-DD i dag, i UTC – romslig nok til at ingen tidssone gjør «i dag» ugyldig. */
+function todayIso(): string {
+  return new Date(Date.now() + 14 * 60 * 60_000).toISOString().slice(0, 10);
+}
 
 // ─── Søkecache (live): 5 min per normalisert input ─────────────────────────
 const SEARCH_CACHE_TTL_MS = 5 * 60_000;
 const searchCache = new Map<string, { at: number; result: SearchResult }>();
 
-export function searchCacheKey(input: SearchInput): string {
+export function searchCacheKey(input: SearchInput, provider: FlightProviderId = "duffel"): string {
   const slices = input.slices.map((s) => `${s.origin.toUpperCase()}-${s.destination.toUpperCase()}@${s.departureDate}`).join("|");
   const pax = [...input.passengers]
     .map((p) => `${p.type}${p.age !== undefined ? `:${p.age}` : ""}`)
     .sort()
     .join(",");
-  return `${slices}#${pax}#${input.cabinClass}`;
+  const extra = provider === "kayak" ? `#${input.currency ?? kayakConfig.defaultCurrency}#${input.directOnly ? "direct" : "all"}` : "";
+  return `${provider}#${slices}#${pax}#${input.cabinClass}${extra}`;
 }
 
 setInterval(() => {
@@ -79,10 +97,18 @@ async function serviceStatus(): Promise<ServiceStatusWithFees> {
     instantBookingEnabled: instant,
     stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY ?? null,
     feeConfig,
+    flightProviders: flightProvidersStatus(),
   };
 }
 
 export async function resolveOffer(offerId: string): Promise<Offer> {
+  // Et KAYAK-tilbud bestilles hos leverandøren, aldri i HelloSkys checkout.
+  // Lenken til leverandøren ligger på tilbudet i søkeresultatet.
+  if (isKayakOffer(offerId)) {
+    throw new AppError("SUPPLIER_REJECTED", {
+      message: "Dette tilbudet bestilles direkte hos leverandøren, ikke hos HelloSky. Gå tilbake til søket og trykk «Se tilbud».",
+    });
+  }
   // Et Travelport-tilbud kan ikke bookes gjennom Duffel — id-ene tilhører
   // ulike leverandører. Stopp her framfor å sende den videre.
   if (isTravelportOffer(offerId)) {
@@ -108,26 +134,49 @@ export const flightsRouter = createRouter({
    */
   airports: publicQuery
     .input(z.object({ query: z.string().max(60), limit: z.number().int().min(1).max(20).optional() }))
-    .query(({ input }) => searchAirportsWorldwide(input.query, input.limit ?? 12)),
+    .query(async ({ input, ctx }) => {
+      const limit = input.limit ?? 12;
+      const local = searchAirportsWorldwide(input.query, limit);
+      // KAYAKs Autocomplete API fyller på først når registeret vårt kommer til
+      // kort – sandkassen tillater bare 100 kall i timen, så den spørres ikke
+      // for hvert tastetrykk.
+      if (!kayakConfig.enabled || local.length >= 3 || input.query.trim().length < 3) return local;
+      const extra = await kayakAutocomplete(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
+      const seen = new Set(local.map((a) => a.iata));
+      return [...local, ...extra.filter((a) => !seen.has(a.iata))].slice(0, limit);
+    }),
 
   search: publicQuery.input(searchSchema).mutation(async ({ input, ctx }): Promise<SearchResult> => {
     try {
       assertRateLimit("search", clientIp(ctx.req), 20, 60_000);
+      const today = todayIso();
       for (const s of input.slices) {
         if (s.origin.toUpperCase() === s.destination.toUpperCase()) {
-          throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass." });
+          throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass.", data: { field: "slices" } });
+        }
+        if (s.departureDate < today) {
+          throw new AppError("VALIDATION", { message: "Avreisedatoen er passert. Velg en dato fra og med i dag.", data: { field: "departureDate" } });
         }
       }
-      if (travelportConfig.searchEnabled || duffelConfig.configured) {
-        const key = searchCacheKey(input);
-        const hit = searchCache.get(key);
-        if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) return hit.result;
-        const result = travelportConfig.searchEnabled ? await travelportSearch(input) : await duffelSearch(input);
-        searchCache.set(key, { at: Date.now(), result });
-        return result;
-      }
-      await new Promise((r) => setTimeout(r, 600)); // realistisk leverandørlatens i demo
-      return demoSearch(input);
+      const provider = getFlightProvider(input.provider);
+      const request = {
+        slices: input.slices,
+        passengers: input.passengers,
+        cabinClass: input.cabinClass,
+        currency: input.currency,
+        directOnly: input.directOnly,
+        userTrackId: input.sessionId,
+        userAgent: ctx.req.headers.get("user-agent") ?? undefined,
+        clientIp: clientIp(ctx.req),
+      };
+      if (!provider.cacheable) return await provider.search(request);
+      const key = searchCacheKey(input, provider.id);
+      const hit = searchCache.get(key);
+      if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) return hit.result;
+      const result = await provider.search(request);
+      // Delvise svar (leverandøren rakk ikke å bli ferdig) caches ikke – neste søk får en ny sjanse.
+      if (!result.partial) searchCache.set(key, { at: Date.now(), result });
+      return result;
     } catch (err) {
       throw toTRPCError(err);
     }

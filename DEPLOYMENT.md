@@ -66,6 +66,24 @@ Sett på **begge** tjenestene (Railway: Shared Variables). Aldri i Git.
 | `PORT` | `3000` | Railway setter denne |
 | `SMS_PROVIDER` / `TWILIO_*` | `none` | Valgfri SMS (Twilio) |
 
+### KAYAK (metasøk – valgfritt)
+
+Kunden bestiller hos leverandøren via KAYAKs klikklenke; HelloSky selger ikke billetten og legger ikke på gebyr.
+Se [docs/KAYAK.md](docs/KAYAK.md) for integrasjonen og veien fra sandbox til produksjon.
+
+| Variabel | Verdi | Merknad |
+|---|---|---|
+| `KAYAK_SANDBOX_API_KEY` | fra KAYAKs e-post | Kun server. Gyldig 3 mnd. Aldri i Git/VITE_/logg |
+| `KAYAK_API_KEY` | produksjonsnøkkel | Settes først når KAYAK har godkjent affiliaten |
+| `KAYAK_API_MODE` | `sandbox` \| `production` | `production` krever `KAYAK_API_KEY` og `KAYAK_BASE_URL` |
+| `KAYAK_BASE_URL` | fra KAYAK | Sandbox har dokumentert standard (`https://sandbox-en-us.kayakaffiliates.com`) |
+| `KAYAK_FLIGHTS_ENABLED` | `true` | Uten denne er KAYAK helt av |
+| `KAYAK_DEFAULT_CURRENCY` | `NOK` | Kundens valutavalg overstyrer |
+| `KAYAK_PREVIEW` | `true`/`false` | `true` = `provider=kayak` kan bes om per søk (merket som testdata i sandbox) |
+| `KAYAK_ALLOW_SANDBOX_IN_PRODUCTION` | `false` | Oppstart nekter `FLIGHT_PROVIDER=kayak` + sandbox i production uten `true` |
+| `FLIGHT_PROVIDER` | `auto` | `auto` = som før (Travelport→Duffel→demo). `kayak` gjør KAYAK til standard |
+| `AIRLINE_DIRECT_MODE` | `prefer` | `only` skjuler reisebyråer; `AIRLINE_DIRECT_ONLY=true` er kortform |
+
 ### Frontend (bakes inn ved `npm run build` — sett i byggmiljøet)
 
 | Variabel | Bruk |

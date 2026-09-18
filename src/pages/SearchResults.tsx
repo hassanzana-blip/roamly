@@ -19,9 +19,10 @@ import { humanMessage } from "@/lib/apiError";
 import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { CabinClass, Offer, SearchPassengerInput, SearchSliceInput } from "@contracts/types";
 import { airportByIata } from "@contracts/airports";
-import { cabinLabel, formatClock, formatDateShort, formatDayMonth, formatDuration, formatMinor, formatPrice, layoverInfo, previewTotalMinor } from "@/lib/format";
+import { cabinLabel, formatClock, formatDateShort, formatDayMonth, formatDuration, formatMinor, formatPrice, layoverInfo, previewTotalMinor, toMinor } from "@/lib/format";
 import { useFeeConfig } from "@/lib/useFeeConfig";
-import { useT, type I18nKey } from "@/lib/i18n";
+import { useLocale, useT, type I18nKey } from "@/lib/i18n";
+import { searchSessionId } from "@/lib/kayakSession";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { PREFERENCES, isFamily, isPreference, rank, type Preference } from "@/lib/offers";
 import { ConnectionProblemSpot, NoFlightsSpot, SkeletonFlightCard } from "@/components/graphics";
@@ -76,9 +77,14 @@ function CheckRow({ checked, onChange, label, code }: { checked: boolean; onChan
   );
 }
 
+const PROVIDERS = ["duffel", "travelport", "kayak", "demo"] as const;
+type ProviderParam = (typeof PROVIDERS)[number];
+const providerParam = (v: string | null): ProviderParam | undefined => (PROVIDERS as readonly string[]).includes(v ?? "") ? (v as ProviderParam) : undefined;
+
 export default function SearchResults() {
   const t = useT();
   const feeConfig = useFeeConfig();
+  const { currency: preferredCurrency } = useLocale();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,6 +109,8 @@ export default function SearchResults() {
   const ret = params.get("ret");
   const cabin = (params.get("cabin") ?? "economy") as CabinClass;
   const sortParam = params.get("sort");
+  const directOnly = params.get("direct") === "1";
+  const requestedProvider = providerParam(params.get("provider"));
 
   const slices = useMemo<SearchSliceInput[]>(() => {
     if (isMulti) return legs.map((l) => ({ origin: l.from!.iata, destination: l.to!.iata, departureDate: l.date }));
@@ -125,6 +133,7 @@ export default function SearchResults() {
   const [stopsFilter, setStopsFilter] = useState<"all" | "direct" | "max1">("all");
   const [airlines, setAirlines] = useState<string[]>([]);
   const [baggageOnly, setBaggageOnly] = useState(false);
+  const [airlineDirectOnly, setAirlineDirectOnly] = useState(false);
   const [refundableOnly, setRefundableOnly] = useState(false);
   const [depTime, setDepTime] = useState<TimeBand>("all");
   const [arrTime, setArrTime] = useState<TimeBand>("all");
@@ -150,7 +159,15 @@ export default function SearchResults() {
     if (!slices.length) return;
     setVisible(PAGE_SIZE);
     setPriceMax(null);
-    search.mutate({ slices, passengers, cabinClass: cabin });
+    search.mutate({
+      slices,
+      passengers,
+      cabinClass: cabin,
+      currency: preferredCurrency,
+      ...(directOnly ? { directOnly: true } : {}),
+      ...(requestedProvider ? { provider: requestedProvider } : {}),
+      sessionId: searchSessionId(),
+    });
     // Innloggede får søket på kontoen («Rutene dine», søkehistorikk). Gjester: kun localStorage.
     recordSearch({
       origin: slices[0].origin,
@@ -178,6 +195,8 @@ export default function SearchResults() {
 
   const result = search.data;
   const priceAlertsAvailable = serviceStatus.data?.demoMode === true;
+  // Metasøk: kunden bestiller hos leverandøren – ingen HelloSky-gebyr på prisen.
+  const externalBooking = result?.bookingMode === "external";
 
   // ── offer validity ──
   const minExpiresAt = useMemo(() => {
@@ -201,8 +220,10 @@ export default function SearchResults() {
       cabin,
       pref: isPreference(sortParam) ? sortParam : "best",
       flex: params.get("flex") === "1",
+      direct: directOnly,
+      provider: requestedProvider,
     }),
-    [from, to, depart, ret, isMulti, legs, params, childAges, infantAges, cabin, sortParam],
+    [from, to, depart, ret, isMulti, legs, params, childAges, infantAges, cabin, sortParam, directOnly, requestedProvider],
   );
 
   // ── ±3-day strip ──
@@ -240,7 +261,11 @@ export default function SearchResults() {
   // ── offers ──
   const allOffers = useMemo(() => result?.offers ?? [], [result]);
   const currency = allOffers[0]?.totalCurrency ?? "NOK";
-  const totalOf = useCallback((o: Offer) => previewTotalMinor(o.totalAmount, o.totalCurrency, feeConfig), [feeConfig]);
+  const totalOf = useCallback(
+    (o: Offer) => (o.booking?.kind === "external" ? toMinor(o.totalAmount, o.totalCurrency) : previewTotalMinor(o.totalAmount, o.totalCurrency, feeConfig)),
+    [feeConfig],
+  );
+  const hasAgencyOffers = useMemo(() => allOffers.some((o) => o.booking && o.booking.sellerKind !== "airline"), [allOffers]);
   const sliceDuration = (o: Offer) => o.slices.reduce((s, x) => s + x.durationMinutes, 0);
 
   const availableAirlines = useMemo(() => {
@@ -276,6 +301,7 @@ export default function SearchResults() {
     }
     if (airlines.length) offers = offers.filter((o) => airlines.includes(o.owner.iata));
     if (baggageOnly) offers = offers.filter((o) => o.baggage.checkedBags > 0);
+    if (airlineDirectOnly) offers = offers.filter((o) => !o.booking || o.booking.sellerKind === "airline");
     if (refundableOnly) offers = offers.filter((o) => o.conditions?.refundBeforeDeparture?.allowed ?? o.refundable);
     if (depTime !== "all") offers = offers.filter((o) => inBand(depTime, localHour(o.slices[0].departingAt)));
     if (arrTime !== "all") offers = offers.filter((o) => inBand(arrTime, localHour(o.slices[0].arrivingAt)));
@@ -288,7 +314,7 @@ export default function SearchResults() {
       return [...offers].sort((a, b) => new Date(a.slices[0].departingAt).getTime() - new Date(b.slices[0].departingAt).getTime());
     }
     return rank(offers, sort, totalOf);
-  }, [allOffers, totalOf, sort, stopsFilter, airlines, baggageOnly, refundableOnly, depTime, arrTime, maxDurationH, maxLayoverH, priceMax, originAirports, destAirports]);
+  }, [allOffers, totalOf, sort, stopsFilter, airlines, baggageOnly, airlineDirectOnly, refundableOnly, depTime, arrTime, maxDurationH, maxLayoverH, priceMax, originAirports, destAirports]);
 
   const summary = useMemo(() => {
     if (!allOffers.length) return null;
@@ -314,6 +340,12 @@ export default function SearchResults() {
   });
 
   const selectOffer = (offer: Offer) => {
+    // Ekstern bestilling: kunden går til leverandøren via KAYAKs offisielle
+    // klikklenke. Ingen checkout hos HelloSky – vi verken selger eller utsteder.
+    if (offer.booking?.kind === "external") {
+      window.open(offer.booking.url, "_blank", "noopener,noreferrer");
+      return;
+    }
     sessionStorage.setItem(`hellosky:offer:${offer.id}`, JSON.stringify(offer));
     sessionStorage.setItem(`hellosky:offerctx:${offer.id}`, location.search);
     navigate(`/bestill?offer=${encodeURIComponent(offer.id)}`);
@@ -339,6 +371,7 @@ export default function SearchResults() {
     setStopsFilter("all");
     setAirlines([]);
     setBaggageOnly(false);
+    setAirlineDirectOnly(false);
     setRefundableOnly(false);
     setDepTime("all");
     setArrTime("all");
@@ -353,6 +386,7 @@ export default function SearchResults() {
     (stopsFilter !== "all" ? 1 : 0) +
     airlines.length +
     (baggageOnly ? 1 : 0) +
+    (airlineDirectOnly ? 1 : 0) +
     (refundableOnly ? 1 : 0) +
     (depTime !== "all" ? 1 : 0) +
     (arrTime !== "all" ? 1 : 0) +
@@ -377,7 +411,8 @@ export default function SearchResults() {
             onValueChange={([v]) => setPriceMax(v >= priceBounds.max ? null : v)}
           />
           <p className="mt-2 text-sm text-muted-foreground">
-            {t("sr.filter.upto")} <span className="font-semibold tabular text-foreground">{formatMinor(priceMax ?? priceBounds.max, currency)}</span> {t("sr.filter.approxfee")}
+            {t("sr.filter.upto")} <span className="font-semibold tabular text-foreground">{formatMinor(priceMax ?? priceBounds.max, currency)}</span>
+            {externalBooking ? "" : ` ${t("sr.filter.approxfee")}`}
           </p>
         </FilterGroup>
       )}
@@ -399,6 +434,7 @@ export default function SearchResults() {
       <FilterGroup title={t("sr.filter.ticket")}>
         <CheckRow checked={baggageOnly} onChange={setBaggageOnly} label={t("sr.filter.baggage")} />
         <CheckRow checked={refundableOnly} onChange={setRefundableOnly} label={t("sr.filter.refundable")} />
+        {hasAgencyOffers && <CheckRow checked={airlineDirectOnly} onChange={setAirlineDirectOnly} label={t("sr.filter.airlinedirect")} />}
       </FilterGroup>
       <FilterGroup title={t("sr.filter.deptime")}>
         <div className="flex flex-wrap gap-2">
@@ -552,6 +588,11 @@ export default function SearchResults() {
                 </Button>
               )}
               {result?.demoMode && <span className="rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">{t("sr.demo")}</span>}
+              {result?.sandbox && !result.demoMode && (
+                <span role="status" className="rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
+                  {t("sr.sandbox")}
+                </span>
+              )}
             </div>
           </div>
 
@@ -803,9 +844,14 @@ export default function SearchResults() {
                 <span className="font-semibold text-foreground">{t("sr.results", { count: filtered.length })}</span>
                 {activeFilters > 0 ? ` ${t("sr.results.of", { count: allOffers.length })}` : ""}
                 {" · "}
-                {family ? t("sr.family.hint", { count: passengers.length }) : t("sr.totalnote")}
+                {family ? t("sr.family.hint", { count: passengers.length }) : externalBooking ? t("sr.totalnote.external") : t("sr.totalnote")}
                 {expiresInMin !== null && expiresInMin > 0 ? ` · ${t("sr.validfor", { count: expiresInMin })}` : ""}
               </p>
+              {result.partial && (
+                <p role="status" className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                  {t("sr.partial")}
+                </p>
+              )}
               {filtered.slice(0, visible).map((offer, i) => (
                 <div key={offer.id} className={i < 8 ? "fade-up" : undefined} style={i < 8 ? { animationDelay: `${i * 45}ms` } : undefined}>
                 <OfferCard
@@ -824,7 +870,7 @@ export default function SearchResults() {
                   {t("sr.more", { count: filtered.length - visible })}
                 </Button>
               )}
-              <p className="pt-2 text-center text-xs text-muted-foreground">{t("sr.disclaimer")}</p>
+              <p className="pt-2 text-center text-xs text-muted-foreground">{externalBooking ? t("sr.disclaimer.external") : t("sr.disclaimer")}</p>
             </div>
           )}
         </section>

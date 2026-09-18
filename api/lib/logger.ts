@@ -15,6 +15,7 @@ const base = pino({
   redact: {
     paths: [
       "password", "*.password", "token", "*.token", "code", "otp", "authorization",
+      "apiKey", "*.apiKey", "api_key", "*.api_key",
       "*.uniqueIdentifier", "*.identifierCiphertext", "card", "*.card", "cookie", "*.cookie",
       "req.headers.cookie", "req.headers.authorization",
     ],

@@ -123,7 +123,9 @@ export function score(
         (o.slices.some((s) => s.segments.some((x) => x.departingAt.slice(11, 13) < "06")) ? 0.15 : 0)
       );
     default:
-      return price * 0.6 + time * 0.3 + stops * 0.15 + (layover > 300 ? 0.1 : 0);
+      // Metasøk: alt annet likt foretrekkes flyselskapet selv framfor et byrå –
+      // det er HelloSkys uttalte modell, og en liten dytt, ikke en overstyring.
+      return price * 0.6 + time * 0.3 + stops * 0.15 + (layover > 300 ? 0.1 : 0) + (o.booking && o.booking.sellerKind !== "airline" ? 0.05 : 0);
   }
 }
 
