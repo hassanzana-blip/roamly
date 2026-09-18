@@ -71,6 +71,9 @@ Sett på **begge** tjenestene (Railway: Shared Variables). Aldri i Git.
 Kunden bestiller hos leverandøren via KAYAKs klikklenke; HelloSky selger ikke billetten og legger ikke på gebyr.
 Se [docs/KAYAK.md](docs/KAYAK.md) for integrasjonen og veien fra sandbox til produksjon.
 
+Railway: en *Shared Variable* når ikke en tjeneste før tjenesten refererer den (`${{shared.NAVN}}` under tjenestens
+Variables → «Shared»). Verdiene under ligger som shared og er referert fra `web`; `worker` trenger dem ikke.
+
 | Variabel | Verdi | Merknad |
 |---|---|---|
 | `KAYAK_SANDBOX_API_KEY` | fra KAYAKs e-post | Kun server. Gyldig 3 mnd. Aldri i Git/VITE_/logg |
