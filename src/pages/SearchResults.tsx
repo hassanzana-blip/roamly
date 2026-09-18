@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, Bell, CalendarDays, ChevronDown, Plane, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
+import { ArrowRight, Bell, CalendarDays, ChevronDown, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -699,7 +699,7 @@ export default function SearchResults() {
       {/* min-h keeps the footer below the fold while results stream in, so the skeleton→cards swap doesn't shift it (CLS). */}
       <main id="main" tabIndex={-1} className="container-x min-h-[100dvh] gap-8 py-6 outline-none sm:py-8 lg:grid lg:grid-cols-[260px_1fr]">
         <aside className="hidden lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-xl border border-border bg-card p-5">
+          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5">
             <h2 className="mb-5 flex items-center gap-2 text-base font-semibold">
               <SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden="true" /> {t("sr.filter")}
             </h2>
@@ -773,7 +773,7 @@ export default function SearchResults() {
             </div>
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="relative shrink-0 lg:hidden">
+                <Button variant="outline" className="relative shrink-0 rounded-full lg:hidden">
                   <SlidersHorizontal aria-hidden="true" /> {t("sr.filter.short")}
                   {activeFilters > 0 && (
                     <span className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-primary text-2xs font-bold text-primary-foreground">{activeFilters}</span>
@@ -796,18 +796,14 @@ export default function SearchResults() {
 
           {search.isPending && (
             <div className="space-y-4" aria-live="polite" aria-busy="true">
-              <div className="overflow-hidden rounded-xl border border-border bg-card px-5 py-6 text-center">
-                <div className="relative mx-auto max-w-xs">
-                  <svg viewBox="0 0 320 44" className="w-full text-primary" aria-hidden="true">
-                    <path d="M8 34 C 90 6, 230 6, 312 28" fill="none" stroke="currentColor" strokeWidth="1.5" className="route-dash" opacity="0.4" />
-                    <circle cx="8" cy="34" r="4" fill="currentColor" opacity="0.5" />
-                    <circle cx="312" cy="28" r="4" fill="currentColor" />
-                  </svg>
-                  <Plane className="plane-fly absolute left-0 top-0 size-6 text-primary" aria-hidden="true" />
-                </div>
-                <p className="mt-3 text-sm font-semibold text-foreground">{t("sr.searching", { to: toAirport ? t("sr.searching.to", { city: toAirport.city }) : "" })}</p>
+              <div className="rounded-2xl border border-border bg-card px-5 py-4">
+                <p className="text-sm font-semibold text-foreground">{t("sr.searching", { to: toAirport ? t("sr.searching.to", { city: toAirport.city }) : "" })}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{t("sr.searching.sub")}</p>
+                <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                  <div className="h-full w-1/3 rounded-full bg-primary progress-slide" />
+                </div>
               </div>
+              <SkeletonFlightCard />
               <SkeletonFlightCard />
               <SkeletonFlightCard />
               <SkeletonFlightCard />
@@ -815,7 +811,7 @@ export default function SearchResults() {
           )}
 
           {search.isError && (
-            <div role="alert" className="rounded-xl border border-destructive/30 bg-card p-8 text-center">
+            <div role="alert" className="rounded-2xl border border-destructive/30 bg-card p-8 text-center">
               <ConnectionProblemSpot className="mx-auto" />
               <h2 className="mt-4 font-display text-2xl">{t("sr.error.title")}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{humanMessage(search.error)}</p>
@@ -826,7 +822,7 @@ export default function SearchResults() {
           )}
 
           {result && !filtered.length && (
-            <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <div className="rounded-2xl border border-border bg-card p-8 text-center">
               <NoFlightsSpot className="mx-auto" />
               <h2 className="mt-4 font-display text-2xl">{allOffers.length ? t("sr.empty.filtered") : t("sr.empty.none")}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{allOffers.length ? t("sr.empty.filteredsub") : t("sr.empty.nonesub")}</p>
@@ -870,7 +866,7 @@ export default function SearchResults() {
                   {t("sr.more", { count: filtered.length - visible })}
                 </Button>
               )}
-              <p className="pt-2 text-center text-xs text-muted-foreground">{externalBooking ? t("sr.disclaimer.external") : t("sr.disclaimer")}</p>
+              <p className="rounded-xl bg-secondary px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">{externalBooking ? t("sr.disclaimer.external") : t("sr.disclaimer")}</p>
             </div>
           )}
         </section>

@@ -48,6 +48,10 @@ const schema = z.object({
   /** Base-URL for produksjon (kommer med produksjonsnøkkelen). Sandbox har dokumentert standard. */
   KAYAK_BASE_URL: z.string().url().optional(),
   KAYAK_FLIGHTS_ENABLED: z.string().optional(),
+  /** Hotellsøk via KAYAK Hotels API (metasøk, ekstern bestilling). */
+  KAYAK_HOTELS_ENABLED: z.string().optional(),
+  /** Leiebilsøk via KAYAK Cars API (metasøk, ekstern bestilling). */
+  KAYAK_CARS_ENABLED: z.string().optional(),
   /** Standardvaluta KAYAK skal prise i når kunden ikke har valgt (HelloSky Norge → NOK). */
   KAYAK_DEFAULT_CURRENCY: z.string().regex(/^[A-Z]{3}$/).default("NOK"),
   /** Tillat `provider=kayak` per søk selv om KAYAK ikke er standardleverandør (intern test/forhåndsvisning). */
@@ -118,6 +122,8 @@ const smtpConfigured = Boolean(raw.SMTP_URL || raw.SMTP_HOST);
 const kayakKey = raw.KAYAK_API_MODE === "production" ? raw.KAYAK_API_KEY : raw.KAYAK_SANDBOX_API_KEY;
 const kayakConfigured = Boolean(kayakKey && kayakKey.trim().length > 0 && !kayakKey.includes("*"));
 const kayakEnabled = raw.KAYAK_FLIGHTS_ENABLED === "true" && kayakConfigured;
+const kayakHotelsEnabled = raw.KAYAK_HOTELS_ENABLED === "true" && kayakConfigured;
+const kayakCarsEnabled = raw.KAYAK_CARS_ENABLED === "true" && kayakConfigured;
 const airlineDirectMode: "off" | "prefer" | "only" = raw.AIRLINE_DIRECT_ONLY === "true" ? "only" : (raw.AIRLINE_DIRECT_MODE ?? "prefer");
 const stripeConfigured = Boolean(raw.STRIPE_SECRET_KEY && raw.STRIPE_PUBLISHABLE_KEY);
 
@@ -185,6 +191,8 @@ export const env = {
   kayakApiKey: kayakKey ?? "",
   kayakConfigured,
   kayakEnabled,
+  kayakHotelsEnabled,
+  kayakCarsEnabled,
   kayakPreview: raw.KAYAK_PREVIEW === "true" && kayakEnabled,
   airlineDirectMode,
   smtpConfigured,

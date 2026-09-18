@@ -7,6 +7,8 @@ import { customerAuthRouter } from "./customerAuth";
 import { extrasRouter } from "./extras";
 import { teamRouter } from "./team";
 import { partnersRouter } from "./partners";
+import { hotelsRouter } from "./hotels";
+import { carsRouter } from "./cars";
 import { adminRouter } from "./admin";
 import { expensesRouter } from "./expenses";
 import { quotesPublicRouter } from "./quotesPublic";
@@ -26,6 +28,8 @@ export const appRouter = createRouter({
   extras: extrasRouter,
   team: teamRouter,
   partners: partnersRouter,
+  hotels: hotelsRouter,
+  cars: carsRouter,
   admin: adminRouter,
   expenses: expensesRouter,
   quotesPublic: quotesPublicRouter,

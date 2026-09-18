@@ -331,7 +331,7 @@ function SellerLine({ offer, tone = "light" }: { offer: Offer; tone?: "light" | 
   const dark = tone === "dark";
   const muted = dark ? "text-white/65" : "text-muted-foreground";
   const pill = dark ? "bg-white/15 text-white" : "bg-muted text-foreground";
-  const good = dark ? "bg-lime-dark/25 text-white" : "bg-success/10 text-success";
+  const good = dark ? "bg-white/20 text-white" : "bg-primary-soft text-accent-foreground";
   const badges = (b.badges ?? []).filter((code) => code !== "direct" && BADGE_KEYS[code]);
   return (
     <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-xs", muted)}>
@@ -423,24 +423,31 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
     </div>
   );
 
-  /* ── «Vårt valg»: scenen ──────────────────────────────────────────── */
+  /* ── «Beste valg»: samme kort, tydelig løftet ────────────────────────
+     Rød ramme, begrunnelsen som merkelapper og prisen stor. Leses på to
+     sekunder og er tydelig forskjellig fra resten – uten mørk scene. */
   if (recommendedLabel) {
     return (
       <article
-        className="overflow-hidden rounded-2xl bg-night text-white"
+        className="overflow-hidden rounded-2xl border-2 border-primary bg-card shadow-soft"
         aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
       >
         <div className="px-4 pb-4 pt-3.5 sm:px-6 sm:pb-5 sm:pt-5">
-          <p className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[12px] font-bold text-primary-foreground">
-            {t("oc.ourpick")} · {t(recommendedLabel)}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[12px] font-bold text-primary-foreground">
+              {t("oc.ourpick")} · {t(recommendedLabel)}
+            </p>
+            {offer.source === "kayak" && offer.booking && (
+              <span className="rounded-md bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">{t("sr.sandbox.badge")}</span>
+            )}
+          </div>
 
           {/* Begrunnelsen står først, som verifiserte fakta – ikke en påstand. */}
           {reasons.length > 0 && (
             <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold sm:mt-3.5 sm:gap-x-5 sm:gap-y-1.5 sm:text-[15px]">
               {reasons.map((r) => (
                 <li key={r} className="flex items-center gap-1.5">
-                  <Check className="size-3.5 shrink-0 text-lime-dark sm:size-4" aria-hidden="true" /> {r}
+                  <Check className="size-3.5 shrink-0 text-success sm:size-4" aria-hidden="true" /> {r}
                 </li>
               ))}
             </ul>
@@ -448,53 +455,49 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
 
           <div className="mt-3.5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 sm:mt-5 sm:gap-y-4">
             <div className="flex min-w-0 items-center gap-2.5">
-              {/* Flyselskapets merke står på hvit plate, slik selskapene selv
-                  krever det på mørk bakgrunn – og slik monogrammet forblir lesbart. */}
-              <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white p-1">
-                <AirlineLogo airline={airline} size={22} className="bg-transparent" />
-              </span>
+              <AirlineLogo airline={airline} size={32} className="rounded-lg" />
               <span className="min-w-0">
                 <span className="block truncate text-[15px] font-semibold">{offer.owner.name}</span>
-                {operatedBy.length > 0 && <span className="block text-xs text-white/60">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
+                {operatedBy.length > 0 && <span className="block text-xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
               </span>
             </div>
             <div className="text-right">
-              <p className="t-price leading-none text-white">{formatMinor(totalMinor, currency)}</p>
-              <p className="mt-1 text-xs font-medium text-white/75 sm:mt-1.5 sm:text-[13px]">{priceLabel}</p>
+              <p className="t-price leading-none">{formatMinor(totalMinor, currency)}</p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground sm:mt-1.5 sm:text-[13px]">{priceLabel}</p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-3 bg-white/[0.06] px-4 py-4 sm:space-y-4 sm:px-6 sm:py-5">
+        <div className="space-y-3 border-t border-border bg-secondary/60 px-4 py-4 sm:space-y-4 sm:px-6 sm:py-5">
           {offer.slices.map((slice, i) => (
             <div key={slice.id}>
-              {offer.slices.length > 1 && <p className="mb-1 text-[11px] font-semibold text-white/60 sm:mb-1.5 sm:text-xs">{sliceLabel(offer.slices.length, i)}</p>}
-              <SliceViz slice={slice} tone="dark" />
+              {offer.slices.length > 1 && <p className="mb-1 text-[11px] font-semibold text-muted-foreground sm:mb-1.5 sm:text-xs">{sliceLabel(offer.slices.length, i)}</p>}
+              <SliceViz slice={slice} />
             </div>
           ))}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-0.5 sm:gap-x-5 sm:gap-y-2 sm:pt-1">
-            <BaggageLine offer={offer} tone="dark" />
-            <OfferTags keys={flags} tone="dark" />
+            <BaggageLine offer={offer} />
+            <OfferTags keys={flags} />
           </div>
-          <SellerLine offer={offer} tone="dark" />
+          <SellerLine offer={offer} />
         </div>
 
         <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-          <div className="flex flex-col gap-2.5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-4">
-            <div className="flex min-w-0 items-center gap-4 text-white/80">
+          <div className="flex flex-col gap-2.5 border-t border-border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-4">
+            <div className="flex min-w-0 items-center gap-4">
               <Collapsible.Trigger asChild>
-                <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-medium text-white underline-offset-4 hover:underline">
+                <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline">
                   {expanded ? t("oc.hide") : t("oc.show")}
                   <ChevronDown className={cn("size-4 transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
                 </button>
               </Collapsible.Trigger>
-              {perPerson && <span className="t-num truncate text-xs text-white/60">{perPerson}</span>}
+              {perPerson && <span className="t-num truncate text-xs text-muted-foreground">{perPerson}</span>}
             </div>
-            <Button size="lg" {...ctaProps} className="w-full sm:w-auto sm:px-8">
+            <Button size="lg" {...ctaProps} className="w-full rounded-full sm:w-auto sm:px-8">
               {ctaInner}
             </Button>
           </div>
-          <Collapsible.Content id={detailsId} className="overflow-hidden bg-background text-foreground data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          <Collapsible.Content id={detailsId} className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
             <OfferDetails offer={offer} supplierMinor={supplierMinor} currency={currency} />
             <div className="border-t border-border px-4 py-3 sm:px-5">{secondary}</div>
           </Collapsible.Content>
@@ -507,8 +510,8 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-xl border bg-card transition-[border-color] duration-base ease-out",
-        selected ? "border-primary" : "border-border hover:border-foreground/40",
+        "overflow-hidden rounded-2xl border bg-card shadow-soft transition-[border-color] duration-base ease-out",
+        selected ? "border-primary" : "border-border hover:border-primary/50",
       )}
       aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
     >
@@ -547,14 +550,14 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
         <div className={cn("flex gap-3 border-t border-border px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3", external ? "flex-col items-stretch" : "items-center justify-between")}>
           <div className="flex min-w-0 items-center justify-between gap-4 sm:justify-start">
             <Collapsible.Trigger asChild>
-              <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
+              <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline">
                 {expanded ? t("oc.hide") : t("oc.show")}
-                <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
+                <ChevronDown className={cn("size-4 transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
               </button>
             </Collapsible.Trigger>
             {perPerson && <span className={cn("t-num truncate text-xs text-muted-foreground", external ? "inline" : "hidden sm:inline")}>{perPerson}</span>}
           </div>
-          <Button size="md" {...ctaProps} className={cn("min-w-0 px-4 sm:px-6", external ? "w-full sm:w-auto [&>a]:min-w-0 [&>a]:truncate" : "shrink-0")}>
+          <Button size="md" {...ctaProps} className={cn("min-w-0 rounded-full px-4 sm:px-6", external ? "w-full sm:w-auto [&>a]:min-w-0 [&>a]:truncate" : "shrink-0")}>
             {ctaInner}
           </Button>
         </div>

@@ -81,3 +81,27 @@ tekster, aldri KAYAKs råtekst. Sandkassens `sandbox-api-empty: true`-header kan
 `api/lib/kayak.test.ts` kjører mot KAYAKs dokumenterte `PollResponse`-eksempel (forespørsel, kartlegging,
 selgerklassifisering, airline-direct, feilkoder, poll-løkke med falsk `fetch`, autocomplete).
 `api/lib/flightProviders.test.ts` dekker valget av leverandør.
+
+
+## Hotell og leiebil (HelloSky 2.0)
+
+Samme nøkkel, samme sikkerhetsmodell (`api/lib/kayak.ts → kayakRequest`), egne brytere:
+
+| Variabel | Effekt |
+|---|---|
+| `KAYAK_HOTELS_ENABLED=true` | `hotels.*` (tRPC) → `GET /api/3.0/hotels` (flere hoteller), `GET /api/3.0/hotel` (ett hotell, alle priser), `GET /api/affiliate/autocomplete/v1/hotels` (sted → `kplace:`). |
+| `KAYAK_CARS_ENABLED=true` | `cars.*` (tRPC) → `POST /i/api/affiliate/search/car/v1/poll` (start + poll til `complete`), `GET /api/affiliate/autocomplete/v1/cars`. |
+
+Regler som håndheves i koden (`api/lib/kayakHotels.ts`, `api/lib/kayakCars.ts`):
+
+- **Bare ekte innhold.** Hotellbilder er `images[].large` fra KAYAK (hotellets egne). Uten bilde vises en nøytral
+  plassholder – aldri et stockfoto. Vurderinger er `guestRating`/`numberOfReviews`; `-1` = «ikke vurdert».
+  Beskrivelse, vilkår og sitater vises kun når leverandøren sender dem.
+- **Ekstern bestilling.** Hver pris peker til `bookUri`/`bookingUrl` (KAYAKs klikklenke). Bare `https://`
+  (lokalt: `localhost`) slipper gjennom. HelloSky tar ikke betaling.
+- **Sandbox merkes.** `sandbox: true` i svaret → «Sandbox · testdata»-merke på kort og lister.
+- **Rate limits.** Stedssøk caches 24 t og er begrenset til 80 kall/time per prosess; søk har IP-grenser i
+  `api/hotels.ts` / `api/cars.ts`.
+- Er en bryter av, svarer `status.enabled=false` og sidene viser en ærlig «ikke tilgjengelig»-tilstand med
+  lenke til forespørselsskjemaet (`/hotell-bil`). Den gamle demokatalogen (`/overnatting-bil?type=hotell|bil`)
+  videresendes til de nye sidene.

@@ -1,168 +1,131 @@
-import { useId, useState } from "react";
 import { Link } from "react-router";
-import { ChevronDown, CreditCard, Facebook, Mail, Phone, ShieldCheck } from "lucide-react";
+import { Facebook, Globe, Mail, Phone, ShieldCheck } from "lucide-react";
 import SkyMark from "@/components/brand/SkyMark";
 import { WhatsAppIcon, WHATSAPP_LINK, WHATSAPP_DISPLAY } from "@/components/WhatsAppFab";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useT, type I18nKey } from "@/lib/i18n";
-import { trpc } from "@/providers/trpc";
-import { cn } from "@/lib/utils";
+import { useLocale, useT, LANG_LABELS, type I18nKey } from "@/lib/i18n";
 import { COMPANY } from "@/pages/content/company";
 
 export const FACEBOOK_LINK = "https://www.facebook.com/share/1Etw1nFpKH/?mibextid=wwXIfr";
 
-const SHORTCUTS: { to: string; label: I18nKey }[] = [
-  { to: "/", label: "footer.searchtickets" },
+type FooterLink = { to: string; label: I18nKey };
+
+const SEARCH: FooterLink[] = [
+  { to: "/", label: "footer.flights" },
+  { to: "/hotell", label: "footer.hotels" },
+  { to: "/leiebil", label: "footer.cars" },
   { to: "/reisemal", label: "footer.destinations" },
-  { to: "/journal", label: "footer.journal" },
-  { to: "/hotell-bil", label: "footer.hotelcar" },
-  { to: "/quiz", label: "footer.quiz" },
-  { to: "/reise", label: "footer.findbooking" },
   { to: "/flystatus", label: "footer.track" },
-  { to: "/hjelp", label: "nav.support" },
-  { to: "/samfunn", label: "footer.community" },
-  { to: "/om-oss", label: "footer.about" },
 ];
 
-const LEGAL: { to: string; label: I18nKey }[] = [
-  { to: "/vilkar", label: "footer.terms" },
-  { to: "/personvern", label: "footer.privacy" },
+const COMPANY_LINKS: FooterLink[] = [
+  { to: "/om-oss", label: "footer.about" },
+  { to: "/om-oss#slik", label: "footer.how" },
+  { to: "/journal", label: "footer.journal" },
+  { to: "/samfunn", label: "footer.community" },
+  { to: "/reise", label: "footer.findbooking" },
+];
+
+const HELP: FooterLink[] = [
+  { to: "/hjelp", label: "nav.support" },
   { to: "/bagasje", label: "footer.baggage" },
   { to: "/visum", label: "footer.visa" },
+  { to: "/vilkar", label: "footer.terms" },
+  { to: "/personvern", label: "footer.privacy" },
   { to: "/fotokreditering", label: "footer.photocredits" },
 ];
 
-const linkCls = "nav-underline inline-flex min-h-8 items-center text-muted-foreground transition-colors hover:text-foreground";
+const linkCls = "inline-flex min-h-8 items-center text-sm text-white/70 transition-colors hover:text-white";
 
-/**
- * En lenkegruppe i bunnteksten. På mobil er den et sammenslått trekkspill, slik
- * at identitet og kontaktinfo ligger øverst og ikke drukner i ni snarveier; fra
- * md og opp er den en helt vanlig liste med overskrift.
- *
- * Lukket gruppe er `inert`: lenkene er ikke i tabulatorrekkefølgen og ikke
- * synlige for skjermleser, slik at knappen forteller sannheten om hva som er der.
- */
-function FooterGroup({ title, links, className }: { title: string; links: { to: string; label: I18nKey }[]; className?: string }) {
+function Column({ title, links }: { title: string; links: FooterLink[] }) {
   const t = useT();
-  const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
-  const expanded = !isMobile || open;
-
   return (
-    <nav aria-label={title} className={className}>
-      {isMobile ? (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-controls={panelId}
-          className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-border text-left"
-        >
-          <span className="eyebrow">{title}</span>
-          <ChevronDown
-            className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none", open && "rotate-180")}
-            aria-hidden="true"
-          />
-        </button>
-      ) : (
-        <h2 className="eyebrow mb-4">{title}</h2>
-      )}
-      <div
-        id={panelId}
-        inert={!expanded}
-        className={cn(
-          "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
-          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-        )}
-      >
-        <ul className={cn("space-y-1.5 overflow-hidden text-sm", isMobile && "pt-2")}>
-          {links.map((l) => (
-            <li key={l.to}>
-              <Link className={linkCls} to={l.to}>
-                {t(l.label)}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <nav aria-label={title}>
+      <h2 className="mb-3 text-[13px] font-semibold text-white">{title}</h2>
+      <ul className="space-y-1">
+        {links.map((l) => (
+          <li key={l.to}>
+            <Link className={linkCls} to={l.to}>
+              {t(l.label)}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </nav>
   );
 }
 
+/**
+ * HelloSky 2.0 footer: warm near-black surface, the brand with the
+ * metasearch disclosure first, three link columns, contact, then the
+ * legal line with locale. On phones the bottom padding clears BottomNav.
+ */
 export default function SiteFooter() {
   const t = useT();
-  // Betalingsmerkene er en påstand om hvordan du betaler. Står Stripe ikke klart
-  // i miljøet, kan ingen betale – da viser vi dem ikke.
-  const status = trpc.flights.status.useQuery(undefined, { staleTime: 300_000, retry: false });
-  const paymentsConfigured = status.data?.paymentsConfigured === true;
+  const { lang, currency } = useLocale();
 
   return (
-    <footer className="relative border-t border-border bg-card text-foreground">
-      <div className="container-x grid gap-x-10 gap-y-8 pt-14 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div className="md:col-start-1 md:row-start-1">
-          <div className="flex items-center gap-2">
-            <SkyMark className="h-8 w-8 text-foreground" />
-            <span className="text-[22px] font-extrabold lowercase tracking-tight text-foreground">hellosky</span>
-          </div>
-          <p className="font-display mt-4 text-2xl text-foreground">{t("footer.tagline")}</p>
-          <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">{t("footer.blurb")}</p>
-          <div className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-            <ShieldCheck className="mt-px size-4 shrink-0 text-success" aria-hidden="true" />
-            {paymentsConfigured ? t("footer.trust") : t("footer.trust.nopay")}
-          </div>
-          {paymentsConfigured && (
-            <div className="mt-5 flex flex-wrap items-center gap-2.5">
-              <span className="eyebrow w-full">{t("footer.paywith")}</span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-semibold">
-                <CreditCard className="size-4" aria-hidden="true" /> {t("footer.card")}
+    <footer className="relative bg-night text-white">
+      <div className="container-x pt-12 sm:pt-14">
+        <div className="grid gap-10 md:grid-cols-[1.3fr_1fr_1fr_1fr] md:gap-8 lg:gap-12">
+          <div>
+            <Link to="/" className="inline-flex items-center gap-2 rounded-md" aria-label={t("nav.tofront")}>
+              <SkyMark className="h-8 w-8 text-white" />
+              <span className="flex flex-col justify-center">
+                <span className="text-[22px] font-extrabold lowercase leading-none tracking-tight">hellosky</span>
+                <span className="mt-1 text-[8.5px] font-semibold uppercase leading-none tracking-[0.3em] text-white/60">{t("brand.tagline")}</span>
               </span>
-              <img src="/brand/klarna.jpg" alt="Klarna" className="h-7 rounded-md" loading="lazy" width="70" height="28" />
-              <span className="rounded-md bg-night px-2.5 py-1 text-xs font-semibold text-white">Stripe</span>
-            </div>
-          )}
-          <a
-            href={FACEBOOK_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-background px-3.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
-          >
-            <Facebook className="size-4" aria-hidden="true" /> {t("footer.facebook")}
-          </a>
-        </div>
-
-        {/* Kontakt står alltid åpent – det er det folk leter etter i bunnteksten. */}
-        <div className="md:col-start-3 md:row-start-1">
-          <h2 className="eyebrow mb-4">{t("footer.contact")}</h2>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>
-              <a href={`mailto:${COMPANY.supportEmail}`} className={`${linkCls} gap-2.5`}>
-                <Mail className="size-4" aria-hidden="true" /> {COMPANY.supportEmail}
+            </Link>
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-white/70">{t("footer.meta.blurb")}</p>
+            <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-white/60">
+              <ShieldCheck className="mt-px size-4 shrink-0 text-white/70" aria-hidden="true" />
+              {t("footer.meta.trust")}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <a href={FACEBOOK_LINK} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/20 px-3.5 text-sm font-medium text-white transition-colors hover:border-white/50">
+                <Facebook className="size-4" aria-hidden="true" /> {t("footer.facebook")}
               </a>
-            </li>
-            <li>
-              <a href={`tel:${COMPANY.supportPhoneTel}`} className={`${linkCls} gap-2.5`}>
-                <Phone className="size-4" aria-hidden="true" /> {COMPANY.supportPhone}
-              </a>
-            </li>
-            <li>
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className={`${linkCls} gap-2.5`}>
+              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/20 px-3.5 text-sm font-medium text-white transition-colors hover:border-white/50">
                 <WhatsAppIcon className="size-4" /> WhatsApp {WHATSAPP_DISPLAY}
               </a>
-            </li>
-            <li className="text-xs leading-relaxed text-muted-foreground">{t("footer.hours")}</li>
-          </ul>
+            </div>
+          </div>
+
+          <Column title={t("footer.search")} links={SEARCH} />
+          <Column title={t("footer.company")} links={COMPANY_LINKS} />
+          <div className="space-y-8">
+            <Column title={t("footer.help")} links={HELP} />
+            <div>
+              <h2 className="mb-3 text-[13px] font-semibold text-white">{t("footer.contact")}</h2>
+              <ul className="space-y-1 text-sm">
+                <li>
+                  <a href={`mailto:${COMPANY.supportEmail}`} className={`${linkCls} gap-2`}>
+                    <Mail className="size-4" aria-hidden="true" /> {COMPANY.supportEmail}
+                  </a>
+                </li>
+                <li>
+                  <a href={`tel:${COMPANY.supportPhoneTel}`} className={`${linkCls} gap-2`}>
+                    <Phone className="size-4" aria-hidden="true" /> {COMPANY.supportPhone}
+                  </a>
+                </li>
+                <li className="pt-1 text-xs leading-relaxed text-white/55">{t("footer.hours")}</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
-        <FooterGroup title={t("footer.shortcuts")} links={SHORTCUTS} className="md:col-start-2 md:row-start-1" />
-        <FooterGroup title={t("footer.legal")} links={LEGAL} className="md:col-start-3 md:row-start-2" />
+        <div className="mt-10 flex flex-col gap-3 border-t border-white/12 py-5 text-xs leading-relaxed text-white/55 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {new Date().getFullYear()} {COMPANY.identityLine} · {t("footer.meta.copy")} · {t("footer.meta.sources")}
+            <span className="mx-2 text-white/30">·</span>
+            {t("footer.photo")}
+          </p>
+          <p className="inline-flex items-center gap-1.5 text-white/75">
+            <Globe className="size-3.5" aria-hidden="true" /> {LANG_LABELS[lang]} · {currency}
+          </p>
+        </div>
       </div>
-
-      <div className="container-x mt-10 border-t border-border py-5 text-center text-xs leading-relaxed text-muted-foreground">
-        © {new Date().getFullYear()} {COMPANY.identityLine} · {t("footer.copy")}
-        <span className="mx-2 text-muted-foreground/60">·</span>
-        {t("footer.photo")}
-      </div>
+      {/* Plass til bunnavigasjonen på telefon (den ligger over innholdet). */}
+      <div className="h-2 lg:hidden" aria-hidden="true" />
     </footer>
   );
 }

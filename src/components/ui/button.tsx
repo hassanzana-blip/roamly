@@ -21,10 +21,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        /* Hover darkens the lime a step instead of fading it: a washed-out primary reads as disabled. */
-        primary: "bg-primary text-primary-foreground hover:bg-[hsl(74_93%_49%)]",
+        /* Hover darkens the brand colour a step instead of fading it: a washed-out primary reads as disabled. */
+        primary: "bg-primary text-primary-foreground hover:bg-[hsl(var(--primary-hover))]",
         /** Alias kept for generated shadcn files that still pass variant="default" */
-        default: "bg-primary text-primary-foreground hover:bg-[hsl(74_93%_49%)]",
+        default: "bg-primary text-primary-foreground hover:bg-[hsl(var(--primary-hover))]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-[hsl(var(--secondary)/0.7)]",
         outline: "border border-input bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60",
         ghost: "text-foreground hover:bg-muted",

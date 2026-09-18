@@ -81,6 +81,8 @@ Variables → «Shared»). Verdiene under ligger som shared og er referert fra `
 | `KAYAK_API_MODE` | `sandbox` \| `production` | `production` krever `KAYAK_API_KEY` og `KAYAK_BASE_URL` |
 | `KAYAK_BASE_URL` | fra KAYAK | Sandbox har dokumentert standard (`https://sandbox-en-us.kayakaffiliates.com`) |
 | `KAYAK_FLIGHTS_ENABLED` | `true` | Uten denne er KAYAK helt av |
+| `KAYAK_HOTELS_ENABLED` | `true` | Hotellsøk via KAYAK Hotels API (`/hotell`). Av = forespørselsflyt, ingen demodata |
+| `KAYAK_CARS_ENABLED` | `true` | Leiebilsøk via KAYAK Cars API (`/leiebil`). Av = forespørselsflyt |
 | `KAYAK_DEFAULT_CURRENCY` | `NOK` | Kundens valutavalg overstyrer |
 | `KAYAK_PREVIEW` | `true`/`false` | `true` = `provider=kayak` kan bes om per søk (merket som testdata i sandbox) |
 | `KAYAK_ALLOW_SANDBOX_IN_PRODUCTION` | `false` | Oppstart nekter `FLIGHT_PROVIDER=kayak` + sandbox i production uten `true` |

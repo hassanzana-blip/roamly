@@ -71,6 +71,16 @@ function fromMinor(minor: number, currency = "NOK"): string {
 }
 
 /** Beløp i minste enhet → «1 234 kr» / «12,50 €». Hele kroner uten desimaler for NOK/SEK/DKK. */
+/** Beløp i hovedenhet (f.eks. 1890.5 NOK) – hotell- og leiebilpriser fra leverandøren. */
+export function formatMoney(amount: number, currency: string, locale = currentLocale()): string {
+  const whole = Math.abs(amount) >= 100 || Number.isInteger(amount);
+  try {
+    return new Intl.NumberFormat(locale, { style: "currency", currency, currencyDisplay: "narrowSymbol", minimumFractionDigits: 0, maximumFractionDigits: whole ? 0 : 2 }).format(amount);
+  } catch {
+    return `${Math.round(amount)} ${currency}`;
+  }
+}
+
 export function formatMinor(minor: number, currency: string, locale = currentLocale()): string {
   const cur = currency.toUpperCase();
   const exp = currencyExponent(cur);

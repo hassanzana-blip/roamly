@@ -186,9 +186,24 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]): JsonL
 }
 
 export const PAGE_META = {
+  hotels: {
+    title: "Søk og sammenlign hotell",
+    description: "Sammenlign hotellpriser fra flere leverandører med ekte hotellbilder og gjestevurderinger. Bestill hos leverandøren.",
+    canonicalPath: "/hotell",
+  },
+  hotelDetail: {
+    title: "Hotell – priser fra flere leverandører",
+    description: "Se rom, priser og vilkår fra flere leverandører for samme hotell. Bestillingen fullføres hos leverandøren.",
+    canonicalPath: "/hotell",
+  },
+  cars: {
+    title: "Søk og sammenlign leiebil",
+    description: "Sammenlign leiebilpriser fra utleieselskaper og formidlere. Bestill hos leverandøren.",
+    canonicalPath: "/leiebil",
+  },
   home: {
-    title: "Flybilletter fra Norge til hele verden",
-    description: "Søk og bestill flyreiser fra Norge. Totalpris fra første søk, bagasje per billett og norsk kundeservice 06–24.",
+    title: "Søk og sammenlign fly, hotell og leiebil",
+    description: "HelloSky er en søkemotor for reiser: priser fra flyselskaper, hoteller og reisebyråer i ett søk. Bestillingen fullføres alltid hos leverandøren.",
     canonicalPath: "/",
     jsonLd: ORG_JSON_LD,
   },

@@ -132,7 +132,7 @@ export function scrubSecret(text: string): string {
   return out.replace(/apiKey=[^&\s]+/gi, "apiKey=[redacted]").slice(0, 300);
 }
 
-type KayakRequest = {
+export type KayakRequest = {
   method: "GET" | "POST";
   path: string;
   query: Record<string, string | undefined>;
@@ -144,13 +144,13 @@ type KayakRequest = {
   signal?: AbortSignal;
 };
 
-type KayakResponse = { status: number; json: unknown; setCookies: string[] };
+export type KayakResponse = { status: number; json: unknown; setCookies: string[] };
 
 /**
  * Ett kall mot KAYAK. Nøkkelen legges på her og bare her. Timeout per kall,
  * ingen logging av spørrestreng, og feilkropper leses kun for kode/status.
  */
-async function kayakRequest(req: KayakRequest): Promise<KayakResponse> {
+export async function kayakRequest(req: KayakRequest): Promise<KayakResponse> {
   if (!kayakConfig.enabled) throw new KayakError("KAYAK-søk er ikke slått på.");
   const url = new URL(kayakConfig.baseUrl + req.path);
   url.searchParams.set("apiKey", env.kayakApiKey);

@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType } from 'react'
+import { lazy, Suspense, useEffect, type ComponentType } from 'react'
 import { Routes, Route, useLocation } from 'react-router'
 import ErrorBoundary from './components/app/ErrorBoundary'
 import RouteFallback from './components/app/RouteFallback'
@@ -27,6 +27,9 @@ const Support = lazy(() => import('./pages/Support'))
 const Destinations = lazy(() => import('./pages/Destinations'))
 const Quiz = lazy(() => import('./pages/Quiz'))
 const HotelCar = lazy(() => import('./pages/HotelCar'))
+const Hotels = lazy(() => import('./pages/Hotels'))
+const HotelDetail = lazy(() => import('./pages/HotelDetail'))
+const Cars = lazy(() => import('./pages/Cars'))
 const StayResults = lazy(() => import('./pages/StayResults'))
 const QuotePage = lazy(() => import('./pages/QuotePage'))
 const Auth = lazy(() => import('./pages/Auth'))
@@ -98,6 +101,15 @@ export default function App() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
 
+  // Adminen beholder sitt eget visuelle system (lime). Kundesidene får
+  // HelloSky 2.0 (rød). Bryteren er ett attributt på <html>; src/index.css
+  // gjenoppretter alle legacy-tokens under [data-theme="admin"].
+  useEffect(() => {
+    const root = document.documentElement
+    if (isAdmin) root.setAttribute('data-theme', 'admin')
+    else root.removeAttribute('data-theme')
+  }, [isAdmin])
+
   return (
     <>
       <ErrorBoundary>
@@ -122,6 +134,9 @@ export default function App() {
             <Route path="/m/:token" element={<MatchSession />} />
             <Route path="/tavler" element={<Boards />} />
             <Route path="/tavler/:token" element={<BoardPage />} />
+            <Route path="/hotell" element={<Hotels />} />
+            <Route path="/hotell/:key" element={<HotelDetail />} />
+            <Route path="/leiebil" element={<Cars />} />
             <Route path="/hotell-bil" element={<HotelCar />} />
             <Route path="/overnatting-bil" element={<StayResults />} />
             <Route path="/tilbud/:token" element={<QuotePage />} />

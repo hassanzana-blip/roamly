@@ -34,7 +34,7 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
         "transition-[border-color,box-shadow,background-color] duration-fast ease-out",
         joined
           ? "border-0 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-muted/60"
-          : "rounded-lg border hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-ring",
+          : "rounded-xl border hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-ring",
         invalid ? (joined ? "bg-destructive/5" : "border-destructive") : joined ? "" : "border-input",
         className,
       )}

@@ -3,57 +3,75 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────────────────
-   HelloSky design tokens
-   Scandinavian clarity, editorial warmth, mobile-first. One palette, one
-   type system, one motion scale. Components read from these variables; no
-   raw hex in components.
+   HelloSky 2.0 design tokens (public, customer-facing)
+   Premium travel metasearch. One red, warm neutrals, one type system.
+   Figma: «HELLOSKY 2.0» → Color collection (Light/Dark) mirrors this file.
 
-   White       hsl(0 0% 100%)     → app surface
-   Ink         hsl(240 5% 10%)    → text; night hsl(240 6% 9%) for dark panels
-   Lime        hsl(74 93% 54%)    → the single accent: primary actions,
-                                    selected states, small brand moments.
-                                    Always carries dark text. Never a wash.
-   Olive       hsl(74 95% 24%)    → lime as *text* (pure lime fails contrast)
-   Grey        0 0% 91–96.5%      → borders, quiet fills, separators
+   Red      hsl(355 60% 49%)  #C8323F → the brand: primary actions, active
+                              states, the upper wing of the mark. White text
+                              on red (5.27:1).
+   Red text hsl(354 63% 42%)  #B02836 → red as *text* on light surfaces (6.3:1)
+   Warm ink hsl(36 12% 8%)    #171512 → text, footer and dark panels
+   Warm grey                  #FCFBFA … #E6E3DF → surfaces, borders, hairlines
+   Green/amber/rose           semantic only (success, warning, error)
+
+   Admin (`/admin/*`) keeps its own visual system: App.tsx sets
+   data-theme="admin" on <html>, and the block at the bottom of this file
+   restores every legacy value. Admin is untouched by the redesign.
    ───────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Surfaces: white app surface, near-black ink */
-    --background: 0 0% 100%;
-    --foreground: 240 5% 10%;
+    /* Surfaces: warm white app surface, pure white cards, warm ink */
+    --background: 30 25% 98%;
+    --foreground: 36 12% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 240 5% 10%;
+    --card-foreground: 36 12% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 5% 10%;
+    --popover-foreground: 36 12% 8%;
 
-    /* Brand: lime is the single vivid accent (dark text on lime) */
-    --primary: 74 93% 54%;
-    --primary-foreground: 240 10% 8%;
-    --primary-soft: 74 90% 93%;
-    --night: 240 6% 9%;
-    --sand: 0 0% 95%;
+    /* Brand: HelloSky red. White text on red, always. */
+    --primary: 355 60% 49%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 354 63% 42%;
+    --primary-soft: 355 73% 97%;
+    --night: 36 12% 8%;
+    --sand: 40 16% 96%;
+
+    /* Named brand tokens (Figma: brand/*, surface/*, text/*, border/*) */
+    --brand-red: 355 60% 49%;
+    --brand-red-hover: 354 63% 42%;
+    --brand-red-pressed: 352 62% 34%;
+    --brand-red-dark: 352 62% 34%;
+    --brand-red-soft: 355 73% 97%;
+    --brand-red-subtle: 355 74% 94%;
+    --brand-red-border: 354 72% 86%;
+    --brand-red-text: 354 63% 42%;
+    --surface: 30 25% 98%;
+    --surface-secondary: 40 16% 96%;
+    --text-primary: 36 12% 8%;
+    --text-secondary: 33 6% 34%;
+    --text-muted: 33 5% 46%;
 
     /* Neutrals */
-    --secondary: 0 0% 95%;
-    --secondary-foreground: 240 6% 12%;
-    --muted: 0 0% 96.5%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 74 90% 93%;
-    --accent-foreground: 72 85% 20%;
-    --border: 0 0% 91%;
-    --input: 0 0% 84%;
-    --ring: 74 93% 38%;
+    --secondary: 40 16% 96%;
+    --secondary-foreground: 36 10% 12%;
+    --muted: 36 15% 94%;
+    --muted-foreground: 33 6% 34%;
+    --accent: 355 73% 97%;
+    --accent-foreground: 354 63% 42%;
+    --border: 34 12% 89%;
+    --input: 36 10% 81%;
+    --ring: 355 60% 49%;
 
     /* Semantic */
-    --destructive: 4 72% 46%;
+    --destructive: 3 71% 41%;
     --destructive-foreground: 0 0% 100%;
-    --success: 145 63% 30%;
+    --success: 145 59% 30%;
     --success-foreground: 0 0% 100%;
-    /* Advarselstekst brukes i full styrke. Dempet til 80 % lander den på 3,65:1
-       mot sin egen bakgrunn – under AA, på nettopp den teksten som forklarer at
-       noe må gjøres. */
-    --warning: 32 92% 30%;
+    --warning: 35 100% 30%;
     --warning-foreground: 0 0% 100%;
+    --error: 3 71% 41%;
+    --info: 216 59% 41%;
 
     /* Shape */
     --radius: 0.75rem;
@@ -67,13 +85,113 @@
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
     /* Legacy slot names — kept so existing components compile. */
-    --gold: 74 93% 54%;
-    --skyline: 74 95% 24%;               /* readable lime-olive for text accents */
-    --cream: 0 0% 100%;
-    --coral: 4 72% 46%;
-    /* Hjerter og favoritter har egen farge – ikke feilrød, ikke brand-lime. */
+    --gold: 355 60% 49%;
+    --skyline: 354 63% 42%;               /* readable red for text accents */
+    --cream: 30 25% 98%;
+    --coral: 3 71% 41%;
+    /* Hjerter og favoritter har egen farge – ikke feilrød, ikke brand-rød. */
     --like: 348 82% 52%;
 
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 36 12% 8%;
+    --sidebar-primary: 355 60% 49%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 36 15% 94%;
+    --sidebar-accent-foreground: 36 12% 8%;
+    --sidebar-border: 34 12% 89%;
+    --sidebar-ring: 355 60% 49%;
+  }
+
+  /* ── Dark mode (public) ────────────────────────────────────────────────── */
+  .dark {
+    --background: 30 8% 7%;
+    --foreground: 30 20% 96%;
+    --card: 30 7% 11%;
+    --card-foreground: 30 20% 96%;
+    --popover: 30 7% 12%;
+    --popover-foreground: 30 20% 96%;
+    --primary: 354 68% 62%;
+    --primary-foreground: 36 12% 8%;
+    --primary-hover: 355 70% 68%;
+    --primary-soft: 355 40% 18%;
+    --brand-red: 354 68% 62%;
+    --brand-red-hover: 355 70% 68%;
+    --brand-red-soft: 355 40% 18%;
+    --brand-red-subtle: 355 40% 22%;
+    --brand-red-border: 355 45% 32%;
+    --brand-red-text: 355 70% 75%;
+    --surface: 30 8% 7%;
+    --surface-secondary: 30 6% 15%;
+    --text-primary: 30 20% 96%;
+    --text-secondary: 30 8% 72%;
+    --text-muted: 30 6% 62%;
+    --secondary: 30 6% 16%;
+    --secondary-foreground: 30 15% 92%;
+    --muted: 30 6% 15%;
+    --muted-foreground: 30 8% 68%;
+    --accent: 355 40% 18%;
+    --accent-foreground: 355 70% 75%;
+    --border: 30 6% 20%;
+    --input: 30 6% 26%;
+    --ring: 354 68% 62%;
+    --night: 30 7% 12%;
+    --sand: 30 6% 16%;
+    --skyline: 355 70% 75%;
+    --like: 348 90% 66%;
+    --sidebar-background: 30 7% 9%;
+    --sidebar-foreground: 30 20% 96%;
+    --sidebar-primary: 354 68% 62%;
+    --sidebar-primary-foreground: 36 12% 8%;
+    --sidebar-accent: 30 6% 15%;
+    --sidebar-accent-foreground: 30 20% 96%;
+    --sidebar-border: 30 6% 20%;
+
+    /* Statusfargene snus for mørk flate (lys tekst-variant, mørk forgrunn). */
+    --destructive: 4 80% 70%;
+    --destructive-foreground: 36 12% 8%;
+    --success: 145 52% 62%;
+    --success-foreground: 36 12% 8%;
+    --warning: 38 90% 64%;
+    --warning-foreground: 36 12% 8%;
+  }
+
+  /* ── Admin: legacy lime system, byte for byte ──────────────────────────
+     Satt av App.tsx (data-theme="admin" på <html> under /admin). Ingen
+     kundevendte tokens lekker inn her, og ingen adminflate endres av
+     redesignet. Ikke rør uten å teste hele adminen. */
+  :root[data-theme="admin"] {
+    --background: 0 0% 100%;
+    --foreground: 240 5% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 5% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 5% 10%;
+    --primary: 74 93% 54%;
+    --primary-foreground: 240 10% 8%;
+    --primary-hover: 74 93% 49%;
+    --primary-soft: 74 90% 93%;
+    --night: 240 6% 9%;
+    --sand: 0 0% 95%;
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 240 6% 12%;
+    --muted: 0 0% 96.5%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 74 90% 93%;
+    --accent-foreground: 72 85% 20%;
+    --border: 0 0% 91%;
+    --input: 0 0% 84%;
+    --ring: 74 93% 38%;
+    --destructive: 4 72% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 145 63% 30%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 92% 30%;
+    --warning-foreground: 0 0% 100%;
+    --gold: 74 93% 54%;
+    --skyline: 74 95% 24%;
+    --cream: 0 0% 100%;
+    --coral: 4 72% 46%;
+    --like: 348 82% 52%;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5% 10%;
     --sidebar-primary: 74 93% 54%;
@@ -83,9 +201,7 @@
     --sidebar-border: 0 0% 91%;
     --sidebar-ring: 74 93% 38%;
   }
-
-  /* ── Dark mode ─────────────────────────────────────────────────────────── */
-  .dark {
+  :root[data-theme="admin"].dark {
     --background: 240 7% 7%;
     --foreground: 0 0% 96%;
     --card: 240 6% 11%;
@@ -94,6 +210,7 @@
     --popover-foreground: 0 0% 96%;
     --primary: 74 93% 54%;
     --primary-foreground: 240 10% 8%;
+    --primary-hover: 74 93% 49%;
     --primary-soft: 74 55% 16%;
     --secondary: 240 5% 16%;
     --secondary-foreground: 0 0% 92%;
@@ -113,17 +230,6 @@
     --sidebar-accent: 240 5% 15%;
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 240 5% 20%;
-
-    /*
-     * Statusfargene må snus, ikke arves.
-     *
-     * De lyse variantene er mørk grønn, rav og rød – laget for å leses som
-     * tekst mot hvitt. Arves de inn i mørkt tema, blir hver eneste
-     * status-brikke i adminen mørk tekst på mørk flate: «Bekreftet»,
-     * miljømerket, frafallslinjene i trakten. Her er de lyse nok til å leses
-     * mot kortbakgrunnen, og forgrunnsfargene tilsvarende mørke, siden de
-     * brukes oppå fargen.
-     */
     --destructive: 4 80% 70%;
     --destructive-foreground: 240 10% 8%;
     --success: 145 52% 62%;
@@ -191,7 +297,7 @@
   /* Room for the floating bottom navigation (all widths below lg) */
   @media (max-width: 1023px) {
     body.has-tabbar {
-      padding-bottom: calc(96px + env(safe-area-inset-bottom));
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
     }
   }
   ::selection {
@@ -365,21 +471,21 @@
   .container-narrow {
     @apply mx-auto w-full max-w-3xl px-5 sm:px-8;
   }
-  /* Readable text accent: pure lime on white is too light, the olive variant carries the colour */
+  /* Readable text accent: the darker brand red carries the colour as text (admin: olive) */
   .text-primary {
     color: hsl(var(--skyline));
   }
-  /* …but on a dark surface the olive goes muddy. There the lime itself is the
-     readable one, so dark cards ask for it by name instead of text-primary. */
+  /* On a dark surface the brand colour itself is the readable one; dark cards
+     ask for it by name instead of text-primary. */
   .text-lime-dark {
     color: hsl(var(--primary));
   }
-  /* Lime surfaces always carry dark text, also for older components with text-white */
+  /* Brand surfaces always carry their own foreground, also for older components with text-white */
   .bg-primary.text-white,
   .bg-gold.text-white {
     color: hsl(var(--primary-foreground));
   }
-  /* Lime highlight box behind the key word in headlines (brand grammar) */
+  /* Highlight box behind the key word in headlines (brand grammar) */
   .hl {
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
@@ -966,4 +1072,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 600;
   line-height: 1;
   color: hsl(var(--muted-foreground));
+}
+
+/* ─── HelloSky 2.0: rød hero ──────────────────────────────────────────────
+   Dyp rød i toppen, merkevare-rød i bunnen – søkekortet ligger hvitt oppå. */
+.hero-red {
+  background:
+    radial-gradient(120% 80% at 85% 0%, hsl(355 60% 58% / 0.35) 0%, transparent 60%),
+    linear-gradient(160deg, hsl(352 62% 19%) 0%, hsl(354 63% 34%) 55%, hsl(var(--brand-red)) 100%);
+}
+:root[data-theme="admin"] .hero-red {
+  background: hsl(var(--night));
+}
+
+/* Fremdriftslinje mens leverandørene svarer (results-siden). */
+@keyframes progress-slide {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(320%); }
+}
+.progress-slide {
+  animation: progress-slide 1.6s var(--ease-in-out) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-slide { animation: none; width: 100%; }
 }

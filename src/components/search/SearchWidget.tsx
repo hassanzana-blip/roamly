@@ -235,7 +235,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
             </div>
             {variant === "hero" && (
               <div className="hidden lg:flex">
-                <Button type="submit" size="xl" className="h-full min-h-[var(--field-h,3.5rem)] rounded-none px-6">
+                <Button type="submit" size="xl" className="h-full min-h-[var(--field-h,3.5rem)] rounded-none px-7">
                   <Search />
                   {t("sw.submit")}
                 </Button>
@@ -302,7 +302,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
         </p>
       )}
 
-      <Button type="submit" size="xl" className={cn("mt-4 w-full md:mt-5 md:w-auto md:min-w-64", variant === "hero" && !isMulti && "lg:hidden")}>
+      <Button type="submit" size="xl" className={cn("mt-4 w-full rounded-full md:mt-5 md:w-auto md:min-w-64", variant === "hero" && !isMulti && "lg:hidden")}>
         <Search />
         {t("sw.submit")}
       </Button>

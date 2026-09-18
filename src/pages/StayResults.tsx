@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useSearchParams, Navigate } from "react-router";
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -305,6 +305,23 @@ function CruiseCard({ c, onBook }: { c: CruiseItem; onBook: () => void }) {
 /* ─── Siden ───────────────────────────────────────────────────────────────── */
 
 export default function StayResults() {
+  // Hotell og leiebil har fått egne metasøk-sider (HelloSky 2.0). Den gamle
+  // demokatalogen med generiske bilder skal ikke lenger vises som hotell.
+  const [redirectParams] = useSearchParams();
+  const redirectType = redirectParams.get("type");
+  if (redirectType === "hotell" || redirectType === "bil") {
+    const sted = redirectParams.get("sted") ?? "";
+    const fra = redirectParams.get("fra") ?? "";
+    const til = redirectParams.get("til") ?? "";
+    const href = redirectType === "hotell"
+      ? `/hotell?place=${encodeURIComponent(sted)}&checkin=${fra}&checkout=${til}&adults=${redirectParams.get("antall") ?? 2}&rooms=1`
+      : `/leiebil?place=${encodeURIComponent(sted)}&pickup=${fra}&dropoff=${til}`;
+    return <Navigate to={href} replace />;
+  }
+  return <StayResultsInner />;
+}
+
+function StayResultsInner() {
   usePageMeta(PAGE_META.stayResults);
   const [params, setParams] = useSearchParams();
   const rawType = params.get("type");

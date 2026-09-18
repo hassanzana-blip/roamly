@@ -59,7 +59,8 @@ app.use(
       frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-      imgSrc: ["'self'", "data:", "https:"],
+      // Bilder: leverandørenes egne (KAYAK: kayak.*, content.r9cdn.net) er alltid https. Lokal stub kun i utvikling.
+      imgSrc: ["'self'", "data:", "https:", ...(env.isProduction ? [] : ["http://127.0.0.1:*", "http://localhost:*"])],
       workerSrc: ["'self'", "blob:"],
       ...(env.isProduction ? { upgradeInsecureRequests: [] } : {}),
     },
