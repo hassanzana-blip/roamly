@@ -89,6 +89,9 @@ const autocompleteSchema = z.object({
       z.object({
         placeId: z.number().optional(),
         id: z.number().optional(),
+        cityId: z.number().optional(),
+        ctid: z.number().optional(),
+        airportCode: z.string().optional(),
         primaryPlaceType: z.string().optional(),
         name: z.string(),
         fullName: z.string().optional(),
@@ -137,7 +140,7 @@ export interface CarRequestContext {
   signal?: AbortSignal;
 }
 
-const LOCATION_RE = /^[A-Za-z0-9 .,'’-]{1,80}$/;
+const LOCATION_RE = /^[\p{L}\p{N} .,'’-]{1,80}$/u;
 
 export function buildCarSearchStart(input: CarSearchInput): Record<string, unknown> {
   const hour = (h: number | undefined) => Math.max(0, Math.min(23, Math.round(h ?? 10)));
@@ -297,10 +300,14 @@ export async function kayakCarPlaces(searchTerm: string, ctx: { userAgent?: stri
     if (!parsed.success) return [];
     const places: CarPlace[] = [];
     for (const r of parsed.data.results) {
-      const iata = r.iataCode?.toUpperCase();
-      const id = r.placeId ?? r.id;
+      const iata = (r.iataCode ?? r.airportCode)?.toUpperCase();
+      const id = r.placeId ?? r.cityId ?? r.ctid ?? r.id;
       if (iata && /^[A-Z]{3}$/.test(iata)) places.push({ type: "airport", value: iata, name: r.name, fullName: r.fullName ?? [r.name, r.cityName, r.countryName].filter(Boolean).join(", "), countryCode: r.countryCode });
       else if (id) places.push({ type: "city", value: String(id), name: r.name, fullName: r.fullName ?? [r.name, r.countryName].filter(Boolean).join(", "), countryCode: r.countryCode });
+    }
+    if (!places.length && parsed.data.results.length) {
+      // Feltnavn (aldri verdier) så vi ser om KAYAK har endret formen på svaret.
+      log.warn({ fields: Object.keys(parsed.data.results[0] as object).slice(0, 20) }, "KAYAK cars: forslag uten by-id/IATA");
     }
     if (placeCache.size >= 500) placeCache.delete(placeCache.keys().next().value as string);
     placeCache.set(term, { at: now, places });

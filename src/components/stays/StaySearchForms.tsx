@@ -126,7 +126,8 @@ export function CarSearchForm({ initial, compact, onSubmitted }: { initial?: Par
   const enabled = status.data?.enabled === true;
   const places = trpc.cars.places.useQuery({ query: q }, { enabled: enabled && q.trim().length >= 2 && !place, staleTime: 60 * 60_000, retry: false });
   const options = useMemo<PlaceOption[]>(() => (places.data ?? []).map((p) => ({ id: `${p.type}:${p.value}`, label: p.type === "airport" ? `${p.name} (${p.value})` : p.name, sublabel: p.fullName && p.fullName !== p.name ? p.fullName : undefined })), [places.data]);
-  const valid = text.trim().length >= 2 && pickup && dropoff >= pickup && (!enabled || place);
+  // KAYAK godtar «city» som id ELLER fritekst – uten forslag søker vi på bynavnet.
+  const valid = text.trim().length >= 2 && pickup && dropoff >= pickup;
 
   return (
     <form
@@ -138,7 +139,11 @@ export function CarSearchForm({ initial, compact, onSubmitted }: { initial?: Par
         if (!valid) return;
         const [type, ...rest] = (place?.id ?? "").split(":");
         onSubmitted?.();
-        navigate(carSearchHref({ type: (type as "airport" | "city") || "", value: rest.join(":"), place: place?.label ?? text.trim(), pickup, dropoff }));
+        navigate(
+          place
+            ? carSearchHref({ type: (type as "airport" | "city") || "", value: rest.join(":"), place: place.label, pickup, dropoff })
+            : carSearchHref({ type: "city", value: text.trim().slice(0, 80), place: text.trim(), pickup, dropoff }),
+        );
       }}
       className="space-y-3"
     >
