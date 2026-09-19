@@ -43,6 +43,13 @@
       "when": 1789834175142,
       "tag": "0005_customer_identities",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1789844213296,
+      "tag": "0006_min_side_planer_dokumenter_venner",
+      "breakpoints": true
     }
   ]
 }

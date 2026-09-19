@@ -10,8 +10,16 @@ import {
   decimal,
   index,
   uniqueIndex,
+  customType,
   type AnyMySqlColumn,
 } from "drizzle-orm/mysql-core";
+
+/** Binærkolonne (opptil 16 MiB). Drizzle har ingen innebygd blob for MySQL. */
+const mediumblob = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "mediumblob";
+  },
+});
 
 /** Referanse til en `serial`-primærnøkkel (bigint unsigned) — brukes for alle FK-kolonner. */
 const ref = (name: string) => bigint(name, { mode: "number", unsigned: true });
@@ -1387,3 +1395,243 @@ export const expenseReceipts = mysqlTable("expense_receipts", {
   data: mediumtext("data").notNull(), // base64
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// ─── Min side: reiseplaner, dokumenter, venner og grupper ────────────────────
+//
+// En reiseplan er en idé som kan bli en tur: reisemål, kanskje datoer, kanskje
+// en gruppe, og først når en ekte bestilling er koblet til, «bestilt». Vi
+// setter aldri «bestilt» fordi kunden klikket seg ut til en leverandør.
+
+export const TRIP_PLAN_STATUSES = ["idea", "planned", "booked", "done"] as const;
+
+export const tripPlans = mysqlTable(
+  "trip_plans",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    title: varchar("title", { length: 80 }).notNull(),
+    /** Destinasjons-id fra innholdet (gir bilde og flyplass). */
+    destinationId: varchar("destination_id", { length: 40 }),
+    originIata: varchar("origin_iata", { length: 3 }),
+    destinationIata: varchar("destination_iata", { length: 3 }),
+    dateFrom: varchar("date_from", { length: 10 }),
+    dateTo: varchar("date_to", { length: 10 }),
+    adults: int("adults").notNull().default(1),
+    children: int("children").notNull().default(0),
+    /** idea | planned | booked | done */
+    status: varchar("status", { length: 12 }).notNull().default("idea"),
+    /** Kobles av kunden selv til en bestilling hos oss – eneste vei til «bestilt». */
+    bookingId: ref("booking_id").references((): AnyMySqlColumn => bookings.id),
+    groupId: ref("group_id").references((): AnyMySqlColumn => travelGroups.id),
+    note: varchar("note", { length: 500 }),
+    archivedAt: timestamp("archived_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (t) => [index("idx_tripplan_customer").on(t.customerId, t.status, t.updatedAt)],
+);
+
+export const DOCUMENT_KINDS = ["flight_ticket", "booking_confirmation", "boarding_pass", "hotel_confirmation", "note", "other"] as const;
+
+/**
+ * Kundens private reisedokumenter. Innholdet ligger kryptert (AES-256-GCM,
+ * PII_ENCRYPTION_KEY) i egen tabell så listespørringer aldri drar med seg
+ * megabytes. MIME er sniffet fra bytene på serveren – ikke det klienten sa.
+ */
+export const customerDocuments = mysqlTable(
+  "customer_documents",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    tripPlanId: ref("trip_plan_id").references((): AnyMySqlColumn => tripPlans.id),
+    bookingId: ref("booking_id").references((): AnyMySqlColumn => bookings.id),
+    kind: varchar("kind", { length: 24 }).notNull(),
+    title: varchar("title", { length: 120 }).notNull(),
+    fileName: varchar("file_name", { length: 160 }).notNull(),
+    mime: varchar("mime", { length: 64 }).notNull(),
+    bytes: int("bytes").notNull(),
+    /** manual = lagt til av kunden; booking = generert fra en bestilling hos oss. */
+    source: varchar("source", { length: 12 }).notNull().default("manual"),
+    /** Reisedato dokumentet gjelder (valgfritt, til sortering). */
+    travelDate: varchar("travel_date", { length: 10 }),
+    sha256: varchar("sha256", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_custdoc_customer").on(t.customerId, t.createdAt), index("idx_custdoc_plan").on(t.tripPlanId)],
+);
+
+export const customerDocumentBlobs = mysqlTable("customer_document_blobs", {
+  documentId: ref("document_id").references((): AnyMySqlColumn => customerDocuments.id).primaryKey(),
+  /** iv(12) + tag(16) + ciphertext, se api/lib/crypto.ts encryptBytes. */
+  ciphertext: mediumblob("ciphertext").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Venner: en relasjon har to sider og én status. Invitasjonen er en lenke med
+// hashet token – vi laster aldri opp kontaktlister og slår aldri opp e-poster.
+export const FRIENDSHIP_STATUSES = ["pending", "accepted", "declined", "blocked"] as const;
+
+export const customerFriendships = mysqlTable(
+  "customer_friendships",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    requesterId: ref("requester_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    /** Null til noen godtar invitasjonslenken. */
+    addresseeId: ref("addressee_id").references((): AnyMySqlColumn => customerAccounts.id),
+    status: varchar("status", { length: 12 }).notNull().default("pending"),
+    inviteTokenHash: varchar("invite_token_hash", { length: 64 }),
+    inviteExpiresAt: timestamp("invite_expires_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    respondedAt: timestamp("responded_at"),
+  },
+  (t) => [
+    uniqueIndex("uq_friend_invite").on(t.inviteTokenHash),
+    index("idx_friend_requester").on(t.requesterId, t.status),
+    index("idx_friend_addressee").on(t.addresseeId, t.status),
+  ],
+);
+
+/** Blokkering: den blokkerte ser ikke innleggene dine og kan ikke invitere deg. */
+export const customerBlocks = mysqlTable(
+  "customer_blocks",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    blockerId: ref("blocker_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    blockedId: ref("blocked_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_block").on(t.blockerId, t.blockedId)],
+);
+
+/** Private reisegrupper. Ingen offentlig modus finnes – gruppen er alltid privat. */
+export const travelGroups = mysqlTable(
+  "travel_groups",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    ownerId: ref("owner_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    name: varchar("name", { length: 60 }).notNull(),
+    coverDestinationId: varchar("cover_destination_id", { length: 40 }),
+    inviteTokenHash: varchar("invite_token_hash", { length: 64 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+  },
+  (t) => [uniqueIndex("uq_group_invite").on(t.inviteTokenHash), index("idx_group_owner").on(t.ownerId)],
+);
+
+export const GROUP_MEMBER_ROLES = ["owner", "member"] as const;
+
+export const travelGroupMembers = mysqlTable(
+  "travel_group_members",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    groupId: ref("group_id").references((): AnyMySqlColumn => travelGroups.id).notNull(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    role: varchar("role", { length: 12 }).notNull().default("member"),
+    joinedAt: timestamp("joined_at").notNull().defaultNow(),
+    leftAt: timestamp("left_at"),
+  },
+  (t) => [uniqueIndex("uq_groupmember").on(t.groupId, t.customerId), index("idx_groupmember_customer").on(t.customerId)],
+);
+
+/**
+ * Delte reiseidéer. Publikum er enten vennene dine eller én gruppe – aldri
+ * offentlig. Bildet er alltid vårt eget lisensierte reisemålsfoto (via
+ * destinationId); kunder laster ikke opp bilder her.
+ */
+export const socialPosts = mysqlTable(
+  "social_posts",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    authorId: ref("author_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    /** friends | group */
+    audience: varchar("audience", { length: 12 }).notNull(),
+    groupId: ref("group_id").references((): AnyMySqlColumn => travelGroups.id),
+    destinationId: varchar("destination_id", { length: 40 }),
+    body: varchar("body", { length: 1000 }).notNull(),
+    likes: int("likes").notNull().default(0),
+    hidden: boolean("hidden").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_socialpost_author").on(t.authorId, t.createdAt), index("idx_socialpost_group").on(t.groupId, t.createdAt)],
+);
+
+export const socialComments = mysqlTable(
+  "social_comments",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    postId: ref("post_id").references((): AnyMySqlColumn => socialPosts.id, { onDelete: "cascade" }).notNull(),
+    authorId: ref("author_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    body: varchar("body", { length: 500 }).notNull(),
+    hidden: boolean("hidden").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_socialcomment_post").on(t.postId, t.createdAt)],
+);
+
+export const socialLikes = mysqlTable(
+  "social_likes",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    postId: ref("post_id").references((): AnyMySqlColumn => socialPosts.id, { onDelete: "cascade" }).notNull(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_sociallike").on(t.postId, t.customerId)],
+);
+
+/** Avstemning i en gruppe: «Hvor skal vi dra?» Én stemme per medlem, kan endres. */
+export const groupPolls = mysqlTable(
+  "group_polls",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    groupId: ref("group_id").references((): AnyMySqlColumn => travelGroups.id).notNull(),
+    createdById: ref("created_by_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    question: varchar("question", { length: 120 }).notNull(),
+    closedAt: timestamp("closed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idx_grouppoll_group").on(t.groupId, t.createdAt)],
+);
+
+export const groupPollOptions = mysqlTable(
+  "group_poll_options",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pollId: ref("poll_id").references((): AnyMySqlColumn => groupPolls.id, { onDelete: "cascade" }).notNull(),
+    destinationId: varchar("destination_id", { length: 40 }),
+    label: varchar("label", { length: 60 }).notNull(),
+    position: int("position").notNull().default(0),
+  },
+  (t) => [index("idx_grouppollopt_poll").on(t.pollId, t.position)],
+);
+
+export const groupPollVotes = mysqlTable(
+  "group_poll_votes",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    pollId: ref("poll_id").references((): AnyMySqlColumn => groupPolls.id, { onDelete: "cascade" }).notNull(),
+    optionId: ref("option_id").references((): AnyMySqlColumn => groupPollOptions.id, { onDelete: "cascade" }).notNull(),
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_grouppollvote").on(t.pollId, t.customerId)],
+);
+
+/** Rapporter om innhold eller personer – havner i admin, ikke bare i revisjonsloggen. */
+export const contentReports = mysqlTable(
+  "content_reports",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    reporterId: ref("reporter_id").references((): AnyMySqlColumn => customerAccounts.id).notNull(),
+    /** social_post | social_comment | customer */
+    targetType: varchar("target_type", { length: 20 }).notNull(),
+    targetId: bigint("target_id", { mode: "number", unsigned: true }).notNull(),
+    reason: varchar("reason", { length: 24 }).notNull(),
+    details: varchar("details", { length: 500 }),
+    /** open | resolved */
+    status: varchar("status", { length: 12 }).notNull().default("open"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at"),
+  },
+  (t) => [index("idx_report_status").on(t.status, t.createdAt), index("idx_report_target").on(t.targetType, t.targetId)],
+);
