@@ -4,6 +4,8 @@ import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import type { CarOffer } from "@contracts/cars";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import HeroBar from "@/components/app/HeroBar";
+import ServiceTabs from "@/components/app/ServiceTabs";
 import CarCard from "@/components/stays/CarCard";
 import { CarSearchForm } from "@/components/stays/StaySearchForms";
 import { DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
@@ -102,34 +104,36 @@ export default function Cars() {
 
   return (
     <div className="relative min-h-screen bg-background">
-      <SiteHeader />
-      <div className="border-b border-border bg-card pt-16">
-        <div className="container-x py-5">
+      <div className="hidden lg:block"><SiteHeader /></div>
+      <div className="lg:pt-[72px]">
+        <div className="container-x pb-2 pt-4 lg:pt-6">
+          <HeroBar backTo="/" tone="dark" className="mb-6 lg:hidden" />
           {hasSearch ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="font-display text-2xl sm:text-3xl">{place || t("cr.title")}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">{formatDateShort(pickup)} 10:00 – {formatDateShort(dropoff)} 10:00</p>
+                <h1 className="t-h1">{place || t("cr.title")}</h1>
+                <p className="mt-2 text-[17px] text-foreground">{formatDateShort(pickup)} 10:00 – {formatDateShort(dropoff)} 10:00</p>
               </div>
-              <Button variant="outline" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="rounded-full">
-                {t("common.editsearch")} <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
-              </Button>
+              <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-foreground underline underline-offset-4">
+                {t("common.change")} <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
+              </button>
             </div>
           ) : (
             <div>
               <h1 className="t-h1">{t("cr.h1")}</h1>
-              <p className="t-lead mt-2 max-w-2xl text-muted-foreground">{t("cr.sub")}</p>
+              <p className="t-lead mt-2 max-w-2xl">{t("cr.sub")}</p>
             </div>
           )}
+          <ServiceTabs active="bil" className="mt-5" />
           {(editOpen || !hasSearch) && (
-            <div className={cn("mt-5", hasSearch && "fade-up")}>
+            <div className={cn("card-soft mt-4 p-3 sm:p-4", hasSearch && "fade-up")}>
               <CarSearchForm initial={{ type, value, place, pickup: pickup || undefined, dropoff: dropoff || undefined }} compact onSubmitted={() => setEditOpen(false)} />
             </div>
           )}
         </div>
       </div>
 
-      <main id="main" tabIndex={-1} className="container-x min-h-[60dvh] gap-8 py-6 outline-none sm:py-8 lg:grid lg:grid-cols-[280px_1fr]">
+      <main id="main" tabIndex={-1} className="container-x min-h-[60dvh] gap-8 py-5 outline-none sm:py-6 lg:grid lg:grid-cols-[280px_1fr]">
         <aside className="hidden lg:block">
           {hasSearch && enabled && (
             <div className="sticky top-24 rounded-2xl border border-border bg-card p-5">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Clock3, MapPin, PlaneLanding, PlaneTakeoff, Search, X } from "lucide-react";
+import { Clock3, MapPin, Search, X } from "lucide-react";
 import FieldButton from "./FieldButton";
 import PickerSurface from "./PickerSurface";
 import { AIRPORTS, airportByIata, searchAirports, type Airport } from "@contracts/airports";
@@ -131,7 +131,8 @@ export default function AirportField({ label, value, onChange, exclude, directio
     }
   };
 
-  const Icon = direction === "from" ? PlaneTakeoff : PlaneLanding;
+  // «Fra» is a place you stand, «Til» is a place you look for.
+  const Icon = direction === "from" ? MapPin : Search;
 
   const Row = ({ a, i, recent }: { a: Airport; i: number; recent?: boolean }) => (
     <li

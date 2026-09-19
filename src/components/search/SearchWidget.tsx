@@ -1,6 +1,6 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeftRight, CalendarRange, ChevronDown, MoveRight, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, CalendarRange, ChevronDown, MoveRight, Plus, X } from "lucide-react";
 import AirportField from "./AirportField";
 import DateField, { DateRangeField } from "./DateField";
 import PassengerCabinPicker from "./PassengerCabinPicker";
@@ -109,16 +109,16 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
       }}
       noValidate
       aria-label={t("sw.aria")}
-      className={cn("w-full", variant === "compact" && "rounded-xl border border-border bg-card p-3 sm:p-4")}
+      className={cn("w-full", variant === "compact" && "card-soft p-3 sm:p-4")}
     >
-      <div className={cn("flex flex-wrap items-center justify-between gap-3", variant === "hero" && "border-b border-border pb-3")}>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1 pt-1">
         {leading}
         <Segmented
           aria-label={t("sw.triptype")}
           value={state.tripType}
           onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))}
           options={TRIP_TYPES}
-          className={cn("w-auto", variant === "hero" && "bg-transparent p-0 gap-0")}
+          className="w-auto rounded-full bg-blush/70 [&>*]:rounded-full [&>*[data-state=on]]:bg-white"
           size={variant === "hero" ? "md" : "sm"}
         />
       </div>
@@ -174,11 +174,11 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
           />
         </div>
       ) : (
-        <div className={cn("overflow-hidden bg-card", variant === "hero" ? "mt-1 lg:[--field-h:4rem]" : "mt-3 rounded-xl border border-input")}>
-          {/* Tablet: two rows (from|to over dates|travellers); four cells in one row only fit from lg. */}
-          <div className={cn("grid divide-y divide-border md:grid-cols-2 lg:divide-x lg:divide-y-0", variant === "hero" ? "lg:grid-cols-[1fr_1fr_1.7fr_1.1fr_auto]" : "lg:grid-cols-[1fr_1fr_1.35fr_1.05fr]")}>
+        <div className={cn("mt-3", variant === "hero" ? "lg:[--field-h:4.5rem]" : "[--field-h:4rem]")}>
+          {/* Telefon: to hvite blokker (fra/til, dato/reisende). Desktop: én hvit rad med alt i. */}
+          <div className={cn("flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-0 lg:overflow-hidden lg:rounded-[22px] lg:bg-white", variant === "compact" && "lg:rounded-2xl")}>
             {/* Origin + destination with a swap control on the seam */}
-            <div className="relative grid divide-y divide-border md:col-span-2 md:grid-cols-2 md:divide-x md:divide-y-0">
+            <div className="relative grid flex-[2] divide-y divide-border overflow-hidden rounded-3xl bg-white md:grid-cols-2 md:divide-x md:divide-y-0 lg:rounded-none">
               <AirportField
                 label={t("search.from")}
                 direction="from"
@@ -202,27 +202,26 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
                 onClick={swap}
                 aria-label={t("sw.swap")}
                 className={cn(
-                  "absolute z-10 grid size-11 place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-sm sm:size-9",
-                  "transition-[transform,color,border-color] duration-fast ease-out hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
-                  "right-3 top-1/2 -translate-y-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2",
+                  "absolute z-10 grid size-12 place-items-center rounded-full bg-blush text-foreground md:size-10",
+                  "transition-[transform,background-color] duration-fast ease-out hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring",
+                  "right-4 top-1/2 -translate-y-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2",
                   "active:scale-95",
                 )}
               >
-                <ArrowLeftRight className="size-4 rotate-90 md:rotate-0" />
+                <ArrowLeftRight className="size-5 rotate-90 md:size-4 md:rotate-0" />
               </button>
             </div>
 
-            <DateRangeField
-              depart={state.depart}
-              ret={state.ret}
-              roundtrip={isRound}
-              min={minDate}
-              invalid={touched && problems.dates}
-              joined
-              onChange={({ depart, ret }) => setState((s) => ({ ...s, depart, ret }))}
-            />
-
-            <div className="md:border-l md:border-border">
+            <div className="grid flex-[2.7] grid-cols-2 divide-x divide-border overflow-hidden rounded-3xl bg-white lg:grid-cols-[1.25fr_1fr] lg:rounded-none lg:border-l lg:border-border">
+              <DateRangeField
+                depart={state.depart}
+                ret={state.ret}
+                roundtrip={isRound}
+                min={minDate}
+                invalid={touched && problems.dates}
+                joined
+                onChange={({ depart, ret }) => setState((s) => ({ ...s, depart, ret }))}
+              />
               <PassengerCabinPicker
                 pax={state.pax}
                 onPaxChange={(p) => setState((s) => ({ ...s, pax: p }))}
@@ -234,10 +233,10 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
               />
             </div>
             {variant === "hero" && (
-              <div className="hidden lg:flex">
-                <Button type="submit" size="xl" className="h-full min-h-[var(--field-h,3.5rem)] rounded-none px-7">
-                  <Search />
-                  {t("sw.submit")}
+              <div className="hidden lg:flex lg:items-center lg:bg-white lg:p-2">
+                <Button type="submit" size="xl" className="h-[calc(var(--field-h)-1rem)] rounded-full px-7">
+                  {t("sw.search")}
+                  <ArrowRight />
                 </Button>
               </div>
             )}
@@ -245,67 +244,63 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
         </div>
       )}
 
-      {/* What matters most: sets the default ranking of results.
-          Three primary answers as one control; the rest behind a disclosure so
-          the form never reads as a wall of equal pills. */}
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-muted-foreground sm:inline">{t("pref.title")}</span>
-          <Segmented
-            aria-label={t("pref.title")}
-            value={PRIMARY_PREFS.includes(state.pref) ? state.pref : ("" as Preference)}
-            onValueChange={(pref) => setState((s) => ({ ...s, pref }))}
-            options={PREFERENCES.filter((p) => PRIMARY_PREFS.includes(p.key)).map((p) => ({ value: p.key, label: t(p.label) }))}
-            size="md"
-            className="w-auto"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setMoreOpen((o) => !o)}
-            aria-expanded={moreOpen}
-            aria-controls={moreId}
-            className="inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:min-h-9"
-          >
-            {moreOpen ? t("sw.pref.less") : t("sw.pref.more")}
-            <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-base ease-out", moreOpen && "rotate-180")} aria-hidden="true" />
-          </button>
-          {!isMulti && (
-            <Chip selected={state.flex} onClick={() => setState((s) => ({ ...s, flex: !s.flex }))} title={t("sw.flex.hint")} icon={<CalendarRange aria-hidden="true" />}>
-              {t("sw.flex")}
-            </Chip>
-          )}
-          <Chip selected={state.direct} onClick={() => setState((s) => ({ ...s, direct: !s.direct }))} title={t("sw.direct.hint")} icon={<MoveRight aria-hidden="true" />}>
-            {t("sw.direct")}
-          </Chip>
-        </div>
-      </div>
-      {moreOpen && (
-        <div
-          id={moreId}
-          role="group"
-          aria-label={t("sw.pref.more")}
-          className={cn("no-scrollbar mt-3 flex gap-2 overflow-x-auto sm:flex-wrap", variant === "hero" ? "-mx-5 px-5 sm:mx-0 sm:px-0" : "-mx-3 px-3 sm:mx-0 sm:px-0")}
-        >
-          {PREFERENCES.filter((p) => !PRIMARY_PREFS.includes(p.key)).map((p) => (
-            <Chip key={p.key} selected={state.pref === p.key} onClick={() => setState((s) => ({ ...s, pref: p.key }))} title={t(p.hint)} icon={<p.icon aria-hidden="true" />}>
-              {t(p.label)}
-            </Chip>
-          ))}
-        </div>
-      )}
-
       {error && (
-        <p className="mt-3 text-sm font-medium text-destructive" role="alert">
+        <p className="mt-3 px-1 text-sm font-medium text-destructive" role="alert">
           {error}
         </p>
       )}
 
-      <Button type="submit" size="xl" className={cn("mt-4 w-full rounded-full md:mt-5 md:w-auto md:min-w-64", variant === "hero" && !isMulti && "lg:hidden")}>
-        <Search />
-        {t("sw.submit")}
+      {/* The one action: full width on phones, inside the row from lg. */}
+      <Button type="submit" size="xl" className={cn("mt-2.5 h-[60px] w-full rounded-full text-[19px]", variant === "hero" && !isMulti && "lg:hidden", variant === "compact" && "md:w-auto md:min-w-64")}>
+        {t("sw.find")}
+        <ArrowRight />
       </Button>
+
+      {/* What matters most, flexible dates and direct only: quiet, under the action.
+          The ranking control and the extra preferences sit behind one disclosure so
+          the card never reads as a wall of equal pills. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
+        <button
+          type="button"
+          onClick={() => setMoreOpen((o) => !o)}
+          aria-expanded={moreOpen}
+          aria-controls={moreId}
+          className="inline-flex min-h-11 items-center gap-1 rounded-full px-2.5 text-[14px] font-medium text-foreground transition-colors hover:bg-blush sm:min-h-10"
+        >
+          {moreOpen ? t("sw.options.less") : t("sw.options")}
+          <ChevronDown className={cn("size-4 text-muted-foreground transition-transform duration-base ease-out", moreOpen && "rotate-180")} aria-hidden="true" />
+        </button>
+        {!isMulti && (
+          <Chip selected={state.flex} onClick={() => setState((s) => ({ ...s, flex: !s.flex }))} title={t("sw.flex.hint")} icon={<CalendarRange aria-hidden="true" />} className="border-0 bg-transparent hover:bg-blush aria-pressed:bg-blush">
+            {t("sw.flex")}
+          </Chip>
+        )}
+        <Chip selected={state.direct} onClick={() => setState((s) => ({ ...s, direct: !s.direct }))} title={t("sw.direct.hint")} icon={<MoveRight aria-hidden="true" />} className="border-0 bg-transparent hover:bg-blush aria-pressed:bg-blush">
+          {t("sw.direct")}
+        </Chip>
+      </div>
+      {moreOpen && (
+        <div id={moreId} role="group" aria-label={t("sw.pref.more")} className="mt-2 flex flex-col gap-3 px-1 pb-1 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{t("pref.title")}</span>
+            <Segmented
+              aria-label={t("pref.title")}
+              value={PRIMARY_PREFS.includes(state.pref) ? state.pref : ("" as Preference)}
+              onValueChange={(pref) => setState((s) => ({ ...s, pref }))}
+              options={PREFERENCES.filter((p) => PRIMARY_PREFS.includes(p.key)).map((p) => ({ value: p.key, label: t(p.label) }))}
+              size="sm"
+              className="w-auto rounded-full bg-blush/70 [&>*]:rounded-full [&>*[data-state=on]]:bg-white"
+            />
+          </div>
+          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0">
+            {PREFERENCES.filter((p) => !PRIMARY_PREFS.includes(p.key)).map((p) => (
+              <Chip key={p.key} selected={state.pref === p.key} onClick={() => setState((s) => ({ ...s, pref: p.key }))} title={t(p.hint)} icon={<p.icon aria-hidden="true" />} className="border-0 bg-white aria-pressed:bg-blush">
+                {t(p.label)}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

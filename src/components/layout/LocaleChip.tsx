@@ -14,6 +14,9 @@ import { cn } from "@/lib/utils";
  * flyselskapets egen valuta. Det sier panelet rett ut, for en valutavelger som
  * ikke veksler er noe folk med rette forventer at gjør nettopp det.
  */
+/** «Norge · NOK»: the market name reads better than a language code. */
+const REGION_LABEL: Record<Lang, string> = { nb: "Norge", en: "English", sv: "Sverige", da: "Danmark", de: "Deutschland" };
+
 export function LocaleChip({ className }: { className?: string }) {
   const { lang, setLang } = useLang();
   const { currency, setCurrency } = useLocale();
@@ -42,11 +45,11 @@ export function LocaleChip({ className }: { className?: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-card px-2.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
+        className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[15px] font-medium text-foreground transition-colors hover:bg-card"
       >
-        <Globe className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <Globe className="size-4 shrink-0 text-muted-foreground sm:hidden" aria-hidden="true" />
         <span className="tabular-nums">
-          {lang.toUpperCase()} <span className="text-muted-foreground">·</span> {currency}
+          {REGION_LABEL[lang]} <span className="text-muted-foreground">·</span> {currency}
         </span>
         <ChevronDown className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} aria-hidden="true" />
       </button>

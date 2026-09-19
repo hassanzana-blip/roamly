@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router'
 import ErrorBoundary from './components/app/ErrorBoundary'
 import RouteFallback from './components/app/RouteFallback'
 import BottomNav from './components/app/BottomNav'
+import NavRail from './components/app/NavRail'
 
 /**
  * Ruting (OTA-192): hver side lastes lat per rute. Hele admin-treet ligger i
@@ -30,6 +31,7 @@ const HotelCar = lazy(() => import('./pages/HotelCar'))
 const Hotels = lazy(() => import('./pages/Hotels'))
 const HotelDetail = lazy(() => import('./pages/HotelDetail'))
 const Cars = lazy(() => import('./pages/Cars'))
+const Cruise = lazy(() => import('./pages/Cruise'))
 const StayResults = lazy(() => import('./pages/StayResults'))
 const QuotePage = lazy(() => import('./pages/QuotePage'))
 const Auth = lazy(() => import('./pages/Auth'))
@@ -102,8 +104,8 @@ export default function App() {
   const isAdmin = location.pathname.startsWith('/admin')
 
   // Adminen beholder sitt eget visuelle system (lime). Kundesidene får
-  // HelloSky 2.0 (rød). Bryteren er ett attributt på <html>; src/index.css
-  // gjenoppretter alle legacy-tokens under [data-theme="admin"].
+  // HelloSky 3.0 (elfenben, burgunder, korall). Bryteren er ett attributt på
+  // <html>; src/index.css gjenoppretter alle legacy-tokens under [data-theme="admin"].
   useEffect(() => {
     const root = document.documentElement
     if (isAdmin) root.setAttribute('data-theme', 'admin')
@@ -137,6 +139,7 @@ export default function App() {
             <Route path="/hotell" element={<Hotels />} />
             <Route path="/hotell/:key" element={<HotelDetail />} />
             <Route path="/leiebil" element={<Cars />} />
+            <Route path="/cruise" element={<Cruise />} />
             <Route path="/hotell-bil" element={<HotelCar />} />
             <Route path="/overnatting-bil" element={<StayResults />} />
             <Route path="/tilbud/:token" element={<QuotePage />} />
@@ -204,6 +207,7 @@ export default function App() {
           <WhatsAppFab />
         </Suspense>
       )}
+      {!isAdmin && <NavRail />}
       <BottomNav />
     </>
   )

@@ -14,6 +14,14 @@ module.exports = {
         skyline: "hsl(var(--skyline))",
         night: "hsl(var(--night))",
         coral: "hsl(var(--coral))",
+        "coral-ink": "hsl(var(--coral-ink))",
+        "coral-on-dark": "hsl(var(--coral-on-dark))",
+        burgundy: {
+          DEFAULT: "hsl(var(--burgundy))",
+          deep: "hsl(var(--burgundy-deep))",
+        },
+        ivory: "hsl(var(--ivory))",
+        blush: "hsl(var(--blush))",
         like: "hsl(var(--like) / <alpha-value>)",
         sand: "hsl(var(--sand))",
         border: "hsl(var(--border))",
@@ -79,6 +87,8 @@ module.exports = {
         xl: "16px",
         "2xl": "16px",
         "3xl": "20px",
+        "4xl": "28px",
+        "5xl": "36px",
       },
       boxShadow: {
         xs: "0 1px 2px 0 hsl(240 10% 8% / 0.05)",

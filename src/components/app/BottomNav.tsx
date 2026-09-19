@@ -1,32 +1,21 @@
 import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
-import { BedDouble, CarFront, Compass, Plane, Ticket } from "lucide-react";
 import Icon from "./Icon";
+import { isNavActive, NAV_HIDDEN, PRIMARY_NAV } from "./nav";
 import { cn } from "@/lib/utils";
-import { useT, type I18nKey } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 
 /**
- * BottomNav (HelloSky 2.0): five product-first tabs on a white bar with a
- * hairline. The active tab sits on a soft red pill with red icon and label.
- * Never blocks content: body gets has-tabbar padding (see index.css).
- * Hidden on checkout (own sticky pay bar), the whole admin tree, and on
- * large screens (≥ lg) where SiteHeader carries the navigation.
- * A11y: ≥44px targets, aria-current="page" on the active tab, visible focus ring.
+ * BottomNav (HelloSky 3.0): a floating burgundy pill with four tabs —
+ * Utforsk · Lagret · Reiser · Profil. The active tab is coral, the rest
+ * white. It floats 16 px above the safe area so it never touches the edge,
+ * and the body reserves room for it (has-tabbar, see index.css) so content
+ * and the keyboard never end up underneath.
+ * A11y: ≥44 px targets, aria-current="page", visible focus ring.
  */
-
-const TABS: { to: string; label: I18nKey; icon: typeof Plane; end?: boolean; match?: RegExp }[] = [
-  { to: "/", label: "nav.flights", icon: Plane, end: true, match: /^\/(sok)?$/ },
-  { to: "/hotell", label: "nav.hotels", icon: BedDouble },
-  { to: "/leiebil", label: "nav.cars", icon: CarFront },
-  { to: "/utforsk", label: "nav.explore", icon: Compass, match: /^\/(utforsk|reisemal|journal|quiz)/ },
-  { to: "/reiser", label: "nav.trips", icon: Ticket, match: /^\/(reiser|reise|profil|lagret)/ },
-];
-
-const HIDDEN = [/^\/admin/, /^\/bestill/, /^\/bekreftelse/, /^\/tilbud/, /^\/velkommen/];
-
 export default function BottomNav() {
   const { pathname } = useLocation();
-  const hidden = HIDDEN.some((re) => re.test(pathname));
+  const hidden = NAV_HIDDEN.some((re) => re.test(pathname));
   const t = useT();
 
   useEffect(() => {
@@ -36,36 +25,29 @@ export default function BottomNav() {
 
   if (hidden) return null;
 
-  const isActive = (tab: (typeof TABS)[number]) => (tab.match ? tab.match.test(pathname) : pathname === tab.to || pathname.startsWith(tab.to + "/"));
-
   return (
     <nav
       aria-label={t("nav.main")}
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed inset-x-4 z-50 rounded-[28px] bg-burgundy text-white shadow-lift lg:hidden"
+      style={{ bottom: "calc(16px + env(safe-area-inset-bottom))", height: "var(--tabbar-h)" }}
     >
-      <ul className="mx-auto grid max-w-lg grid-cols-5 px-1 pt-1.5 pb-1.5">
-        {TABS.map((tab) => {
-          const active = isActive(tab);
+      <ul className="mx-auto grid h-full max-w-lg grid-cols-4 px-2">
+        {PRIMARY_NAV.map((tab) => {
+          const active = isNavActive(tab, pathname);
           return (
-            <li key={tab.to} className="min-w-0">
+            <li key={tab.id} className="min-w-0">
               <NavLink
                 to={tab.to}
-                end={tab.end}
+                end={tab.to === "/"}
                 aria-current={active ? "page" : undefined}
-                className="flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className={cn(
+                  "flex h-full flex-col items-center justify-center gap-1 rounded-[22px] outline-none transition-colors duration-fast",
+                  "focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset",
+                  active ? "text-coral-on-dark" : "text-white/92 hover:text-white",
+                )}
               >
-                <span
-                  className={cn(
-                    "grid h-7 w-12 place-items-center rounded-full transition-colors duration-fast",
-                    active ? "tab-pill bg-primary-soft text-accent-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  <Icon icon={tab.icon} size={20} />
-                </span>
-                <span className={cn("truncate text-[11px] font-semibold leading-none", active ? "text-accent-foreground" : "text-muted-foreground")}>
-                  {t(tab.label)}
-                </span>
+                <Icon icon={tab.icon} size={24} />
+                <span className="truncate text-[13px] font-medium leading-none">{t(tab.label)}</span>
               </NavLink>
             </li>
           );

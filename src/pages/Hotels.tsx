@@ -4,6 +4,8 @@ import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import type { HotelSummary } from "@contracts/hotels";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import HeroBar from "@/components/app/HeroBar";
+import ServiceTabs from "@/components/app/ServiceTabs";
 import HotelCard from "@/components/stays/HotelCard";
 import { HotelSearchForm } from "@/components/stays/StaySearchForms";
 import { DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
@@ -158,39 +160,41 @@ export default function Hotels() {
 
   return (
     <div className="relative min-h-screen bg-background">
-      <SiteHeader />
-      <div className="border-b border-border bg-card pt-16">
-        <div className="container-x py-5">
+      <div className="hidden lg:block"><SiteHeader /></div>
+      <div className="lg:pt-[72px]">
+        <div className="container-x pb-2 pt-4 lg:pt-6">
+          <HeroBar backTo="/" tone="dark" className="mb-6 lg:hidden" />
           {hasSearch ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="font-display text-2xl sm:text-3xl">{place || t("ht.title")}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h1 className="t-h1">{place || t("ht.title")}</h1>
+                <p className="mt-2 text-[17px] text-foreground">
                   {formatDateShort(checkin)} – {formatDateShort(checkout)} · {t("ht.nights", { count: search.data?.nights ?? Math.max(1, Math.round((Date.parse(checkout) - Date.parse(checkin)) / 86_400_000)) })} · {t("ht.adults", { count: adults })} · {t("ht.rooms", { count: rooms })}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="rounded-full">
-                {t("common.editsearch")} <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
-              </Button>
+              <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-foreground underline underline-offset-4">
+                {t("common.change")} <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
+              </button>
             </div>
           ) : (
             <div>
               <h1 className="t-h1">{t("ht.h1")}</h1>
-              <p className="t-lead mt-2 max-w-2xl text-muted-foreground">{t("ht.sub")}</p>
+              <p className="t-lead mt-2 max-w-2xl">{t("ht.sub")}</p>
             </div>
           )}
+          <ServiceTabs active="hotell" className="mt-5" />
           {(editOpen || !hasSearch) && (
-            <div className={cn("mt-5", hasSearch && "fade-up")}>
+            <div className={cn("card-soft mt-4 p-3 sm:p-4", hasSearch && "fade-up")}>
               <HotelSearchForm initial={{ dest, place, checkin: checkin || undefined, checkout: checkout || undefined, adults, rooms }} compact onSubmitted={() => setEditOpen(false)} />
             </div>
           )}
         </div>
       </div>
 
-      <main id="main" tabIndex={-1} className="container-x min-h-[60dvh] gap-8 py-6 outline-none sm:py-8 lg:grid lg:grid-cols-[280px_1fr]">
+      <main id="main" tabIndex={-1} className="container-x min-h-[60dvh] gap-8 py-5 outline-none sm:py-6 lg:grid lg:grid-cols-[280px_1fr]">
         <aside className="hidden lg:block">
           {hasSearch && enabled && (
-            <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5">
+            <div className="card-soft sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto p-5">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-base font-semibold">{t("common.filter")}</h2>
                 {activeFilters > 0 && (
@@ -207,16 +211,16 @@ export default function Hotels() {
 
           {enabled && hasSearch && (
             <>
-              <div className="sticky top-16 z-20 -mx-5 flex items-center gap-2 bg-background/95 px-5 py-2 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:py-0 lg:backdrop-blur-none">
+              <div className="sticky top-0 z-20 -mx-5 flex items-center gap-2 bg-background/95 px-5 py-2 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:py-0 lg:backdrop-blur-none">
                 <div className="no-scrollbar min-w-0 flex-1 overflow-x-auto">
                   <SortBar value={sort} onChange={setSort} options={sortOptions} label={t("sr.sorting")} />
                 </div>
                 <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="relative shrink-0 rounded-full lg:hidden">
-                      <SlidersHorizontal aria-hidden="true" /> {t("common.filter")}
-                      {activeFilters > 0 && <span className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-primary text-2xs font-bold text-primary-foreground">{activeFilters}</span>}
-                    </Button>
+                    <button type="button" aria-label={t("sr.filters.open")} className="relative grid size-14 shrink-0 place-items-center rounded-full bg-blush text-foreground transition-colors hover:bg-primary hover:text-primary-foreground lg:hidden">
+                      <SlidersHorizontal className="size-6" aria-hidden="true" />
+                      {activeFilters > 0 && <span className="absolute -right-0.5 -top-0.5 grid size-6 place-items-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">{activeFilters}</span>}
+                    </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="max-h-[88dvh]">
                     <SheetHeader>

@@ -21,54 +21,70 @@
    ───────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Surfaces: warm white app surface, pure white cards, warm ink */
-    --background: 30 25% 98%;
-    --foreground: 36 12% 8%;
-    --card: 0 0% 100%;
-    --card-foreground: 36 12% 8%;
+    /* ── HelloSky 3.0: ivory · burgundy · coral ─────────────────────────
+       Ivory     #F6F3EB  hsl(44 38% 94%)  page surface (warm, never white)
+       Card      #FCFAF5  hsl(40 50% 98%)  cards and search fields
+       Burgundy  #451B23  hsl(349 44% 19%) navigation rail, bottom bar, footer
+       Coral     #D84348 → #D03A40 hsl(358 61% 52%) actions and active states.
+                 The brand coral is nudged 3 % darker so white text on it
+                 measures 4.8:1 (AA); the eye cannot tell the two apart.
+       Coral ink #B8343A  hsl(357 56% 46%) coral as *text* on ivory (5.2:1)
+       Blush     #F4E4E1  hsl(9 47% 92%)   soft surfaces: chips, secondary CTA
+       Ink       #1A1717  hsl(0 6% 10%)    typography                          */
+    --background: 44 38% 94%;
+    --foreground: 0 6% 10%;
+    --card: 40 50% 98%;
+    --card-foreground: 0 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 36 12% 8%;
+    --popover-foreground: 0 6% 10%;
 
-    /* Brand: HelloSky red. White text on red, always. */
-    --primary: 355 60% 49%;
+    /* Brand: coral for actions. White text on coral, always. */
+    --primary: 358 61% 52%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 354 63% 42%;
-    --primary-soft: 355 73% 97%;
-    --night: 36 12% 8%;
-    --sand: 40 16% 96%;
+    --primary-hover: 357 58% 46%;
+    --primary-soft: 9 47% 92%;
+    --night: 349 44% 19%;
+    --sand: 41 36% 91%;
 
-    /* Named brand tokens (Figma: brand/*, surface/*, text/*, border/*) */
-    --brand-red: 355 60% 49%;
-    --brand-red-hover: 354 63% 42%;
-    --brand-red-pressed: 352 62% 34%;
-    --brand-red-dark: 352 62% 34%;
-    --brand-red-soft: 355 73% 97%;
-    --brand-red-subtle: 355 74% 94%;
-    --brand-red-border: 354 72% 86%;
-    --brand-red-text: 354 63% 42%;
-    --surface: 30 25% 98%;
-    --surface-secondary: 40 16% 96%;
-    --text-primary: 36 12% 8%;
-    --text-secondary: 33 6% 34%;
-    --text-muted: 33 5% 46%;
+    /* Named brand tokens */
+    --burgundy: 349 44% 19%;
+    --burgundy-deep: 349 46% 14%;
+    --ivory: 44 38% 94%;
+    --blush: 9 47% 92%;
+    --coral-ink: 357 56% 46%;
+    /* Coral as text on burgundy: lifted so a 13 px tab label reads at 5.4:1. */
+    --coral-on-dark: 358 80% 71%;
+    --brand-red: 358 61% 52%;
+    --brand-red-hover: 357 58% 46%;
+    --brand-red-pressed: 357 58% 40%;
+    --brand-red-dark: 349 44% 19%;
+    --brand-red-soft: 9 47% 92%;
+    --brand-red-subtle: 8 46% 88%;
+    --brand-red-border: 6 45% 82%;
+    --brand-red-text: 357 56% 46%;
+    --surface: 44 38% 94%;
+    --surface-secondary: 24 33% 93%;
+    --text-primary: 0 6% 10%;
+    --text-secondary: 18 5% 41%;
+    --text-muted: 18 5% 48%;
 
     /* Neutrals */
-    --secondary: 40 16% 96%;
-    --secondary-foreground: 36 10% 12%;
-    --muted: 36 15% 94%;
-    --muted-foreground: 33 6% 34%;
-    --accent: 355 73% 97%;
-    --accent-foreground: 354 63% 42%;
-    --border: 34 12% 89%;
-    --input: 36 10% 81%;
-    --ring: 355 60% 49%;
+    --secondary: 24 33% 93%;
+    --secondary-foreground: 0 6% 10%;
+    --muted: 40 25% 91%;
+    --muted-foreground: 18 5% 41%;
+    --accent: 9 47% 92%;
+    --accent-foreground: 357 56% 46%;
+    --border: 40 27% 87%;
+    --input: 39 23% 82%;
+    --ring: 358 61% 52%;
 
     /* Semantic */
     --destructive: 3 71% 41%;
     --destructive-foreground: 0 0% 100%;
     --success: 145 59% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 35 100% 30%;
+    --warning: 35 100% 27%;                /* 5.0:1 as text on the blush/ivory badge surface */
     --warning-foreground: 0 0% 100%;
     --error: 3 71% 41%;
     --info: 216 59% 41%;
@@ -85,66 +101,75 @@
     --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
     /* Legacy slot names — kept so existing components compile. */
-    --gold: 355 60% 49%;
-    --skyline: 354 63% 42%;               /* readable red for text accents */
-    --cream: 30 25% 98%;
-    --coral: 3 71% 41%;
-    /* Hjerter og favoritter har egen farge – ikke feilrød, ikke brand-rød. */
-    --like: 348 82% 52%;
+    --gold: 358 61% 52%;
+    --skyline: 357 56% 46%;               /* readable coral for text accents */
+    --cream: 44 38% 94%;
+    --coral: 358 61% 52%;
+    /* Hjerter og favoritter: coral, som resten av handlingene. */
+    --like: 358 61% 52%;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 36 12% 8%;
-    --sidebar-primary: 355 60% 49%;
+    /* Layout: the desktop navigation rail and the floating phone tab bar. */
+    --rail-w: 114px;
+    --tabbar-h: 72px;
+
+    --sidebar-background: 40 50% 98%;
+    --sidebar-foreground: 0 6% 10%;
+    --sidebar-primary: 358 61% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 36 15% 94%;
-    --sidebar-accent-foreground: 36 12% 8%;
-    --sidebar-border: 34 12% 89%;
-    --sidebar-ring: 355 60% 49%;
+    --sidebar-accent: 40 25% 91%;
+    --sidebar-accent-foreground: 0 6% 10%;
+    --sidebar-border: 40 27% 87%;
+    --sidebar-ring: 358 61% 52%;
   }
 
-  /* ── Dark mode (public) ────────────────────────────────────────────────── */
+  /* ── Dark mode (public): burgundy-tinted darks, coral lifted for contrast ── */
   .dark {
-    --background: 30 8% 7%;
-    --foreground: 30 20% 96%;
-    --card: 30 7% 11%;
-    --card-foreground: 30 20% 96%;
-    --popover: 30 7% 12%;
-    --popover-foreground: 30 20% 96%;
-    --primary: 354 68% 62%;
-    --primary-foreground: 36 12% 8%;
-    --primary-hover: 355 70% 68%;
-    --primary-soft: 355 40% 18%;
-    --brand-red: 354 68% 62%;
-    --brand-red-hover: 355 70% 68%;
-    --brand-red-soft: 355 40% 18%;
-    --brand-red-subtle: 355 40% 22%;
-    --brand-red-border: 355 45% 32%;
-    --brand-red-text: 355 70% 75%;
-    --surface: 30 8% 7%;
-    --surface-secondary: 30 6% 15%;
-    --text-primary: 30 20% 96%;
-    --text-secondary: 30 8% 72%;
-    --text-muted: 30 6% 62%;
-    --secondary: 30 6% 16%;
-    --secondary-foreground: 30 15% 92%;
-    --muted: 30 6% 15%;
-    --muted-foreground: 30 8% 68%;
-    --accent: 355 40% 18%;
-    --accent-foreground: 355 70% 75%;
-    --border: 30 6% 20%;
-    --input: 30 6% 26%;
-    --ring: 354 68% 62%;
-    --night: 30 7% 12%;
-    --sand: 30 6% 16%;
-    --skyline: 355 70% 75%;
-    --like: 348 90% 66%;
-    --sidebar-background: 30 7% 9%;
-    --sidebar-foreground: 30 20% 96%;
-    --sidebar-primary: 354 68% 62%;
-    --sidebar-primary-foreground: 36 12% 8%;
-    --sidebar-accent: 30 6% 15%;
-    --sidebar-accent-foreground: 30 20% 96%;
-    --sidebar-border: 30 6% 20%;
+    --background: 349 18% 8%;
+    --foreground: 40 30% 95%;
+    --card: 349 14% 12%;
+    --card-foreground: 40 30% 95%;
+    --popover: 349 14% 13%;
+    --popover-foreground: 40 30% 95%;
+    --primary: 358 72% 62%;
+    --primary-foreground: 349 18% 8%;
+    --primary-hover: 358 75% 68%;
+    --primary-soft: 352 30% 20%;
+    --burgundy: 349 40% 16%;
+    --burgundy-deep: 349 46% 11%;
+    --ivory: 349 18% 8%;
+    --blush: 352 30% 20%;
+    --coral-ink: 358 80% 78%;
+    --brand-red: 358 72% 62%;
+    --brand-red-hover: 358 75% 68%;
+    --brand-red-soft: 352 30% 20%;
+    --brand-red-subtle: 352 30% 24%;
+    --brand-red-border: 352 35% 34%;
+    --brand-red-text: 358 80% 78%;
+    --surface: 349 18% 8%;
+    --surface-secondary: 349 10% 16%;
+    --text-primary: 40 30% 95%;
+    --text-secondary: 30 10% 72%;
+    --text-muted: 30 8% 62%;
+    --secondary: 349 10% 16%;
+    --secondary-foreground: 40 20% 92%;
+    --muted: 349 10% 15%;
+    --muted-foreground: 30 10% 68%;
+    --accent: 352 30% 20%;
+    --accent-foreground: 358 80% 78%;
+    --border: 349 10% 20%;
+    --input: 349 10% 26%;
+    --ring: 358 72% 62%;
+    --night: 349 40% 16%;
+    --sand: 349 10% 16%;
+    --skyline: 358 80% 78%;
+    --like: 358 72% 62%;
+    --sidebar-background: 349 14% 10%;
+    --sidebar-foreground: 40 30% 95%;
+    --sidebar-primary: 358 72% 62%;
+    --sidebar-primary-foreground: 349 18% 8%;
+    --sidebar-accent: 349 10% 15%;
+    --sidebar-accent-foreground: 40 30% 95%;
+    --sidebar-border: 349 10% 20%;
 
     /* Statusfargene snus for mørk flate (lys tekst-variant, mørk forgrunn). */
     --destructive: 4 80% 70%;
@@ -287,6 +312,12 @@
     overflow-x: hidden;
     overflow-x: clip;
   }
+  /* Customer pages: one contemporary geometric family (Outfit) for headings
+     and body alike. Admin keeps Manrope + Newsreader untouched. */
+  html:not([data-theme="admin"]) body {
+    font-family: "Outfit Variable", "Outfit", "Manrope Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "calt", "tnum", "kern";
+  }
   /*
    * Når et ark eller en dialog er åpen låser Radix rullingen på body. Da skal
    * ikke WhatsApp-boblen ligge og flyte oppå innholdet i arket.
@@ -294,10 +325,18 @@
   body[data-scroll-locked] .whatsapp-fab {
     display: none;
   }
-  /* Room for the floating bottom navigation (all widths below lg) */
+  /* Room for the floating bottom navigation (all widths below lg): the bar
+     itself, its 16 px float margin and a little air above it. */
   @media (max-width: 1023px) {
     body.has-tabbar {
-      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+      padding-bottom: calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom));
+    }
+  }
+  /* Desktop: the burgundy navigation rail lives on the left of every
+     customer page; content, fixed headers and the footer all start after it. */
+  @media (min-width: 1024px) {
+    body.has-rail {
+      padding-left: var(--rail-w);
     }
   }
   ::selection {
@@ -536,6 +575,88 @@
       hsl(var(--night) / 0.93) 100%
     );
   }
+}
+
+/* ── Customer type voice (HelloSky 3.0) ───────────────────────────────────
+   Headlines are Outfit at medium weight, tight and large: «Hvor vil du dra?»
+   Scoped to the public theme so the admin keeps its serif headings. */
+html:not([data-theme="admin"]) .t-display,
+html:not([data-theme="admin"]) .t-h1,
+html:not([data-theme="admin"]) .t-h2,
+html:not([data-theme="admin"]) .font-display {
+  font-family: "Outfit Variable", "Outfit", "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  font-feature-settings: "kern";
+  font-style: normal;
+}
+html:not([data-theme="admin"]) .t-display {
+  font-size: clamp(3rem, 2rem + 4.8vw, 5.25rem);        /* 48 → 84 */
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+}
+html:not([data-theme="admin"]) .t-h1 {
+  font-size: clamp(2.5rem, 1.9rem + 2.6vw, 3.75rem);     /* 40 → 60 */
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+}
+html:not([data-theme="admin"]) .t-h2 {
+  font-size: clamp(1.875rem, 1.5rem + 1.6vw, 2.625rem);  /* 30 → 42 */
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+}
+html:not([data-theme="admin"]) .t-h3 {
+  font-weight: 500;
+  font-size: 1.25rem;
+  letter-spacing: -0.015em;
+}
+html:not([data-theme="admin"]) .t-lead {
+  color: hsl(var(--muted-foreground));
+}
+html:not([data-theme="admin"]) .t-price {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+html:not([data-theme="admin"]) .font-mono-label {
+  font-family: "Outfit Variable", "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Surfaces of the new system ─────────────────────────────────────────── */
+/* The soft card: no border, a whisper of shadow, generous radius. */
+.card-soft {
+  background: hsl(var(--card));
+  border-radius: 28px;
+  box-shadow: 0 1px 0 hsl(var(--night) / 0.03), 0 10px 30px -22px hsl(var(--night) / 0.25);
+}
+/* Rounded photo tile with the readability wash pinned to the caption. */
+.photo-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background: hsl(var(--night));
+  isolation: isolate;
+}
+/* Eyebrow in burgundy: «SÓLLER, MALLORCA» */
+.eyebrow-burgundy {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: hsl(var(--burgundy));
+}
+/* The ivory curve that lets a hero photo flow into the page. */
+.hero-curve {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 64px;
+  pointer-events: none;
+}
+/* Discovery map */
+.map-sea {
+  background: hsl(204 45% 90%);
+}
+.dark .map-sea {
+  background: hsl(210 20% 14%);
 }
 
 .hero-vignette {

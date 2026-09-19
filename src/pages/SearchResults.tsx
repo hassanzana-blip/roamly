@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, Bell, CalendarDays, ChevronDown, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
+import { Bell, CalendarDays, ChevronDown, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import HeroBar from "@/components/app/HeroBar";
+import ServiceTabs from "@/components/app/ServiceTabs";
+import { SERVICES, type ServiceId } from "@/components/app/services";
+import { carSearchHref, hotelSearchHref } from "@/components/stays/stayLinks";
+import { DESTINATIONS, imageSrcSet } from "@/content/discover";
+import { useSavedDestinations } from "@/lib/useAccount";
 import OfferCard from "@/components/offers/OfferCard";
 import SearchWidget, { type SearchParamsState, type TripLeg } from "@/components/search/SearchWidget";
 import PriceCalendar from "@/components/search/PriceCalendar";
@@ -324,6 +330,16 @@ export default function SearchResults() {
 
   const fromAirport = airportByIata(from);
   const toAirport = airportByIata(to);
+  // Reisemålet som scene: bare når vi har et ekte, kontrollert fotografi av stedet.
+  const heroDest = useMemo(() => (isMulti ? undefined : DESTINATIONS.find((d) => d.iata === to && d.image)), [isMulti, to]);
+  const heroImage = heroDest?.image;
+  const { ids: savedIds, toggle: toggleSaved } = useSavedDestinations();
+  // Samme datoer og reisende med over til hotell og leiebil; cruise sier ærlig fra.
+  const serviceHref = (id: ServiceId) => {
+    if (id === "hotell" && toAirport && depart) return hotelSearchHref({ dest: "", place: toAirport.city, checkin: depart, checkout: ret ?? new Date(Date.parse(depart) + 3 * 86_400_000).toISOString().slice(0, 10), adults: Math.max(1, Number(params.get("adults") ?? 1)), rooms: 1 });
+    if (id === "bil" && toAirport && depart) return carSearchHref({ type: "airport", value: toAirport.iata, place: `${toAirport.city} (${toAirport.iata})`, pickup: depart, dropoff: ret ?? new Date(Date.parse(depart) + 3 * 86_400_000).toISOString().slice(0, 10) });
+    return SERVICES.find((s) => s.id === id)!.to;
+  };
 
   // SEO: dynamic title «Fly Oslo → Istanbul 10. nov | HelloSky». Never indexed (parameterised).
   const routeTitle = isMulti
@@ -531,11 +547,12 @@ export default function SearchResults() {
   if (!isMulti && slices.length === 0) {
     return (
       <div className="relative min-h-screen bg-background">
-        <SiteHeader />
-        <main id="main" tabIndex={-1} className="container-narrow pb-20 pt-28 outline-none sm:pt-32">
-          <h1 className="t-h1">{t("sr.nosearch.title")}</h1>
-          <p className="t-lead mt-3 max-w-lg text-muted-foreground">{t("sr.nosearch.body")}</p>
-          <div className="surface-lift mt-8 p-4 sm:p-6">
+        <div className="hidden lg:block"><SiteHeader /></div>
+        <main id="main" tabIndex={-1} className="container-x pb-20 pt-6 outline-none lg:pt-28">
+          <HeroBar backTo="/" tone="dark" className="lg:hidden" />
+          <h1 className="t-h1 mt-6">{t("sr.nosearch.title")}</h1>
+          <p className="t-lead mt-3 max-w-lg">{t("sr.nosearch.body")}</p>
+          <div className="card-soft mt-8 p-3 sm:p-4">
             <SearchWidget initial={widgetInitial} />
           </div>
         </main>
@@ -544,36 +561,61 @@ export default function SearchResults() {
     );
   }
 
+  const title = isMulti ? (
+    <>
+      {t("sr.multicity")} · {legs.map((l) => l.from!.iata).join("–")}–{legs[legs.length - 1].to!.iata}
+    </>
+  ) : (
+    <>
+      {fromAirport?.city ?? from} <span aria-label={t("sr.to")}>→</span> {toAirport?.city ?? to}
+    </>
+  );
+  const summaryLine = (
+    <>
+      {isMulti ? legs.map((l) => formatDateShort(l.date)).join(" · ") : `${formatDateShort(depart)}${ret ? ` – ${formatDateShort(ret)}` : ` · ${t("sr.oneway")}`}`}
+      {" · "}
+      {t("common.pax", { count: passengers.length })} · {cabinLabel(cabin)}
+    </>
+  );
+  const heroBar = (
+    <HeroBar
+      backTo="/"
+      tone={heroImage ? "light" : "dark"}
+      saved={heroDest ? savedIds.has(heroDest.id) : undefined}
+      onToggleSaved={heroDest ? () => toggleSaved(heroDest.id) : undefined}
+      saveLabel={heroDest ? (savedIds.has(heroDest.id) ? t("sr.unsavedest", { city: heroDest.city }) : t("sr.savedest", { city: heroDest.city })) : undefined}
+      className="lg:hidden"
+    />
+  );
+
   return (
     <div className="relative min-h-screen bg-background">
-      <SiteHeader />
+      <div className="hidden lg:block"><SiteHeader /></div>
 
-      {/* summary bar */}
-      <div className="border-b border-border bg-card pt-20">
-        <div className="container-x pb-5 pt-5">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <div className="min-w-0">
-              {isMulti ? (
-                <h1 className="font-display text-2xl sm:text-3xl">
-                  {t("sr.multicity")} · {legs.map((l) => l.from!.iata).join("–")}–{legs[legs.length - 1].to!.iata}
-                </h1>
-              ) : (
-                <h1 className="font-display text-2xl sm:text-3xl">
-                  {fromAirport?.city ?? from} <ArrowRight className="inline h-5 w-5 text-muted-foreground" aria-label={t("sr.to")} /> {toAirport?.city ?? to}
-                </h1>
-              )}
-              <p className="mt-1 text-sm text-muted-foreground">
-                {isMulti ? legs.map((l) => formatDateShort(l.date)).join(" · ") : `${formatDateShort(depart)}${ret ? ` – ${formatDateShort(ret)}` : ` · ${t("sr.oneway")}`}`}
-                {" · "}
-                {t("common.pax", { count: passengers.length })} · {cabinLabel(cabin)}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen}>
-                {t("sr.edit")}
-                <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
-              </Button>
-              {!isMulti && depart && priceAlertsAvailable && (
+      {/* Reisemålet som scene: fotografiet når vi har et ekte et, ellers burgunder. */}
+      <header className={cn("relative isolate overflow-hidden text-white lg:mt-[72px] lg:rounded-b-[28px]", heroImage ? "bg-burgundy" : "bg-burgundy")}>
+        {heroImage && (
+          <img src={heroImage} srcSet={imageSrcSet(heroImage)} sizes="100vw" alt={heroDest?.imageAlt ?? ""} width={1024} height={640} className="absolute inset-0 -z-10 h-full w-full object-cover" />
+        )}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/40 via-black/10 to-black/60" aria-hidden="true" />
+        <div className="container-x pb-8 pt-[max(16px,env(safe-area-inset-top))] lg:pb-10 lg:pt-8">
+          {heroBar}
+          <p className="mt-10 text-[13px] font-medium uppercase tracking-[0.22em] text-white/80 lg:mt-6">{heroDest?.country ?? toAirport?.country ?? ""}</p>
+          <h1 className="t-display mt-1 text-white">{title}</h1>
+          {heroDest?.tagline && <p className="t-lead mt-2 !text-white/85">{heroDest.tagline}</p>}
+        </div>
+      </header>
+
+      {/* Oppsummering, «Endre», tjenestene */}
+      <div className="container-x pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <p className="text-[17px] text-foreground">{summaryLine}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-foreground underline underline-offset-4">
+              {t("common.change")}
+              <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
+            </button>
+            {!isMulti && depart && priceAlertsAvailable && (
                 <Button
                   variant={alertOpen ? "subtle" : "outline"}
                   size="sm"
@@ -587,23 +629,25 @@ export default function SearchResults() {
                   <Bell aria-hidden="true" /> {t("sr.alert")}
                 </Button>
               )}
-              {result?.demoMode && <span className="rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">{t("sr.demo")}</span>}
-              {result?.sandbox && !result.demoMode && (
-                <span role="status" className="rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
-                  {t("sr.sandbox")}
-                </span>
-              )}
-            </div>
+            {result?.demoMode && <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">{t("sr.demo")}</span>}
+            {result?.sandbox && !result.demoMode && (
+              <span role="status" className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
+                {t("sr.sandbox")}
+              </span>
+            )}
           </div>
+        </div>
 
-          {editOpen && (
-            <div className="fade-up mt-5 max-w-3xl">
-              <SearchWidget key={location.search} initial={widgetInitial} variant="compact" />
-            </div>
-          )}
+        <ServiceTabs active="fly" className="mt-4" hrefFor={serviceHref} />
 
-          {alertOpen && !isMulti && depart && priceAlertsAvailable && (
-            <div className="fade-up mt-5 max-w-md rounded-xl border border-border bg-card p-5 shadow-soft">
+        {editOpen && (
+          <div className="fade-up mt-5 max-w-4xl">
+            <SearchWidget key={location.search} initial={widgetInitial} variant="compact" />
+          </div>
+        )}
+
+        {alertOpen && !isMulti && depart && priceAlertsAvailable && (
+          <div className="card-soft fade-up mt-5 max-w-md p-5">
               <h2 className="font-display text-xl">{t("sr.alert.title")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{t("sr.alert.body", { route: `${fromAirport?.city ?? from} → ${toAirport?.city ?? to}`, date: formatDateShort(depart) })}</p>
               <form
@@ -643,13 +687,12 @@ export default function SearchResults() {
               </form>
             </div>
           )}
-        </div>
       </div>
 
       {/* ±3-day price strip + price calendar */}
       {stripDates.length > 0 && (
-        <div className="border-b border-border bg-muted/50">
-          <div className="no-scrollbar container-x flex items-center gap-2 overflow-x-auto py-3">
+        <div className="mt-4">
+          <div className="no-scrollbar container-x flex items-center gap-2 overflow-x-auto py-1">
             {stripDates.map((d) => {
               const active = d === depart;
               const amount = hintByDate.get(d);
@@ -660,18 +703,18 @@ export default function SearchResults() {
                   onClick={() => goDate(d)}
                   aria-pressed={active}
                   className={cn(
-                    "min-h-[52px] min-w-24 shrink-0 rounded-lg border px-3 py-2 text-center transition-colors",
-                    active ? "border-primary/40 bg-primary-soft" : "border-border bg-card hover:border-foreground/30",
+                    "min-h-[56px] min-w-24 shrink-0 rounded-2xl px-3 py-2 text-center transition-colors",
+                    active ? "bg-burgundy text-white" : "bg-card text-foreground hover:bg-blush",
                   )}
                 >
-                  <span className="block text-xs font-semibold text-foreground">{formatDateShort(d)}</span>
-                  <span className={cn("mt-0.5 block text-2xs tabular", active ? "text-accent-foreground" : "text-muted-foreground")}>
+                  <span className="block text-[13px] font-medium">{formatDateShort(d)}</span>
+                  <span className={cn("mt-0.5 block text-[12px] tabular", active ? "text-white/80" : "text-muted-foreground")}>
                     {amount ? t("sr.strip.from", { price: formatPrice(amount, "NOK") }) : hints.isLoading ? "…" : t("sr.strip.search")}
                   </span>
                 </button>
               );
             })}
-            <Chip selected={calOpen} onClick={() => setCalOpen((o) => !o)} aria-expanded={calOpen} className="min-h-[52px]" icon={<CalendarDays aria-hidden="true" />}>
+            <Chip selected={calOpen} onClick={() => setCalOpen((o) => !o)} aria-expanded={calOpen} className="min-h-[56px] rounded-2xl border-0 bg-card" icon={<CalendarDays aria-hidden="true" />}>
               {t("sr.flexible")}
             </Chip>
           </div>
@@ -697,10 +740,10 @@ export default function SearchResults() {
       )}
 
       {/* min-h keeps the footer below the fold while results stream in, so the skeleton→cards swap doesn't shift it (CLS). */}
-      <main id="main" tabIndex={-1} className="container-x min-h-[100dvh] gap-8 py-6 outline-none sm:py-8 lg:grid lg:grid-cols-[260px_1fr]">
+      <main id="main" tabIndex={-1} className="container-x min-h-[100dvh] gap-8 py-5 outline-none sm:py-6 lg:grid lg:grid-cols-[280px_1fr]">
         <aside className="hidden lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-border bg-card p-5">
-            <h2 className="mb-5 flex items-center gap-2 text-base font-semibold">
+          <div className="card-soft sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto p-5">
+            <h2 className="mb-5 flex items-center gap-2 text-[17px] font-medium">
               <SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden="true" /> {t("sr.filter")}
             </h2>
             {filterPanel}
@@ -709,76 +752,57 @@ export default function SearchResults() {
 
         <section>
           {result && offersExpired && (
-            <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/10 p-4">
+            <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-warning/10 p-4">
               <p className="flex items-center gap-2 text-sm font-semibold text-warning">
                 <TimerReset className="size-4" aria-hidden="true" /> {t("sr.expired")}
               </p>
-              <Button size="sm" onClick={doSearch}>
+              <Button size="sm" className="rounded-full" onClick={doSearch}>
                 {t("common.searchagain")}
               </Button>
             </div>
           )}
 
-          {summaryCards.length > 1 && !search.isPending && (
-            <div className="no-scrollbar -mx-5 mb-5 flex gap-1 overflow-x-auto border-b border-border px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0" role="radiogroup" aria-label={t("sr.sorting")}>
-              {summaryCards.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={s.keys.includes(sort)}
-                  onClick={() => setSort(s.key)}
-                  className={cn(
-                    "relative -mb-px min-w-0 shrink-0 px-3 py-3 text-left transition-colors duration-fast first:pl-0 sm:px-4",
-                    s.keys.includes(sort) ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <span className="block text-xs font-medium">{s.label}</span>
-                  <span className="t-num mt-0.5 block text-lg font-semibold leading-tight">{formatMinor(totalOf(s.offer), s.offer.totalCurrency)}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {formatDuration(sliceDuration(s.offer))} · {s.offer.owner.name}
-                  </span>
-                  {s.keys.includes(sort) && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary first:inset-x-0" aria-hidden="true" />}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* sort + mobile filter row: stays under the header while the list scrolls on phones */}
-          <div className="sticky top-16 z-20 -mx-5 mb-5 flex items-center gap-2 bg-background/95 px-5 py-1 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:py-0 lg:backdrop-blur-none">
-            <div role="radiogroup" aria-label={t("sr.sorting")} /*
-                snap-pausen legger seg på kortets kant, ikke på innrykket: uten
-                scroll-padding snapper raden 20 px forbi, og den første knappen
-                blir stående klistret til skjermkanten mens resten av siden har
-                marg. */
-              className="no-scrollbar -ml-5 flex min-w-0 flex-1 snap-x scroll-pl-5 gap-2 overflow-x-auto py-1 pl-5 pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] sm:-ml-8 sm:scroll-pl-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:scroll-pl-0 lg:pl-0 lg:pr-0 lg:[mask-image:none]">
-              {/* The summary cards above already carry best/cheapest/fastest (and family); the chips only add what they don't. */}
+          {/* Sortering som tekstfaner (Anbefalt · Billigst · Raskest) + filterknappen. Klistret under toppen på telefon. */}
+          <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-center justify-between gap-3 bg-background/95 px-5 pt-1 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:pt-0 lg:backdrop-blur-none">
+            <div role="radiogroup" aria-label={t("sr.sorting")} className="no-scrollbar -ml-5 flex min-w-0 flex-1 gap-1 overflow-x-auto pl-5 sm:-ml-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:pl-0">
+              {(summaryCards.length > 1 && !search.isPending ? summaryCards : []).map((s) => {
+                const on = s.keys.includes(sort);
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setSort(s.key)}
+                    title={`${formatMinor(totalOf(s.offer), s.offer.totalCurrency)} · ${formatDuration(sliceDuration(s.offer))} · ${s.offer.owner.name}`}
+                    className={cn(
+                      "relative shrink-0 px-3 py-3 text-[18px] font-medium transition-colors duration-fast first:pl-0",
+                      on ? "text-accent-foreground" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {s.keys[0] === "best" ? t("sr.sort.recommended") : s.label}
+                    {on && <span className="absolute inset-x-3 bottom-1 h-[3px] rounded-full bg-primary first:inset-x-0" aria-hidden="true" />}
+                  </button>
+                );
+              })}
+              {/* Det fanene ikke dekker: familie, tidligst og de øvrige preferansene. */}
               {PREFERENCES.filter((p) => !summaryKeys.has(p.key)).map((p) => (
-                <Chip
-                  key={p.key}
-                  role="radio"
-                  aria-checked={sort === p.key}
-                  selected={sort === p.key}
-                  onClick={() => setSort(p.key)}
-                  title={t(p.hint)}
-                  icon={<p.icon aria-hidden="true" />}
-                  className="shrink-0 snap-start"
-                >
+                <Chip key={p.key} role="radio" aria-checked={sort === p.key} selected={sort === p.key} onClick={() => setSort(p.key)} title={t(p.hint)} icon={<p.icon aria-hidden="true" />} className="my-1.5 shrink-0 border-0 bg-card aria-checked:bg-burgundy aria-checked:text-white">
                   {t(p.label)}
                 </Chip>
               ))}
-              <Chip role="radio" aria-checked={sort === "earliest"} selected={sort === "earliest"} onClick={() => setSort("earliest")} className="shrink-0 snap-start">
+              <Chip role="radio" aria-checked={sort === "earliest"} selected={sort === "earliest"} onClick={() => setSort("earliest")} className="my-1.5 shrink-0 border-0 bg-card aria-checked:bg-burgundy aria-checked:text-white">
                 {t("sr.sort.earliest")}
               </Chip>
             </div>
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="relative shrink-0 rounded-full lg:hidden">
-                  <SlidersHorizontal aria-hidden="true" /> {t("sr.filter.short")}
+                <button type="button" aria-label={t("sr.filters.open")} className="relative grid size-14 shrink-0 place-items-center rounded-full bg-blush text-foreground transition-colors hover:bg-primary hover:text-primary-foreground lg:hidden">
+                  <SlidersHorizontal className="size-6" aria-hidden="true" />
                   {activeFilters > 0 && (
-                    <span className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-primary text-2xs font-bold text-primary-foreground">{activeFilters}</span>
+                    <span className="absolute -right-0.5 -top-0.5 grid size-6 place-items-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">{activeFilters}</span>
                   )}
-                </Button>
+                </button>
               </SheetTrigger>
               <SheetContent side="bottom" className="max-h-[88dvh]">
                 <SheetHeader>
@@ -796,9 +820,9 @@ export default function SearchResults() {
 
           {search.isPending && (
             <div className="space-y-4" aria-live="polite" aria-busy="true">
-              <div className="rounded-2xl border border-border bg-card px-5 py-4">
-                <p className="text-sm font-semibold text-foreground">{t("sr.searching", { to: toAirport ? t("sr.searching.to", { city: toAirport.city }) : "" })}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{t("sr.searching.sub")}</p>
+              <div className="card-soft px-5 py-4">
+                <p className="text-[15px] font-medium text-foreground">{t("sr.searching", { to: toAirport ? t("sr.searching.to", { city: toAirport.city }) : "" })}</p>
+                <p className="mt-1 text-[13px] text-muted-foreground">{t("sr.searching.sub")}</p>
                 <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
                   <div className="h-full w-1/3 rounded-full bg-primary progress-slide" />
                 </div>
@@ -811,23 +835,23 @@ export default function SearchResults() {
           )}
 
           {search.isError && (
-            <div role="alert" className="rounded-2xl border border-destructive/30 bg-card p-8 text-center">
+            <div role="alert" className="card-soft p-8 text-center">
               <ConnectionProblemSpot className="mx-auto" />
-              <h2 className="mt-4 font-display text-2xl">{t("sr.error.title")}</h2>
+              <h2 className="t-h2 mt-4">{t("sr.error.title")}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{humanMessage(search.error)}</p>
-              <Button className="mt-6" onClick={doSearch}>
+              <Button className="mt-6 rounded-full" onClick={doSearch}>
                 <RefreshCw aria-hidden="true" /> {t("common.retry")}
               </Button>
             </div>
           )}
 
           {result && !filtered.length && (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="card-soft p-8 text-center">
               <NoFlightsSpot className="mx-auto" />
-              <h2 className="mt-4 font-display text-2xl">{allOffers.length ? t("sr.empty.filtered") : t("sr.empty.none")}</h2>
+              <h2 className="t-h2 mt-4">{allOffers.length ? t("sr.empty.filtered") : t("sr.empty.none")}</h2>
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{allOffers.length ? t("sr.empty.filteredsub") : t("sr.empty.nonesub")}</p>
               {allOffers.length > 0 && (
-                <Button variant="outline" className="mt-6" onClick={resetFilters}>
+                <Button variant="subtle" className="mt-6 rounded-full" onClick={resetFilters}>
                   {t("sr.filter.reset")}
                 </Button>
               )}
@@ -862,11 +886,11 @@ export default function SearchResults() {
                 </div>
               ))}
               {visible < filtered.length && (
-                <Button variant="outline" size="lg" className="w-full" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                <Button variant="subtle" size="lg" className="w-full rounded-full" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
                   {t("sr.more", { count: filtered.length - visible })}
                 </Button>
               )}
-              <p className="rounded-xl bg-secondary px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">{externalBooking ? t("sr.disclaimer.external") : t("sr.disclaimer")}</p>
+              <p className="rounded-2xl bg-secondary px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">{externalBooking ? t("sr.disclaimer.external") : t("sr.disclaimer")}</p>
             </div>
           )}
         </section>

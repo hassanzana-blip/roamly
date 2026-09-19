@@ -201,6 +201,11 @@ export const PAGE_META = {
     description: "Sammenlign leiebilpriser fra utleieselskaper og formidlere. Bestill hos leverandøren.",
     canonicalPath: "/leiebil",
   },
+  cruise: {
+    title: "Cruise",
+    description: "Cruise-søk er ikke tilgjengelig i HelloSky ennå. Kundeservice hjelper deg gjerne med å finne et cruise.",
+    canonicalPath: "/cruise",
+  },
   home: {
     title: "Søk og sammenlign fly, hotell og leiebil",
     description: "HelloSky er en søkemotor for reiser: priser fra flyselskaper, hoteller og reisebyråer i ett søk. Bestillingen fullføres alltid hos leverandøren.",

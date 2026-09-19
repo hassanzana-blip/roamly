@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { ArrowLeftRight, Briefcase, Check, ChevronDown, ExternalLink, Leaf, Luggage, Moon, Share2 } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Briefcase, Check, ChevronDown, Leaf, Luggage, Moon, Plane, Share2 } from "lucide-react";
 import type { Offer, OfferPassenger, OfferSlice, Segment } from "@contracts/types";
 import { cabinLabel, crossesMidnight, fareConditionLabel, formatClock, formatDuration, formatMinor, layoverInfo, previewTotalMinor, toMinor } from "@/lib/format";
 import Icon from "@/components/app/Icon";
@@ -24,20 +24,25 @@ function useParty(passengers: Pick<OfferPassenger, "type">[]) {
   return parts.join(" · ");
 }
 
-export function SliceViz({ slice, tone = "light" }: { slice: OfferSlice; tone?: "light" | "dark" }) {
+/**
+ * One leg as a line: big departure and arrival times, the airports under
+ * them, the little plane on the seam and the duration under it.
+ * `tone="dark"` is kept for the confirmation and checkout surfaces.
+ */
+export function SliceViz({ slice, tone = "light", size = "md" }: { slice: OfferSlice; tone?: "light" | "dark"; size?: "md" | "lg" }) {
   const t = useT();
   const dayShift = crossesMidnight(slice.departingAt, slice.arrivingAt);
   const dark = tone === "dark";
   const muted = dark ? "text-white/65" : "text-muted-foreground";
+  const big = size === "lg";
   return (
-    <div className="flex items-center gap-2.5 sm:gap-3">
-      <div className="w-12 shrink-0 text-right sm:w-16">
-        <p className="t-num text-lg font-semibold leading-none sm:text-[22px]">{formatClock(slice.departingAt)}</p>
-        <p className={cn("t-code mt-0.5 sm:mt-1", muted)}>{slice.origin.iata}</p>
+    <div className="flex items-center gap-3 sm:gap-4">
+      <div className="shrink-0 text-left">
+        <p className={cn("t-num font-medium leading-none tracking-tight", big ? "text-[34px] sm:text-[40px]" : "text-[26px] sm:text-[30px]")}>{formatClock(slice.departingAt)}</p>
+        <p className={cn("mt-1.5 text-[15px] font-medium", muted)}>{slice.origin.iata}</p>
       </div>
-      <div className="relative min-w-0 flex-1 px-1">
-        <div className="flex items-center">
-          <span className={cn("size-1.5 rounded-full", dark ? "bg-white/70" : "bg-foreground/70")} />
+      <div className="relative min-w-0 flex-1">
+        <div className="flex items-center gap-2">
           <span className={cn("relative h-px flex-1", dark ? "bg-white/25" : "bg-border")}>
             {Array.from({ length: slice.stops }).map((_, i) => (
               <span
@@ -48,31 +53,29 @@ export function SliceViz({ slice, tone = "light" }: { slice: OfferSlice; tone?: 
               />
             ))}
           </span>
-          <span className="size-1.5 rounded-full bg-primary" />
+          <Plane className={cn("size-5 shrink-0", dark ? "text-white/80" : "text-foreground/70")} aria-hidden="true" />
+          <span className={cn("h-px flex-1", dark ? "bg-white/25" : "bg-border")} />
         </div>
-        <p className={cn("mt-1 truncate text-center text-[11px] sm:mt-1.5 sm:text-xs", muted)}>
+        <p className={cn("mt-2 truncate text-center text-[14px] sm:text-[15px]", muted)}>
           {formatDuration(slice.durationMinutes)}
-          {" · "}
-          {slice.stops === 0 ? (
-            <span className={cn("font-medium", dark ? "text-lime-dark" : "text-success")}>{t("oc.direct")}</span>
-          ) : (
-            `${t("oc.stops", { count: slice.stops })} ${slice.segments
-              .slice(0, -1)
-              .map((s) => s.destination.iata)
-              .join(", ")}`
+          {slice.stops > 0 && (
+            <>
+              {" · "}
+              {t("oc.stops", { count: slice.stops })} {slice.segments.slice(0, -1).map((s) => s.destination.iata).join(", ")}
+            </>
           )}
         </p>
       </div>
-      <div className="w-12 shrink-0 sm:w-16">
-        <p className="t-num text-lg font-semibold leading-none sm:text-[22px]">
+      <div className="shrink-0 text-right">
+        <p className={cn("t-num font-medium leading-none tracking-tight", big ? "text-[34px] sm:text-[40px]" : "text-[26px] sm:text-[30px]")}>
           {formatClock(slice.arrivingAt)}
           {dayShift > 0 && (
-            <sup className={cn("ml-0.5 text-[10px] font-semibold", muted)} aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
+            <sup className={cn("ml-0.5 text-[12px] font-medium", muted)} aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
               +{dayShift}
             </sup>
           )}
         </p>
-        <p className={cn("t-code mt-0.5 sm:mt-1", muted)}>{slice.destination.iata}</p>
+        <p className={cn("mt-1.5 text-[15px] font-medium", muted)}>{slice.destination.iata}</p>
       </div>
     </div>
   );
@@ -185,21 +188,17 @@ function useTripBaggage(offer: Offer) {
 }
 
 /** Bagasje som to glyfer på én linje – samme svar, en brøkdel av plassen. */
-function BaggageLine({ offer, tone = "light" }: { offer: Offer; tone?: "light" | "dark" }) {
+function BaggageLine({ offer }: { offer: Offer }) {
   const t = useT();
   const { carryOn, checked, carryOnUnknown, checkedUnknown } = useTripBaggage(offer);
-  const dark = tone === "dark";
-  const muted = dark ? "text-white/65" : "text-muted-foreground";
-  // På mørk flate må glyfen lyse; ellers arver den forgrunnsfargen som vanlig.
-  const glyph = dark ? "text-white" : undefined;
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:gap-x-4 sm:gap-y-1.5 sm:text-[13px]">
-      <span className="flex items-center gap-1.5">
-        <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={18} className={glyph} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[15px]">
+      <span className="flex items-center gap-2">
+        <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={20} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
         <span aria-hidden="true">{carryOnUnknown ? t("oc.carryon.unknown") : t("oc.carryon.included", { count: carryOn })}</span>
       </span>
-      <span className={cn("flex items-center gap-1.5", checkedUnknown || checked === 0 ? muted : undefined)}>
-        <BaggageVisual kind="checked" count={checked} unknown={checkedUnknown} size={18} className={checkedUnknown || checked === 0 ? undefined : glyph} label={checkedUnknown ? t("bg.checked.unknown") : checked === 0 ? t("bg.checked.none") : t("bg.checked", { count: checked })} />
+      <span className={cn("flex items-center gap-2", (checkedUnknown || checked === 0) && "text-muted-foreground")}>
+        <BaggageVisual kind="checked" count={checked} unknown={checkedUnknown} size={20} label={checkedUnknown ? t("bg.checked.unknown") : checked === 0 ? t("bg.checked.none") : t("bg.checked", { count: checked })} />
         <span aria-hidden="true">{checkedUnknown ? t("oc.checked.unknown") : checked === 0 ? t("oc.checked.addable") : t("oc.checked.included", { count: checked })}</span>
       </span>
     </div>
@@ -207,28 +206,28 @@ function BaggageLine({ offer, tone = "light" }: { offer: Offer; tone?: "light" |
 }
 
 /** Alt som er verdt en advarsel eller et løfte, som merkelapper. */
-function OfferTags({ keys, tone = "light" }: { keys: ReturnType<typeof offerFlags>; tone?: "light" | "dark" }) {
+function OfferTags({ keys }: { keys: ReturnType<typeof offerFlags> }) {
   const t = useT();
-  const base = tone === "dark" ? "bg-white/15 text-white" : "bg-muted text-foreground";
-  const warn = tone === "dark" ? "bg-amber-300/20 text-amber-100" : "bg-warning/10 text-warning";
+  const base = "bg-secondary text-foreground";
+  const warn = "bg-warning/10 text-warning";
   const { family, flexible, airportChange, nextDay, hasOvernight, hasLong } = keys;
   if (!(family || flexible || airportChange || nextDay || hasOvernight || hasLong)) return null;
   return (
     <ul className="flex flex-wrap gap-1.5" aria-label={t("oc.details")}>
       {family && (
-        <li className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium", base)}>
+        <li className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-medium", base)}>
           <FamilyGlyph size={14} /> {t("oc.tag.family")}
         </li>
       )}
-      {flexible && <li className={cn("rounded-md px-2 py-0.5 text-xs font-medium", base)}>{t(flexible)}</li>}
+      {flexible && <li className={cn("rounded-full px-2.5 py-1 text-[13px] font-medium", base)}>{t(flexible)}</li>}
       {nextDay && (
-        <li className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium", base)}>
+        <li className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[13px] font-medium", base)}>
           <Moon className="size-3" aria-hidden="true" /> {t("oc.arrivalnextday")}
         </li>
       )}
-      {airportChange && <li className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", warn)}>{t("oc.tag.airportchange")}</li>}
-      {hasOvernight && <li className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", warn)}>{t("oc.overnight")}</li>}
-      {!hasOvernight && hasLong && <li className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", warn)}>{t("oc.longlayover")}</li>}
+      {airportChange && <li className={cn("rounded-full px-2.5 py-1 text-[13px] font-semibold", warn)}>{t("oc.tag.airportchange")}</li>}
+      {hasOvernight && <li className={cn("rounded-full px-2.5 py-1 text-[13px] font-semibold", warn)}>{t("oc.overnight")}</li>}
+      {!hasOvernight && hasLong && <li className={cn("rounded-full px-2.5 py-1 text-[13px] font-semibold", warn)}>{t("oc.longlayover")}</li>}
     </ul>
   );
 }
@@ -275,11 +274,11 @@ function OfferDetails({ offer, supplierMinor, currency }: { offer: Offer; suppli
   const refundLabel = fareConditionLabel("refund", offer.conditions?.refundBeforeDeparture, offer.refundable);
   const changeLabel = fareConditionLabel("change", offer.conditions?.changeBeforeDeparture, offer.changeable);
   return (
-    <div className="space-y-6 border-t border-border bg-muted/40 px-4 py-5 sm:px-5">
+    <div className="space-y-6 border-t border-border bg-secondary/50 px-5 py-5 sm:px-6">
       {offer.slices.map((slice, i) => (
         <SliceDetails key={slice.id} slice={slice} label={sliceLabel(offer.slices.length, i)} fallbackBaggage={offer.baggage} />
       ))}
-      <div className="rounded-lg bg-card p-4 text-xs">
+      <div className="rounded-2xl bg-card p-4 text-xs">
         <p className="mb-1.5 text-sm font-semibold text-foreground">{t("oc.conditions")}</p>
         <ul className="space-y-1.5 text-foreground">
           <li className="flex items-center gap-2">
@@ -324,22 +323,18 @@ const BADGE_KEYS: Record<string, I18nKey> = {
  * navn, om det er flyselskapet selv, og leverandørens egne merkelapper. Alt
  * er lest fra svaret – vi hevder ikke mer enn leverandøren har sagt.
  */
-function SellerLine({ offer, tone = "light" }: { offer: Offer; tone?: "light" | "dark" }) {
+function SellerLine({ offer }: { offer: Offer }) {
   const t = useT();
   const b = offer.booking;
   if (!b) return null;
-  const dark = tone === "dark";
-  const muted = dark ? "text-white/65" : "text-muted-foreground";
-  const pill = dark ? "bg-white/15 text-white" : "bg-muted text-foreground";
-  const good = dark ? "bg-white/20 text-white" : "bg-primary-soft text-accent-foreground";
   const badges = (b.badges ?? []).filter((code) => code !== "direct" && BADGE_KEYS[code]);
   return (
-    <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 text-xs", muted)}>
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-muted-foreground">
       <span>{t("oc.seller.via", { name: b.provider.name })}</span>
-      {b.sellerKind === "airline" && <span className={cn("rounded-md px-2 py-0.5 font-semibold", good)}>{t("oc.seller.airline")}</span>}
-      {b.sellerKind === "agency" && <span className={cn("rounded-md px-2 py-0.5 font-medium", pill)}>{t("oc.seller.agency")}</span>}
+      {b.sellerKind === "airline" && <span className="rounded-full bg-blush px-2.5 py-0.5 font-medium text-accent-foreground">{t("oc.seller.airline")}</span>}
+      {b.sellerKind === "agency" && <span className="rounded-full bg-secondary px-2.5 py-0.5 font-medium text-foreground">{t("oc.seller.agency")}</span>}
       {badges.map((code) => (
-        <span key={code} className={cn("rounded-md px-2 py-0.5 font-medium", pill)}>
+        <span key={code} className="rounded-full bg-secondary px-2.5 py-0.5 font-medium text-foreground">
           {t(BADGE_KEYS[code])}
         </span>
       ))}
@@ -357,13 +352,12 @@ function ctaLabel(offer: Offer, t: ReturnType<typeof useT>): string {
 }
 
 /**
- * Ett tilbud, i to former.
+ * Ett tilbud, ett kort (HelloSky 3.0).
  *
- * «Vårt valg» er en scene: mørk flate, begrunnelsen først, prisen stor. Den
- * skal kunne leses på to sekunder og være tydelig forskjellig fra resten.
- * De øvrige er rolige rader: flyselskap og pris på én linje, rutene under,
- * bagasje og valg nederst. Detaljene ligger bak én knapp, ikke i et eget
- * bånd på hvert kort – femten like rektangler er ikke en liste, det er støy.
+ * Flyselskapets eget merke og «Direkte» øverst, tidene store i midten,
+ * bagasjen som en rolig linje, så prisen og handlingen. Det anbefalte
+ * tilbudet får korall-knapp og begrunnelsen som fakta; resten får den myke
+ * blush-knappen. Detaljer og vilkår ligger bak én lenke, ikke i et eget bånd.
  */
 export default function OfferCard({ offer, onSelect, selected, comparing, compareDisabled, onToggleCompare, shareText, recommended }: Props) {
   const t = useT();
@@ -384,186 +378,114 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
   const reasons = recommended ? flags.all.slice(0, 3).map((k) => t(k)) : [];
   const airline = { iata: offer.owner.iata, name: offer.owner.name, logoSymbolUrl: offer.owner.logoUrl };
   const cta = ctaLabel(offer, t);
-  const ctaProps = external
-    ? ({ asChild: true } as const)
-    : ({ onClick: () => onSelect(offer) } as const);
+  const ctaProps = external ? ({ asChild: true } as const) : ({ onClick: () => onSelect(offer) } as const);
   const ctaInner = external ? (
     <a href={offer.booking!.url} target="_blank" rel="noopener noreferrer nofollow sponsored" title={t("oc.external.hint")} onClick={() => onSelect(offer)}>
-      {cta} <ExternalLink className="size-4" aria-hidden="true" />
+      <span className="truncate">{cta}</span> <ArrowRight className="size-5 shrink-0" aria-hidden="true" />
     </a>
   ) : (
-    cta
+    <>
+      {cta} <ArrowRight className="size-5" aria-hidden="true" />
+    </>
   );
-  const priceLabel = offer.passengers.length > 1 ? t("oc.totalfor.party", { party }) : t("oc.forpax", { count: 1 });
+  const priceLabel = offer.passengers.length > 1 ? t("oc.total.party", { party }) : t("oc.total.perperson");
   const perPerson = paying > 1 ? t("sr.perperson", { price: formatMinor(Math.round(totalMinor / paying / 100) * 100, currency) }) : null;
+  const maxStops = Math.max(...offer.slices.map((s) => s.stops));
 
-  const secondary = (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      {onToggleCompare && (
-        <button
-          type="button"
-          onClick={() => onToggleCompare(offer)}
-          disabled={!comparing && compareDisabled}
-          aria-pressed={comparing}
-          className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline disabled:opacity-40"
-        >
-          <Icon icon={ArrowLeftRight} size={16} /> {comparing ? t("oc.selected") : t("oc.compare")}
-        </button>
-      )}
-      {shareText && (
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"
-        >
-          <Icon icon={Share2} size={16} /> {t("oc.share")}
-        </a>
-      )}
-    </div>
-  );
-
-  /* ── «Beste valg»: samme kort, tydelig løftet ────────────────────────
-     Rød ramme, begrunnelsen som merkelapper og prisen stor. Leses på to
-     sekunder og er tydelig forskjellig fra resten – uten mørk scene. */
-  if (recommendedLabel) {
-    return (
-      <article
-        className="overflow-hidden rounded-2xl border-2 border-primary bg-card shadow-soft"
-        aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
-      >
-        <div className="px-4 pb-4 pt-3.5 sm:px-6 sm:pb-5 sm:pt-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[12px] font-bold text-primary-foreground">
-              {t("oc.ourpick")} · {t(recommendedLabel)}
-            </p>
-            {offer.source === "kayak" && offer.booking && (
-              <span className="rounded-md bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">{t("sr.sandbox.badge")}</span>
-            )}
-          </div>
-
-          {/* Begrunnelsen står først, som verifiserte fakta – ikke en påstand. */}
-          {reasons.length > 0 && (
-            <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold sm:mt-3.5 sm:gap-x-5 sm:gap-y-1.5 sm:text-[15px]">
-              {reasons.map((r) => (
-                <li key={r} className="flex items-center gap-1.5">
-                  <Check className="size-3.5 shrink-0 text-success sm:size-4" aria-hidden="true" /> {r}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-3.5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 sm:mt-5 sm:gap-y-4">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <AirlineLogo airline={airline} size={32} className="rounded-lg" />
-              <span className="min-w-0">
-                <span className="block truncate text-[15px] font-semibold">{offer.owner.name}</span>
-                {operatedBy.length > 0 && <span className="block text-xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
-              </span>
-            </div>
-            <div className="text-right">
-              <p className="t-price leading-none">{formatMinor(totalMinor, currency)}</p>
-              <p className="mt-1 text-xs font-medium text-muted-foreground sm:mt-1.5 sm:text-[13px]">{priceLabel}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 border-t border-border bg-secondary/60 px-4 py-4 sm:space-y-4 sm:px-6 sm:py-5">
-          {offer.slices.map((slice, i) => (
-            <div key={slice.id}>
-              {offer.slices.length > 1 && <p className="mb-1 text-[11px] font-semibold text-muted-foreground sm:mb-1.5 sm:text-xs">{sliceLabel(offer.slices.length, i)}</p>}
-              <SliceViz slice={slice} />
-            </div>
-          ))}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-0.5 sm:gap-x-5 sm:gap-y-2 sm:pt-1">
-            <BaggageLine offer={offer} />
-            <OfferTags keys={flags} />
-          </div>
-          <SellerLine offer={offer} />
-        </div>
-
-        <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-          <div className="flex flex-col gap-2.5 border-t border-border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-4">
-            <div className="flex min-w-0 items-center gap-4">
-              <Collapsible.Trigger asChild>
-                <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline">
-                  {expanded ? t("oc.hide") : t("oc.show")}
-                  <ChevronDown className={cn("size-4 transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
-                </button>
-              </Collapsible.Trigger>
-              {perPerson && <span className="t-num truncate text-xs text-muted-foreground">{perPerson}</span>}
-            </div>
-            <Button size="lg" {...ctaProps} className="w-full rounded-full sm:w-auto sm:px-8">
-              {ctaInner}
-            </Button>
-          </div>
-          <Collapsible.Content id={detailsId} className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
-            <OfferDetails offer={offer} supplierMinor={supplierMinor} currency={currency} />
-            <div className="border-t border-border px-4 py-3 sm:px-5">{secondary}</div>
-          </Collapsible.Content>
-        </Collapsible.Root>
-      </article>
-    );
-  }
-
-  /* ── De øvrige: rolige rader ──────────────────────────────────────── */
   return (
     <article
-      className={cn(
-        "overflow-hidden rounded-2xl border bg-card shadow-soft transition-[border-color] duration-base ease-out",
-        selected ? "border-primary" : "border-border hover:border-primary/50",
-      )}
+      className={cn("card-soft overflow-hidden transition-shadow duration-base", selected && "ring-2 ring-primary", recommended && "shadow-lift")}
       aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
     >
-      <div className="space-y-3 p-3.5 sm:space-y-3.5 sm:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-            <AirlineLogo airline={airline} size={26} />
+      <div className="space-y-4 p-5 sm:p-6">
+        {recommendedLabel && (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[13px] font-semibold text-primary-foreground">
+              {t("oc.recommended")} · {t(recommendedLabel)}
+            </p>
+            {offer.source === "kayak" && offer.booking && <span className="rounded-full bg-warning/10 px-2.5 py-1 text-[12px] font-semibold text-warning">{t("sr.sandbox.badge")}</span>}
+            {reasons.length > 0 && (
+              <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[14px] font-medium">
+                {reasons.map((r) => (
+                  <li key={r} className="flex items-center gap-1">
+                    <Check className="size-4 shrink-0 text-success" aria-hidden="true" /> {r}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* Hvem flyr, og er det direkte */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <AirlineLogo airline={airline} size={32} className="rounded-lg" />
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold sm:text-[15px]">{offer.owner.name}</span>
-              {operatedBy.length > 0 && <span className="block truncate text-xs text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
+              <span className="block truncate text-[17px] font-medium">{offer.owner.name}</span>
+              {operatedBy.length > 0 && <span className="block truncate text-[13px] text-muted-foreground">{t("od.operatedby", { name: operatedBy.join(", ") })}</span>}
             </span>
           </div>
-          <div className="shrink-0 text-right">
-            <p className="t-num text-xl font-bold leading-none tracking-tight sm:text-[26px]">{formatMinor(totalMinor, currency)}</p>
-            <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">{priceLabel}</p>
-          </div>
+          <span className={cn("shrink-0 rounded-full px-3.5 py-1.5 text-[14px] font-medium", maxStops === 0 ? "bg-blush text-foreground" : "bg-secondary text-foreground")}>
+            {maxStops === 0 ? t("oc.direct") : t("oc.stops", { count: maxStops })}
+          </span>
         </div>
 
         {offer.slices.map((slice, i) => (
           <div key={slice.id}>
-            {offer.slices.length > 1 && <p className="mb-1 text-[11px] font-semibold text-muted-foreground sm:text-xs">{sliceLabel(offer.slices.length, i)}</p>}
+            {offer.slices.length > 1 && <p className="mb-2 text-[13px] font-medium text-muted-foreground">{sliceLabel(offer.slices.length, i)}</p>}
             <SliceViz slice={slice} />
           </div>
         ))}
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 sm:gap-x-5 sm:gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1">
           <BaggageLine offer={offer} />
           <OfferTags keys={flags} />
         </div>
         <SellerLine offer={offer} />
       </div>
 
+      {/* Pris og handling */}
+      <div className="mx-5 border-t border-border sm:mx-6" aria-hidden="true" />
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-4 p-5 sm:p-6">
+        <div className="min-w-0">
+          <p className="t-num text-[34px] font-medium leading-none tracking-tight sm:text-[38px]">{formatMinor(totalMinor, currency)}</p>
+          <p className="mt-1.5 text-[14px] text-muted-foreground">
+            {priceLabel}
+            {perPerson ? ` · ${perPerson}` : ""}
+          </p>
+        </div>
+        <Button size="lg" variant={recommended ? "primary" : "subtle"} {...ctaProps} className={cn("h-14 max-w-full rounded-full px-6 text-[17px] sm:px-7", external && "[&>a]:flex [&>a]:min-w-0 [&>a]:items-center [&>a]:gap-2")}>
+          {ctaInner}
+        </Button>
+      </div>
+
       <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-        {/* Ekstern bestilling har en lengre knapp («Se tilbud hos Kiwi.com»): på telefon
-            får den hele bredden under detaljlenken i stedet for å klemmes ved kanten. */}
-        <div className={cn("flex gap-3 border-t border-border px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3", external ? "flex-col items-stretch" : "items-center justify-between")}>
-          <div className="flex min-w-0 items-center justify-between gap-4 sm:justify-start">
-            <Collapsible.Trigger asChild>
-              <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 text-sm font-semibold text-accent-foreground underline-offset-4 hover:underline">
-                {expanded ? t("oc.hide") : t("oc.show")}
-                <ChevronDown className={cn("size-4 transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
-              </button>
-            </Collapsible.Trigger>
-            {perPerson && <span className={cn("t-num truncate text-xs text-muted-foreground", external ? "inline" : "hidden sm:inline")}>{perPerson}</span>}
-          </div>
-          <Button size="md" {...ctaProps} className={cn("min-w-0 rounded-full px-4 sm:px-6", external ? "w-full sm:w-auto [&>a]:min-w-0 [&>a]:truncate" : "shrink-0")}>
-            {ctaInner}
-          </Button>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 pb-4 sm:px-6">
+          <Collapsible.Trigger asChild>
+            <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 items-center gap-1 text-[14px] font-medium text-accent-foreground underline-offset-4 hover:underline">
+              {expanded ? t("oc.hide") : t("oc.details")}
+              <ChevronDown className={cn("size-4 transition-transform duration-base ease-out", expanded && "rotate-180")} aria-hidden="true" />
+            </button>
+          </Collapsible.Trigger>
+          {onToggleCompare && (
+            <button
+              type="button"
+              onClick={() => onToggleCompare(offer)}
+              disabled={!comparing && compareDisabled}
+              aria-pressed={comparing}
+              className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-foreground underline-offset-4 hover:underline disabled:opacity-40"
+            >
+              <Icon icon={ArrowLeftRight} size={16} /> {comparing ? t("oc.selected") : t("oc.compare")}
+            </button>
+          )}
+          {shareText && (
+            <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-medium text-foreground underline-offset-4 hover:underline">
+              <Icon icon={Share2} size={16} /> {t("oc.share")}
+            </a>
+          )}
         </div>
         <Collapsible.Content id={detailsId} className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
           <OfferDetails offer={offer} supplierMinor={supplierMinor} currency={currency} />
-          <div className="border-t border-border px-4 py-3 sm:px-5">{secondary}</div>
         </Collapsible.Content>
       </Collapsible.Root>
     </article>

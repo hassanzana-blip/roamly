@@ -150,7 +150,7 @@ export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid,
           value={summary}
           trailing={
             nights > 0 ? (
-              <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground xl:inline">
+              <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground 2xl:inline">
                 {t("misc.night", { count: nights })}
               </span>
             ) : undefined

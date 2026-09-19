@@ -14,9 +14,10 @@ interface Props extends Omit<React.ComponentProps<"button">, "value"> {
 }
 
 /**
- * The trigger shared by airport, date and passenger pickers: a 56 px field
- * with a small label and a large value, so the search form reads as one
- * calm surface instead of a row of unrelated controls.
+ * The trigger shared by airport, date and passenger pickers: a tall field
+ * with a small label («Fra») and a large value («Oslo»), so the search card
+ * reads as one calm surface instead of a row of unrelated controls.
+ * Joined fields are transparent and let the white block behind them show.
  */
 const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldButton(
   { icon: Icon, label, value, placeholder, invalid, trailing, joined, className, ...props },
@@ -30,11 +31,11 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
       data-filled={filled}
       aria-invalid={invalid || undefined}
       className={cn(
-        "group flex h-[var(--field-h,3.5rem)] w-full items-center gap-3 bg-card px-4 text-left outline-none",
+        "group flex h-[var(--field-h,4.5rem)] w-full items-center gap-3.5 px-5 text-left outline-none",
         "transition-[border-color,box-shadow,background-color] duration-fast ease-out",
         joined
-          ? "border-0 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-muted/60"
-          : "rounded-xl border hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-ring",
+          ? "border-0 bg-transparent hover:bg-blush/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-blush/40"
+          : "rounded-2xl border bg-white hover:border-foreground/40 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-ring",
         invalid ? (joined ? "bg-destructive/5" : "border-destructive") : joined ? "" : "border-input",
         className,
       )}
@@ -43,10 +44,10 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
       // ("Til: Istanbul (IST)") never matched the visible text for voice control.
       aria-label={undefined}
     >
-      <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <Icon className="size-6 shrink-0 text-foreground" aria-hidden="true" />
       <span className="min-w-0 flex-1">
-        <span className="block text-xs font-medium text-muted-foreground">{label}</span>
-        <span className={cn("block truncate text-base leading-tight", filled ? "font-semibold text-foreground" : "text-muted-foreground")}>
+        <span className="block text-[13px] font-medium text-muted-foreground">{label}</span>
+        <span className={cn("block truncate text-[20px] leading-tight lg:text-[18px]", filled ? "font-medium text-foreground" : "font-normal text-foreground/80")}>
           {filled ? value : placeholder}
         </span>
       </span>
