@@ -21,6 +21,23 @@ const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const DEST = z.string().regex(/^[a-z0-9-]{2,40}$/);
 const IATA = z.string().regex(/^[A-Z]{3}$/);
 
+export type PackingItem = { text: string; done: boolean };
+const MAX_PACKING = 80;
+
+export function parsePacking(json: string | null): PackingItem[] {
+  if (!json) return [];
+  try {
+    const raw = JSON.parse(json) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter((x): x is { text: unknown; done?: unknown } => typeof x === "object" && x !== null && typeof (x as { text?: unknown }).text === "string")
+      .map((x) => ({ text: String(x.text).slice(0, 80), done: x.done === true }))
+      .slice(0, MAX_PACKING);
+  } catch {
+    return [];
+  }
+}
+
 function destinationOf(id: string | null) {
   return id ? ALL_DESTINATIONS.find((d) => d.id === id) ?? null : null;
 }
@@ -49,7 +66,8 @@ export function planView(p: typeof tripPlans.$inferSelect, documentCount = 0) {
     booked: p.status === "booked" && p.bookingId !== null,
     bookingId: p.bookingId,
     groupId: p.groupId,
-    note: p.note,
+    notes: p.notes,
+    packing: parsePacking(p.packingJson),
     documentCount,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
@@ -141,7 +159,7 @@ export const tripPlansRouter = createRouter({
         adults: z.number().int().min(1).max(9).optional(),
         children: z.number().int().min(0).max(8).optional(),
         originIata: IATA.optional(),
-        note: z.string().trim().max(500).nullable().optional(),
+        notes: z.string().trim().max(4000).nullable().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -160,7 +178,7 @@ export const tripPlansRouter = createRouter({
           adults: input.adults ?? plan.adults,
           children: input.children ?? plan.children,
           originIata: input.originIata ?? plan.originIata,
-          note: input.note === undefined ? plan.note : input.note,
+          notes: input.notes === undefined ? plan.notes : input.notes,
           status,
         })
         .where(eq(tripPlans.id, plan.id));
@@ -182,6 +200,15 @@ export const tripPlansRouter = createRouter({
         .set({ bookingId: input.bookingId, status: input.bookingId ? "booked" : plan.dateFrom ? "planned" : "idea" })
         .where(eq(tripPlans.id, plan.id));
       return planView(await loadOwnPlan(ctx.customer.customerId, plan.id));
+    }),
+
+  /** Pakkelisten er kundens egen: vi lagrer det hen skriver, aldri en ferdig liste. */
+  setPacking: customerProcedure
+    .input(z.object({ id: z.number().int().positive(), items: z.array(z.object({ text: z.string().trim().min(1).max(80), done: z.boolean() })).max(MAX_PACKING) }))
+    .mutation(async ({ input, ctx }) => {
+      const plan = await loadOwnPlan(ctx.customer.customerId, input.id);
+      await getDb().update(tripPlans).set({ packingJson: JSON.stringify(input.items) }).where(eq(tripPlans.id, plan.id));
+      return { items: input.items };
     }),
 
   archive: customerProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {

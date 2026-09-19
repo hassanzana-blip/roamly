@@ -1423,7 +1423,10 @@ export const tripPlans = mysqlTable(
     /** Kobles av kunden selv til en bestilling hos oss – eneste vei til «bestilt». */
     bookingId: ref("booking_id").references((): AnyMySqlColumn => bookings.id),
     groupId: ref("group_id").references((): AnyMySqlColumn => travelGroups.id),
-    note: varchar("note", { length: 500 }),
+    /** Egne notater: steder, adresser og ting å huske. */
+    notes: text("notes"),
+    /** Pakkeliste: [{ text, done }] – kundens egen, aldri forhåndsutfylt. */
+    packingJson: text("packing_json"),
     archivedAt: timestamp("archived_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),

@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "e1f36dc4-1bb2-46fb-b528-dc3a4680d776",
+  "id": "3a01961b-bcbf-466b-8a09-48effecabc33",
   "prevId": "a4adc8d8-2be5-41de-965f-34659128606f",
   "tables": {
     "audit_logs": {
@@ -9618,9 +9618,16 @@
           "notNull": false,
           "autoincrement": false
         },
-        "note": {
-          "name": "note",
-          "type": "varchar(500)",
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "packing_json": {
+          "name": "packing_json",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
