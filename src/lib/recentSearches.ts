@@ -1,6 +1,6 @@
 /**
  * Recent flight searches – kept in localStorage so the homepage can offer
- * “Fortsett planleggingen” without any account or backend state.
+ * «Fortsett søket» without any account or backend state.
  */
 
 export type RecentSearch = {
@@ -18,7 +18,16 @@ export type RecentSearch = {
 };
 
 const KEY = "hellosky:recent-searches";
+const EVENT = "hellosky:recent-searches";
 const MAX = 4;
+
+function emit() {
+  try {
+    window.dispatchEvent(new Event(EVENT));
+  } catch {
+    /* SSR / tests */
+  }
+}
 
 export function saveRecentSearch(entry: Omit<RecentSearch, "at">): void {
   try {
@@ -27,6 +36,7 @@ export function saveRecentSearch(entry: Omit<RecentSearch, "at">): void {
     );
     list.unshift({ ...entry, at: Date.now() });
     localStorage.setItem(KEY, JSON.stringify(list.slice(0, MAX)));
+    emit();
   } catch {
     /* storage unavailable – ignore */
   }
@@ -41,6 +51,29 @@ export function loadRecentSearches(): RecentSearch[] {
   } catch {
     return [];
   }
+}
+
+/** «Tøm» in the destination picker: forgets every recent search in this browser. */
+export function clearRecentSearches(): void {
+  try {
+    localStorage.removeItem(KEY);
+    emit();
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Subscribe to changes made in this tab (custom event) or another (storage event). */
+export function onRecentSearchesChange(cb: () => void): () => void {
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === KEY || e.key === null) cb();
+  };
+  window.addEventListener(EVENT, cb);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(EVENT, cb);
+    window.removeEventListener("storage", onStorage);
+  };
 }
 
 export function recentSearchHref(s: RecentSearch): string {

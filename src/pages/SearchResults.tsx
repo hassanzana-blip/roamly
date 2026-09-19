@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { Bell, CalendarDays, ChevronDown, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
+import { ArrowUpDown, Bell, CalendarDays, Check, ChevronDown, Info, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -8,9 +8,11 @@ import HeroBar from "@/components/app/HeroBar";
 import ServiceTabs from "@/components/app/ServiceTabs";
 import { SERVICES, type ServiceId } from "@/components/app/services";
 import { carSearchHref, hotelSearchHref } from "@/components/stays/stayLinks";
-import { DESTINATIONS, imageSrcSet } from "@/content/discover";
+import { DESTINATIONS } from "@/content/discover";
 import { useSavedDestinations } from "@/lib/useAccount";
+import { useCollections } from "@/lib/collections";
 import OfferCard from "@/components/offers/OfferCard";
+import { partyLabel, providerName } from "@/components/offers/offerUtils";
 import SearchWidget, { type SearchParamsState, type TripLeg } from "@/components/search/SearchWidget";
 import PriceCalendar from "@/components/search/PriceCalendar";
 import CompareTray from "@/components/search/CompareTray";
@@ -155,6 +157,9 @@ export default function SearchResults() {
   const [alertTarget, setAlertTarget] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [saveNote, setSaveNote] = useState("");
+  const collections = useCollections((city) => t("sv.trip", { city }));
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [now, setNow] = useState(() => Date.now());
   const { customer } = useCustomer();
@@ -330,10 +335,37 @@ export default function SearchResults() {
 
   const fromAirport = airportByIata(from);
   const toAirport = airportByIata(to);
-  // Reisemålet som scene: bare når vi har et ekte, kontrollert fotografi av stedet.
-  const heroDest = useMemo(() => (isMulti ? undefined : DESTINATIONS.find((d) => d.iata === to && d.image)), [isMulti, to]);
-  const heroImage = heroDest?.image;
+  // Hjertet i toppen lagrer reisemålet – når det er et vi kjenner.
+  const heroDest = useMemo(() => (isMulti ? undefined : DESTINATIONS.find((d) => d.iata === to)), [isMulti, to]);
   const { ids: savedIds, toggle: toggleSaved } = useSavedDestinations();
+
+  // «Lagre» på et kort: tilbudet inn i samlingen for reisemålet, med prisen slik den var nå.
+  const toggleSaveOffer = (o: Offer) => {
+    if (collections.savedOfferIds.has(o.id)) {
+      collections.unsaveOffer(o.id);
+      setSaveNote("");
+      return;
+    }
+    const first = o.slices[0];
+    const last = o.slices[o.slices.length - 1];
+    const c = collections.saveFlight({
+      offerId: o.id,
+      from: first.origin.iata,
+      to: first.destination.iata,
+      fromCity: airportByIata(first.origin.iata)?.city ?? first.origin.city,
+      toCity: airportByIata(first.destination.iata)?.city ?? first.destination.city,
+      depart: first.departingAt.slice(0, 10),
+      ret: o.slices.length > 1 ? last.departingAt.slice(0, 10) : undefined,
+      airline: o.owner.name,
+      airlineIata: o.owner.iata,
+      provider: providerName(o),
+      priceMinor: totalOf(o),
+      currency: o.totalCurrency,
+      travellers: o.passengers.length,
+      searchHref: `/sok${location.search}`,
+    });
+    setSaveNote(t("sv.saved.toast", { title: c.title }));
+  };
   // Samme datoer og reisende med over til hotell og leiebil; cruise sier ærlig fra.
   const serviceHref = (id: ServiceId) => {
     if (id === "hotell" && toAirport && depart) return hotelSearchHref({ dest: "", place: toAirport.city, checkin: depart, checkout: ret ?? new Date(Date.parse(depart) + 3 * 86_400_000).toISOString().slice(0, 10), adults: Math.max(1, Number(params.get("adults") ?? 1)), rooms: 1 });
@@ -528,9 +560,9 @@ export default function SearchResults() {
       }))
     : [];
 
-  // ±3-dagers prisstripe + priskalender: under sorteringen, så «Anbefalt · Billigst · Raskest» står rett under tjenestene.
+  // ±3-dagers prisstripe + priskalender: i «Endre søk»-panelet, sammen med resten av søket.
   const priceStrip = stripDates.length > 0 && (
-    <div className="mb-4">
+    <div className="mt-4">
       <div className="no-scrollbar -mx-5 flex items-center gap-2 overflow-x-auto px-5 py-1 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
         {stripDates.map((d) => {
           const active = d === depart;
@@ -542,8 +574,8 @@ export default function SearchResults() {
               onClick={() => goDate(d)}
               aria-pressed={active}
               className={cn(
-                "min-h-12 min-w-[88px] shrink-0 rounded-xl px-3 py-1.5 text-center transition-colors",
-                active ? "bg-burgundy text-white" : "bg-card text-foreground hover:bg-blush",
+                "min-h-12 min-w-[88px] shrink-0 rounded-xl border px-3 py-1.5 text-center transition-colors",
+                active ? "border-petrol bg-petrol text-white" : "border-border bg-white text-foreground hover:bg-secondary",
               )}
             >
               <span className="block text-[12px] font-medium">{formatDateShort(d)}</span>
@@ -553,7 +585,7 @@ export default function SearchResults() {
             </button>
           );
         })}
-        <Chip selected={calOpen} onClick={() => setCalOpen((o) => !o)} aria-expanded={calOpen} className="min-h-12 rounded-xl border-0 bg-card" icon={<CalendarDays aria-hidden="true" />}>
+        <Chip selected={calOpen} onClick={() => setCalOpen((o) => !o)} aria-expanded={calOpen} className="min-h-12 rounded-xl" icon={<CalendarDays aria-hidden="true" />}>
           {t("sr.flexible")}
         </Chip>
       </div>
@@ -576,18 +608,46 @@ export default function SearchResults() {
     </div>
   );
 
-  // Sorteringsvalg utover de tre fanene: i raden på desktop, i filterarket på telefon.
-  const sortExtras = (
-    <>
-      {PREFERENCES.filter((p) => !tabKeys.includes(p.key)).map((p) => (
-        <Chip key={p.key} role="radio" aria-checked={sort === p.key} selected={sort === p.key} onClick={() => setSort(p.key)} title={t(p.hint)} icon={<p.icon aria-hidden="true" />} className="h-9 shrink-0 border-0 bg-card text-[13px] aria-checked:bg-burgundy aria-checked:text-white">
-          {t(p.label)}
-        </Chip>
-      ))}
-      <Chip role="radio" aria-checked={sort === "earliest"} selected={sort === "earliest"} onClick={() => setSort("earliest")} className="h-9 shrink-0 border-0 bg-card text-[13px] aria-checked:bg-burgundy aria-checked:text-white">
-        {t("sr.sort.earliest")}
-      </Chip>
-    </>
+  // Alle sorteringene i én liste: de tre (fire) hovedvalgene med sitt beste tilbud, så resten.
+  const sortOptions: { key: SortKey; label: string; hint?: string; offer: Offer | null }[] = [
+    ...tabs,
+    ...PREFERENCES.filter((p) => !tabKeys.includes(p.key)).map((p) => ({ key: p.key as SortKey, label: t(p.label), hint: t(p.hint), offer: null })),
+    { key: "earliest", label: t("sr.sort.earliest"), offer: null },
+  ];
+  const sortLabel = sortOptions.find((o) => o.key === sort)?.label ?? t("sr.sort.recommended");
+
+  const sortList = (
+    <ul role="radiogroup" aria-label={t("sr.sort.title")} className="divide-y divide-border">
+      {sortOptions.map((o) => {
+        const on = sort === o.key;
+        return (
+          <li key={o.key}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => {
+                setSort(o.key);
+                setSortOpen(false);
+              }}
+              className="flex min-h-14 w-full items-center gap-3 px-1 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            >
+              <span className="min-w-0 flex-1">
+                <span className={cn("block text-[17px]", on ? "font-bold text-petrol" : "font-medium text-foreground")}>{o.label}</span>
+                {o.offer ? (
+                  <span className="block text-[14px] text-muted-foreground">
+                    {formatMinor(totalOf(o.offer), o.offer.totalCurrency)} · {formatDuration(sliceDuration(o.offer))} · {o.offer.owner.name}
+                  </span>
+                ) : o.hint ? (
+                  <span className="block text-[14px] text-muted-foreground">{o.hint}</span>
+                ) : null}
+              </span>
+              {on && <Check className="size-6 shrink-0 text-petrol" aria-hidden="true" />}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 
   /**
@@ -603,7 +663,7 @@ export default function SearchResults() {
           <HeroBar backTo="/" tone="dark" className="lg:hidden" />
           <h1 className="t-h1 mt-6">{t("sr.nosearch.title")}</h1>
           <p className="t-lead mt-3 max-w-lg">{t("sr.nosearch.body")}</p>
-          <div className="card-soft mt-8 p-3 sm:p-4">
+          <div className="mt-8">
             <SearchWidget initial={widgetInitial} />
           </div>
         </main>
@@ -621,17 +681,19 @@ export default function SearchResults() {
       {fromAirport?.city ?? from} <span aria-label={t("sr.to")}>→</span> {toAirport?.city ?? to}
     </>
   );
+  // «16. okt. · Én vei · 1 voksen»
   const summaryLine = (
     <>
-      {isMulti ? legs.map((l) => formatDateShort(l.date)).join(" · ") : `${formatDateShort(depart)}${ret ? ` – ${formatDateShort(ret)}` : ` · ${t("sr.oneway")}`}`}
+      {isMulti ? legs.map((l) => formatDayMonth(l.date)).join(" · ") : ret ? `${formatDayMonth(depart)} – ${formatDayMonth(ret)} · ${t("sr.roundtrip.cap")}` : `${formatDayMonth(depart)} · ${t("sr.oneway.cap")}`}
       {" · "}
-      {t("common.pax", { count: passengers.length })} · {cabinLabel(cabin)}
+      {partyLabel(passengers, t)}
+      {cabin !== "economy" ? ` · ${cabinLabel(cabin)}` : ""}
     </>
   );
   const heroBar = (
     <HeroBar
       backTo="/"
-      tone={heroImage ? "light" : "dark"}
+      tone="dark"
       saved={heroDest ? savedIds.has(heroDest.id) : undefined}
       onToggleSaved={heroDest ? () => toggleSaved(heroDest.id) : undefined}
       saveLabel={heroDest ? (savedIds.has(heroDest.id) ? t("sr.unsavedest", { city: heroDest.city }) : t("sr.savedest", { city: heroDest.city })) : undefined}
@@ -643,57 +705,55 @@ export default function SearchResults() {
     <div className="relative min-h-screen bg-background">
       <div className="hidden lg:block"><SiteHeader /></div>
 
-      {/* Reisemålet som scene: fotografiet når vi har et ekte et, ellers burgunder. */}
-      <header className="relative isolate overflow-hidden bg-burgundy text-white lg:mt-16 lg:rounded-b-[28px]">
-        {heroImage && (
-          <img src={heroImage} srcSet={imageSrcSet(heroImage)} sizes="100vw" alt={heroDest?.imageAlt ?? ""} width={1024} height={640} className="absolute inset-0 -z-10 h-full w-full object-cover" />
-        )}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/40 via-black/10 to-black/60" aria-hidden="true" />
-        <div className="container-x pb-6 pt-[max(12px,env(safe-area-inset-top))] lg:pb-8 lg:pt-6">
+      {/* Den mintgrønne toppen: ruten, datoen og reisefølget, og «Endre søk». */}
+      <header className="bg-mint text-petrol lg:mt-16">
+        <div className="container-x pb-5 pt-[max(8px,env(safe-area-inset-top))] lg:pb-7 lg:pt-6">
           {heroBar}
-          <p className="mt-7 text-[12px] font-medium uppercase tracking-[0.22em] text-white/80 lg:mt-4">{heroDest?.country ?? toAirport?.country ?? ""}</p>
-          <h1 className="t-h1 mt-1 text-white lg:t-display">{title}</h1>
-          {heroDest?.tagline && <p className="mt-1.5 text-[16px] !text-white/85 lg:text-[19px]">{heroDest.tagline}</p>}
-        </div>
-      </header>
-
-      {/* Oppsummering og «Endre» på én linje, som i referansen; varsel og testdata under. */}
-      <div className="container-x pt-4">
-        <div className="flex items-center justify-between gap-4">
-          <p className="min-w-0 text-[15px] text-foreground">{summaryLine}</p>
-          <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[15px] font-medium text-accent-foreground underline underline-offset-4">
-            {t("common.change")}
-            <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-2 empty:hidden">
+          <h1 className="t-display mt-4 lg:mt-2">{title}</h1>
+          <p className="mt-1.5 text-[18px] font-medium">{summaryLine}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditOpen((o) => !o)}
+              aria-expanded={editOpen}
+              className="inline-flex h-12 items-center gap-2.5 rounded-xl bg-petrol/10 px-4 text-[17px] font-semibold text-petrol transition-colors hover:bg-petrol/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <CalendarDays className="size-6" aria-hidden="true" />
+              {t("sr.edit")}
+              <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
+            </button>
             {!isMulti && depart && priceAlertsAvailable && (
-                <Button
-                  variant={alertOpen ? "subtle" : "ghost"}
-                  size="sm"
-                  onClick={() => {
-                    setAlertOpen((o) => !o);
-                    createAlert.reset();
-                    if (!alertEmail && customer?.email) setAlertEmail(customer.email);
-                  }}
-                  aria-expanded={alertOpen}
-                >
-                  <Bell aria-hidden="true" /> {t("sr.alert")}
-                </Button>
-              )}
-            {result?.demoMode && <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">{t("sr.demo")}</span>}
+              <Button
+                variant={alertOpen ? "subtle" : "ghost"}
+                size="md"
+                className="h-12 rounded-xl text-[15px] hover:bg-petrol/10"
+                onClick={() => {
+                  setAlertOpen((o) => !o);
+                  createAlert.reset();
+                  if (!alertEmail && customer?.email) setAlertEmail(customer.email);
+                }}
+                aria-expanded={alertOpen}
+              >
+                <Bell aria-hidden="true" /> {t("sr.alert")}
+              </Button>
+            )}
+            {result?.demoMode && <span className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-[13px] font-semibold text-warning">{t("sr.demo")}</span>}
             {result?.sandbox && !result.demoMode && (
-              <span role="status" className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
+              <span role="status" className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-[13px] font-semibold text-warning">
                 {t("sr.sandbox")}
               </span>
             )}
+          </div>
         </div>
+      </header>
 
-        <ServiceTabs active="fly" className="mt-3" hrefFor={serviceHref} />
+      <div className="container-x pt-4">
+        <ServiceTabs variant="pill" active="fly" hrefFor={serviceHref} />
 
         {editOpen && (
-          <div className="fade-up mt-5 max-w-4xl">
+          <div className="fade-up mt-4 max-w-4xl">
             <SearchWidget key={location.search} initial={widgetInitial} variant="compact" />
+            {priceStrip}
           </div>
         )}
 
@@ -763,62 +823,50 @@ export default function SearchResults() {
             </div>
           )}
 
-          {/* Sortering som tekstfaner (Anbefalt · Billigst · Raskest) + filterknappen. Klistret under toppen på telefon. */}
-          <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-center justify-between gap-3 bg-background/95 px-5 pt-1 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:pt-0 lg:backdrop-blur-none">
-            <div role="radiogroup" aria-label={t("sr.sorting")} className="no-scrollbar -ml-5 flex min-w-0 flex-1 gap-1 overflow-x-auto pl-5 sm:-ml-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:pl-0">
-              {(search.isPending ? [] : tabs).map((s) => {
-                const on = sort === s.key;
-                return (
-                  <button
-                    key={s.key}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    onClick={() => setSort(s.key)}
-                    title={s.offer ? `${formatMinor(totalOf(s.offer), s.offer.totalCurrency)} · ${formatDuration(sliceDuration(s.offer))} · ${s.offer.owner.name}` : undefined}
-                    className={cn(
-                      "relative shrink-0 px-3 py-3 text-[16px] font-medium transition-colors duration-fast first:pl-0",
-                      on ? "text-accent-foreground" : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {s.label}
-                    {on && <span className="absolute inset-x-3 bottom-1 h-[3px] rounded-full bg-primary first:inset-x-0" aria-hidden="true" />}
-                  </button>
-                );
-              })}
-              {/* Det fanene ikke dekker (familie, tidligst, …): i raden fra lg, ellers i filterarket. */}
-              <div className="hidden items-center gap-1.5 lg:flex">{sortExtras}</div>
-            </div>
+          {/* Filtrer og Sorter: to store kontroller, som i referansen. Filtrene bor i sidestolpen fra lg. */}
+          <div className="mb-4 grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[auto_auto] lg:justify-end">
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>
-                <button type="button" aria-label={t("sr.filters.open")} className="relative grid size-11 shrink-0 place-items-center rounded-full bg-blush text-foreground transition-colors hover:bg-primary hover:text-primary-foreground lg:hidden">
-                  <SlidersHorizontal className="size-5" aria-hidden="true" />
-                  {activeFilters > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 grid size-6 place-items-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">{activeFilters}</span>
-                  )}
+                <button type="button" aria-label={t("sr.filters.open")} className="flex h-[52px] items-center gap-2.5 rounded-xl border border-border bg-white px-4 text-[16px] font-semibold text-petrol transition-colors hover:border-petrol/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:hidden">
+                  <SlidersHorizontal className="size-6 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{t("sr.filter")}</span>
+                  {activeFilters > 0 && <span className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-petrol text-[12px] font-bold text-white">{activeFilters}</span>}
                 </button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[88dvh]">
+              <SheetContent side="bottom" className="max-h-[88dvh] rounded-t-[20px]">
                 <SheetHeader>
                   <SheetTitle>{t("sr.filter.title")}</SheetTitle>
                 </SheetHeader>
-                <SheetBody>
-                  <div className="mb-6">
-                    <h3 className="eyebrow mb-2.5">{t("sr.sorting")}</h3>
-                    <div role="radiogroup" aria-label={t("sr.sorting")} className="flex flex-wrap gap-2">{sortExtras}</div>
-                  </div>
-                  {filterPanel}
-                </SheetBody>
+                <SheetBody>{filterPanel}</SheetBody>
                 <SheetFooter>
-                  <Button size="lg" onClick={() => setFiltersOpen(false)}>
+                  <Button size="lg" className="h-[52px] rounded-xl text-[17px] font-bold" onClick={() => setFiltersOpen(false)}>
                     {t("sr.filter.show", { count: filtered.length })}
                   </Button>
                 </SheetFooter>
               </SheetContent>
             </Sheet>
+            <Sheet open={sortOpen} onOpenChange={setSortOpen}>
+              <SheetTrigger asChild>
+                <button type="button" aria-label={`${t("sr.sort.title")}: ${sortLabel}`} className="flex h-[52px] min-w-0 items-center gap-2.5 rounded-xl border border-border bg-white px-3.5 text-[16px] font-semibold text-petrol transition-colors hover:border-petrol/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:col-start-2 lg:px-4">
+                  <ArrowUpDown className="size-6 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{t("sr.sortby", { label: sortLabel })}</span>
+                  <ChevronDown className="ml-auto size-5 shrink-0" aria-hidden="true" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[88dvh] rounded-t-[20px]">
+                <SheetHeader>
+                  <SheetTitle>{t("sr.sort.title")}</SheetTitle>
+                </SheetHeader>
+                <SheetBody>{sortList}</SheetBody>
+              </SheetContent>
+            </Sheet>
           </div>
-
-          {priceStrip}
+          {saveNote && (
+            <p role="status" className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-lavender px-4 py-3 text-[15px] font-medium text-petrol">
+              {saveNote}
+              <Link to="/lagret" className="shrink-0 font-semibold text-azure-ink underline-offset-4 hover:underline">{t("sv.open")}</Link>
+            </p>
+          )}
 
           {search.isPending && (
             <div className="space-y-4" aria-live="polite" aria-busy="true">
@@ -862,11 +910,14 @@ export default function SearchResults() {
 
           {result && filtered.length > 0 && (
             <div className="space-y-3 sm:space-y-4" aria-live="polite">
-              <p className="text-[13px] leading-snug text-muted-foreground sm:text-sm">
-                <span className="font-semibold text-foreground">{t("sr.results", { count: filtered.length })}</span>
-                {activeFilters > 0 ? ` ${t("sr.results.of", { count: allOffers.length })}` : ""}
+              {/* «Testdata · Totalpris for 1 voksen»: hva tallene er, før det første kortet. */}
+              <p className="text-[15px] leading-snug text-muted-foreground">
+                {result.sandbox || result.demoMode ? `${t("sr.examples")} · ` : ""}
+                {t("sr.totalfor", { party: partyLabel(passengers, t) })}
                 {" · "}
-                {family ? t("sr.family.hint", { count: passengers.length }) : externalBooking ? t("sr.totalnote.external") : t("sr.totalnote")}
+                <span className="text-foreground">{t("sr.results", { count: filtered.length })}</span>
+                {activeFilters > 0 ? ` ${t("sr.results.of", { count: allOffers.length })}` : ""}
+                {!externalBooking ? ` · ${t("sr.totalnote")}` : ""}
                 {expiresInMin !== null && expiresInMin > 0 ? ` · ${t("sr.validfor", { count: expiresInMin })}` : ""}
               </p>
               {result.partial && (
@@ -884,15 +935,24 @@ export default function SearchResults() {
                   onToggleCompare={toggleCompare}
                   shareText={shareText(offer)}
                   recommended={i === 0 && sort !== "earliest" ? sort : undefined}
+                  saved={collections.savedOfferIds.has(offer.id)}
+                  onToggleSave={toggleSaveOffer}
                 />
                 </div>
               ))}
               {visible < filtered.length && (
-                <Button variant="subtle" size="lg" className="w-full rounded-full" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                <Button variant="outline" size="lg" className="h-[52px] w-full rounded-xl text-[17px] font-bold" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
                   {t("sr.more", { count: filtered.length - visible })}
                 </Button>
               )}
-              <p className="rounded-2xl bg-secondary px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">{externalBooking ? t("sr.disclaimer.external") : t("sr.disclaimer")}</p>
+              {/* Hvor bestillingen skjer, og hva du bør sjekke der. */}
+              <div className="flex items-start gap-3 rounded-2xl bg-lavender px-4 py-4 text-[15px] leading-snug text-petrol">
+                <Info className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
+                <p>
+                  {externalBooking ? t("sr.bookingnote") : t("sr.disclaimer")}
+                  {externalBooking && <span className="mt-1 block text-[13px] text-muted-foreground">{t("sr.disclaimer.external")}</span>}
+                </p>
+              </div>
             </div>
           )}
         </section>

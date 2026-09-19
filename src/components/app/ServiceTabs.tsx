@@ -7,45 +7,50 @@ import { useT } from "@/lib/i18n";
 /**
  * The four services: Fly · Hotell · Leiebil · Cruise.
  *
- * Two shapes, one meaning. `tile` is the phone home screen (four square
- * tiles, icon over label); `pill` is everywhere else (icon beside label).
- * The active service is burgundy with white text, the rest sit on card
- * white. Give it `onSelect` to switch in place (home) or `hrefFor` to
- * navigate (results pages).
+ * `underline` (default, the search card): four equal columns, icon beside
+ * label, the active one carries a petrol underline. `pill` (results pages):
+ * icon beside label in a bordered chip, the active one filled petrol.
+ * Give it `onSelect` to switch in place (home) or `hrefFor` to navigate.
  */
 export type { ServiceId } from "./services";
 
 type Props = {
   active: ServiceId;
-  variant?: "tile" | "pill";
+  variant?: "underline" | "pill";
   onSelect?: (id: ServiceId) => void;
   hrefFor?: (id: ServiceId) => string;
   className?: string;
 };
 
-export default function ServiceTabs({ active, variant = "pill", onSelect, hrefFor, className }: Props) {
+export default function ServiceTabs({ active, variant = "underline", onSelect, hrefFor, className }: Props) {
   const t = useT();
-  const tile = variant === "tile";
+  const underline = variant === "underline";
   const itemCls = (on: boolean) =>
     cn(
-      "outline-none transition-[background-color,color,transform] duration-fast focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] motion-reduce:active:scale-100",
-      tile
-        ? "flex h-[76px] w-full flex-col items-center justify-center gap-1.5 rounded-[20px] text-[15px] font-medium sm:h-[92px] sm:text-[16px]"
-        : "inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl px-4 text-[15px] font-medium sm:px-5",
-      on ? "bg-burgundy text-white shadow-soft" : "bg-card text-foreground hover:bg-white",
+      "outline-none transition-[background-color,color,border-color] duration-fast focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+      underline
+        ? cn(
+            "relative flex h-14 w-full items-center justify-center gap-2 text-[15px] font-medium sm:text-[16px]",
+            "after:absolute after:inset-x-1 after:bottom-0 after:h-[3px] after:rounded-full after:transition-colors after:duration-fast",
+            on ? "text-petrol after:bg-petrol" : "text-petrol/80 hover:text-petrol after:bg-transparent",
+          )
+        : cn(
+            "inline-flex h-12 shrink-0 items-center gap-2 rounded-xl border px-4 text-[15px] font-medium",
+            on ? "border-petrol bg-petrol text-white" : "border-border bg-white text-petrol hover:border-petrol/40",
+          ),
     );
 
   return (
     <div
       role={onSelect ? "tablist" : undefined}
       aria-label={t("home.services")}
-      className={cn(tile ? "grid grid-cols-4 gap-2.5 sm:gap-3" : "no-scrollbar flex gap-2.5 overflow-x-auto sm:gap-3", className)}
+      className={cn(underline ? "grid grid-cols-4 border-b border-border" : "no-scrollbar flex gap-2 overflow-x-auto", className)}
     >
       {SERVICES.map((s) => {
         const on = s.id === active;
         const inner = (
           <>
-            <Icon icon={s.icon} size={tile ? 24 : 20} />
+            <Icon icon={s.icon} size={24} className={underline ? "shrink-0" : "shrink-0 [&]:size-5"} />
             <span>{t(s.label)}</span>
           </>
         );

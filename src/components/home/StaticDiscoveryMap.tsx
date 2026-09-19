@@ -142,7 +142,7 @@ export default function StaticDiscoveryMap({
             <span
               className={cn(
                 "t-num whitespace-nowrap rounded-full px-3.5 py-1.5 text-[15px] font-medium shadow-soft transition-colors",
-                on ? "bg-primary text-primary-foreground" : "bg-white text-foreground hover:bg-blush",
+                on ? "bg-primary text-primary-foreground" : "bg-white text-foreground hover:bg-mint",
               )}
             >
               {p.price ? capitalizeFirst(p.price.replace(/^fra\s/, "")) : p.label}
@@ -157,10 +157,10 @@ export default function StaticDiscoveryMap({
       })}
 
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-        <button type="button" onClick={() => setZoom((z) => Math.min(4, z * 1.4))} aria-label={t("home.map.zoomin")} className="grid size-11 place-items-center rounded-xl bg-white text-foreground shadow-soft hover:bg-blush">
+        <button type="button" onClick={() => setZoom((z) => Math.min(4, z * 1.4))} aria-label={t("home.map.zoomin")} className="grid size-11 place-items-center rounded-xl bg-white text-foreground shadow-soft hover:bg-mint">
           <Plus className="size-5" aria-hidden="true" />
         </button>
-        <button type="button" onClick={() => setZoom((z) => Math.max(0.6, z / 1.4))} aria-label={t("home.map.zoomout")} className="grid size-11 place-items-center rounded-xl bg-white text-foreground shadow-soft hover:bg-blush">
+        <button type="button" onClick={() => setZoom((z) => Math.max(0.6, z / 1.4))} aria-label={t("home.map.zoomout")} className="grid size-11 place-items-center rounded-xl bg-white text-foreground shadow-soft hover:bg-mint">
           <Minus className="size-5" aria-hidden="true" />
         </button>
       </div>

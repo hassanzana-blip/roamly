@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 
 /**
- * BottomNav (HelloSky 3.0): a floating burgundy pill with four tabs —
- * Utforsk · Lagret · Reiser · Profil. The active tab is coral, the rest
- * white. It floats 16 px above the safe area so it never touches the edge,
- * and the body reserves room for it (has-tabbar, see index.css) so content
- * and the keyboard never end up underneath.
- * A11y: ≥44 px targets, aria-current="page", visible focus ring.
+ * BottomNav (HelloSky 4.0): a white bar, edge to edge, with four tabs —
+ * Utforsk · Lagret · Reiser · Profil. Petrol icons (24 px) over 13 px
+ * labels; the active tab is filled petrol, the rest are quiet. It respects
+ * the safe area, and the body reserves room for it (has-tabbar, see
+ * index.css) so content and the keyboard never end up underneath.
+ * A11y: ≥48 px targets, aria-current="page", visible focus ring.
  */
 export default function BottomNav() {
   const { pathname } = useLocation();
@@ -28,10 +28,10 @@ export default function BottomNav() {
   return (
     <nav
       aria-label={t("nav.main")}
-      className="fixed inset-x-4 z-50 rounded-[28px] bg-burgundy text-white shadow-lift lg:hidden"
-      style={{ bottom: "calc(16px + env(safe-area-inset-bottom))", height: "var(--tabbar-h)" }}
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white text-petrol lg:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <ul className="mx-auto grid h-full max-w-lg grid-cols-4 px-2">
+      <ul className="mx-auto grid max-w-lg grid-cols-4" style={{ height: "var(--tabbar-h)" }}>
         {PRIMARY_NAV.map((tab) => {
           const active = isNavActive(tab, pathname);
           return (
@@ -41,13 +41,13 @@ export default function BottomNav() {
                 end={tab.to === "/"}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-full flex-col items-center justify-center gap-1 rounded-[22px] outline-none transition-colors duration-fast",
-                  "focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset",
-                  active ? "text-coral-on-dark" : "text-white/92 hover:text-white",
+                  "flex h-full min-h-12 flex-col items-center justify-center gap-1 outline-none transition-colors duration-fast",
+                  "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                  active ? "text-petrol" : "text-petrol/75 hover:text-petrol",
                 )}
               >
-                <Icon icon={tab.icon} size={20} />
-                <span className="truncate text-[12px] font-medium leading-none">{t(tab.label)}</span>
+                <Icon icon={tab.icon} size={24} className={active && tab.id !== "explore" && tab.id !== "profile" ? "fill-current" : undefined} strokeWidth={active ? 2.25 : 2} />
+                <span className={cn("truncate text-[13px] leading-none", active ? "font-semibold" : "font-medium")}>{t(tab.label)}</span>
               </NavLink>
             </li>
           );
