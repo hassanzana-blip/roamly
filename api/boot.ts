@@ -41,7 +41,8 @@ app.use("*", async (c, next) => {
 });
 
 // ─── Sikkerhetshoder (OTA-090/091) ───────────────────────────────────────────
-// CSP tillater Stripe (Elements + API + 3DS-frames) og Google Fonts.
+// CSP tillater Stripe (Elements + API + 3DS-frames), Google Fonts og
+// Travelpayouts Drive (emrldco.com — affiliate-skriptet i index.html).
 // 'unsafe-inline' for style er nødvendig for Stripe Elements/Tailwind-runtime.
 // Inline-skript i index.html (tema-init) tillates via sha256-hash, ikke 'unsafe-inline'.
 const scriptHashes = inlineScriptHashes();
@@ -54,8 +55,8 @@ app.use(
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
       formAction: ["'self'"],
-      scriptSrc: ["'self'", "https://js.stripe.com", "https://plausible.io", ...scriptHashes],
-      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", ...(env.isProduction ? [] : ["ws:", "wss:"])],
+      scriptSrc: ["'self'", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", ...scriptHashes],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", ...(env.isProduction ? [] : ["ws:", "wss:"])],
       frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],

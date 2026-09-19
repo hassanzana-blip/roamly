@@ -26,6 +26,21 @@
         };
       plausible.init();
     </script>
+    <!-- Travelpayouts Drive (affiliate-monetisering av utgående reiselenker).
+         Lastes én gang fra appskallet, aldri fra en React-komponent. Skriptet er
+         uendret fra Travelpayouts bortsett fra sperren mot /admin: adminen skal
+         ikke ha tredjepartsskript som skriver om lenker. CSP åpner for
+         emrldco.com i script-src og connect-src (api/boot.ts). -->
+    <script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1" data-cmp-ab="2">
+      (function () {
+          if (location.pathname === "/admin" || location.pathname.indexOf("/admin/") === 0) return;
+          var script = document.createElement("script");
+          script.async = 1;
+          script.setAttribute("data-cmp-ab","2");
+          script.src = 'https://emrldco.com/NTc1NTQ5.js?t=575549';
+          document.head.appendChild(script);
+      })();
+    </script>
     <script>
       // Tidlig tema- og språkinit — unngår blinking ved last
       try {
