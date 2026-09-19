@@ -3,21 +3,16 @@ interface Props {
 }
 
 /**
- * HelloSky brand mark: two sweeping wings from the logo, in two blues. The
- * upper wing is azure, the lower a lighter sky blue, on every surface –
- * white pages and photographs alike – so the mark is always the same mark.
+ * HelloSky-merket: en «H» i azur – to søyler med skrå topper og en bue som
+ * bærer broen mellom dem. Fyller med `currentColor`, så merket er azur på
+ * lyse flater (standard), hvitt på mørke (`text-white`) og alltid samme form.
  */
-export default function SkyMark({ className = "h-8 w-8" }: Props) {
+export const SKY_MARK_PATH = "M8 16 L36 8 L36 34 L64 34 L64 22 L92 28 L92 92 L64 92 L64 60 A14 14 0 0 0 36 60 L36 92 L8 92 Z";
+
+export default function SkyMark({ className = "h-8 w-8 text-azure" }: Props) {
   return (
-    <svg viewBox="0 0 48 48" fill="none" className={className} aria-hidden="true" focusable="false">
-      <path
-        d="M8 26c5.5-1.5 11-2.6 15.4-5.2 4.1-2.4 6.6-6.1 10.5-9.4C37 9 40.6 8.2 45 8.2c-1.6 4.6-4.4 9.4-8.7 12.2-4.6 3-10.6 4.2-16.4 5-4 .6-8 .8-11.9.6Z"
-        fill="hsl(217 86% 49%)"
-      />
-      <path
-        d="M4 40c5.3-1.6 10.6-2.8 15-5.5 4.2-2.5 6.9-6.2 10.9-9.4 3.4-2.7 7.3-3.5 11.7-3.6-1.7 4.6-4.6 9.3-9 12.1-4.6 3-10.7 4.2-16.5 5-4 .6-8 1-12.1 1.4Z"
-        fill="hsl(205 92% 68%)"
-      />
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true" focusable="false">
+      <path d={SKY_MARK_PATH} fill="currentColor" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
     </svg>
   );
 }
