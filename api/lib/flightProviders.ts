@@ -61,7 +61,9 @@ export type ProviderResolutionConfig = {
 /** Ren og testbar: hvilken leverandør er standard, og hvilke kan bes om eksplisitt. */
 export function resolveProviders(cfg: ProviderResolutionConfig): { active: FlightProviderId; selectable: FlightProviderId[] } {
   const kayakAsDefaultOk = cfg.kayakEnabled && (!cfg.kayakSandbox || !cfg.isProdEnv || cfg.allowSandboxInProduction);
-  const autoChain = (): FlightProviderId => (cfg.travelportEnabled ? "travelport" : cfg.duffelConfigured ? "duffel" : "demo");
+  // Demo er siste utvei: en ekte leverandør (også KAYAK i sandkasse utenfor
+  // produksjon) går alltid foran oppdiktede tilbud.
+  const autoChain = (): FlightProviderId => (cfg.travelportEnabled ? "travelport" : cfg.duffelConfigured ? "duffel" : kayakAsDefaultOk ? "kayak" : "demo");
 
   let active: FlightProviderId;
   switch (cfg.flightProvider) {

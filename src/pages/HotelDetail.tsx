@@ -8,7 +8,8 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import HeroBar from "@/components/app/HeroBar";
 import { HotelPhoto, RatingChip, Stars } from "@/components/stays/HotelCard";
 import { inclusionLabel } from "@/components/stays/hotelUtils";
-import { DisabledState, DisclosureNote, RetryButton, SandboxBadge, StateBlock } from "@/components/stays/StayLayout";
+import { CurrencyNote, DisabledState, DisclosureNote, RetryButton, SandboxBadge, StateBlock } from "@/components/stays/StayLayout";
+import { parseChildAges, splitRooms } from "@/components/stays/stayLinks";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/providers/trpc";
 import { useLocale, useT } from "@/lib/i18n";
@@ -70,7 +71,9 @@ export default function HotelDetail() {
   const hotelKey = decodeURIComponent(key);
   const status = trpc.hotels.status.useQuery(undefined, { staleTime: 300_000, retry: false });
   const enabled = status.data?.enabled === true;
-  const roomList = useMemo(() => Array.from({ length: rooms }, (_, i) => ({ adults: Math.max(1, Math.round(adults / rooms) + (i === 0 ? adults % rooms : 0)) })), [adults, rooms]);
+  const kidsParam = params.get("kids");
+  const childAges = useMemo(() => parseChildAges(kidsParam), [kidsParam]);
+  const roomList = useMemo(() => splitRooms(adults, childAges, rooms), [adults, childAges, rooms]);
   const detail = trpc.hotels.detail.useQuery(
     { hotelKey, checkin, checkout, rooms: roomList, currency, language: lang, sessionId: searchSessionId() },
     { enabled: enabled && /^khotel:\d+$/.test(hotelKey) && Boolean(checkin && checkout), staleTime: 5 * 60_000, retry: false },
@@ -84,7 +87,9 @@ export default function HotelDetail() {
   const backHref = `/hotell?place=${encodeURIComponent(place)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}&rooms=${rooms}`;
   const selfHref = `/hotell/${encodeURIComponent(hotelKey)}?checkin=${checkin}&checkout=${checkout}&adults=${adults}&rooms=${rooms}&place=${encodeURIComponent(place)}`;
   const images = h?.images ?? [];
-  const mapHref = h ? `https://www.google.com/maps/search/?api=1&query=${h.lat},${h.lng}` : undefined;
+  // KAYAK setter 0/0 når koordinater mangler – da lenker vi på adresse og navn, ikke til et punkt i havet.
+  const hasCoords = Boolean(h && Number.isFinite(h.lat) && Number.isFinite(h.lng) && !(h.lat === 0 && h.lng === 0));
+  const mapHref = h ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hasCoords ? `${h.lat},${h.lng}` : [h.name, h.address].filter(Boolean).join(", "))}` : undefined;
   // Laveste totalpris blant leverandørene – prisen i bunnen er alltid en ekte «fra»-pris.
   const lowest = useMemo(() => (h?.rates.length ? h.rates.reduce((m, r) => (r.totalAmount < m.totalAmount ? r : m), h.rates[0]) : undefined), [h]);
   const collections = useCollections((city) => t("sv.trip", { city }));
@@ -148,7 +153,7 @@ export default function HotelDetail() {
 
   const amenities = (h?.featureSummary ?? []).slice(0, 6);
   const nights = h?.nights ?? Math.max(1, Math.round((Date.parse(checkout) - Date.parse(checkin)) / 86_400_000));
-  const stayLine = `${t("ht.nights", { count: nights })} · ${t("ht.adults", { count: adults })} · ${t("ht.detail.rooms", { count: rooms })}`;
+  const stayLine = `${t("ht.nights", { count: nights })} · ${t("ht.adults", { count: adults })}${childAges.length ? ` · ${childAges.length === 1 ? t("ht.children.one") : t("ht.children", { count: childAges.length })}` : ""} · ${t("ht.detail.rooms", { count: rooms })}`;
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -349,6 +354,7 @@ export default function HotelDetail() {
                     <h2 className="t-h2">{t("ht.detail.roomsterms")}</h2>
                     <p className="text-[13px] text-muted-foreground">{t("ht.detail.rates", { count: new Set(h.rates.map((r) => r.provider.code)).size })} · {formatDateShort(checkin)} – {formatDateShort(checkout)}</p>
                   </div>
+                  <div className="mt-3"><CurrencyNote currency={lowest?.currency ?? h.currency} preferred={currency} /></div>
                   {h.rates.length === 0 && <p className="mt-3 text-sm text-muted-foreground">{t("ht.norates")}</p>}
                   <ul className="mt-3 space-y-3">
                     {h.rates.map((r, i) => {

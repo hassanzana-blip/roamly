@@ -8,7 +8,7 @@ import HeroBar from "@/components/app/HeroBar";
 import ServiceTabs from "@/components/app/ServiceTabs";
 import CarCard from "@/components/stays/CarCard";
 import { CarSearchForm } from "@/components/stays/StaySearchForms";
-import { DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
+import { CurrencyNote, DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
 import { Chip } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -182,6 +182,7 @@ export default function Cars() {
                     {search.data.sandbox && <SandboxBadge />}
                     {!search.data.complete && <span className="text-xs">{t("common.partial")}</span>}
                   </p>
+                  <CurrencyNote currency={search.data.currency} preferred={currency} />
                   {filtered.map((c, i) => (
                     <div key={c.id} className={i < 6 ? "fade-up" : undefined} style={i < 6 ? { animationDelay: `${i * 45}ms` } : undefined}>
                       <CarCard car={c} sandbox={search.data.sandbox} />

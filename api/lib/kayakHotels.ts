@@ -186,7 +186,8 @@ function mapHotel(r: z.infer<typeof resultSchema>, providers: z.infer<typeof pro
     guestRating,
     numberOfReviews: r.numberOfReviews ?? 0,
     ratingSentiment: r.guestRatingSentiment,
-    distanceKm: typeof r.distance === "number" ? Math.round(r.distance * 10) / 10 : null,
+    // KAYAK oppgir `distance` i miles (amerikansk API); vi viser kilometer.
+    distanceKm: typeof r.distance === "number" ? Math.round(r.distance * MILES_TO_KM * 10) / 10 : null,
     images: (r.images ?? []).filter((i) => isHttps(i.large)).map((i) => ({ large: i.large, small: i.small && isHttps(i.small) ? i.small : undefined })),
     lowestTotal: rates[0]?.totalAmount ?? r.lowestRate ?? null,
     currency,
@@ -222,6 +223,8 @@ export interface HotelRequestContext {
   clientIp?: string;
   signal?: AbortSignal;
 }
+
+const MILES_TO_KM = 1.609344;
 
 const DESTINATION_RE = /^(kplace|khotel|khotels|klatlon):[A-Za-z0-9.,;:_-]{1,200}$/;
 

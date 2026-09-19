@@ -17,7 +17,8 @@ const roomSchema = z.object({ adults: z.number().int().min(1).max(8), childAges:
 const currencySchema = z.string().regex(/^[A-Z]{3}$/).optional();
 
 function assertStay(checkin: string, checkout: string) {
-  const today = new Date().toISOString().slice(0, 10);
+  // Tidligste «i dag» i noen tidssone (UTC−12): klientens dato er lokal.
+  const today = new Date(Date.now() - 12 * 60 * 60_000).toISOString().slice(0, 10);
   if (checkin < today) throw new AppError("VALIDATION", { message: "Innsjekk kan ikke være i fortiden.", data: { field: "checkin" } });
   if (checkout <= checkin) throw new AppError("VALIDATION", { message: "Utsjekk må være etter innsjekk.", data: { field: "checkout" } });
   if ((Date.parse(checkout) - Date.parse(checkin)) / 86_400_000 > 30) throw new AppError("VALIDATION", { message: "Maks 30 netter per søk.", data: { field: "checkout" } });

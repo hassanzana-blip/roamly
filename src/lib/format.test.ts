@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layoverInfo } from "./format";
+import { formatDateLong, formatDateShort, formatDayMonth, layoverInfo } from "./format";
 
 /**
  * Mellomlanding måles i flyplassens egen tidssone: en overnatting er en
@@ -40,5 +40,24 @@ describe("layoverInfo", () => {
       overnight: true,
       long: true,
     });
+  });
+});
+
+/**
+ * En ren dato (YYYY-MM-DD) er en kalenderdag. Tolket som «midnatt UTC» ble
+ * den kvelden før i alle tidssoner vest for Greenwich – og bestillingen viste
+ * én dag for tidlig. Testen kjører i maskinens sone; fasit er uansett dag 3.
+ */
+describe("rene datoer", () => {
+  it("viser samme kalenderdag som kunden valgte", () => {
+    expect(formatDayMonth("2026-10-03", "nb-NO")).toMatch(/^3\.? okt/);
+    expect(formatDateShort("2026-10-03", "nb-NO")).toContain("3.");
+    expect(formatDateLong("2026-01-01", "nb-NO")).toContain("1. januar 2026");
+  });
+
+  it("lar tidspunkter med sone være tidspunkter", () => {
+    // 23:30 UTC på 3. oktober er fortsatt 3. oktober i UTC – vi tester bare at ISO-strenger med tid fortsatt tolkes.
+    expect(formatDateShort("2026-10-03T12:00:00Z", "nb-NO")).toContain("3.");
+    expect(formatDateShort("tull", "nb-NO")).toBe("");
   });
 });

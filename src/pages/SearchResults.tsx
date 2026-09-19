@@ -12,6 +12,7 @@ import { DESTINATIONS } from "@/content/discover";
 import { useSavedDestinations } from "@/lib/useAccount";
 import { useCollections } from "@/lib/collections";
 import OfferCard from "@/components/offers/OfferCard";
+import { CurrencyNote } from "@/components/stays/StayLayout";
 import { partyLabel, providerName } from "@/components/offers/offerUtils";
 import SearchWidget, { type SearchParamsState, type TripLeg } from "@/components/search/SearchWidget";
 import PriceCalendar from "@/components/search/PriceCalendar";
@@ -404,7 +405,8 @@ export default function SearchResults() {
     setCompareIds((prev) => (prev.includes(offer.id) ? prev.filter((x) => x !== offer.id) : prev.length >= 3 ? prev : [...prev, offer.id]));
 
   const shareText = (o: Offer) => {
-    const route = `${o.slices[0].origin.iata} → ${o.slices[o.slices.length - 1].destination.iata}`;
+    // Første strekning sier hvor reisen går; siste strekning på en tur/retur ender der den startet.
+    const route = `${o.slices[0].origin.iata} → ${o.slices[0].destination.iata}`;
     return t("sr.share", {
       route,
       date: formatDateShort(o.slices[0].departingAt),
@@ -745,6 +747,7 @@ export default function SearchResults() {
             )}
           </div>
         </div>
+        {allOffers.length > 0 && <CurrencyNote currency={currency} preferred={preferredCurrency} />}
       </header>
 
       <div className="container-x pt-4">

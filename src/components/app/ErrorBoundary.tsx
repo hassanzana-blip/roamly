@@ -10,6 +10,38 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 type Props = { children: ReactNode; fallback?: ReactNode };
 type State = { error: Error | null };
 
+const CHUNK_ERROR_RE = /Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+const RELOAD_FLAG = "hs:chunk-reload";
+
+/**
+ * Etter en deploy peker en åpen fane på chunk-filer som ikke finnes lenger, og
+ * neste navigasjon feiler. Én automatisk omlasting henter den nye versjonen;
+ * flagget i sessionStorage hindrer en evig løkke hvis feilen er noe annet.
+ * Returnerer true når omlasting er satt i gang.
+ */
+export function reloadOnceForStaleChunk(message: string): boolean {
+  if (!CHUNK_ERROR_RE.test(message) || typeof window === "undefined") return false;
+  try {
+    if (sessionStorage.getItem(RELOAD_FLAG)) return false;
+    sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
+  } catch {
+    return false;
+  }
+  window.location.reload();
+  return true;
+}
+
+/** Kalles når appen har startet fint, slik at neste deploy også får sin ene omlasting. */
+export function clearStaleChunkFlag() {
+  try {
+    const at = Number(sessionStorage.getItem(RELOAD_FLAG) ?? 0);
+    // Behold flagget i ett minutt: en omlasting som feiler igjen skal vise feilsiden, ikke snurre.
+    if (at && Date.now() - at > 60_000) sessionStorage.removeItem(RELOAD_FLAG);
+  } catch {
+    /* privat modus uten lagring – ingen ting å rydde */
+  }
+}
+
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
@@ -20,6 +52,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Ingen ekstern feilrapportering konfigurert ennå – logg lokalt.
     console.error("[ErrorBoundary]", error, info.componentStack);
+    reloadOnceForStaleChunk(error.message);
   }
 
   private reload = () => {
@@ -32,9 +65,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     const lang = typeof document !== "undefined" ? document.documentElement.lang : "nb";
     const en = lang.startsWith("en");
-    const isChunkError = /Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed/i.test(
-      this.state.error.message,
-    );
+    const isChunkError = CHUNK_ERROR_RE.test(this.state.error.message);
 
     return (
       <main

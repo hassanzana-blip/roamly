@@ -6,7 +6,7 @@ import { bookings, supportCases, supportMessages } from "../db/schema";
 import { env } from "./lib/env";
 import { AppError, toTRPCError } from "./lib/errors";
 import { duffelConfig, duffelGetOffer } from "./lib/duffel";
-import { demoFlightStatus, demoGetOffer, demoPaxFactor, demoPriceHint } from "./lib/demo";
+import { demoFlightStatus, demoGetOffer } from "./lib/demo";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { enqueueJob } from "./lib/jobs";
 import { issueBookingAccessToken } from "./lib/bookingAccess";
@@ -50,9 +50,13 @@ const searchSchema = z.object({
 
 type SearchInput = z.infer<typeof searchSchema>;
 
-/** YYYY-MM-DD i dag, i UTC – romslig nok til at ingen tidssone gjør «i dag» ugyldig. */
+/**
+ * Tidligste «i dag» i noen tidssone (UTC−12). Datoen fra klienten er en lokal
+ * dato; en reisende i Los Angeles om kvelden velger «i dag» som allerede er
+ * «i morgen» i UTC, og en for streng sperre ville avvist den.
+ */
 function todayIso(): string {
-  return new Date(Date.now() + 14 * 60 * 60_000).toISOString().slice(0, 10);
+  return new Date(Date.now() - 12 * 60 * 60_000).toISOString().slice(0, 10);
 }
 
 // ─── Søkecache (live): 5 min per normalisert input ─────────────────────────
@@ -202,13 +206,10 @@ export const flightsRouter = createRouter({
       }),
     )
     .query(({ input }): PriceHint[] => {
-      // Live: eksakte dagspriser krever ett tilbudskall per dato — hint kun i demo.
-      if (duffelConfig.configured) return input.dates.map((date) => ({ date, amount: null }));
-      const paxFactor = demoPaxFactor(input.passengers);
-      return input.dates.map((date, i) => ({
-        date,
-        amount: demoPriceHint(input.origin, input.destination, input.cabinClass, date, paxFactor, input.returnDates?.[i]),
-      }));
+      // Ingen leverandør gir oss dagspriser uten ett tilbudskall per dato, og vi
+      // dikter ikke opp «fra»-priser: uten en ekte kilde er svaret null for alle
+      // datoer, og klientene viser «Søk» i stedet for et tall.
+      return input.dates.map((date) => ({ date, amount: null }));
     }),
 
   /**

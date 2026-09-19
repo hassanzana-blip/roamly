@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/providers/trpc";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { carSearchHref, hotelSearchHref, type CarSearchValues, type HotelSearchValues } from "./stayLinks";
+import { carSearchHref, hotelSearchHref, MAX_CHILDREN, type CarSearchValues, type HotelSearchValues } from "./stayLinks";
 
 function inDays(n: number) {
   return new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
@@ -49,7 +49,9 @@ export function HotelSearchForm({ initial, compact, onSubmitted }: { initial?: P
   const [checkout, setCheckout] = useState(initial?.checkout ?? inDays(33));
   const [adults, setAdults] = useState(initial?.adults ?? 2);
   const [rooms, setRooms] = useState(initial?.rooms ?? 1);
+  const [childAges, setChildAges] = useState<number[]>(initial?.childAges ?? []);
   const [touched, setTouched] = useState(false);
+  const setChildCount = (n: number) => setChildAges((prev) => (n <= prev.length ? prev.slice(0, n) : [...prev, ...Array.from({ length: n - prev.length }, () => 8)]));
   const q = useDebounced(text);
   const status = trpc.hotels.status.useQuery(undefined, { staleTime: 300_000, retry: false });
   const enabled = status.data?.enabled === true;
@@ -66,7 +68,7 @@ export function HotelSearchForm({ initial, compact, onSubmitted }: { initial?: P
         setTouched(true);
         if (!valid) return;
         onSubmitted?.();
-        navigate(hotelSearchHref({ dest: place?.id ?? "", place: place?.label ?? text.trim(), checkin, checkout, adults, rooms }));
+        navigate(hotelSearchHref({ dest: place?.id ?? "", place: place?.label ?? text.trim(), checkin, checkout, adults, rooms, childAges }));
       }}
       className="space-y-3"
     >
@@ -93,6 +95,11 @@ export function HotelSearchForm({ initial, compact, onSubmitted }: { initial?: P
               <select value={adults} onChange={(e) => setAdults(Number(e.target.value))} className={cn(inputCls, "min-w-0 flex-1 truncate")} aria-label={t("home.search.adults")}>
                 {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{t("ht.adults", { count: n })}</option>)}
               </select>
+              <select value={childAges.length} onChange={(e) => setChildCount(Number(e.target.value))} className={cn(inputCls, "min-w-0 flex-1 truncate")} aria-label={t("home.search.children")}>
+                {Array.from({ length: MAX_CHILDREN + 1 }, (_, n) => n).map((n) => (
+                  <option key={n} value={n}>{n === 0 ? t("ht.children.none") : n === 1 ? t("ht.children.one") : t("ht.children", { count: n })}</option>
+                ))}
+              </select>
               <select value={rooms} onChange={(e) => setRooms(Number(e.target.value))} className={cn(inputCls, "min-w-0 flex-1 truncate")} aria-label={t("home.search.rooms")}>
                 {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{t("ht.rooms", { count: n })}</option>)}
               </select>
@@ -100,6 +107,21 @@ export function HotelSearchForm({ initial, compact, onSubmitted }: { initial?: P
           </span>
         </label>
       </div>
+      {childAges.length > 0 && (
+        <fieldset className="rounded-xl border border-input bg-card px-4 py-3">
+          <legend className="px-1 text-xs font-medium text-muted-foreground">{t("ht.child.age.hint")}</legend>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {childAges.map((age, i) => (
+              <label key={i} className="flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm">
+                <span className="text-muted-foreground">{t("ht.child.age", { n: i + 1 })}</span>
+                <select value={age} onChange={(e) => setChildAges((prev) => prev.map((a, ai) => (ai === i ? Number(e.target.value) : a)))} className="bg-transparent font-semibold outline-none" aria-label={t("ht.child.age", { n: i + 1 })}>
+                  {Array.from({ length: 18 }, (_, n) => n).map((n) => <option key={n} value={n}>{n === 0 ? t("ht.child.under1") : t("ht.child.years", { n })}</option>)}
+                </select>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="t-caption">{t("home.search.meta.note")}</p>
         <Button type="submit" size="lg" className="w-full rounded-full sm:w-auto sm:min-w-52">
