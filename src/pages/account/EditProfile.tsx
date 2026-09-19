@@ -217,8 +217,23 @@ export default function EditProfile() {
         {/* Passord */}
         <section className="mb-6 rounded-xl border border-border bg-card p-5 shadow-soft">
           <h2 className="mb-4 flex items-center gap-2 font-display text-xl">
-            <Icon icon={KeyRound} size={20} /> Bytt passord
+            <Icon icon={KeyRound} size={20} /> {customer.hasPassword ? "Bytt passord" : "Lag passord"}
           </h2>
+          {!customer.hasPassword ? (
+            // Konto opprettet med Apple/Google/Facebook: det finnes ikke noe «nåværende passord» å be om.
+            // «Glemt passord» sender en lenke til e-posten og setter det første passordet.
+            <p className="text-[13px] text-muted-foreground">
+              Kontoen din ble opprettet med sosial innlogging og har ikke passord ennå.{" "}
+              {customer.email ? (
+                <>
+                  Bruk <Link to="/logg-inn?modus=glemt" className="font-semibold underline underline-offset-4">Glemt passord</Link> med {customer.email} for å lage ett – da kan du også logge inn uten
+                  leverandøren.
+                </>
+              ) : (
+                <>Legg inn en e-postadresse over først, så kan du lage et passord via «Glemt passord».</>
+              )}
+            </p>
+          ) : (
           <form
             className="space-y-3"
             onSubmit={(e) => {
@@ -237,9 +252,12 @@ export default function EditProfile() {
               {changePw.isPending ? "Endrer …" : "Bytt passord"}
             </button>
           </form>
-          <p className="mt-3 text-[12px] text-muted-foreground">
-            Når passordet byttes, logges alle andre enheter ut automatisk.
-          </p>
+          )}
+          {customer.hasPassword && (
+            <p className="mt-3 text-[12px] text-muted-foreground">
+              Når passordet byttes, logges alle andre enheter ut automatisk.
+            </p>
+          )}
         </section>
 
         {/* Sikkerhet */}
@@ -273,14 +291,17 @@ export default function EditProfile() {
               className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                del.mutate({ password: delPw });
+                // Med passord bekrefter passordet; uten (sosial innlogging) skriver kunden SLETT.
+                del.mutate(customer.hasPassword ? { password: delPw } : { confirmation: delPw });
               }}
             >
               <input
-                type="password"
+                type={customer.hasPassword ? "password" : "text"}
                 value={delPw}
                 onChange={(e) => setDelPw(e.target.value)}
-                placeholder="Skriv passordet for å bekrefte"
+                placeholder={customer.hasPassword ? "Skriv passordet for å bekrefte" : "Skriv SLETT for å bekrefte"}
+                autoComplete={customer.hasPassword ? "current-password" : "off"}
+                autoCapitalize={customer.hasPassword ? undefined : "characters"}
                 required
                 className={inputCls}
               />
@@ -288,7 +309,7 @@ export default function EditProfile() {
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  disabled={del.isPending || !delPw}
+                  disabled={del.isPending || !delPw || (!customer.hasPassword && delPw.trim().toUpperCase() !== "SLETT")}
                   className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-destructive text-[14px] font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-50"
                 >
                   <Icon icon={Trash2} size={16} />

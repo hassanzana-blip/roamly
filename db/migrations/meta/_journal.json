@@ -36,6 +36,13 @@
       "when": 1788875788200,
       "tag": "0004_session_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1789834175142,
+      "tag": "0005_customer_identities",
+      "breakpoints": true
     }
   ]
 }

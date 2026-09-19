@@ -174,6 +174,33 @@ export const customerAccounts = mysqlTable(
   ],
 );
 
+/**
+ * Sosiale innlogginger (Apple, Google, Facebook via Clerk) knyttet til en
+ * kundekonto. `subject` er leverandørens stabile bruker-id – aldri e-posten,
+ * som kan byttes eller være skjult (Apple «Hide my email»). Én konto kan ha
+ * flere identiteter; én identitet hører til nøyaktig én konto.
+ */
+export const customerIdentities = mysqlTable(
+  "customer_identities",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    customerId: ref("customer_id")
+      .notNull()
+      .references(() => customerAccounts.id),
+    /** Identitetsmegler: `clerk`. Nye meglere får egne verdier. */
+    provider: varchar("provider", { length: 20 }).notNull(),
+    /** Stabil id hos megleren (Clerk user id). */
+    subject: varchar("subject", { length: 191 }).notNull(),
+    /** Sosial leverandør bak innloggingen (`apple`, `google`, `facebook`) – til visning i Sikkerhet. */
+    social: varchar("social", { length: 20 }),
+    /** E-posten leverandøren oppga ved kobling – kun til visning; matching skjer aldri på denne alene. */
+    email: varchar("email", { length: 255 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    lastLoginAt: timestamp("last_login_at"),
+  },
+  (t) => [uniqueIndex("uq_custident_provider_subject").on(t.provider, t.subject), index("ix_custident_customer").on(t.customerId)],
+);
+
 export const customerEmailTokens = mysqlTable(
   "customer_email_tokens",
   {

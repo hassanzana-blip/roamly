@@ -68,7 +68,7 @@ export default function Auth() {
   const refCode = params.get("ref") ?? "";
 
   const [mode, setMode] = useState<Mode>(
-    params.get("modus") === "registrer" ? "register" : "login",
+    params.get("modus") === "registrer" ? "register" : params.get("modus") === "glemt" ? "forgot" : "login",
   );
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");

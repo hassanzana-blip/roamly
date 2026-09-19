@@ -193,6 +193,7 @@ export function isNoindexPath(path: string): boolean {
  * appskallet, som gjorde at Google fant uendelig mange «sider».
  */
 const DYNAMIC_ROUTE_PATTERNS: RegExp[] = [
+  /^\/logg-inn\/sso-(callback|fullfor)$/,
   /^\/reisemal\/[^/]+$/,
   /^\/journal\/[^/]+$/,
   /^\/quiz\/[^/]+$/,
