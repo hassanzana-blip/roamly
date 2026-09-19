@@ -14,12 +14,12 @@ import type { CabinClass, FlightProvidersStatus, FlightSource, SearchPassengerIn
  *  - KAYAK: metasøk – kunden bestiller hos leverandøren via KAYAKs klikklenke.
  *  - Demo: lokale testdata, forbudt i APP_ENV=production.
  *
- * Flysøket går til Duffel. Det er der HelloSky er live, og det er den eneste
- * leverandøren kunden kan bestille hos gjennom oss. KAYAK brukes for hotell og
- * leiebil, aldri for fly. Travelport kan bare velges eksplisitt med
- * FLIGHT_PROVIDER=travelport (intern søketest). Uten Duffel-nøkkel faller vi
- * til demo utenfor produksjon – tydelig merket – og til «utilgjengelig» i
- * produksjon (assertProductionSafety nekter demo der).
+ * Hvilken leverandør et vanlig søk går til styres av FLIGHT_PROVIDER. «auto»
+ * er den gamle rekkefølgen (Travelport når slått på, ellers Duffel, ellers
+ * demo), så en deploy uten nye variabler oppfører seg nøyaktig som før.
+ * Sandkasse-KAYAK slipper aldri inn som standard i produksjon uten
+ * KAYAK_ALLOW_SANDBOX_IN_PRODUCTION=true; med KAYAK_PREVIEW=true kan et søk
+ * likevel be om `provider=kayak` eksplisitt (tydelig merket som testdata).
  */
 
 export type FlightProviderId = FlightSource;
@@ -60,14 +60,30 @@ export type ProviderResolutionConfig = {
 
 /** Ren og testbar: hvilken leverandør er standard, og hvilke kan bes om eksplisitt. */
 export function resolveProviders(cfg: ProviderResolutionConfig): { active: FlightProviderId; selectable: FlightProviderId[] } {
-  // Duffel er flyleverandøren. KAYAK-flaggene (kayakEnabled, kayakSandbox,
-  // kayakPreview, allowSandboxInProduction) gjelder ikke lenger fly og leses
-  // ikke her; KAYAK kan hverken bli standard eller bes om per søk.
-  const duffelOrDemo = (): FlightProviderId => (cfg.duffelConfigured ? "duffel" : "demo");
-  const active: FlightProviderId = cfg.flightProvider === "travelport" && cfg.travelportEnabled ? "travelport" : duffelOrDemo();
+  const kayakAsDefaultOk = cfg.kayakEnabled && (!cfg.kayakSandbox || !cfg.isProdEnv || cfg.allowSandboxInProduction);
+  // Demo er siste utvei: en ekte leverandør (også KAYAK i sandkasse utenfor
+  // produksjon) går alltid foran oppdiktede tilbud.
+  const autoChain = (): FlightProviderId => (cfg.travelportEnabled ? "travelport" : cfg.duffelConfigured ? "duffel" : kayakAsDefaultOk ? "kayak" : "demo");
+
+  let active: FlightProviderId;
+  switch (cfg.flightProvider) {
+    case "kayak":
+      active = kayakAsDefaultOk ? "kayak" : autoChain();
+      break;
+    case "travelport":
+      active = cfg.travelportEnabled ? "travelport" : autoChain();
+      break;
+    case "duffel":
+      active = cfg.duffelConfigured ? "duffel" : autoChain();
+      break;
+    default:
+      active = autoChain();
+  }
 
   const selectable = new Set<FlightProviderId>([active]);
+  if (cfg.kayakEnabled && (cfg.kayakPreview || active === "kayak")) selectable.add("kayak");
   if (cfg.duffelConfigured) selectable.add("duffel");
+  if (cfg.travelportEnabled) selectable.add("travelport");
   return { active, selectable: [...selectable] };
 }
 

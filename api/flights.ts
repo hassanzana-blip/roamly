@@ -144,8 +144,7 @@ export const flightsRouter = createRouter({
       // KAYAKs Autocomplete API fyller på først når registeret vårt kommer til
       // kort – sandkassen tillater bare 100 kall i timen, så den spørres ikke
       // for hvert tastetrykk.
-      // KAYAK brukes ikke for fly lenger – flyplassforslagene kommer fra vårt eget register.
-      if (!flightProvidersStatus().selectable.includes("kayak") || local.length >= 3 || input.query.trim().length < 3) return local;
+      if (!kayakConfig.enabled || local.length >= 3 || input.query.trim().length < 3) return local;
       const extra = await kayakAutocomplete(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
       const seen = new Set(local.map((a) => a.iata));
       return [...local, ...extra.filter((a) => !seen.has(a.iata))].slice(0, limit);

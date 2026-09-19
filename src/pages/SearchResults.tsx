@@ -86,8 +86,7 @@ function CheckRow({ checked, onChange, label, code }: { checked: boolean; onChan
   );
 }
 
-// KAYAK er ikke flyleverandør lenger: gamle lenker med provider=kayak søker som vanlig (Duffel).
-const PROVIDERS = ["duffel", "travelport", "demo"] as const;
+const PROVIDERS = ["duffel", "travelport", "kayak", "demo"] as const;
 type ProviderParam = (typeof PROVIDERS)[number];
 const providerParam = (v: string | null): ProviderParam | undefined => (PROVIDERS as readonly string[]).includes(v ?? "") ? (v as ProviderParam) : undefined;
 
