@@ -159,7 +159,7 @@ export const FAMILY: Article[] = [
   },
   {
     slug: "reise-hjem-til-hoytidene",
-    title: "Reise hjem til høytidene: Eid, Newroz, jul",
+    title: "Reise i høytidene: Eid, Newroz, jul",
     deck: "De ukene alle vil reise samtidig. Slik planlegger du så det ikke koster mer enn det må.",
     tags: ["planlegging", "familie", "kurdistan", "midtosten"],
     updated: "2026-09-07",

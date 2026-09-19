@@ -178,17 +178,17 @@ export default function Destinations() {
       <section className="border-b border-border">
         <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-32">
           <h1 className="t-display max-w-3xl">
-            Dit hjertet hører hjemme – <span className="hl">og resten av verden.</span>
+            Reisemål fra Norge – <span className="hl">til hele verden.</span>
           </h1>
           <p className="t-lead mt-6 max-w-2xl text-muted-foreground">
-            Vi flyr deg overalt. Men vi kjenner særlig godt rutene hjem – til
-            familien i Istanbul og Erbil, Beirut og Casablanca, Asmara og Kabul,
-            Islamabad og Delhi, Dhaka, Colombo og Warszawa. Her er alt vi vet om
-            reisen dit, samlet på én side.
+            Guider til stedene vi flyr flest til: hvilken flyplass du bør velge,
+            når det lønner seg å reise, hva som er verdt å vite om bagasje og
+            visum – og hvordan du kommer deg videre når du har landet. Alt
+            samlet på én side.
           </p>
           <nav className="no-scrollbar -mx-4 mt-8 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Hopp til verdensdel">
             {[
-              { id: "hjem", label: "Hjem til familien" },
+              { id: "guider", label: "Utvalgte guider" },
               ...CONTINENTS.map((c) => ({ id: c.id, label: c.name })),
             ].map((c) => (
               <a
@@ -203,14 +203,13 @@ export default function Destinations() {
         </div>
       </section>
 
-      {/* ── Home routes: an index you open, not twelve essays in a row ── */}
-      <section id="hjem" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
+      {/* ── Featured guides: an index you open, not twelve essays in a row ── */}
+      <section id="guider" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 py-14 sm:px-6 sm:py-20">
         <div className="mb-8 max-w-2xl sm:mb-10">
-          <h2 className="t-h1">Rutene vi kjenner best</h2>
+          <h2 className="t-h1">Guider til landene vi flyr mest til</h2>
           <p className="t-lead mt-4 text-muted-foreground">
-            Millioner av reiser mellom Norge og verden hvert år handler om det
-            samme: familie. Disse landene er hjem for Norges største
-            innvandrergrupper – og rutene vi hjelper flest kunder med, året rundt.
+            Landene der vi hjelper flest reisende året rundt – med flyplassvalg,
+            reisetid, sesonger og det praktiske som avgjør om reisen blir god.
             Åpne et land for hele guiden.
           </p>
         </div>

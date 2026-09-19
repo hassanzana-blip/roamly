@@ -9,7 +9,7 @@ export * from "./types";
 export const ARTICLES: Article[] = [...PLACES, ...FAMILY, ...PRACTICAL].sort((a, b) => (a.updated < b.updated ? 1 : a.updated > b.updated ? -1 : 0));
 
 /** Rekkefølgen på forsiden og i toppen av journalen: én per tema, håndplukket. */
-export const FEATURED_SLUGS = ["mellomlanding-med-barn", "bagasje-slik-leser-du-billetten", "istanbul-to-flyplasser", "reise-hjem-til-hoytidene"];
+export const FEATURED_SLUGS = ["mellomlanding-med-barn", "bagasje-slik-leser-du-billetten", "istanbul-to-flyplasser", "nar-bor-du-bestille"];
 
 export function articleBySlug(slug: string): Article | undefined {
   return ARTICLES.find((a) => a.slug === slug);

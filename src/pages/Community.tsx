@@ -253,7 +253,7 @@ export default function Community() {
             Reisende hjelper reisende
           </h1>
           <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-white/70">
-            Del reisetips, spør om ruter og visum, og hjelp andre som drar hjem til familien.
+            Del reisetips, spør om ruter og visum, og hjelp andre som planlegger samme reise.
             Alle innlegg kommer fra ekte HelloSky-kunder.
           </p>
         </div>

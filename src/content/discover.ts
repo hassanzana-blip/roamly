@@ -177,8 +177,3 @@ export const POPULAR_ROUTES: DealRoute[] = ROUTE_IDS.map((id) => {
   return { id: `route-${id}`, destination, originIata: "OSL", originCity: "Oslo" };
 });
 
-/** Rutene hjem – vår spesialkunnskap, som én historie blant flere. */
-export const HOMECOMING_ROUTES: DealRoute[] = ["istanbul", "erbil", "beirut", "islamabad"].map((id) => {
-  const destination = destinationById(id)!;
-  return { id: `home-${id}`, destination, originIata: "OSL", originCity: "Oslo" };
-});
