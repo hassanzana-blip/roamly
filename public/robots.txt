@@ -1,14 +1,28 @@
 User-agent: *
 Allow: /
+
+# Sider uten innhold for søk: bestilling, konto, søkeresultater og interne
+# verktøy. Speiler NOINDEX_PREFIXES i contracts/seoRoutes.ts – endres den ene,
+# skal den andre følge etter.
 Disallow: /admin
-Disallow: /bestill
-Disallow: /bekreftelse
-Disallow: /kvittering
-Disallow: /profil
-Disallow: /tilbud
-Disallow: /logg-inn
-Disallow: /tilbakestill-passord
 Disallow: /bekreft-epost
+Disallow: /bekreftelse
+Disallow: /bestill
+Disallow: /kvittering
+Disallow: /lagret
+Disallow: /logg-inn
+Disallow: /m/
+Disallow: /overnatting-bil
+Disallow: /profil
+Disallow: /reise
+Disallow: /reiser
+Disallow: /samfunn
+Disallow: /sok
+Disallow: /tavler
+Disallow: /tilbakestill-passord
+Disallow: /tilbud
+Disallow: /utvikler
+Disallow: /velkommen
 Disallow: /api/
 
 Sitemap: https://hellosky.no/sitemap.xml

@@ -6,6 +6,10 @@ import path from "path";
 
 import { createHash } from "node:crypto";
 
+import { isKnownRoute } from "../../contracts/seoRoutes";
+import { withSeoHead } from "./seoHead";
+import { sitemapXml } from "./sitemap";
+
 type App = Hono<{ Bindings: HttpBindings }>;
 
 /** dist/public — fra bundlet dist/boot.js (../dist/public) eller fra kildekode (cwd/dist/public). */
@@ -65,26 +69,59 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
   });
 
   app.get("/index.html", (c) => c.redirect("/", 301));
+
+  /**
+   * sitemap.xml bygges fra innholdsregistrene (api/lib/sitemap.ts), ikke fra en
+   * håndskrevet fil under public/. Ruten står før serveStatic slik at den
+   * vinner selv om en gammel public/sitemap.xml skulle ligge igjen i et bygg.
+   */
+  app.get("/sitemap.xml", (c) => {
+    c.header("Content-Type", "application/xml; charset=utf-8");
+    c.header("Cache-Control", "public, max-age=3600");
+    return c.body(sitemapXml());
+  });
+
+  /** Appskallet med metadata for den faktiske stien. */
+  const shell = (reqPath: string): string => {
+    if (indexCache === null || process.env.NODE_ENV !== "production") {
+      indexCache = fs.readFileSync(indexPath, "utf-8");
+    }
+    return withSeoHead(indexCache, reqPath);
+  };
+
+  // Forsiden serveres av samme kode som alle andre ruter. Uten denne ruten ville
+  // serveStatic levert dist/public/index.html rått, og forsiden vært den eneste
+  // siden uten injisert metadata – riktig i dag, men en felle neste gang
+  // standardverdiene i index.html endres.
+  app.get("/", (c) => {
+    c.header("Cache-Control", "no-cache");
+    return c.html(shell("/"));
+  });
+
   app.use("*", serveStatic({ root: path.relative(process.cwd(), distPath) || ".", precompressed: true }));
 
   /**
-   * SPA-fallback: en rute får appskallet, en fil som ikke finnes får 404.
+   * SPA-fallback: en rute appen faktisk har får appskallet med 200, alt annet
+   * får 404.
    *
-   * Skillet gikk før på `Accept: text/html`. Nettlesere sender det, men
-   * lenkeforhåndsvisninger, oppetidsovervåking og curl sender en vilkårlig
-   * innholdstype, og fikk en JSON-404 for en helt gyldig side. Skillet går nå
-   * på om stien ser ut som en fil: da er 404 riktig svar uansett hvem som spør.
+   * Skillet gikk før på `Accept: text/html`, så på om stien så ut som en fil.
+   * Begge deler ga 200 OK for hvilken som helst oppdiktet sti – Google kaller
+   * det en soft 404 og bruker crawl-budsjett på uendelig mange ikke-sider.
+   * Nå avgjør rutelisten i contracts/seoRoutes.ts, som speiler <Route> i
+   * src/App.tsx: ukjent sti → 404-status, noindex, og samme 404-side som før.
    */
   const looksLikeFile = (p: string) => /\.[a-z0-9]{2,8}$/i.test(p);
 
   app.notFound((c) => {
-    if (c.req.path.startsWith("/api/") || looksLikeFile(c.req.path)) {
+    const reqPath = c.req.path;
+    if (reqPath.startsWith("/api/") || looksLikeFile(reqPath)) {
       return c.json({ error: "Not Found" }, 404);
     }
-    if (indexCache === null || process.env.NODE_ENV !== "production") {
-      indexCache = fs.readFileSync(indexPath, "utf-8");
-    }
     c.header("Cache-Control", "no-cache");
-    return c.html(indexCache);
+    if (!isKnownRoute(reqPath)) {
+      c.header("X-Robots-Tag", "noindex");
+      return c.html(shell(reqPath), 404);
+    }
+    return c.html(shell(reqPath));
   });
 }

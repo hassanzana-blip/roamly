@@ -125,7 +125,7 @@ export function usePageMeta(meta: PageMeta, opts: { layout?: boolean } = {}): vo
 // ─── Ferdige oppsett for offentlige sider ─────────────────────────────────
 // Den andre utvikleren kan bruke disse direkte: usePageMeta(PAGE_META.home)
 
-const ORG_JSON_LD: JsonLd = {
+export const ORG_JSON_LD: JsonLd = {
   "@context": "https://schema.org",
   "@type": "TravelAgency",
   name: SITE_NAME,
@@ -210,7 +210,9 @@ export const PAGE_META = {
     title: "Søk og sammenlign fly, hotell og leiebil",
     description: "HelloSky er en søkemotor for reiser: priser fra flyselskaper, hoteller og reisebyråer i ett søk. Bestillingen fullføres alltid hos leverandøren.",
     canonicalPath: "/",
-    jsonLd: ORG_JSON_LD,
+    // Ingen jsonLd her: TravelAgency-markeringen står i index.html og gjelder
+    // hele nettstedet. Ble den lagt inn begge steder, fikk forsiden to
+    // identiske <script type="application/ld+json">-blokker.
   },
   explore: { title: "Utforsk reisemål", description: "Reisemål fra Norge etter stemning, region og reisetid. Ekte priser fra vårt eget prissøk.", canonicalPath: "/utforsk" },
   journal: { title: "HelloSky Journal", description: "Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og stedene vi flyr til. Oppdaterte, nyttige artikler uten priser som tall.", canonicalPath: "/journal" },

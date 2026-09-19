@@ -51,30 +51,55 @@
         if (l && /^(nb|en|sv|da|de)$/.test(l)) document.documentElement.lang = l;
       } catch (e) {}
     </script>
-    <!-- Standard-metadata for forsiden. Sidene overstyrer ved kjøretid via usePageMeta (src/lib/seo.ts). -->
+    <!--
+      Per-rute metadata. Serveren (api/lib/seoHead.ts) bytter ut alt mellom
+      seo:start og seo:end med tittel, description, canonical og og:* for den
+      faktiske stien, før HTML-en sendes. Taggene under er forsidens verdier og
+      gjelder kun i dev-serveren og hvis injeksjonen skulle feile.
+
+      data-hs-seo merker taggene serveren eier. Klienten fjerner dem når den
+      setter sine egne (src/providers/helmet.tsx), slik at dokumentet aldri har
+      to canonical-er samtidig.
+
+      IKKE legg sidespesifikke tagger utenfor markørene: de blir liggende igjen
+      på alle ruter, og en ekstra <link rel="canonical"> til forsiden er nok til
+      at ingen underside kan indekseres.
+    -->
+    <!--seo:start-->
+    <title data-hs-seo="true">Søk og sammenlign fly, hotell og leiebil | HelloSky</title>
     <meta
+      data-hs-seo="true"
       name="description"
-      content="HelloSky — flybilletter fra Norge til hele verden. Søk i hele markedet, se totalprisen med en gang og få personlig hjelp fra norsk kundeservice."
+      content="HelloSky er en søkemotor for reiser: priser fra flyselskaper, hoteller og reisebyråer i ett søk. Bestillingen fullføres alltid hos leverandøren."
     />
-    <meta name="robots" content="index,follow" />
-    <link rel="canonical" href="https://hellosky.no/" />
+    <meta data-hs-seo="true" name="robots" content="index,follow" />
+    <link data-hs-seo="true" rel="canonical" href="https://hellosky.no/" />
     <link rel="alternate" hreflang="nb" href="https://hellosky.no/" />
     <link rel="alternate" hreflang="x-default" href="https://hellosky.no/" />
-    <title>Flybilletter fra Norge til hele verden | HelloSky</title>
-    <meta property="og:type" content="website" />
+    <meta data-hs-seo="true" property="og:type" content="website" />
     <meta property="og:site_name" content="HelloSky" />
-    <meta property="og:title" content="Flybilletter fra Norge til hele verden | HelloSky" />
-    <meta
-      property="og:description"
-      content="Søk i hele markedet, se totalprisen med en gang og få hjelp av ekte mennesker hele veien. Norsk kundeservice alle dager 06–24."
-    />
     <meta property="og:locale" content="nb_NO" />
-    <meta property="og:url" content="https://hellosky.no/" />
-    <meta property="og:image" content="/og.png" />
+    <meta data-hs-seo="true" property="og:title" content="Søk og sammenlign fly, hotell og leiebil | HelloSky" />
+    <meta
+      data-hs-seo="true"
+      property="og:description"
+      content="HelloSky er en søkemotor for reiser: priser fra flyselskaper, hoteller og reisebyråer i ett søk. Bestillingen fullføres alltid hos leverandøren."
+    />
+    <meta data-hs-seo="true" property="og:url" content="https://hellosky.no/" />
+    <meta data-hs-seo="true" property="og:image" content="https://hellosky.no/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/og.png" />
+    <meta data-hs-seo="true" name="twitter:title" content="Søk og sammenlign fly, hotell og leiebil | HelloSky" />
+    <meta
+      data-hs-seo="true"
+      name="twitter:description"
+      content="HelloSky er en søkemotor for reiser: priser fra flyselskaper, hoteller og reisebyråer i ett søk. Bestillingen fullføres alltid hos leverandøren."
+    />
+    <meta data-hs-seo="true" name="twitter:image" content="https://hellosky.no/og.png" />
+    <!--seo:end-->
+    <!-- Nettstedsomfattende organisasjonsmarkering. Finnes kun her; forsiden
+         skal ikke legge inn en ekstra kopi via usePageMeta. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",

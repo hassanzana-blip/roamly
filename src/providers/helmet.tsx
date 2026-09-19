@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import type { ResolvedMeta } from "@/lib/seo";
 import { HelmetContext, type HelmetRegistry } from "./helmetContext";
@@ -33,6 +33,24 @@ function PageMetaRenderer({ meta }: { meta: ResolvedMeta | null }) {
   );
 }
 
+/**
+ * Fjern metadataene serveren la inn (api/lib/seoHead.ts, merket data-hs-seo).
+ *
+ * react-helmet-async eier bare tagger den selv har laget; alt annet i <head>
+ * lar den stå. Uten denne oppryddingen står serverens canonical og klientens
+ * side om side etter hydrering, og en side med to canonical-er er like
+ * uindekserbar som en med feil canonical.
+ *
+ * Kjøres først når klienten faktisk HAR metadata å sette. En side uten
+ * usePageMeta beholder serverens tagger, som er riktige for den stien.
+ */
+function useDropServerMeta(active: boolean): void {
+  useEffect(() => {
+    if (!active) return;
+    for (const el of document.head.querySelectorAll("[data-hs-seo]")) el.remove();
+  }, [active]);
+}
+
 type Entry = { meta: ResolvedMeta; priority: number; seq: number };
 
 export function PageMetaProvider({ children }: { children: ReactNode }) {
@@ -63,6 +81,7 @@ export function PageMetaProvider({ children }: { children: ReactNode }) {
     }
     return best?.meta ?? null;
   }, [entries]);
+  useDropServerMeta(meta !== null);
   return (
     <HelmetProvider>
       <HelmetContext.Provider value={registry}>
