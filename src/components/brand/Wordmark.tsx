@@ -4,9 +4,9 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * «hellosky» + the blue wing mark, on every page. `tone="light"` sets the
- * wordmark white for photographs; the mark itself never changes colour.
- * Rendered as a link home unless `asLink` is false (e.g. inside a dialog).
+ * Det azurblå H-merket + «hellosky», på hver side. `tone="light"` setter
+ * ordmerket hvitt for fotografier; merket selv er alltid azur. Rendres som
+ * lenke hjem med mindre `asLink` er false (f.eks. i en dialog).
  */
 export default function Wordmark({ tone = "dark", size = "md", className, asLink = true }: { tone?: "light" | "dark"; size?: "sm" | "md" | "lg"; className?: string; asLink?: boolean }) {
   const t = useT();
@@ -14,8 +14,8 @@ export default function Wordmark({ tone = "dark", size = "md", className, asLink
   const mark = size === "lg" ? "h-8 w-8" : size === "sm" ? "h-6 w-6" : "h-7 w-7";
   const inner = (
     <>
+      <SkyMark className={cn(mark, "mr-1.5 shrink-0 text-azure")} />
       <span className={cn("wordmark", text, tone === "light" ? "text-white" : "text-petrol")}>hellosky</span>
-      <SkyMark className={cn(mark, "-ml-0.5")} />
     </>
   );
   if (!asLink) return <span className={cn("inline-flex items-center", className)}>{inner}</span>;

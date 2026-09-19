@@ -207,6 +207,27 @@ export function clerkConfig(): { enabled: boolean; publishableKey: string | null
   return { enabled, publishableKey: enabled ? publishableKey : null, secretKey: enabled ? secretKey : null, providers: enabled ? providers : [] };
 }
 
+/**
+ * Clerks frontend-API-vert, utledet av den publiserbare nøkkelen: «pk_live_»
+ * eller «pk_test_» + base64 av verten med en avsluttende «$». Verten må stå i
+ * CSP-ens script-src og connect-src, ellers nekter nettleseren å laste
+ * clerk.browser.js og knappen vises uten å virke (failed_to_load_clerk_js).
+ * Utledet i stedet for hardkodet, så policyen følger nøkkelen.
+ */
+export function clerkFrontendApiOrigin(): string | null {
+  const key = clerkConfig().publishableKey;
+  if (!key) return null;
+  const encoded = key.replace(/^pk_(live|test)_/, "");
+  if (!encoded || encoded === key) return null;
+  try {
+    const host = Buffer.from(encoded, "base64").toString("utf8").replace(/\$+$/, "");
+    // Streng validering: verdien går rett inn i en sikkerhetsheader.
+    return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i.test(host) ? `https://${host}` : null;
+  } catch {
+    return null;
+  }
+}
+
 export const env = {
   ...raw,
   isProduction,
