@@ -13,7 +13,7 @@ import { DESTINATIONS } from "@/content/discover";
  * mot kildesamlingen.
  */
 
-export type PhotoSource = "unsplash" | "pexels" | "hellosky";
+export type PhotoSource = "unsplash" | "pexels" | "hellosky" | "web";
 
 export type PhotoCredit = {
   /** Filnavn uten variantsuffiks, f.eks. "istanbul". */
@@ -35,6 +35,7 @@ const LICENCE: Record<PhotoSource, string> = {
   unsplash: "Unsplash-lisens",
   pexels: "Pexels-lisens",
   hellosky: "HelloSky",
+  web: "Midlertidig – erstattes med lisensiert foto før lansering",
 };
 
 export function licenceLabel(source: PhotoSource): string {
@@ -42,15 +43,29 @@ export function licenceLabel(source: PhotoSource): string {
 }
 
 /**
- * Reisemålsfotoene. Alle er hentet fra Unsplash- og Pexels-samlingene under
- * deres respektive lisenser, og alle er kontrollert mot stedet de viser.
+ * Reisemålsfotoene. De eldste er hentet fra Unsplash- og Pexels-samlingene
+ * under deres respektive lisenser. De nyeste (WEB_SOURCED) er redaksjonelle
+ * plassholdere hentet fra åpne websider – de vises med ærlig merking på
+ * /fotokreditering og skal erstattes med fullt lisensierte bilder
+ * (Unsplash/Pexels eller kjøpt stock) før kommersiell lansering. Alle er
+ * kontrollert mot stedet de viser.
  */
-export const PHOTO_CREDITS: PhotoCredit[] = DESTINATIONS.filter((d) => d.image).map((d) => ({
-  key: d.image!.replace("/destinations/", "").replace(".jpg", ""),
-  caption: d.imageAlt,
-  destinationId: d.id,
-  source: "unsplash" as const,
-}));
+const WEB_SOURCED = new Set([
+  "mallorca", "grancanaria", "tenerife", "alicante", "antalya", "santorini",
+  "kreta", "rhodos", "algarve", "nice", "dubrovnik", "split", "venezia",
+  "praha", "amsterdam", "kobenhavn", "madeira", "island", "rovaniemi",
+  "bali", "maldivene", "lofoten", "bergen",
+]);
+
+export const PHOTO_CREDITS: PhotoCredit[] = DESTINATIONS.filter((d) => d.image).map((d) => {
+  const key = d.image!.replace("/destinations/", "").replace(".jpg", "");
+  return {
+    key,
+    caption: d.imageAlt,
+    destinationId: d.id,
+    source: (WEB_SOURCED.has(key) ? "web" : "unsplash") as PhotoSource,
+  };
+});
 
 /** Bilder som ikke hører til ett reisemål. */
 export const OTHER_CREDITS: PhotoCredit[] = [

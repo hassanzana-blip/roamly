@@ -28,13 +28,13 @@ export default function About() {
     <ContentPage
       eyebrow="Om HelloSky"
       title="Et norsk reisebyrå for hele verden"
-      intro="HelloSky er et norsk reisebyrå. Vi hjelper deg med å finne flyreiser dit du skal – strandferie, storbyhelg, langtur eller hjem til familien – med ekte mennesker på andre siden av telefonen."
+      intro="HelloSky er et norsk reisebyrå. Vi hjelper deg med å finne reisen dit du skal – strandferie, storbyhelg, langtur eller cruise – med ekte mennesker på andre siden av telefonen."
     >
       <Section title="Hvem vi er">
         <p>
           HelloSky ble startet av folk som har reist mye, og som har brukt for mange kvelder på å lete etter
-          den riktige billetten. Vi selger hele verden fra Norge. Noen ruter kjenner vi spesielt godt – de
-          hjem til familie i Kurdistan, Libanon, Marokko, Tyrkia og Pakistan – fordi vi har reist dem selv.
+          den riktige billetten. Vi selger hele verden fra Norge – fra Kanariøyenes vintersol og Hellas' øyer
+          til storbyhelger og langturer. Noen ruter kjenner vi spesielt godt, fordi vi har reist dem selv.
           Den kunnskapen får du med deg uansett hvor du skal.
         </p>
       </Section>
@@ -43,7 +43,7 @@ export default function About() {
         {[
           { icon: Search, title: "Hele markedet", sub: "Vi søker på tvers av flyselskapene for deg" },
           { icon: LifeBuoy, title: "06–24 alle dager", sub: "Ekte kundeservice, også ved avreise" },
-          { icon: Heart, title: "Spesialister på hjemreiser", sub: "Rutene vi kjenner aller best" },
+          { icon: Heart, title: "Personlig hjelp", sub: "Vi kjenner rutene vi selger" },
         ].map((c) => (
           <div key={c.title} className="rounded-lg border border-border bg-card p-5 shadow-soft">
             <Icon icon={c.icon} size={20} className="text-foreground" />
