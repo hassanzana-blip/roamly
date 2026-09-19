@@ -25,7 +25,7 @@ export default function Cruise() {
         <h1 className="t-h1 lg:mt-2">{t("cruise.title")}</h1>
         <ServiceTabs active="cruise" className="mt-6" />
         <div className="card-soft mt-8 px-6 py-12 text-center sm:px-10">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-blush text-burgundy"><Icon icon={Ship} size={28} /></span>
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-mint text-petrol"><Icon icon={Ship} size={28} /></span>
           <h2 className="t-h2 mt-5">{t("cruise.na.title")}</h2>
           <p className="t-body mx-auto mt-3 max-w-lg text-muted-foreground">{t("cruise.na.body")}</p>
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">

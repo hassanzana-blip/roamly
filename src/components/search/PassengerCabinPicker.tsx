@@ -20,6 +20,8 @@ interface Props {
   cabin: CabinClass;
   onCabinChange: (c: CabinClass) => void;
   joined?: boolean;
+  /** `dropdown`: a compact «1 voksen ⌄» button (the home search card). */
+  variant?: "field" | "dropdown";
 }
 
 const ROWS: { type: PassengerType; hint: I18nKey; Glyph: typeof AdultGlyph }[] = [
@@ -132,10 +134,12 @@ function AgeSelect({ value, onChange, options, label, unit }: { value: number; o
   );
 }
 
-export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesChange, cabin, onCabinChange, joined }: Props) {
+export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesChange, cabin, onCabinChange, joined, variant = "field" }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const total = paxTotal(pax);
+  // «1 voksen» / «2 voksne» / «3 reisende»: the party in two words.
+  const short = pax.child === 0 && pax.infant_without_seat === 0 ? (pax.adult === 1 ? t("sw.travellers.one") : t("sw.travellers.adults", { count: pax.adult })) : t("sw.travellers.mixed", { count: total });
 
   const set = (type: PassengerType, value: number) => {
     const next = { ...pax, [type]: value };
@@ -157,7 +161,13 @@ export default function PassengerCabinPicker({ pax, onPaxChange, ages, onAgesCha
       popoverClassName="w-[23rem]"
       align="end"
       doneLabel={t("sw.done")}
-      trigger={<FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} joined={joined} />}
+      trigger={
+        variant === "dropdown" ? (
+          <FieldButton icon={Users} variant="dropdown" label={`${t("search.travelers")}: ${value}`} placeholder={t("search.travelers")} value={short} className="h-12" />
+        ) : (
+          <FieldButton icon={Users} label={t("search.travelers")} placeholder={t("search.travelers")} value={value} joined={joined} />
+        )
+      }
     >
       <div className="space-y-5 p-4">
         <PartyRow pax={pax} cabin={cabin} />

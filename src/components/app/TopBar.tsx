@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { ChevronLeft } from "lucide-react";
 import Icon from "./Icon";
 import SkyMark from "@/components/brand/SkyMark";
+import Wordmark from "@/components/brand/Wordmark";
 import UserMenu from "@/components/account/UserMenu";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -12,20 +13,16 @@ import { cn } from "@/lib/utils";
  * one thumb-flick below and does not need an icon pointing at it.
  * All targets ≥ 44px.
  */
-export function GreetingBar({ tone = "light" }: { tone?: "light" | "dark" }) {
-  const t = useT();
+export function GreetingBar({ tone = "light", className }: { tone?: "light" | "dark"; className?: string }) {
   const onDark = tone === "dark";
   return (
     <header
-      className={cn("flex items-center justify-between gap-4 pb-5", onDark && "text-white")}
-      style={{ paddingTop: "max(18px, env(safe-area-inset-top))" }}
+      className={cn("flex items-center justify-between gap-4 pb-4", onDark && "text-white", className)}
+      style={{ paddingTop: "max(14px, env(safe-area-inset-top))" }}
     >
-      <Link to="/" aria-label={t("topbar.home")} className="flex min-h-11 items-center gap-1 rounded-full">
-        <span className="text-[24px] font-medium lowercase leading-none tracking-tight">hellosky</span>
-        <SkyMark className={cn("h-6 w-6", onDark ? "text-white" : "text-foreground")} />
-      </Link>
-      <span className="grid size-11 place-items-center rounded-full bg-white shadow-soft [&_[data-slot=avatar]]:border-0 [&_[data-slot=avatar]]:bg-transparent [&_[data-slot=avatar-fallback]]:bg-transparent">
-        <UserMenu tone={tone} />
+      <Wordmark tone={onDark ? "light" : "dark"} size="lg" />
+      <span className={cn("grid size-12 place-items-center rounded-full [&_[data-slot=avatar]]:border-0 [&_[data-slot=avatar]]:bg-transparent [&_[data-slot=avatar-fallback]]:bg-transparent", onDark ? "bg-white text-petrol" : "bg-secondary text-petrol")}>
+        <UserMenu tone="light" />
       </span>
     </header>
   );

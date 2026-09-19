@@ -3,7 +3,6 @@ import { Routes, Route, useLocation } from 'react-router'
 import ErrorBoundary from './components/app/ErrorBoundary'
 import RouteFallback from './components/app/RouteFallback'
 import BottomNav from './components/app/BottomNav'
-import NavRail from './components/app/NavRail'
 
 /**
  * Ruting (OTA-192): hver side lastes lat per rute. Hele admin-treet ligger i
@@ -207,7 +206,6 @@ export default function App() {
           <WhatsAppFab />
         </Suspense>
       )}
-      {!isAdmin && <NavRail />}
       <BottomNav />
     </>
   )

@@ -16,6 +16,24 @@ module.exports = {
         coral: "hsl(var(--coral))",
         "coral-ink": "hsl(var(--coral-ink))",
         "coral-on-dark": "hsl(var(--coral-on-dark))",
+        /* HelloSky 4.0 */
+        petrol: {
+          DEFAULT: "hsl(var(--petrol) / <alpha-value>)",
+          deep: "hsl(var(--petrol-deep))",
+        },
+        azure: {
+          DEFAULT: "hsl(var(--azure))",
+          ink: "hsl(var(--azure-ink))",
+        },
+        mint: {
+          DEFAULT: "hsl(var(--mint))",
+          deep: "hsl(var(--mint-deep))",
+        },
+        lavender: {
+          DEFAULT: "hsl(var(--lavender))",
+          deep: "hsl(var(--lavender-deep))",
+        },
+        /* 3.0 aliases (mapped onto 4.0 tokens in index.css) */
         burgundy: {
           DEFAULT: "hsl(var(--burgundy))",
           deep: "hsl(var(--burgundy-deep))",
@@ -87,8 +105,8 @@ module.exports = {
         xl: "16px",
         "2xl": "16px",
         "3xl": "20px",
-        "4xl": "28px",
-        "5xl": "36px",
+        "4xl": "24px",
+        "5xl": "28px",
       },
       boxShadow: {
         xs: "0 1px 2px 0 hsl(240 10% 8% / 0.05)",

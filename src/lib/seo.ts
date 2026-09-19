@@ -227,7 +227,7 @@ export const PAGE_META = {
   receipt: { title: "Kvittering", description: "Kvittering for bestillingen din.", canonicalPath: "/kvittering", noindex: true },
   myTrip: { title: "Min reise", description: "Finn bestillingen din.", canonicalPath: "/reise", noindex: true },
   profile: { title: "Profil", description: "Kontoen din hos HelloSky.", canonicalPath: "/profil", noindex: true },
-  saved: { title: "Lagrede reisemål", description: "Reisemålene du har lagret.", canonicalPath: "/lagret", noindex: true },
+  saved: { title: "Lagret", description: "Reisene, hotellene og reisemålene du har lagret.", canonicalPath: "/lagret", noindex: true },
   login: { title: "Logg inn", description: "Logg inn eller opprett konto.", canonicalPath: "/logg-inn", noindex: true },
   resetPassword: { title: "Tilbakestill passord", description: "Velg et nytt passord for HelloSky-kontoen din.", canonicalPath: "/tilbakestill-passord", noindex: true },
   verifyEmail: { title: "Bekreft e-post", description: "Bekreft e-postadressen din for å se bestillinger og saker.", canonicalPath: "/bekreft-epost", noindex: true },

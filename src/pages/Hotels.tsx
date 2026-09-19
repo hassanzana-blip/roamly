@@ -217,7 +217,7 @@ export default function Hotels() {
                 </div>
                 <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
                   <SheetTrigger asChild>
-                    <button type="button" aria-label={t("sr.filters.open")} className="relative grid size-14 shrink-0 place-items-center rounded-full bg-blush text-foreground transition-colors hover:bg-primary hover:text-primary-foreground lg:hidden">
+                    <button type="button" aria-label={t("sr.filters.open")} className="relative grid size-14 shrink-0 place-items-center rounded-full bg-mint text-petrol transition-colors hover:bg-mint-deep lg:hidden">
                       <SlidersHorizontal className="size-6" aria-hidden="true" />
                       {activeFilters > 0 && <span className="absolute -right-0.5 -top-0.5 grid size-6 place-items-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">{activeFilters}</span>}
                     </button>

@@ -5,7 +5,7 @@ import Calendar from "./LazyCalendar";
 import FieldButton from "./FieldButton";
 import PickerSurface from "./PickerSurface";
 import { useT } from "@/lib/i18n";
-import { dateLabel, toDate, toIso } from "./dateUtils";
+import { dateLabel, rangeLabel, toDate, toIso } from "./dateUtils";
 
 interface SingleProps {
   value: string; // YYYY-MM-DD
@@ -91,13 +91,15 @@ interface RangeProps {
   roundtrip: boolean;
   invalid?: boolean;
   joined?: boolean;
+  /** `row`: one line with the dates and a chevron (the home search card). */
+  variant?: "stacked" | "row";
 }
 
 /**
  * Departure/return picker. One field that opens a single month on phones
  * (bottom sheet) and two months on larger screens (popover).
  */
-export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid, joined }: RangeProps) {
+export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid, joined, variant = "stacked" }: RangeProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const from = toDate(depart);
@@ -121,9 +123,10 @@ export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid,
     if (range?.from && range?.to && range.from.getTime() !== range.to.getTime()) setOpen(false);
   };
 
+  // «16.–20. oktober» when both dates share a month; otherwise «28. okt. – 2. nov.»
   const summary = roundtrip
     ? depart && ret
-      ? `${dateLabel(depart, false)} – ${dateLabel(ret, false)}`
+      ? rangeLabel(depart, ret)
       : depart
         ? `${dateLabel(depart, false)} – ${t("search.return").toLowerCase()}?`
         : undefined
@@ -147,9 +150,10 @@ export function DateRangeField({ depart, ret, onChange, min, roundtrip, invalid,
           placeholder={roundtrip ? t("sw.pickdates") : t("sw.pickdate")}
           invalid={invalid}
           joined={joined}
+          variant={variant}
           value={summary}
           trailing={
-            nights > 0 ? (
+            nights > 0 && variant === "stacked" ? (
               <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground 2xl:inline">
                 {t("misc.night", { count: nights })}
               </span>

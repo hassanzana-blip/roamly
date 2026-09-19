@@ -1,38 +1,28 @@
-import { Link, useLocation } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { useEffect, useState } from "react";
-import SkyMark from "@/components/brand/SkyMark";
+import Wordmark from "@/components/brand/Wordmark";
 import UserMenu from "@/components/account/UserMenu";
 import { SkipLink } from "@/components/app/AppShell";
+import Icon from "@/components/app/Icon";
+import { isNavActive, PRIMARY_NAV } from "@/components/app/nav";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { LocaleChip } from "./LocaleChip";
 
-/**
- * The HelloSky logo: lowercase wordmark with the coral mark after it.
- * `inverted` on burgundy or photo surfaces.
- */
+/** The HelloSky logo, kept as a named export for older call sites. */
 export function Logo({ compact = false, inverted = false, className }: { compact?: boolean; inverted?: boolean; className?: string }) {
-  const t = useT();
-  return (
-    <Link to="/" className={cn("group flex min-h-11 items-center gap-1 rounded-md", className)} aria-label={t("nav.tofront")}>
-      {!compact && (
-        <span className={cn("text-[24px] font-medium lowercase leading-none tracking-tight", inverted ? "text-white" : "text-foreground")}>hellosky</span>
-      )}
-      <SkyMark className={cn("h-6 w-6 transition-transform duration-base group-hover:-rotate-6", inverted ? "text-white" : "text-foreground")} />
-    </Link>
-  );
+  return <Wordmark tone={inverted ? "light" : "dark"} size={compact ? "sm" : "md"} className={className} />;
 }
 
 /**
- * SiteHeader (HelloSky 3.0): the quiet top row — brand on the left, market
- * and account on the right. Navigation itself lives in the burgundy rail
- * (desktop) and the floating tab bar (phone), so this row never competes
- * with it. Fixed, and offset by the rail on large screens.
+ * SiteHeader (HelloSky 4.0, desktop ≥ lg): the wordmark on the left, the four
+ * destinations in the middle (the same ones as the phone tab bar), market and
+ * account on the right. White, one hairline when scrolled.
  */
 export default function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
-  const home = pathname === "/";
+  const t = useT();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -42,16 +32,33 @@ export default function SiteHeader() {
   }, []);
 
   return (
-    <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 border-b transition-[box-shadow,border-color,background-color] duration-base lg:left-[var(--rail-w)]",
-        scrolled ? "border-border/70 bg-background/92 shadow-xs backdrop-blur-md" : "border-transparent",
-        !scrolled && !home && "bg-background/92 backdrop-blur-md",
-      )}
-    >
+    <header className={cn("fixed inset-x-0 top-0 z-50 border-b bg-white/95 backdrop-blur-md transition-[border-color] duration-base", scrolled ? "border-border" : "border-transparent")}>
       <SkipLink />
-      <div className="container-x flex h-16 items-center justify-between gap-3">
-        <Logo />
+      <div className="container-x flex h-16 items-center justify-between gap-6">
+        <Wordmark />
+        <nav aria-label={t("nav.main")} className="hidden lg:block">
+          <ul className="flex items-center gap-1">
+            {PRIMARY_NAV.map((item) => {
+              const active = isNavActive(item, pathname);
+              return (
+                <li key={item.id}>
+                  <NavLink
+                    to={item.to}
+                    end={item.to === "/"}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-[15px] outline-none transition-colors duration-fast focus-visible:ring-2 focus-visible:ring-ring",
+                      active ? "bg-mint font-semibold text-petrol" : "font-medium text-petrol/75 hover:bg-secondary hover:text-petrol",
+                    )}
+                  >
+                    <Icon icon={item.icon} size={20} />
+                    {t(item.label)}
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <LocaleChip className="hidden sm:block" />
           <UserMenu tone="light" />
