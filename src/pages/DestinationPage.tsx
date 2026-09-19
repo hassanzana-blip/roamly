@@ -76,7 +76,7 @@ function View({ d }: { d: DiscoverDestination }) {
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-night/95 via-night/55 to-night/15" aria-hidden="true" />
         <div className="container-x relative flex min-h-[420px] flex-col justify-between pb-8 pt-5 sm:min-h-[540px] sm:pb-12 lg:pt-8">
           <div className="flex items-center justify-between">
             <Link to="/utforsk" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-white/30 bg-night/50 px-3.5 text-[14px] font-medium transition-colors duration-fast hover:bg-night/70">
@@ -89,7 +89,7 @@ function View({ d }: { d: DiscoverDestination }) {
           </div>
           <div className="max-w-3xl">
             <h1 className="t-display">{d.city}</h1>
-            <p className="t-lead mt-3 max-w-xl text-white/85">{d.tagline}</p>
+            <p className="t-lead mt-3 max-w-xl text-white [text-shadow:0_1px_14px_rgba(0,0,0,0.55)]">{d.tagline}</p>
             <p className="mt-4 text-[14px] text-white/75">
               {d.country}
               {regionLabel && regionLabel !== d.country ? ` · ${regionLabel}` : ""}
