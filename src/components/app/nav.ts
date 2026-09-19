@@ -12,7 +12,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { id: "explore", to: "/", label: "nav.explore", icon: Search, match: /^$/ },
   { id: "saved", to: "/lagret", label: "nav.saved", icon: Heart, match: /^\/(lagret|tavler)(\/|$)/ },
   { id: "trips", to: "/reiser", label: "nav.trips", icon: Luggage, match: /^\/(reiser|reise|bekreftelse|kvittering|flystatus)(\/|$)/ },
-  { id: "profile", to: "/profil", label: "nav.profile", icon: UserRound, match: /^\/(profil|logg-inn|velkommen|tilbakestill-passord|bekreft-epost)(\/|$)/ },
+  { id: "profile", to: "/profil", label: "nav.profile", icon: UserRound, match: /^\/(profil|logg-inn|velkommen|tilbakestill-passord|bekreft-epost|venner|grupper)(\/|$)/ },
 ];
 
 /** «Utforsk» owns every route the other three do not claim: search, hotels, cars, journal, destinations. */

@@ -9,6 +9,8 @@ import DestinationSheet from "@/components/app/DestinationSheet";
 import { EmptyState } from "@/components/app/primitives";
 import { NoSavedSpot } from "@/components/graphics";
 import { Chip } from "@/components/account/AccountRow";
+import { InspirationHero } from "@/components/explore/InspirationHero";
+import { TEMPOS, type TempoId } from "@/content/inspiration";
 import { Segmented } from "@/components/ui/segmented";
 import { useSavedDestinations } from "@/lib/useAccount";
 import { useT } from "@/lib/i18n";
@@ -33,7 +35,16 @@ export default function Explore() {
   const set = (patch: Partial<{ k: string; r: string; f: string }>) => {
     const next: Record<string, string> = { k: mood, r: region, f: flight, ...patch };
     const clean = Object.fromEntries(Object.entries(next).filter(([, v]) => v && v !== "alle"));
+    const tempoNow = params.get("tempo");
+    if (tempoNow) clean.tempo = tempoNow;
     setParams(clean, { replace: true });
+  };
+  const tempo: TempoId = TEMPOS.some((x) => x.id === params.get("tempo")) ? (params.get("tempo") as TempoId) : "sea";
+  const setTempo = (next: TempoId) => {
+    const p = new URLSearchParams(params);
+    if (next === "sea") p.delete("tempo");
+    else p.set("tempo", next);
+    setParams(p, { replace: true });
   };
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
   const { ids: favs, toggle: toggleFav } = useSavedDestinations();
@@ -44,8 +55,10 @@ export default function Explore() {
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell>
-        <AppHeader title={t("explore.title")} as="h1" />
+        <AppHeader />
+        <InspirationHero tempo={tempo} onTempo={setTempo} />
 
+        <h2 className="t-h2 mt-12 mb-4">{t("insp.catalogue")}</h2>
         <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8" role="group" aria-label="Stemning">
           {MOODS.map((m) => (
             <Chip key={m.id} active={mood === m.id} onClick={() => set({ k: m.id })} className={mood === m.id ? "border-primary bg-primary text-primary-foreground" : undefined}>
@@ -74,7 +87,7 @@ export default function Explore() {
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <p className="text-[13px] text-muted-foreground">{list.length === 1 ? "1 reisemål" : `${list.length} reisemål`}</p>
-          {active > 0 && <button type="button" onClick={() => setParams({}, { replace: true })} className="text-[13px] font-semibold underline underline-offset-2">Nullstill</button>}
+          {active > 0 && <button type="button" onClick={() => set({ k: "alle", r: "alle", f: "alle" })} className="text-[13px] font-semibold underline underline-offset-2">Nullstill</button>}
         </div>
 
         {list.length ? (

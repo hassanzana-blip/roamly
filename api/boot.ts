@@ -9,6 +9,7 @@ import { assertProductionSafety, env, clerkFrontendApiOrigin } from "./lib/env";
 import { log, newRequestId, withContext } from "./lib/logger";
 import { stripeWebhookApp } from "./webhooks/stripe";
 import { duffelWebhookApp } from "./webhooks/duffel";
+import { documentsApp } from "./documentsHttp";
 import { inlineScriptHashes } from "./lib/vite";
 import { captureException, initMonitoring, installProcessHandlers } from "./lib/monitoring";
 import { inc, renderPrometheus } from "./lib/metrics";
@@ -111,6 +112,8 @@ app.get("/metrics", (c) => {
 // ─── Webhooks (egne apper: signatur, dedupe, kø) ─────────────────────────────
 app.route("/api/webhooks/stripe", stripeWebhookApp);
 app.route("/api/webhooks/duffel", duffelWebhookApp);
+// Reisedokumenter: bytes inn/ut med egen kroppsgrense (6 MB), ikke tRPC-grensen på 1 MB.
+app.route("/api/documents", documentsApp);
 
 // ─── Origin-sjekk for muterende tRPC-kall ────────────────────────────────────
 // Ligger i tRPC-laget (api/middleware.ts → originGuard), ikke her: et rått

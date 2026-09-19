@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carSearchHref, hotelSearchHref, hourLabel, parseChildAges, parseHour, splitRooms } from "./stayLinks";
+import { carSearchHref, hotelSearchHref, hourLabel, parseChildAges, parseHotelPrefs, parseHour, splitRooms } from "./stayLinks";
 
 describe("splitRooms", () => {
   it("fordeler voksne jevnt og teller aldri dobbelt", () => {
@@ -54,5 +54,17 @@ describe("carSearchHref", () => {
     expect(parseHour("24")).toBe(10);
     expect(parseHour(null)).toBe(10);
     expect(hourLabel(9)).toBe("09:00");
+  });
+});
+
+describe("hotellvalg fra landingssiden", () => {
+  it("leser kjente valg og forkaster ukjente", () => {
+    expect(parseHotelPrefs("frokost,fleks,junk")).toEqual(["frokost", "fleks"]);
+    expect(parseHotelPrefs(null)).toEqual([]);
+  });
+  it("tar valgene med i lenken bare når det finnes noen", () => {
+    const base = { dest: "kplace:1", place: "Lisboa", checkin: "2026-10-16", checkout: "2026-10-19", adults: 2, rooms: 1 };
+    expect(hotelSearchHref({ ...base, prefs: ["sentralt"] })).toContain("pref=sentralt");
+    expect(hotelSearchHref(base)).not.toContain("pref=");
   });
 });

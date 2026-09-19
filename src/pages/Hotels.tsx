@@ -8,7 +8,8 @@ import HeroBar from "@/components/app/HeroBar";
 import ServiceTabs from "@/components/app/ServiceTabs";
 import HotelCard from "@/components/stays/HotelCard";
 import { HotelSearchForm } from "@/components/stays/StaySearchForms";
-import { parseChildAges, splitRooms } from "@/components/stays/stayLinks";
+import { parseChildAges, parseHotelPrefs, prefLabelKey, splitRooms } from "@/components/stays/stayLinks";
+import { HotelLanding } from "@/components/stays/HotelLanding";
 import { CurrencyNote, DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
 import { Chip } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ export default function Hotels() {
   const adults = Math.max(1, Math.min(8, Number(params.get("adults") ?? 2)));
   const rooms = Math.max(1, Math.min(4, Number(params.get("rooms") ?? 1)));
   const hasSearch = Boolean(dest && checkin && checkout);
+  const prefs = useMemo(() => parseHotelPrefs(params.get("pref")), [params]);
 
   const status = trpc.hotels.status.useQuery(undefined, { staleTime: 300_000, retry: false });
   const enabled = status.data?.enabled === true;
@@ -64,12 +66,12 @@ export default function Hotels() {
     { enabled: enabled && hasSearch, staleTime: 10 * 60_000, retry: false },
   );
 
-  const [sort, setSort] = useState<Sort>("recommended");
+  const [sort, setSort] = useState<Sort>(prefs.includes("sentralt") ? "distance" : "recommended");
   const [minRating, setMinRating] = useState<0 | 7 | 8 | 9>(0);
   const [stars, setStars] = useState<number[]>([]);
   const [maxNight, setMaxNight] = useState<number | null>(null);
-  const [freeCancel, setFreeCancel] = useState(false);
-  const [breakfast, setBreakfast] = useState(false);
+  const [freeCancel, setFreeCancel] = useState(prefs.includes("fleks"));
+  const [breakfast, setBreakfast] = useState(prefs.includes("frokost"));
   const [photosOnly, setPhotosOnly] = useState(false);
   const [editOpen, setEditOpen] = useState(!hasSearch);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -180,15 +182,15 @@ export default function Hotels() {
               </button>
             </div>
           ) : (
-            <div>
-              <h1 className="t-h1">{t("ht.h1")}</h1>
-              <p className="t-lead mt-2 max-w-2xl">{t("ht.sub")}</p>
-            </div>
+            <>
+              <ServiceTabs active="hotell" className="mb-6" />
+              <HotelLanding initial={{ dest, place, adults, rooms, childAges: childAges.length ? childAges : undefined, prefs }} />
+            </>
           )}
-          <ServiceTabs active="hotell" className="mt-5" />
-          {(editOpen || !hasSearch) && (
-            <div className={cn("card-soft mt-4 p-3 sm:p-4", hasSearch && "fade-up")}>
-              <HotelSearchForm initial={{ dest, place, checkin: checkin || undefined, checkout: checkout || undefined, adults, rooms, childAges }} compact onSubmitted={() => setEditOpen(false)} />
+          {hasSearch && <ServiceTabs active="hotell" className="mt-5" />}
+          {hasSearch && editOpen && (
+            <div className={cn("card-soft mt-4 p-3 sm:p-4", "fade-up")}>
+              <HotelSearchForm initial={{ dest, place, checkin: checkin || undefined, checkout: checkout || undefined, adults, rooms, childAges, prefs }} compact onSubmitted={() => setEditOpen(false)} />
             </div>
           )}
         </div>
@@ -256,6 +258,7 @@ export default function Hotels() {
                     {search.data.sandbox && <SandboxBadge />}
                     {!search.data.complete && <span className="text-xs">{t("common.partial")}</span>}
                   </p>
+                  {prefs.length > 0 && <p className="text-[13px] text-muted-foreground">{t("hl.prefs.applied", { list: prefs.map((p) => t(prefLabelKey(p))).join(", ") })}</p>}
                   <CurrencyNote currency={search.data.currency} preferred={currency} />
                   {filtered.map((h, i) => (
                     <div key={h.key} className={i < 6 ? "fade-up" : undefined} style={i < 6 ? { animationDelay: `${i * 45}ms` } : undefined}>
@@ -269,6 +272,9 @@ export default function Hotels() {
           )}
 
           {enabled && !hasSearch && <DisclosureNote text={t("ht.disclosure")} />}
+          {!hasSearch && (
+            <p className="text-[13px] text-muted-foreground">{t("ht.sub")}</p>
+          )}
         </section>
       </main>
       <SiteFooter />

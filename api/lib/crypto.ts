@@ -33,6 +33,28 @@ export function decryptField(payload: string): string {
   return Buffer.concat([decipher.update(Buffer.from(ct, "base64url")), decipher.final()]).toString("utf8");
 }
 
+/**
+ * Binærkryptering for dokumenter: iv(12) ‖ tag(16) ‖ ciphertext i én Buffer,
+ * samme nøkkel og algoritme som feltkrypteringen. Alt skjer i minnet, så
+ * kallerne setter størrelsesgrense før de kommer hit.
+ */
+export function encryptBytes(plain: Buffer): Buffer {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key(), iv);
+  const ct = Buffer.concat([cipher.update(plain), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), ct]);
+}
+
+export function decryptBytes(payload: Buffer): Buffer {
+  if (payload.length < 28) throw new Error("Ugyldig kryptert innhold");
+  const iv = payload.subarray(0, 12);
+  const tag = payload.subarray(12, 28);
+  const ct = payload.subarray(28);
+  const decipher = createDecipheriv("aes-256-gcm", key(), iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(ct), decipher.final()]);
+}
+
 export function last4(value: string): string {
   return value.slice(-4).padStart(Math.min(4, value.length), "*");
 }

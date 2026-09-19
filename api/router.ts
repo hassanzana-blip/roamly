@@ -17,6 +17,9 @@ import { accountRouter } from "./account";
 import { watchRouter } from "./watch";
 import { matchRouter } from "./match";
 import { boardsRouter } from "./boards";
+import { tripPlansRouter } from "./tripPlans";
+import { documentsRouter } from "./documents";
+import { socialRouter } from "./social";
 
 export const appRouter = createRouter({
   ping: publicQuery.query(() => ({ ok: true, ts: Date.now() })),
@@ -38,6 +41,9 @@ export const appRouter = createRouter({
   watch: watchRouter,
   match: matchRouter,
   boards: boardsRouter,
+  tripPlans: tripPlansRouter,
+  documents: documentsRouter,
+  social: socialRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -58,6 +58,8 @@ const NOINDEX_PREFIXES = [
   "/logg-inn",
   "/tilbakestill-passord",
   "/bekreft-epost",
+  "/venner",
+  "/grupper",
 ] as const;
 
 function publicUrl(): string {
@@ -247,6 +249,12 @@ export const PAGE_META = {
   rewards: { title: "Bonus", description: "HelloSky-kortet, saldo og nivå.", canonicalPath: "/profil/bonus", noindex: true },
   referral: { title: "Inviter venner", description: "Del lenken din og få bonus.", canonicalPath: "/profil/inviter", noindex: true },
   trips: { title: "Reisene dine", description: "Kommende, tidligere og kansellerte reiser.", canonicalPath: "/reiser", noindex: true },
+  documents: { title: "Billetter og dokumenter", description: "Billetter, bekreftelser og notater, lagret kryptert på kontoen din.", canonicalPath: "/reiser/dokumenter", noindex: true },
+  friends: { title: "Venner", description: "Del reiseideer med venner og planlegg i private grupper.", canonicalPath: "/profil/venner", noindex: true },
+  group: { title: "Gruppe", description: "Privat reisegruppe.", canonicalPath: "/profil/venner/grupper", noindex: true },
+  friendInvite: { title: "Venneinvitasjon", description: "Bli venn på HelloSky.", canonicalPath: "/venner/invitasjon", noindex: true },
+  groupInvite: { title: "Gruppeinvitasjon", description: "Bli med i en privat reisegruppe.", canonicalPath: "/grupper/invitasjon", noindex: true },
+  tripPlan: { title: "Reiseplan", description: "Alt til turen på ett sted: datoer, fly, overnatting, notater og pakkeliste.", canonicalPath: "/reiser/plan", noindex: true },
   priceAlerts: { title: "Prisvarsler", description: "Prisvarslene dine hos HelloSky.", canonicalPath: "/profil/prisvarsler", noindex: true },
   quote: { title: "Tilbud", description: "Ditt personlige tilbud fra HelloSky.", canonicalPath: "/tilbud", noindex: true },
   terms: { title: "Reisevilkår", description: "Vilkår for bestilling av flyreiser gjennom HelloSky: priser, servicegebyr, betaling, endring og refusjon.", canonicalPath: "/vilkar" },

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, ChevronRight, MailWarning, Search, UserRound } from "lucide-react";
+import { ArrowRight, ChevronRight, FileText, Lightbulb, MailWarning, Plus, Search, UserRound } from "lucide-react";
+import { imageSrcSet } from "@/content/discover";
+import { formatDayMonth } from "@/lib/format";
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
@@ -28,6 +30,7 @@ export default function Trips() {
   const { customer, isLoading } = useCustomer();
   const [tab, setTab] = useState<Tab>("upcoming");
   const trips = trpc.customerAuth.myTrips.useQuery(undefined, { enabled: Boolean(customer), retry: 0 });
+  const plans = trpc.tripPlans.list.useQuery(undefined, { enabled: Boolean(customer), retry: false, staleTime: 30_000 });
   const resend = trpc.customerAuth.resendVerification.useMutation();
   const errCode = trips.error ? appCodeOf(trips.error) : null;
 
@@ -93,6 +96,44 @@ export default function Trips() {
               </ul>
             )}
           </>
+        )}
+
+        {customer && (
+          <section className="mt-10" aria-labelledby="plans-h">
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <h2 id="plans-h" className="t-h2">{t("plan.list.title")}</h2>
+              <Link to="/reiser/plan/ny" className="inline-flex min-h-10 items-center gap-1 text-[14px] font-semibold text-accent-foreground hover:underline"><Icon icon={Plus} size={16} /> {t("plan.list.new")}</Link>
+            </div>
+            {plans.isLoading ? (
+              <div className="shimmer h-20 rounded-xl" aria-busy="true" />
+            ) : plans.data?.length ? (
+              <ul className="space-y-2">
+                {plans.data.map((p) => (
+                  <li key={p.id}>
+                    <Link to={`/reiser/plan/${p.id}`} className="press flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-foreground/25">
+                      <span className="size-14 shrink-0 overflow-hidden rounded-lg bg-mint">
+                        {p.destination?.image ? <img src={p.destination.image} srcSet={imageSrcSet(p.destination.image)} sizes="56px" alt="" className="h-full w-full object-cover" loading="lazy" /> : <span className="grid h-full w-full place-items-center"><Icon icon={Lightbulb} size={20} /></span>}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[15px] font-semibold">{p.title}</span>
+                        <span className="block text-[12.5px] text-muted-foreground">
+                          {p.booked ? t("ms.booked") : t("ms.notbooked")}
+                          {p.dateFrom ? ` · ${formatDayMonth(p.dateFrom)}${p.dateTo && p.dateTo !== p.dateFrom ? ` – ${formatDayMonth(p.dateTo)}` : ""}` : ""}
+                          {p.documentCount ? ` · ${t("plan.docs.count", { count: p.documentCount })}` : ""}
+                        </span>
+                      </span>
+                      <Icon icon={ChevronRight} size={20} className="shrink-0 text-muted-foreground/70" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-xl bg-muted/60 p-4 text-[14px] text-muted-foreground">{t("plan.list.empty")}</p>
+            )}
+            <Link to="/reiser/dokumenter" className="mt-3 flex items-center gap-3 rounded-xl bg-sky-soft px-4 py-3 text-[15px] font-semibold hover:bg-mint">
+              <Icon icon={FileText} size={20} /> <span className="flex-1">{t("doc.title")}</span> <Icon icon={ChevronRight} size={16} />
+            </Link>
+          </section>
         )}
 
         <Link to="/reise" className="mt-8 flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/25">

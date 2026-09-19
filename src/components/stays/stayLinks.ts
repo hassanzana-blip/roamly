@@ -9,6 +9,16 @@ export interface HotelSearchValues {
   rooms: number;
   /** Alder på hvert barn (0–17). Leverandøren priser rommet etter alderen. */
   childAges?: number[];
+  /** Hva som er viktig for gjesten (landingssiden): frokost, sentralt, familie, fleks. Styrer startfiltre i resultatet. */
+  prefs?: HotelPref[];
+}
+
+export const HOTEL_PREFS = ["frokost", "sentralt", "familie", "fleks"] as const;
+export type HotelPref = (typeof HOTEL_PREFS)[number];
+
+export function parseHotelPrefs(raw: string | null): HotelPref[] {
+  if (!raw) return [];
+  return raw.split(",").filter((p): p is HotelPref => (HOTEL_PREFS as readonly string[]).includes(p));
 }
 
 export const MAX_CHILDREN = 6;
@@ -67,6 +77,7 @@ export function hotelSearchHref(v: HotelSearchValues): string {
   const q = new URLSearchParams({ place: v.place, checkin: v.checkin, checkout: v.checkout, adults: String(v.adults), rooms: String(v.rooms) });
   if (v.dest) q.set("dest", v.dest);
   if (v.childAges?.length) q.set("kids", v.childAges.join(","));
+  if (v.prefs?.length) q.set("pref", v.prefs.join(","));
   return `/hotell?${q.toString()}`;
 }
 
@@ -84,4 +95,9 @@ export function carSearchHref(v: CarSearchValues): string {
     if (v.dropoffPlace) q.set("dplace", v.dropoffPlace);
   }
   return `/leiebil?${q.toString()}`;
+}
+
+/** Oversettelsesnøkkel for et hotellvalg. */
+export function prefLabelKey(p: HotelPref) {
+  return p === "frokost" ? ("hl.pref.breakfast" as const) : p === "sentralt" ? ("hl.pref.central" as const) : p === "familie" ? ("hl.pref.family" as const) : ("hl.pref.flex" as const);
 }
