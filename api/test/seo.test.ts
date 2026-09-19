@@ -105,7 +105,7 @@ describe("kjente ruter", () => {
 });
 
 describe("sitemap", () => {
-  const entries = sitemapEntries("2026-09-19");
+  const entries = sitemapEntries();
 
   it("har ingen ankerlenker", () => {
     for (const e of entries) expect(e.loc).not.toContain("#");

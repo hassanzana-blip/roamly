@@ -340,9 +340,19 @@ function BudgetMode() {
   );
 }
 
+const MODE_TITLES: Record<Mode, string> = {
+  finn: "Finn min reise",
+  par: "Reise som par",
+  venner: "Reise med gjengen",
+  overrask: "Overrask meg",
+  helg: "Helgetur",
+  budsjett: "Reise etter budsjett",
+};
+
 export default function Quiz() {
-  usePageMeta(PAGE_META.quiz);
   const { mode } = useParams<{ mode?: Mode }>();
+  // Hver modus er sin egen side: egen tittel og canonical, ikke seks kopier av /quiz.
+  usePageMeta(mode && MODE_TITLES[mode] ? { ...PAGE_META.quiz, title: `${MODE_TITLES[mode]} – ReiseMatch`, canonicalPath: `/quiz/${mode}` } : PAGE_META.quiz);
   switch (mode) {
     case "finn": return <SoloMode />;
     case "par": return <GroupStart mode="par" />;

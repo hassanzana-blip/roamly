@@ -1,3 +1,5 @@
+// Newsreader brukes bare av admin-typografien; kundesidene er Manrope alene. Fonten lastes derfor med admin-chunken, ikke i main.tsx.
+import "@fontsource-variable/newsreader/opsz.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { ChevronDown, ExternalLink, Keyboard, LogOut, Menu, Search, ShieldCheck, X } from "lucide-react";

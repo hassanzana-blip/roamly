@@ -77,7 +77,7 @@ describe("robots.txt", () => {
   });
 
   it("tillater hver URL i sitemapet", () => {
-    const blocked = sitemapEntries("2026-09-19")
+    const blocked = sitemapEntries()
       .map((e) => new URL(e.loc).pathname)
       .filter((p) => !isAllowed(rules, p));
     expect(blocked).toEqual([]);

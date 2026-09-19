@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import '@fontsource-variable/manrope'
-import '@fontsource-variable/newsreader/opsz.css'
 import './index.css'
 import { TRPCProvider } from "@/providers/TRPCProvider"
 import { PageMetaProvider } from "@/providers/helmet"

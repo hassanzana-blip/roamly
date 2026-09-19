@@ -19,7 +19,7 @@ import { usePageMeta } from "@/lib/seo";
 
 export default function PhotoCredits() {
   usePageMeta({
-    title: "Bildene bak reisen | HelloSky",
+    title: "Bildene bak reisen",
     description:
       "HelloSky bruker ekte fotografi fra fotografer over hele verden. Her er bildene, stedene de viser og lisensene de er brukt under.",
     canonicalPath: "/fotokreditering",

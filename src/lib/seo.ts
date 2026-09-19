@@ -194,7 +194,10 @@ export const PAGE_META = {
   hotelDetail: {
     title: "Hotell – priser fra flere leverandører",
     description: "Se rom, priser og vilkår fra flere leverandører for samme hotell. Bestillingen fullføres hos leverandøren.",
+    // Én side per hotell og datoer, med leverandørens innhold: ikke i indeksen. Canonical til
+    // /hotell ville sagt «dette er søkesiden», og det er den ikke.
     canonicalPath: "/hotell",
+    noindex: true,
   },
   cars: {
     title: "Søk og sammenlign leiebil",

@@ -27,19 +27,23 @@ function latestArticleDate(): string | undefined {
   return ARTICLES.map((a) => a.updated).sort().at(-1);
 }
 
-export function sitemapEntries(today = new Date().toISOString().slice(0, 10)): Entry[] {
+/**
+ * lastmod settes bare der vi kjenner datoen (artikler, journalen). «Endret i
+ * dag» på sider som ikke er endret er støy, og Google ignorerer lastmod fra
+ * kilder som ikke er til å stole på.
+ */
+export function sitemapEntries(): Entry[] {
   const journalLastmod = latestArticleDate();
 
   const staticEntries: Entry[] = STATIC_ROUTES.map((r) => ({
     loc: absoluteUrl(r.path),
-    lastmod: r.path === "/journal" ? journalLastmod : today,
+    lastmod: r.path === "/journal" ? journalLastmod : undefined,
     changefreq: r.changefreq,
     priority: r.priority.toFixed(1),
   }));
 
   const destinationEntries: Entry[] = ALL_DESTINATIONS.map((d) => ({
     loc: absoluteUrl(`/reisemal/${d.id}`),
-    lastmod: today,
     changefreq: "weekly",
     priority: "0.7",
   }));
@@ -54,8 +58,8 @@ export function sitemapEntries(today = new Date().toISOString().slice(0, 10)): E
   return [...staticEntries, ...destinationEntries, ...articleEntries];
 }
 
-export function sitemapXml(today?: string): string {
-  const urls = sitemapEntries(today)
+export function sitemapXml(): string {
+  const urls = sitemapEntries()
     .map((e) => {
       const lastmod = e.lastmod ? `\n    <lastmod>${e.lastmod}</lastmod>` : "";
       return [
