@@ -77,7 +77,7 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
    */
   app.get("/sitemap.xml", (c) => {
     c.header("Content-Type", "application/xml; charset=utf-8");
-    c.header("Cache-Control", "public, max-age=3600");
+    c.header("Cache-Control", "public, max-age=300");
     return c.body(sitemapXml());
   });
 

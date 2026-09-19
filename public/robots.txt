@@ -14,8 +14,15 @@ Disallow: /logg-inn
 Disallow: /m/
 Disallow: /overnatting-bil
 Disallow: /profil
-Disallow: /reise
-Disallow: /reiser
+# Disallow er en prefiksregel: «Disallow: /reise» alene sperret også /reisemal
+# og alle reisemålssidene (26 av 63 URL-er i sitemapet). $ avslutter mønsteret,
+# ?-variantene tar Min reise med spørrestreng, og Allow-linjen vinner som
+# lengste treff også hos crawlere som ikke forstår $.
+Disallow: /reise$
+Disallow: /reiser$
+Disallow: /reise?
+Disallow: /reiser?
+Allow: /reisemal
 Disallow: /samfunn
 Disallow: /sok
 Disallow: /tavler
