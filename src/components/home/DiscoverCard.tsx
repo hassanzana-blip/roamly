@@ -38,7 +38,7 @@ export default function DiscoverCard({ destination: d, variant = "poster", saved
       active={saved}
       onToggle={() => onToggleSaved(d.id)}
       label={saved ? t("sr.unsavedest", { city: d.city }) : t("sr.savedest", { city: d.city })}
-      className="absolute right-4 top-4 h-12 w-12 sm:h-14 sm:w-14"
+      className="absolute right-3.5 top-3.5 h-11 w-11 sm:h-12 sm:w-12"
     />
   );
   const img = photo ? (
@@ -65,10 +65,10 @@ export default function DiscoverCard({ destination: d, variant = "poster", saved
       <div className={cn("group relative", className)} onMouseEnter={() => onHover?.(d.id)} onMouseLeave={() => onHover?.(null)}>
         <Link to={href} aria-label={t("home.dest.search", { city: d.city })} className="block rounded-[22px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
           <span className={cn("photo-tile block aspect-[4/3] rounded-[22px] transition-shadow duration-base", selected && "ring-[3px] ring-primary ring-offset-2 ring-offset-background")}>{img}</span>
-          <span className="block px-1 pt-3.5">
-            <span className="block text-[24px] font-medium leading-tight tracking-tight">{d.city}</span>
-            <span className="t-num mt-0.5 block text-[20px] font-medium leading-tight">{price ? capitalize(price) : t("home.price.check")}</span>
-            <span className="mt-0.5 block text-[13px] text-muted-foreground">{price ? t("home.price.note") : `${d.country} · ${d.tagline}`}</span>
+          <span className="block px-1 pt-3">
+            <span className="block text-[21px] font-medium leading-tight tracking-tight">{d.city}</span>
+            <span className="t-num mt-0.5 block text-[17px] font-medium leading-tight">{price ? capitalize(price) : t("home.price.check")}</span>
+            <span className="mt-0.5 block text-[12px] text-muted-foreground">{price ? t("home.price.note") : `${d.country} · ${d.tagline}`}</span>
           </span>
         </Link>
         {heart}
@@ -81,10 +81,10 @@ export default function DiscoverCard({ destination: d, variant = "poster", saved
       <Link to={href} aria-label={t("home.dest.search", { city: d.city })} className="photo-tile block aspect-[4/5] text-white outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:aspect-[4/3]">
         {img}
         <span className="photo-wash absolute inset-0" aria-hidden="true" />
-        <span className="absolute inset-x-0 bottom-0 p-6 sm:p-7">
-          <span className="block text-[40px] font-medium leading-none tracking-tight sm:text-[44px]">{d.city}</span>
-          <span className="t-num mt-2 block text-[24px] font-medium leading-tight">{price ? t("home.price.from", { price }) : t("home.price.check")}</span>
-          <span className="mt-1 block text-[14px] text-white/85">{price ? t("home.price.note") : `${d.country} · ${d.tagline}`}</span>
+        <span className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+          <span className="block text-[34px] font-medium leading-none tracking-tight sm:text-[40px]">{d.city}</span>
+          <span className="t-num mt-1.5 block text-[18px] font-medium leading-tight sm:text-[20px]">{price ? t("home.price.from", { price }) : t("home.price.check")}</span>
+          <span className="mt-0.5 block text-[12px] text-white/85 sm:text-[13px]">{price ? t("home.price.note") : `${d.country} · ${d.tagline}`}</span>
         </span>
       </Link>
       {heart}

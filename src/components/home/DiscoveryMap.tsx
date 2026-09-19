@@ -1,50 +1,45 @@
-import { useMemo, useState } from "react";
-import { geoCentroid, geoMercator, geoPath, type GeoPermissibleObjects } from "d3-geo";
-import { feature } from "topojson-client";
-import type { Topology, GeometryCollection } from "topojson-specification";
-import type { Feature, FeatureCollection, Geometry } from "geojson";
-import { Minus, Plus } from "lucide-react";
-import world from "world-atlas/countries-110m.json";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import * as maplibregl from "maplibre-gl";
+import type { Map as MapLibreMap, Marker } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { useReducedMotion } from "motion/react";
+import type { Pin } from "./StaticDiscoveryMap";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * The discovery map: sand-coloured land on a pale sea, one price pin per
- * destination in view. Land comes from Natural Earth (world-atlas, public
- * domain) and is drawn as plain SVG, so it needs no tile provider, no API key
- * and no third-party requests. Pins are HTML buttons laid over the SVG, so
- * they are real, focusable controls with the live price as their name.
+ * The discovery map, rendered with MapLibre GL JS.
  *
- * The projection fits whatever destinations are currently shown, so a
- * Europe-only selection zooms in while «Langtur» shows the world.
+ * Tiles, sprites and glyphs come from OpenFreeMap («positron» style: pale
+ * sea, sand-coloured land, quiet labels), which needs no key. The style's
+ * own attribution (OpenFreeMap · OpenMapTiles · OpenStreetMap contributors)
+ * is shown by the attribution control. Pins are real <button>s carried by
+ * MapLibre markers, with the live price as their accessible name.
+ *
+ * If the style cannot be fetched (offline, blocked network) the map falls
+ * back to the self-contained SVG map with the same pins, so the section never
+ * shows an empty blue box.
  */
+const StaticDiscoveryMap = lazy(() => import("./StaticDiscoveryMap"));
 
-type Pin = { id: string; label: string; price: string | null; lat: number; lng: number };
+export const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 
-const COUNTRY_NB: Record<string, string> = {
-  Norway: "Norge", Sweden: "Sverige", Denmark: "Danmark", Finland: "Finland", Iceland: "Island",
-  "United Kingdom": "Storbritannia", Ireland: "Irland", France: "Frankrike", Spain: "Spania", Portugal: "Portugal",
-  Italy: "Italia", Germany: "Tyskland", Poland: "Polen", Netherlands: "Nederland", Belgium: "Belgia", Switzerland: "Sveits",
-  Austria: "Østerrike", Greece: "Hellas", Turkey: "Türkiye", Morocco: "Marokko", Egypt: "Egypt", Ukraine: "Ukraina",
-  Romania: "Romania", Hungary: "Ungarn", "Czech Republic": "Tsjekkia", Czechia: "Tsjekkia", Croatia: "Kroatia", Serbia: "Serbia",
-  Bulgaria: "Bulgaria", Lebanon: "Libanon", Iraq: "Irak", "Saudi Arabia": "Saudi-Arabia", "United Arab Emirates": "Emiratene",
-  Iran: "Iran", India: "India", Pakistan: "Pakistan", Afghanistan: "Afghanistan", Bangladesh: "Bangladesh", "Sri Lanka": "Sri Lanka",
-  Thailand: "Thailand", Japan: "Japan", China: "Kina", Russia: "Russland", "United States of America": "USA", Canada: "Canada",
-  Mexico: "Mexico", Brazil: "Brasil", Algeria: "Algerie", Libya: "Libya", Tunisia: "Tunisia", Eritrea: "Eritrea", Ethiopia: "Etiopia",
-  Sudan: "Sudan", Kazakhstan: "Kasakhstan", Mongolia: "Mongolia", Australia: "Australia", Indonesia: "Indonesia", Vietnam: "Vietnam",
-  Myanmar: "Myanmar", Syria: "Syria", Jordan: "Jordan", Israel: "Israel", Georgia: "Georgia", Azerbaijan: "Aserbajdsjan",
-};
-
-const SEA_LABELS: { name: string; lat: number; lng: number }[] = [
-  { name: "Atlanterhavet", lat: 46, lng: -18 },
-  { name: "Middelhavet", lat: 36.5, lng: 16 },
-  { name: "Nordsjøen", lat: 56.5, lng: 3 },
-];
-
-const LAND: FeatureCollection<Geometry, { name: string }> = feature(
-  world as unknown as Topology,
-  (world as unknown as Topology).objects.countries as GeometryCollection<{ name: string }>,
-);
+function pinContent(btn: HTMLButtonElement, p: Pin, on: boolean) {
+  btn.replaceChildren();
+  const pill = document.createElement("span");
+  pill.className = "hs-pin__pill";
+  pill.textContent = p.price ? p.price.replace(/^fra\s/, (m) => m.charAt(0).toUpperCase() + m.slice(1)) : p.label;
+  const dot = document.createElement("span");
+  dot.className = "hs-pin__dot";
+  const name = document.createElement("span");
+  name.className = "hs-pin__name";
+  name.textContent = p.label;
+  btn.append(pill, dot, name);
+  btn.classList.toggle("is-on", on);
+  btn.setAttribute("aria-pressed", String(on));
+  btn.setAttribute("aria-label", `${p.label}${p.price ? ` · ${p.price}` : ""}`);
+  btn.style.zIndex = on ? "2" : "1";
+}
 
 export default function DiscoveryMap({
   pins,
@@ -58,118 +53,114 @@ export default function DiscoveryMap({
   className?: string;
 }) {
   const t = useT();
-  const [zoom, setZoom] = useState(1);
-  const W = 800;
-  const H = 640;
+  const reduce = useReducedMotion();
+  const container = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const markers = useRef<Map<string, Marker>>(new Map());
+  const latest = useRef({ selected, onSelect });
+  latest.current = { selected, onSelect };
+  const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
 
-  const { path, project } = useMemo(() => {
-    const points: FeatureCollection = {
-      type: "FeatureCollection",
-      features: pins.map((p) => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [p.lng, p.lat] } })),
+  useEffect(() => {
+    if (!container.current) return;
+    let loaded = false;
+    let map: MapLibreMap;
+    try {
+      map = new maplibregl.Map({
+        container: container.current,
+        style: MAP_STYLE,
+        center: [12, 50],
+        zoom: 3,
+        minZoom: 1,
+        maxZoom: 12,
+        attributionControl: { compact: false },
+        cooperativeGestures: true,
+        locale: {
+          "NavigationControl.ZoomIn": t("home.map.zoomin"),
+          "NavigationControl.ZoomOut": t("home.map.zoomout"),
+          "CooperativeGesturesHandler.WindowsHelpText": "Bruk Ctrl + rullehjul for å zoome kartet",
+          "CooperativeGesturesHandler.MacHelpText": "Bruk ⌘ + rullehjul for å zoome kartet",
+          "CooperativeGesturesHandler.MobileHelpText": "Bruk to fingre for å flytte kartet",
+        },
+      });
+    } catch {
+      setStatus("failed");
+      return;
+    }
+    mapRef.current = map;
+    const store = markers.current;
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    const fail = () => {
+      if (loaded) return;
+      loaded = true;
+      setStatus("failed");
     };
-    const projection = geoMercator();
-    if (pins.length >= 2) projection.fitExtent([[90, 70], [W - 90, H - 70]], points as GeoPermissibleObjects);
-    else if (pins.length === 1) projection.center([pins[0].lng, pins[0].lat]).scale(900).translate([W / 2, H / 2]);
-    else projection.center([12, 50]).scale(520).translate([W / 2, H / 2]);
-    // Never closer than a country, never further than the whole world.
-    projection.scale(Math.min(Math.max(projection.scale(), 110), 1400) * zoom);
-    const cx = W / 2;
-    const cy = H / 2;
-    const [tx, ty] = projection.translate();
-    projection.translate([cx + (tx - cx) * zoom, cy + (ty - cy) * zoom]);
-    return { path: geoPath(projection), project: (lng: number, lat: number) => projection([lng, lat]) ?? [NaN, NaN] };
-  }, [pins, zoom]);
+    const timer = window.setTimeout(fail, 12_000);
+    map.once("load", () => {
+      loaded = true;
+      window.clearTimeout(timer);
+      setStatus("ready");
+    });
+    // A failing style request is a failure; a single missing tile after load is not.
+    map.on("error", () => fail());
+    return () => {
+      window.clearTimeout(timer);
+      store.forEach((m) => m.remove());
+      store.clear();
+      map.remove();
+      mapRef.current = null;
+    };
+    // The map is created once; pins, selection and labels are applied below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const labels = useMemo(() => {
-    return LAND.features
-      .map((f: Feature<Geometry, { name: string }>) => {
-        const nb = COUNTRY_NB[f.properties.name];
-        if (!nb) return null;
-        const [lng, lat] = geoCentroid(f);
-        const [x, y] = project(lng, lat);
-        const area = Math.abs(path.area(f));
-        if (!Number.isFinite(x) || x < 30 || x > W - 30 || y < 30 || y > H - 30 || area < 900) return null;
-        return { name: nb, x, y };
-      })
-      .filter((l): l is { name: string; x: number; y: number } => l !== null);
-  }, [path, project]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || status !== "ready") return;
+    for (const [id, m] of markers.current) {
+      if (!pins.some((p) => p.id === id)) {
+        m.remove();
+        markers.current.delete(id);
+      }
+    }
+    for (const p of pins) {
+      let m = markers.current.get(p.id);
+      if (!m) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "hs-pin";
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const cur = latest.current;
+          cur.onSelect(cur.selected === p.id ? null : p.id);
+        });
+        m = new maplibregl.Marker({ element: btn, anchor: "bottom" }).setLngLat([p.lng, p.lat]).addTo(map);
+        markers.current.set(p.id, m);
+      }
+      pinContent(m.getElement() as HTMLButtonElement, p, p.id === selected);
+      m.setLngLat([p.lng, p.lat]);
+    }
+    if (pins.length >= 2) {
+      const bounds = new maplibregl.LngLatBounds();
+      pins.forEach((p) => bounds.extend([p.lng, p.lat]));
+      map.fitBounds(bounds, { padding: { top: 72, bottom: 64, left: 72, right: 72 }, maxZoom: 6, animate: !reduce, duration: 600 });
+    } else if (pins.length === 1) {
+      map.easeTo({ center: [pins[0].lng, pins[0].lat], zoom: 5, animate: !reduce });
+    }
+  }, [pins, selected, status, reduce]);
+
+  if (status === "failed") {
+    return (
+      <Suspense fallback={<div className={cn("shimmer rounded-[22px]", className)} aria-hidden="true" />}>
+        <StaticDiscoveryMap pins={pins} selected={selected} onSelect={onSelect} className={className} />
+      </Suspense>
+    );
+  }
 
   return (
-    <div className={cn("map-sea relative overflow-hidden rounded-[22px]", className)}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-full w-full" role="img" aria-label={t("home.map.aria")}>
-        <g>
-          {LAND.features.map((f: Feature<Geometry, { name: string }>, i: number) => (
-            <path key={(f.id as string) ?? i} d={path(f) ?? undefined} className="fill-[hsl(42_45%_93%)] stroke-white/90 dark:fill-[hsl(349_10%_22%)] dark:stroke-white/10" strokeWidth={0.8} />
-          ))}
-        </g>
-        <g className="pointer-events-none select-none">
-          {SEA_LABELS.map((s) => {
-            const [x, y] = project(s.lng, s.lat);
-            if (!Number.isFinite(x) || x < 40 || x > W - 40 || y < 20 || y > H - 20) return null;
-            return (
-              <text key={s.name} x={x} y={y} textAnchor="middle" className="fill-[hsl(206_30%_55%)] text-[15px] italic" style={{ fontFamily: "inherit" }}>
-                {s.name}
-              </text>
-            );
-          })}
-          {labels.map((l) => (
-            <text key={l.name} x={l.x} y={l.y} textAnchor="middle" className="fill-foreground/75 text-[15px] font-medium dark:fill-white/70" style={{ fontFamily: "inherit" }}>
-              {l.name}
-            </text>
-          ))}
-        </g>
-      </svg>
-
-      {/* Pins as real buttons: the price is the accessible name. */}
-      {pins.map((p) => {
-        const [x, y] = project(p.lng, p.lat);
-        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-        const on = p.id === selected;
-        return (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => onSelect(on ? null : p.id)}
-            aria-pressed={on}
-            aria-label={`${p.label}${p.price ? ` · ${p.price}` : ""}`}
-            className={cn(
-              "absolute z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center outline-none",
-              "focus-visible:[&>span:first-child]:ring-2 focus-visible:[&>span:first-child]:ring-ring",
-            )}
-            style={{ left: `${(x / W) * 100}%`, top: `${(y / H) * 100}%` }}
-          >
-            <span
-              className={cn(
-                "t-num whitespace-nowrap rounded-full px-3.5 py-1.5 text-[15px] font-medium shadow-soft transition-colors",
-                on ? "bg-primary text-primary-foreground" : "bg-white text-foreground hover:bg-blush",
-              )}
-            >
-              {p.price ? capitalizeFirst(p.price.replace(/^fra\s/, "")) : p.label}
-            </span>
-            <span className={cn("mt-1 size-2.5 rounded-full border-2 border-white shadow-sm", on ? "bg-primary" : "bg-foreground")} aria-hidden="true" />
-            {/* Bynavnet bare på den valgte: ellers drukner kartet i etiketter. */}
-            <span className={cn("mt-0.5 text-[13px] font-medium text-foreground", on ? "block" : "sr-only")} aria-hidden="true">
-              {p.label}
-            </span>
-          </button>
-        );
-      })}
-
-      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-        <button type="button" onClick={() => setZoom((z) => Math.min(4, z * 1.4))} aria-label={t("home.map.zoomin")} className="grid size-11 place-items-center rounded-xl bg-white text-foreground shadow-soft hover:bg-blush">
-          <Plus className="size-5" aria-hidden="true" />
-        </button>
-        <button type="button" onClick={() => setZoom((z) => Math.max(0.6, z / 1.4))} aria-label={t("home.map.zoomout")} className="grid size-11 place-items-center rounded-xl bg-white text-foreground shadow-soft hover:bg-blush">
-          <Minus className="size-5" aria-hidden="true" />
-        </button>
-      </div>
-      {pins.length === 0 && (
-        <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm text-muted-foreground">{t("home.map.empty")}</p>
-      )}
+    <div className={cn("map-sea relative overflow-hidden rounded-[22px]", className)} role="region" aria-label={t("home.map.aria")}>
+      <div ref={container} className="absolute inset-0" />
+      {status === "loading" && <div className="shimmer pointer-events-none absolute inset-0" aria-hidden="true" />}
     </div>
   );
-}
-
-function capitalizeFirst(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

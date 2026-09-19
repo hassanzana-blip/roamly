@@ -21,10 +21,10 @@ export function GreetingBar({ tone = "light" }: { tone?: "light" | "dark" }) {
       style={{ paddingTop: "max(18px, env(safe-area-inset-top))" }}
     >
       <Link to="/" aria-label={t("topbar.home")} className="flex min-h-11 items-center gap-1 rounded-full">
-        <span className="text-[28px] font-medium lowercase leading-none tracking-tight">hellosky</span>
-        <SkyMark className={cn("h-7 w-7", onDark ? "text-white" : "text-foreground")} />
+        <span className="text-[24px] font-medium lowercase leading-none tracking-tight">hellosky</span>
+        <SkyMark className={cn("h-6 w-6", onDark ? "text-white" : "text-foreground")} />
       </Link>
-      <span className="grid size-12 place-items-center rounded-full bg-white shadow-soft [&_[data-slot=avatar]]:border-0 [&_[data-slot=avatar]]:bg-transparent [&_[data-slot=avatar-fallback]]:bg-transparent">
+      <span className="grid size-11 place-items-center rounded-full bg-white shadow-soft [&_[data-slot=avatar]]:border-0 [&_[data-slot=avatar]]:bg-transparent [&_[data-slot=avatar-fallback]]:bg-transparent">
         <UserMenu tone={tone} />
       </span>
     </header>

@@ -517,27 +517,78 @@ export default function SearchResults() {
     </div>
   );
 
-  // One card per distinct offer: when best, cheapest and fastest are the same
-  // flight the labels merge instead of repeating one price three times.
-  const summaryCards = useMemo(() => {
-    if (!summary) return [] as { key: SortKey; keys: SortKey[]; label: string; offer: Offer }[];
-    const raw: { key: SortKey; label: string; offer: Offer }[] = [
-      { key: "best", label: t("pref.best"), offer: summary.best },
-      { key: "cheapest", label: t("pref.cheapest"), offer: summary.cheapest },
-      { key: "fastest", label: t("pref.fastest"), offer: summary.fastest },
-      ...(summary.family ? [{ key: "family" as SortKey, label: t("pref.family"), offer: summary.family }] : []),
-    ];
-    const out: { key: SortKey; keys: SortKey[]; label: string; offer: Offer }[] = [];
-    for (const c of raw) {
-      const hit = out.find((o) => o.offer.id === c.offer.id);
-      if (hit) {
-        hit.keys.push(c.key);
-        hit.label = `${hit.label} · ${c.label}`;
-      } else out.push({ ...c, keys: [c.key] });
-    }
-    return out;
-  }, [summary, t]);
-  const summaryKeys = new Set(summaryCards.flatMap((c) => c.keys));
+  // Sorteringsfanene: Anbefalt · Billigst · Raskest (+ Familie når det reiser barn).
+  // Alltid alle tre, også når samme fly vinner alle – rekkefølgen under er fortsatt ulik.
+  const tabKeys: SortKey[] = summary?.family ? ["best", "cheapest", "fastest", "family"] : ["best", "cheapest", "fastest"];
+  const tabs: { key: SortKey; label: string; offer: Offer | null }[] = summary
+    ? tabKeys.map((key) => ({
+        key,
+        label: key === "best" ? t("sr.sort.recommended") : t(PREFERENCES.find((p) => p.key === key)!.label),
+        offer: key === "family" ? summary.family : summary[key as "best" | "cheapest" | "fastest"],
+      }))
+    : [];
+
+  // ±3-dagers prisstripe + priskalender: under sorteringen, så «Anbefalt · Billigst · Raskest» står rett under tjenestene.
+  const priceStrip = stripDates.length > 0 && (
+    <div className="mb-4">
+      <div className="no-scrollbar -mx-5 flex items-center gap-2 overflow-x-auto px-5 py-1 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
+        {stripDates.map((d) => {
+          const active = d === depart;
+          const amount = hintByDate.get(d);
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => goDate(d)}
+              aria-pressed={active}
+              className={cn(
+                "min-h-12 min-w-[88px] shrink-0 rounded-xl px-3 py-1.5 text-center transition-colors",
+                active ? "bg-burgundy text-white" : "bg-card text-foreground hover:bg-blush",
+              )}
+            >
+              <span className="block text-[12px] font-medium">{formatDateShort(d)}</span>
+              <span className={cn("mt-0.5 block text-[11px] tabular", active ? "text-white/80" : "text-muted-foreground")}>
+                {amount ? t("sr.strip.from", { price: formatPrice(amount, "NOK") }) : hints.isLoading ? "…" : t("sr.strip.search")}
+              </span>
+            </button>
+          );
+        })}
+        <Chip selected={calOpen} onClick={() => setCalOpen((o) => !o)} aria-expanded={calOpen} className="min-h-12 rounded-xl border-0 bg-card" icon={<CalendarDays aria-hidden="true" />}>
+          {t("sr.flexible")}
+        </Chip>
+      </div>
+      {calOpen && (
+        <div className="fade-up mt-2 max-w-md">
+          <PriceCalendar
+            origin={from}
+            destination={to}
+            depart={depart}
+            returnDays={tripDays}
+            cabinClass={cabin}
+            passengerTypes={passengers.map((p) => p.type)}
+            onPick={(d) => {
+              setCalOpen(false);
+              goDate(d);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  // Sorteringsvalg utover de tre fanene: i raden på desktop, i filterarket på telefon.
+  const sortExtras = (
+    <>
+      {PREFERENCES.filter((p) => !tabKeys.includes(p.key)).map((p) => (
+        <Chip key={p.key} role="radio" aria-checked={sort === p.key} selected={sort === p.key} onClick={() => setSort(p.key)} title={t(p.hint)} icon={<p.icon aria-hidden="true" />} className="h-9 shrink-0 border-0 bg-card text-[13px] aria-checked:bg-burgundy aria-checked:text-white">
+          {t(p.label)}
+        </Chip>
+      ))}
+      <Chip role="radio" aria-checked={sort === "earliest"} selected={sort === "earliest"} onClick={() => setSort("earliest")} className="h-9 shrink-0 border-0 bg-card text-[13px] aria-checked:bg-burgundy aria-checked:text-white">
+        {t("sr.sort.earliest")}
+      </Chip>
+    </>
+  );
 
   /**
    * En lenke uten reisemål eller dato er ikke en feil, det er et uferdig søk.
@@ -593,31 +644,32 @@ export default function SearchResults() {
       <div className="hidden lg:block"><SiteHeader /></div>
 
       {/* Reisemålet som scene: fotografiet når vi har et ekte et, ellers burgunder. */}
-      <header className={cn("relative isolate overflow-hidden text-white lg:mt-[72px] lg:rounded-b-[28px]", heroImage ? "bg-burgundy" : "bg-burgundy")}>
+      <header className="relative isolate overflow-hidden bg-burgundy text-white lg:mt-16 lg:rounded-b-[28px]">
         {heroImage && (
           <img src={heroImage} srcSet={imageSrcSet(heroImage)} sizes="100vw" alt={heroDest?.imageAlt ?? ""} width={1024} height={640} className="absolute inset-0 -z-10 h-full w-full object-cover" />
         )}
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/40 via-black/10 to-black/60" aria-hidden="true" />
-        <div className="container-x pb-8 pt-[max(16px,env(safe-area-inset-top))] lg:pb-10 lg:pt-8">
+        <div className="container-x pb-6 pt-[max(12px,env(safe-area-inset-top))] lg:pb-8 lg:pt-6">
           {heroBar}
-          <p className="mt-10 text-[13px] font-medium uppercase tracking-[0.22em] text-white/80 lg:mt-6">{heroDest?.country ?? toAirport?.country ?? ""}</p>
-          <h1 className="t-display mt-1 text-white">{title}</h1>
-          {heroDest?.tagline && <p className="t-lead mt-2 !text-white/85">{heroDest.tagline}</p>}
+          <p className="mt-7 text-[12px] font-medium uppercase tracking-[0.22em] text-white/80 lg:mt-4">{heroDest?.country ?? toAirport?.country ?? ""}</p>
+          <h1 className="t-h1 mt-1 text-white lg:t-display">{title}</h1>
+          {heroDest?.tagline && <p className="mt-1.5 text-[16px] !text-white/85 lg:text-[19px]">{heroDest.tagline}</p>}
         </div>
       </header>
 
-      {/* Oppsummering, «Endre», tjenestene */}
-      <div className="container-x pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <p className="text-[17px] text-foreground">{summaryLine}</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-foreground underline underline-offset-4">
-              {t("common.change")}
-              <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
-            </button>
+      {/* Oppsummering og «Endre» på én linje, som i referansen; varsel og testdata under. */}
+      <div className="container-x pt-4">
+        <div className="flex items-center justify-between gap-4">
+          <p className="min-w-0 text-[15px] text-foreground">{summaryLine}</p>
+          <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[15px] font-medium text-accent-foreground underline underline-offset-4">
+            {t("common.change")}
+            <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-2 empty:hidden">
             {!isMulti && depart && priceAlertsAvailable && (
                 <Button
-                  variant={alertOpen ? "subtle" : "outline"}
+                  variant={alertOpen ? "subtle" : "ghost"}
                   size="sm"
                   onClick={() => {
                     setAlertOpen((o) => !o);
@@ -635,10 +687,9 @@ export default function SearchResults() {
                 {t("sr.sandbox")}
               </span>
             )}
-          </div>
         </div>
 
-        <ServiceTabs active="fly" className="mt-4" hrefFor={serviceHref} />
+        <ServiceTabs active="fly" className="mt-3" hrefFor={serviceHref} />
 
         {editOpen && (
           <div className="fade-up mt-5 max-w-4xl">
@@ -689,58 +740,8 @@ export default function SearchResults() {
           )}
       </div>
 
-      {/* ±3-day price strip + price calendar */}
-      {stripDates.length > 0 && (
-        <div className="mt-4">
-          <div className="no-scrollbar container-x flex items-center gap-2 overflow-x-auto py-1">
-            {stripDates.map((d) => {
-              const active = d === depart;
-              const amount = hintByDate.get(d);
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => goDate(d)}
-                  aria-pressed={active}
-                  className={cn(
-                    "min-h-[56px] min-w-24 shrink-0 rounded-2xl px-3 py-2 text-center transition-colors",
-                    active ? "bg-burgundy text-white" : "bg-card text-foreground hover:bg-blush",
-                  )}
-                >
-                  <span className="block text-[13px] font-medium">{formatDateShort(d)}</span>
-                  <span className={cn("mt-0.5 block text-[12px] tabular", active ? "text-white/80" : "text-muted-foreground")}>
-                    {amount ? t("sr.strip.from", { price: formatPrice(amount, "NOK") }) : hints.isLoading ? "…" : t("sr.strip.search")}
-                  </span>
-                </button>
-              );
-            })}
-            <Chip selected={calOpen} onClick={() => setCalOpen((o) => !o)} aria-expanded={calOpen} className="min-h-[56px] rounded-2xl border-0 bg-card" icon={<CalendarDays aria-hidden="true" />}>
-              {t("sr.flexible")}
-            </Chip>
-          </div>
-          {calOpen && (
-            <div className="container-x pb-4">
-              <div className="fade-up max-w-md">
-                <PriceCalendar
-                  origin={from}
-                  destination={to}
-                  depart={depart}
-                  returnDays={tripDays}
-                  cabinClass={cabin}
-                  passengerTypes={passengers.map((p) => p.type)}
-                  onPick={(d) => {
-                    setCalOpen(false);
-                    goDate(d);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* min-h keeps the footer below the fold while results stream in, so the skeleton→cards swap doesn't shift it (CLS). */}
-      <main id="main" tabIndex={-1} className="container-x min-h-[100dvh] gap-8 py-5 outline-none sm:py-6 lg:grid lg:grid-cols-[280px_1fr]">
+      <main id="main" tabIndex={-1} className="container-x min-h-[100dvh] gap-8 py-4 outline-none sm:py-6 lg:grid lg:grid-cols-[280px_1fr]">
         <aside className="hidden lg:block">
           <div className="card-soft sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto p-5">
             <h2 className="mb-5 flex items-center gap-2 text-[17px] font-medium">
@@ -765,8 +766,8 @@ export default function SearchResults() {
           {/* Sortering som tekstfaner (Anbefalt · Billigst · Raskest) + filterknappen. Klistret under toppen på telefon. */}
           <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-center justify-between gap-3 bg-background/95 px-5 pt-1 backdrop-blur-md sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:px-0 lg:pt-0 lg:backdrop-blur-none">
             <div role="radiogroup" aria-label={t("sr.sorting")} className="no-scrollbar -ml-5 flex min-w-0 flex-1 gap-1 overflow-x-auto pl-5 sm:-ml-8 sm:pl-8 lg:ml-0 lg:flex-wrap lg:pl-0">
-              {(summaryCards.length > 1 && !search.isPending ? summaryCards : []).map((s) => {
-                const on = s.keys.includes(sort);
+              {(search.isPending ? [] : tabs).map((s) => {
+                const on = sort === s.key;
                 return (
                   <button
                     key={s.key}
@@ -774,31 +775,24 @@ export default function SearchResults() {
                     role="radio"
                     aria-checked={on}
                     onClick={() => setSort(s.key)}
-                    title={`${formatMinor(totalOf(s.offer), s.offer.totalCurrency)} · ${formatDuration(sliceDuration(s.offer))} · ${s.offer.owner.name}`}
+                    title={s.offer ? `${formatMinor(totalOf(s.offer), s.offer.totalCurrency)} · ${formatDuration(sliceDuration(s.offer))} · ${s.offer.owner.name}` : undefined}
                     className={cn(
-                      "relative shrink-0 px-3 py-3 text-[18px] font-medium transition-colors duration-fast first:pl-0",
+                      "relative shrink-0 px-3 py-3 text-[16px] font-medium transition-colors duration-fast first:pl-0",
                       on ? "text-accent-foreground" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {s.keys[0] === "best" ? t("sr.sort.recommended") : s.label}
+                    {s.label}
                     {on && <span className="absolute inset-x-3 bottom-1 h-[3px] rounded-full bg-primary first:inset-x-0" aria-hidden="true" />}
                   </button>
                 );
               })}
-              {/* Det fanene ikke dekker: familie, tidligst og de øvrige preferansene. */}
-              {PREFERENCES.filter((p) => !summaryKeys.has(p.key)).map((p) => (
-                <Chip key={p.key} role="radio" aria-checked={sort === p.key} selected={sort === p.key} onClick={() => setSort(p.key)} title={t(p.hint)} icon={<p.icon aria-hidden="true" />} className="my-1.5 shrink-0 border-0 bg-card aria-checked:bg-burgundy aria-checked:text-white">
-                  {t(p.label)}
-                </Chip>
-              ))}
-              <Chip role="radio" aria-checked={sort === "earliest"} selected={sort === "earliest"} onClick={() => setSort("earliest")} className="my-1.5 shrink-0 border-0 bg-card aria-checked:bg-burgundy aria-checked:text-white">
-                {t("sr.sort.earliest")}
-              </Chip>
+              {/* Det fanene ikke dekker (familie, tidligst, …): i raden fra lg, ellers i filterarket. */}
+              <div className="hidden items-center gap-1.5 lg:flex">{sortExtras}</div>
             </div>
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>
-                <button type="button" aria-label={t("sr.filters.open")} className="relative grid size-14 shrink-0 place-items-center rounded-full bg-blush text-foreground transition-colors hover:bg-primary hover:text-primary-foreground lg:hidden">
-                  <SlidersHorizontal className="size-6" aria-hidden="true" />
+                <button type="button" aria-label={t("sr.filters.open")} className="relative grid size-11 shrink-0 place-items-center rounded-full bg-blush text-foreground transition-colors hover:bg-primary hover:text-primary-foreground lg:hidden">
+                  <SlidersHorizontal className="size-5" aria-hidden="true" />
                   {activeFilters > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 grid size-6 place-items-center rounded-full bg-primary text-[12px] font-bold text-primary-foreground">{activeFilters}</span>
                   )}
@@ -808,7 +802,13 @@ export default function SearchResults() {
                 <SheetHeader>
                   <SheetTitle>{t("sr.filter.title")}</SheetTitle>
                 </SheetHeader>
-                <SheetBody>{filterPanel}</SheetBody>
+                <SheetBody>
+                  <div className="mb-6">
+                    <h3 className="eyebrow mb-2.5">{t("sr.sorting")}</h3>
+                    <div role="radiogroup" aria-label={t("sr.sorting")} className="flex flex-wrap gap-2">{sortExtras}</div>
+                  </div>
+                  {filterPanel}
+                </SheetBody>
                 <SheetFooter>
                   <Button size="lg" onClick={() => setFiltersOpen(false)}>
                     {t("sr.filter.show", { count: filtered.length })}
@@ -817,6 +817,8 @@ export default function SearchResults() {
               </SheetContent>
             </Sheet>
           </div>
+
+          {priceStrip}
 
           {search.isPending && (
             <div className="space-y-4" aria-live="polite" aria-busy="true">

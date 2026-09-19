@@ -23,3 +23,5 @@ export function isNavActive(item: NavItem, pathname: string): boolean {
 
 /** Screens with their own sticky action (checkout, quote) and the admin tree hide the navigation. */
 export const NAV_HIDDEN = [/^\/admin/, /^\/bestill/, /^\/bekreftelse/, /^\/tilbud/, /^\/velkommen/];
+/** The phone tab bar also steps aside where a price bar owns the bottom edge (hotel detail). */
+export const TABBAR_HIDDEN = [...NAV_HIDDEN, /^\/hotell\/./];

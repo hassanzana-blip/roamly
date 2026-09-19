@@ -56,7 +56,8 @@ app.use(
       frameAncestors: ["'none'"],
       formAction: ["'self'"],
       scriptSrc: ["'self'", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", ...scriptHashes],
-      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", ...(env.isProduction ? [] : ["ws:", "wss:"])],
+      // tiles.openfreemap.org: vektorfliser, sprites og skrifttyper til reisemålskartet (MapLibre) på forsiden.
+      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", "https://tiles.openfreemap.org", ...(env.isProduction ? [] : ["ws:", "wss:"])],
       frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],

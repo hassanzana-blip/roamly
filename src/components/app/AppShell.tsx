@@ -35,7 +35,7 @@ export default function AppShell({ children, className, bleed = false }: { child
       {/* Desktop (≥ lg): top row + navigation rail. Phone/tablet: each page's own header + the floating tab bar. */}
       <div className="hidden lg:block">
         <SiteHeader />
-        <div className="h-[72px]" aria-hidden="true" />
+        <div className="h-16" aria-hidden="true" />
       </div>
       {/* Sideinngangen er ren CSS. Den lå før i motion, og dro dermed
           animasjonsbiblioteket inn i basischunken på hver eneste side – for et

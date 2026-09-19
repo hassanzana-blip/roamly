@@ -161,7 +161,7 @@ export default function Hotels() {
   return (
     <div className="relative min-h-screen bg-background">
       <div className="hidden lg:block"><SiteHeader /></div>
-      <div className="lg:pt-[72px]">
+      <div className="lg:pt-16">
         <div className="container-x pb-2 pt-4 lg:pt-6">
           <HeroBar backTo="/" tone="dark" className="mb-6 lg:hidden" />
           {hasSearch ? (

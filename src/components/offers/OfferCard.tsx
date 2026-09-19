@@ -38,8 +38,8 @@ export function SliceViz({ slice, tone = "light", size = "md" }: { slice: OfferS
   return (
     <div className="flex items-center gap-3 sm:gap-4">
       <div className="shrink-0 text-left">
-        <p className={cn("t-num font-medium leading-none tracking-tight", big ? "text-[34px] sm:text-[40px]" : "text-[26px] sm:text-[30px]")}>{formatClock(slice.departingAt)}</p>
-        <p className={cn("mt-1.5 text-[15px] font-medium", muted)}>{slice.origin.iata}</p>
+        <p className={cn("t-num font-medium leading-none tracking-tight", big ? "text-[34px] sm:text-[40px]" : "text-[24px] sm:text-[28px]")}>{formatClock(slice.departingAt)}</p>
+        <p className={cn("mt-1 text-[14px] font-medium", muted)}>{slice.origin.iata}</p>
       </div>
       <div className="relative min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ export function SliceViz({ slice, tone = "light", size = "md" }: { slice: OfferS
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <p className={cn("t-num font-medium leading-none tracking-tight", big ? "text-[34px] sm:text-[40px]" : "text-[26px] sm:text-[30px]")}>
+        <p className={cn("t-num font-medium leading-none tracking-tight", big ? "text-[34px] sm:text-[40px]" : "text-[24px] sm:text-[28px]")}>
           {formatClock(slice.arrivingAt)}
           {dayShift > 0 && (
             <sup className={cn("ml-0.5 text-[12px] font-medium", muted)} aria-label={dayShift === 1 ? t("oc.arrival.next") : t("oc.arrival.days", { count: dayShift })}>
@@ -75,7 +75,7 @@ export function SliceViz({ slice, tone = "light", size = "md" }: { slice: OfferS
             </sup>
           )}
         </p>
-        <p className={cn("mt-1.5 text-[15px] font-medium", muted)}>{slice.destination.iata}</p>
+        <p className={cn("mt-1 text-[14px] font-medium", muted)}>{slice.destination.iata}</p>
       </div>
     </div>
   );
@@ -192,7 +192,7 @@ function BaggageLine({ offer }: { offer: Offer }) {
   const t = useT();
   const { carryOn, checked, carryOnUnknown, checkedUnknown } = useTripBaggage(offer);
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[15px]">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[14px]">
       <span className="flex items-center gap-2">
         <BaggageVisual kind="cabin" count={carryOn} unknown={carryOnUnknown} size={20} label={carryOnUnknown ? t("bg.carryon.unknown") : t("bg.carryon", { count: carryOn })} />
         <span aria-hidden="true">{carryOnUnknown ? t("oc.carryon.unknown") : t("oc.carryon.included", { count: carryOn })}</span>
@@ -397,7 +397,7 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
       className={cn("card-soft overflow-hidden transition-shadow duration-base", selected && "ring-2 ring-primary", recommended && "shadow-lift")}
       aria-label={t("oc.aria", { airline: offer.owner.name, price: formatMinor(totalMinor, currency) })}
     >
-      <div className="space-y-4 p-5 sm:p-6">
+      <div className="space-y-3.5 p-4 sm:space-y-4 sm:p-6">
         {recommendedLabel && (
           <div className="flex flex-wrap items-center gap-2">
             <p className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[13px] font-semibold text-primary-foreground">
@@ -445,22 +445,22 @@ export default function OfferCard({ offer, onSelect, selected, comparing, compar
       </div>
 
       {/* Pris og handling */}
-      <div className="mx-5 border-t border-border sm:mx-6" aria-hidden="true" />
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-4 p-5 sm:p-6">
+      <div className="mx-4 border-t border-border sm:mx-6" aria-hidden="true" />
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 p-4 sm:p-6">
         <div className="min-w-0">
-          <p className="t-num text-[34px] font-medium leading-none tracking-tight sm:text-[38px]">{formatMinor(totalMinor, currency)}</p>
-          <p className="mt-1.5 text-[14px] text-muted-foreground">
+          <p className="t-num text-[28px] font-medium leading-none tracking-tight sm:text-[34px]">{formatMinor(totalMinor, currency)}</p>
+          <p className="mt-1 text-[13px] text-muted-foreground sm:text-[14px]">
             {priceLabel}
             {perPerson ? ` · ${perPerson}` : ""}
           </p>
         </div>
-        <Button size="lg" variant={recommended ? "primary" : "subtle"} {...ctaProps} className={cn("h-14 max-w-full rounded-full px-6 text-[17px] sm:px-7", external && "[&>a]:flex [&>a]:min-w-0 [&>a]:items-center [&>a]:gap-2")}>
+        <Button size="lg" variant={recommended ? "primary" : "subtle"} {...ctaProps} className={cn("h-12 max-w-full rounded-full px-5 text-[15px] sm:h-13 sm:px-7 sm:text-[16px]", external && "[&>a]:flex [&>a]:min-w-0 [&>a]:items-center [&>a]:gap-2")}>
           {ctaInner}
         </Button>
       </div>
 
       <Collapsible.Root open={expanded} onOpenChange={setExpanded}>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 pb-4 sm:px-6">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-4 pb-3 sm:px-6 sm:pb-4">
           <Collapsible.Trigger asChild>
             <button type="button" aria-controls={detailsId} className="inline-flex min-h-10 items-center gap-1 text-[14px] font-medium text-accent-foreground underline-offset-4 hover:underline">
               {expanded ? t("oc.hide") : t("oc.details")}

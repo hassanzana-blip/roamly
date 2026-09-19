@@ -30,8 +30,8 @@ export default function ServiceTabs({ active, variant = "pill", onSelect, hrefFo
     cn(
       "outline-none transition-[background-color,color,transform] duration-fast focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] motion-reduce:active:scale-100",
       tile
-        ? "flex h-[112px] w-full flex-col items-center justify-center gap-3 rounded-[22px] text-[17px] font-medium sm:h-[124px]"
-        : "inline-flex h-14 shrink-0 items-center gap-2.5 rounded-[20px] px-5 text-[17px] font-medium sm:px-6",
+        ? "flex h-[76px] w-full flex-col items-center justify-center gap-1.5 rounded-[20px] text-[15px] font-medium sm:h-[92px] sm:text-[16px]"
+        : "inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl px-4 text-[15px] font-medium sm:px-5",
       on ? "bg-burgundy text-white shadow-soft" : "bg-card text-foreground hover:bg-white",
     );
 
@@ -45,7 +45,7 @@ export default function ServiceTabs({ active, variant = "pill", onSelect, hrefFo
         const on = s.id === active;
         const inner = (
           <>
-            <Icon icon={s.icon} size={tile ? 28 : 24} />
+            <Icon icon={s.icon} size={tile ? 24 : 20} />
             <span>{t(s.label)}</span>
           </>
         );

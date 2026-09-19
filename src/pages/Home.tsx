@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { ArrowRight, ArrowUpRight, Clock3, Globe, LayoutList, Map as MapIcon, ShieldCheck, Tag, TrendingDown } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import AppShell from "@/components/app/AppShell";
 import BelowFold from "@/components/app/BelowFold";
 import { GreetingBar } from "@/components/app/TopBar";
@@ -131,8 +132,15 @@ const SeeAll = ({ to, label }: { to: string; label: string }) => (
 /** Søkekortet: fly (uendret logikk), hotell og leiebil – og et ærlig ord om cruise. */
 function SearchCard({ product }: { product: ServiceId }) {
   const t = useT();
+  const reduce = useReducedMotion();
   return (
-    <div key={product} className="card-soft fade-up p-3 sm:p-4 lg:p-3">
+    <motion.div
+      key={product}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+      className="card-soft p-3 sm:p-4 lg:p-3"
+    >
       {product === "fly" ? (
         <SearchWidget />
       ) : product === "hotell" ? (
@@ -150,7 +158,7 @@ function SearchCard({ product }: { product: ServiceId }) {
           </Button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -170,11 +178,11 @@ function ViewToggle({ view, onChange }: { view: "list" | "map"; onChange: (v: "l
           aria-checked={view === o.id}
           onClick={() => onChange(o.id)}
           className={cn(
-            "inline-flex h-11 items-center gap-2 rounded-full px-4 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:px-5",
+            "inline-flex h-10 items-center gap-2 rounded-full px-4 text-[14px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             view === o.id ? "bg-burgundy text-white" : "text-foreground hover:bg-blush",
           )}
         >
-          <Icon icon={o.icon} size={20} /> {o.label}
+          <Icon icon={o.icon} size={16} /> {o.label}
         </button>
       ))}
     </div>
@@ -225,7 +233,7 @@ function TrustRow() {
 }
 
 /** Oppdagelsen: chips, fotokort og kartet med ekte fra-priser. */
-function Discovery({ onOpen }: { onOpen: (d: DiscoverDestination) => void }) {
+function Discovery() {
   const t = useT();
   const { ids: saved, toggle } = useSavedDestinations();
   const [chip, setChip] = useState<ChipId | null>(null);
@@ -265,27 +273,27 @@ function Discovery({ onOpen }: { onOpen: (d: DiscoverDestination) => void }) {
   );
 
   return (
-    <section aria-labelledby="discover" className="mt-12 sm:mt-16">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+    <section aria-labelledby="discover" className="mt-9 sm:mt-12">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
-          <h2 id="discover" className="t-h1">
+          <h2 id="discover" className="t-h1 lg:t-h2">
             <span className="lg:hidden">{t("home.feel.title")}</span>
             <span className="hidden lg:inline">{t("home.next.title")}</span>
           </h2>
-          <p className="t-lead mt-2 hidden lg:block">{t("home.next.sub")}</p>
+          <p className="t-lead mt-1.5 hidden lg:block">{t("home.next.sub")}</p>
         </div>
         <ViewToggle view={view} onChange={setView} />
       </div>
 
-      <div className="no-scrollbar -mx-5 mt-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t("home.chip.aria")}>
+      <div className="no-scrollbar -mx-5 mt-4 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0" role="group" aria-label={t("home.chip.aria")}>
         {CHIPS.map((c) => (
-          <Chip key={c.id} selected={chip === c.id} onClick={() => setChip(chip === c.id ? null : c.id)} className="h-12 border-0 bg-card px-5 text-[15px] aria-pressed:bg-burgundy aria-pressed:text-white">
+          <Chip key={c.id} selected={chip === c.id} onClick={() => setChip(chip === c.id ? null : c.id)} className="h-11 border-0 bg-card px-4 text-[14px] aria-pressed:bg-burgundy aria-pressed:text-white">
             {c.id === "under" ? t("home.chip.under", { amount: `${UNDER_LIMIT.toLocaleString("nb-NO")} kr` }) : t(c.label)}
           </Chip>
         ))}
       </div>
 
-      <div className={cn("mt-6 lg:grid lg:gap-6", view === "list" ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]" : "lg:grid-cols-1")}>
+      <div className={cn("mt-4 lg:mt-5 lg:grid lg:gap-6", view === "list" ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]" : "lg:grid-cols-1")}>
         {/* Liste: bildekarusell på telefon, rutenett på desktop */}
         {view === "list" && (
           <div>
@@ -296,7 +304,7 @@ function Discovery({ onOpen }: { onOpen: (d: DiscoverDestination) => void }) {
             ) : list.length === 0 ? (
               <p className="card-soft px-6 py-10 text-center text-sm text-muted-foreground">{t("home.map.empty")}</p>
             ) : (
-              <ul className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-2 lg:gap-x-5 lg:gap-y-8 lg:overflow-visible lg:px-0">
+              <ul className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-1 sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-2 lg:gap-x-5 lg:gap-y-6 lg:overflow-visible lg:px-0">
                 {list.map((d) => (
                   <li key={d.id} id={`dest-${d.id}`} className="w-[86vw] max-w-[440px] shrink-0 snap-start lg:w-auto lg:max-w-none">
                     <DiscoverCard destination={d} variant="poster" saved={saved.has(d.id)} onToggleSaved={toggle} className="lg:hidden" />
@@ -305,16 +313,15 @@ function Discovery({ onOpen }: { onOpen: (d: DiscoverDestination) => void }) {
                 ))}
               </ul>
             )}
-            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 lg:mt-7">
+            <div className="mt-5 lg:mt-7">
               <SeeAll to="/utforsk" label={t("home.allDest")} />
-              <button type="button" onClick={() => list[0] && onOpen(list[0])} className="hidden" aria-hidden="true" tabIndex={-1} />
             </div>
           </div>
         )}
 
         {/* Kart: alltid på desktop ved siden av listen, ellers når man velger det */}
-        <div className={cn("relative", view === "list" ? "hidden lg:block lg:min-h-[640px]" : "aspect-[4/5] sm:aspect-[4/3] lg:aspect-[16/9]")}>
-          <div className={cn("lg:sticky lg:top-24", view === "list" ? "h-[640px]" : "h-full")}>{map}</div>
+        <div className={cn("relative", view === "list" ? "hidden lg:block lg:min-h-[600px]" : "aspect-[4/5] sm:aspect-[4/3] lg:aspect-[16/9]")}>
+          <div className={cn("lg:sticky lg:top-20", view === "list" ? "h-[600px]" : "h-full")}>{map}</div>
         </div>
       </div>
     </section>
@@ -336,17 +343,17 @@ export default function Home() {
       <AppShell>
         {/* Telefon: merke + profil, så spørsmålet. Desktop: toppraden ligger i AppShell. */}
         <div className="lg:hidden"><GreetingBar /></div>
-        <h1 className="t-display mt-4 lg:sr-only">{t("home.ask.title")}</h1>
-        <p className="t-lead mt-3 lg:hidden">{t("home.ask.sub")}</p>
+        <h1 className="t-display mt-2 max-w-[9ch] lg:sr-only">{t("home.ask.title")}</h1>
+        <p className="t-lead mt-2.5 lg:hidden">{t("home.ask.sub")}</p>
 
-        <ServiceTabs variant="tile" active={product} onSelect={setProduct} className="mt-7 lg:hidden" />
+        <ServiceTabs variant="tile" active={product} onSelect={setProduct} className="mt-5 lg:hidden" />
         <ServiceTabs variant="pill" active={product} onSelect={setProduct} className="hidden lg:flex" />
-        <div className="mt-3 lg:mt-4">
+        <div className="mt-2.5 lg:mt-3">
           <SearchCard product={product} />
         </div>
 
         {/* Under søket: bare det praktiske – siste søk og et ærlig status-ord. */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <p className="t-caption">{sandbox ? t("sr.sandbox") : t("footer.meta.trust")}</p>
           {recent.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
@@ -358,7 +365,7 @@ export default function Home() {
           )}
         </div>
 
-        <Discovery onOpen={setQuickView} />
+        <Discovery />
 
         {customer && <PersonalStrip />}
         {customer && <ForYou />}

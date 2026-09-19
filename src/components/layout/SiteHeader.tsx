@@ -16,9 +16,9 @@ export function Logo({ compact = false, inverted = false, className }: { compact
   return (
     <Link to="/" className={cn("group flex min-h-11 items-center gap-1 rounded-md", className)} aria-label={t("nav.tofront")}>
       {!compact && (
-        <span className={cn("text-[26px] font-medium lowercase leading-none tracking-tight", inverted ? "text-white" : "text-foreground")}>hellosky</span>
+        <span className={cn("text-[24px] font-medium lowercase leading-none tracking-tight", inverted ? "text-white" : "text-foreground")}>hellosky</span>
       )}
-      <SkyMark className={cn("h-7 w-7 transition-transform duration-base group-hover:-rotate-6", inverted ? "text-white" : "text-foreground")} />
+      <SkyMark className={cn("h-6 w-6 transition-transform duration-base group-hover:-rotate-6", inverted ? "text-white" : "text-foreground")} />
     </Link>
   );
 }
@@ -50,7 +50,7 @@ export default function SiteHeader() {
       )}
     >
       <SkipLink />
-      <div className="container-x flex h-16 items-center justify-between gap-3 lg:h-[72px]">
+      <div className="container-x flex h-16 items-center justify-between gap-3">
         <Logo />
         <div className="flex items-center gap-2 sm:gap-3">
           <LocaleChip className="hidden sm:block" />

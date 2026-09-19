@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeftRight, ArrowRight, CalendarRange, ChevronDown, MoveRight, Plus, X } from "lucide-react";
 import AirportField from "./AirportField";
@@ -26,14 +26,45 @@ interface Props {
 
 const PRIMARY_PREFS: Preference[] = ["best", "cheapest", "fastest"];
 
+/** Utkastet til søket lever i fanen (sessionStorage), aldri lenger. */
+const DRAFT_KEY = "hellosky:search-draft";
+function readDraft(): Partial<SearchParamsState> | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as Partial<SearchParamsState>;
+    // Datoer som har passert forkastes; ellers kommer gårsdagens søk tilbake.
+    if (d.depart && d.depart < todayPlus(0)) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+function writeDraft(s: SearchParamsState) {
+  try {
+    const { from, to, depart, ret, tripType, legs, pax, ages, cabin, pref, flex, direct } = s;
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ from, to, depart, ret, tripType, legs, pax, ages, cabin, pref, flex, direct }));
+  } catch {
+    /* privat modus – utkastet lever bare i minnet */
+  }
+}
+
 export default function SearchWidget({ initial, variant = "hero", onSubmitted, leading }: Props) {
   const t = useT();
   const navigate = useNavigate();
-  const [state, setState] = useState<SearchParamsState>(() => ({
-    ...defaultState(),
-    ...initial,
-    ages: syncAges({ adult: 1, child: 0, infant_without_seat: 0, ...initial?.pax }, initial?.ages ?? { children: [], infants: [] }),
-  }));
+  // Uten `initial` (forsiden) tar skjemaet opp igjen der du slapp i denne
+  // fanen, så et trykk på «tilbake» fra resultatene ikke nullstiller søket.
+  const [state, setState] = useState<SearchParamsState>(() => {
+    const base = initial ?? readDraft() ?? {};
+    return {
+      ...defaultState(),
+      ...base,
+      ages: syncAges({ adult: 1, child: 0, infant_without_seat: 0, ...base?.pax }, base?.ages ?? { children: [], infants: [] }),
+    };
+  });
+  useEffect(() => {
+    if (!initial) writeDraft(state);
+  }, [state, initial]);
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
   const [moreOpen, setMoreOpen] = useState(() => !PRIMARY_PREFS.includes(state.pref));
@@ -118,8 +149,8 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
           value={state.tripType}
           onValueChange={(tripType) => setState((s) => ({ ...s, tripType }))}
           options={TRIP_TYPES}
-          className="w-auto rounded-full bg-blush/70 [&>*]:rounded-full [&>*[data-state=on]]:bg-white"
-          size={variant === "hero" ? "md" : "sm"}
+          className="w-auto rounded-full bg-blush/70 [&>*]:rounded-full [&>*]:px-3 [&>*[data-state=on]]:bg-white"
+          size="sm"
         />
       </div>
 
@@ -174,11 +205,11 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
           />
         </div>
       ) : (
-        <div className={cn("mt-3", variant === "hero" ? "lg:[--field-h:4.5rem]" : "[--field-h:4rem]")}>
+        <div className="mt-2.5 lg:[--field-h:4rem]">
           {/* Telefon: to hvite blokker (fra/til, dato/reisende). Desktop: én hvit rad med alt i. */}
-          <div className={cn("flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-0 lg:overflow-hidden lg:rounded-[22px] lg:bg-white", variant === "compact" && "lg:rounded-2xl")}>
+          <div className={cn("flex flex-col gap-2 lg:flex-row lg:items-stretch lg:gap-0 lg:overflow-hidden lg:rounded-[20px] lg:bg-white", variant === "compact" && "lg:rounded-2xl")}>
             {/* Origin + destination with a swap control on the seam */}
-            <div className="relative grid flex-[2] divide-y divide-border overflow-hidden rounded-3xl bg-white md:grid-cols-2 md:divide-x md:divide-y-0 lg:rounded-none">
+            <div className="relative grid flex-[2] divide-y divide-border overflow-hidden rounded-[20px] bg-white md:grid-cols-2 md:divide-x md:divide-y-0 lg:rounded-none">
               <AirportField
                 label={t("search.from")}
                 direction="from"
@@ -202,7 +233,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
                 onClick={swap}
                 aria-label={t("sw.swap")}
                 className={cn(
-                  "absolute z-10 grid size-12 place-items-center rounded-full bg-blush text-foreground md:size-10",
+                  "absolute z-10 grid size-11 place-items-center rounded-full bg-blush text-foreground md:size-10",
                   "transition-[transform,background-color] duration-fast ease-out hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring",
                   "right-4 top-1/2 -translate-y-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2",
                   "active:scale-95",
@@ -212,7 +243,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
               </button>
             </div>
 
-            <div className="grid flex-[2.7] grid-cols-2 divide-x divide-border overflow-hidden rounded-3xl bg-white lg:grid-cols-[1.25fr_1fr] lg:rounded-none lg:border-l lg:border-border">
+            <div className="grid flex-[2.7] grid-cols-2 divide-x divide-border overflow-hidden rounded-[20px] bg-white lg:grid-cols-[1.25fr_1fr] lg:rounded-none lg:border-l lg:border-border">
               <DateRangeField
                 depart={state.depart}
                 ret={state.ret}
@@ -234,7 +265,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
             </div>
             {variant === "hero" && (
               <div className="hidden lg:flex lg:items-center lg:bg-white lg:p-2">
-                <Button type="submit" size="xl" className="h-[calc(var(--field-h)-1rem)] rounded-full px-7">
+                <Button type="submit" size="lg" className="h-12 rounded-full px-7">
                   {t("sw.search")}
                   <ArrowRight />
                 </Button>
@@ -251,7 +282,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
       )}
 
       {/* The one action: full width on phones, inside the row from lg. */}
-      <Button type="submit" size="xl" className={cn("mt-2.5 h-[60px] w-full rounded-full text-[19px]", variant === "hero" && !isMulti && "lg:hidden", variant === "compact" && "md:w-auto md:min-w-64")}>
+      <Button type="submit" size="xl" className={cn("mt-2 h-14 w-full rounded-full text-[17px]", variant === "hero" && !isMulti && "lg:hidden", variant === "compact" && "md:w-auto md:min-w-64")}>
         {t("sw.find")}
         <ArrowRight />
       </Button>
@@ -259,7 +290,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
       {/* What matters most, flexible dates and direct only: quiet, under the action.
           The ranking control and the extra preferences sit behind one disclosure so
           the card never reads as a wall of equal pills. */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 px-1">
+      <div className="mt-1.5 flex flex-wrap items-center gap-1 px-1">
         <button
           type="button"
           onClick={() => setMoreOpen((o) => !o)}

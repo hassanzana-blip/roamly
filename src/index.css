@@ -110,7 +110,7 @@
 
     /* Layout: the desktop navigation rail and the floating phone tab bar. */
     --rail-w: 114px;
-    --tabbar-h: 72px;
+    --tabbar-h: 64px;
 
     --sidebar-background: 40 50% 98%;
     --sidebar-foreground: 0 6% 10%;
@@ -590,7 +590,7 @@ html:not([data-theme="admin"]) .font-display {
   font-style: normal;
 }
 html:not([data-theme="admin"]) .t-display {
-  font-size: clamp(3rem, 2rem + 4.8vw, 5.25rem);        /* 48 → 84 */
+  font-size: clamp(3.375rem, 2.4rem + 4vw, 5rem);       /* 54 → 80: «Hvor vil du dra?» wraps to two lines on a phone, as in the reference */
   line-height: 0.96;
   letter-spacing: -0.035em;
 }
@@ -657,6 +657,89 @@ html:not([data-theme="admin"]) .font-mono-label {
 }
 .dark .map-sea {
   background: hsl(210 20% 14%);
+}
+/* MapLibre: price pins as real buttons, controls in the house style. */
+.hs-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+}
+.hs-pin__pill {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 15px;
+  font-weight: 500;
+  background: #fff;
+  color: hsl(var(--foreground));
+  box-shadow: 0 4px 16px -8px hsl(var(--night) / 0.35), 0 1px 3px -1px hsl(var(--night) / 0.15);
+  transition: background-color 150ms, color 150ms;
+}
+.hs-pin:hover .hs-pin__pill {
+  background: hsl(var(--blush));
+}
+.hs-pin:focus-visible .hs-pin__pill {
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+.hs-pin.is-on .hs-pin__pill {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.hs-pin__dot {
+  margin-top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: hsl(var(--foreground));
+  box-shadow: 0 1px 2px hsl(var(--night) / 0.3);
+}
+.hs-pin.is-on .hs-pin__dot {
+  background: hsl(var(--primary));
+}
+.hs-pin__name {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  text-shadow: 0 0 6px #fff, 0 0 2px #fff;
+}
+.hs-pin:not(.is-on) .hs-pin__name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.maplibregl-map {
+  font-family: inherit;
+}
+.maplibregl-ctrl-group {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px -8px hsl(var(--night) / 0.35) !important;
+  overflow: hidden;
+}
+.maplibregl-ctrl-group button {
+  width: 44px !important;
+  height: 44px !important;
+}
+.maplibregl-ctrl-bottom-right {
+  bottom: 12px;
+  right: 12px;
+}
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+  border-radius: 8px 0 0 0;
+  background: hsl(0 0% 100% / 0.8) !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: hsl(var(--muted-foreground));
 }
 
 .hero-vignette {

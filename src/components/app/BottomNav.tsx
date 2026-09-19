@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
 import Icon from "./Icon";
-import { isNavActive, NAV_HIDDEN, PRIMARY_NAV } from "./nav";
+import { isNavActive, PRIMARY_NAV, TABBAR_HIDDEN } from "./nav";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 
@@ -15,7 +15,7 @@ import { useT } from "@/lib/i18n";
  */
 export default function BottomNav() {
   const { pathname } = useLocation();
-  const hidden = NAV_HIDDEN.some((re) => re.test(pathname));
+  const hidden = TABBAR_HIDDEN.some((re) => re.test(pathname));
   const t = useT();
 
   useEffect(() => {
@@ -46,8 +46,8 @@ export default function BottomNav() {
                   active ? "text-coral-on-dark" : "text-white/92 hover:text-white",
                 )}
               >
-                <Icon icon={tab.icon} size={24} />
-                <span className="truncate text-[13px] font-medium leading-none">{t(tab.label)}</span>
+                <Icon icon={tab.icon} size={20} />
+                <span className="truncate text-[12px] font-medium leading-none">{t(tab.label)}</span>
               </NavLink>
             </li>
           );

@@ -96,7 +96,7 @@ export default function HotelDetail() {
   return (
     <div className="relative min-h-screen bg-background">
       <div className="hidden lg:block"><SiteHeader /></div>
-      <main id="main" tabIndex={-1} className="pb-36 outline-none lg:pb-16 lg:pt-[72px]">
+      <main id="main" tabIndex={-1} className="pb-32 outline-none lg:pb-16 lg:pt-16">
         {(status.isSuccess && !enabled) || detail.isLoading || detail.isError ? (
           <div className="container-x pt-4 lg:pt-8">
             <HeroBar backTo={backHref} tone="dark" className="mb-6 lg:hidden" />
@@ -119,7 +119,7 @@ export default function HotelDetail() {
           <>
             {/* Galleri: kun hotellets egne bilder fra leverandøren. Full bredde på telefon, avrundet på desktop. */}
             <section className="lg:container-x lg:pt-6" aria-label={h.name}>
-              <div className="relative isolate h-[70vh] max-h-[640px] min-h-[420px] overflow-hidden bg-burgundy lg:h-[520px] lg:rounded-[28px]">
+              <div className="relative isolate h-[50vh] max-h-[520px] min-h-[360px] overflow-hidden bg-burgundy lg:h-[500px] lg:rounded-[28px]">
                 {images.length > 0 ? (
                   <ul ref={strip} onScroll={onStripScroll} tabIndex={0} aria-label={t("ht.detail.photos", { count: images.length })} className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white" aria-live="polite">
                     {images.map((img, i) => (
@@ -172,7 +172,7 @@ export default function HotelDetail() {
               <div className="min-w-0">
                 <p className="eyebrow-burgundy">{place || h.countryCode}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <h1 className="t-display">{h.name}</h1>
+                  <h1 className="t-h1 lg:t-display">{h.name}</h1>
                   {detail.data?.sandbox && <SandboxBadge />}
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[17px]">
@@ -189,12 +189,12 @@ export default function HotelDetail() {
                 </p>
 
                 {amenities.length > 0 && (
-                  <ul className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3" aria-label={t("ht.detail.facilities")}>
+                  <ul className="mt-5 grid grid-cols-3 gap-2" aria-label={t("ht.detail.facilities")}>
                     {amenities.map((f) => {
                       const I = amenityIcon(f.name);
                       return (
-                        <li key={`${f.name}-${f.description}`} className="flex min-h-[68px] items-center gap-3 rounded-2xl bg-blush px-4 py-3 text-[16px] font-medium text-foreground" title={f.description}>
-                          <I className="size-6 shrink-0 text-burgundy" aria-hidden="true" />
+                        <li key={`${f.name}-${f.description}`} className="flex min-h-12 items-center gap-2 rounded-2xl bg-blush px-3 py-2.5 text-[13px] font-medium text-foreground sm:text-[15px]" title={f.description}>
+                          <I className="size-5 shrink-0 text-burgundy" aria-hidden="true" />
                           <span className="min-w-0 truncate">{f.name}</span>
                         </li>
                       );
@@ -321,13 +321,14 @@ export default function HotelDetail() {
 
       {/* Telefon: prisen og handlingen flyter over bunnavigasjonen */}
       {best && (
-        <div className="fixed inset-x-4 z-40 rounded-[28px] bg-white p-4 shadow-lift lg:hidden" style={{ bottom: "calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom))" }}>
+        <div className="fixed inset-x-0 bottom-0 z-40 rounded-t-[28px] bg-white px-5 pt-4 shadow-lift lg:hidden" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
           <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="t-num text-[26px] font-medium leading-none tracking-tight">{formatMoney(best.totalAmount, best.currency)}</p>
               <p className="mt-1 truncate text-[13px] text-muted-foreground">{t("ht.detail.totalfor", { count: nights })} · {best.provider.name}</p>
+              <p className="truncate text-[11px] text-muted-foreground">{t("ht.detail.pricenote")}</p>
             </div>
-            <Button asChild size="lg" className="h-14 shrink-0 rounded-full px-6 text-[17px]">
+            <Button asChild size="lg" className="h-12 shrink-0 rounded-full px-5 text-[15px]">
               <a href={best.bookUrl} target="_blank" rel="noopener noreferrer nofollow sponsored">{t("oc.view")} <ArrowRight className="size-5" aria-hidden="true" /></a>
             </Button>
           </div>

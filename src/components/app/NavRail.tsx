@@ -37,13 +37,13 @@ export default function NavRail() {
                 end={item.to === "/"}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[84px] w-full flex-col items-center justify-center gap-2 rounded-2xl outline-none transition-colors duration-fast",
+                  "flex min-h-[76px] w-full flex-col items-center justify-center gap-1.5 rounded-2xl outline-none transition-colors duration-fast",
                   "focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-inset",
                   active ? "text-coral-on-dark" : "text-white/92 hover:bg-white/8 hover:text-white",
                 )}
               >
-                <Icon icon={item.icon} size={28} />
-                <span className="text-[15px] font-medium leading-none">{t(item.label)}</span>
+                <Icon icon={item.icon} size={24} />
+                <span className="text-[13px] font-medium leading-none">{t(item.label)}</span>
               </NavLink>
             </li>
           );

@@ -31,7 +31,7 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
       data-filled={filled}
       aria-invalid={invalid || undefined}
       className={cn(
-        "group flex h-[var(--field-h,4.5rem)] w-full items-center gap-3.5 px-5 text-left outline-none",
+        "group flex h-[var(--field-h,3.75rem)] w-full items-center gap-3 px-4 text-left outline-none sm:px-5",
         "transition-[border-color,box-shadow,background-color] duration-fast ease-out",
         joined
           ? "border-0 bg-transparent hover:bg-blush/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=open]:bg-blush/40"
@@ -44,10 +44,10 @@ const FieldButton = React.forwardRef<HTMLButtonElement, Props>(function FieldBut
       // ("Til: Istanbul (IST)") never matched the visible text for voice control.
       aria-label={undefined}
     >
-      <Icon className="size-6 shrink-0 text-foreground" aria-hidden="true" />
+      <Icon className="size-5 shrink-0 text-foreground" aria-hidden="true" />
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium text-muted-foreground">{label}</span>
-        <span className={cn("block truncate text-[20px] leading-tight lg:text-[18px]", filled ? "font-medium text-foreground" : "font-normal text-foreground/80")}>
+        <span className="block text-[12px] font-medium text-muted-foreground">{label}</span>
+        <span className={cn("block truncate text-[17px] leading-tight", filled ? "font-medium text-foreground" : "font-normal text-foreground/80")}>
           {filled ? value : placeholder}
         </span>
       </span>
