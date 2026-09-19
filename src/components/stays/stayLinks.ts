@@ -42,6 +42,25 @@ export interface CarSearchValues {
   place: string;
   pickup: string;
   dropoff: string;
+  /** Hel time 0–23; leverandøren priser etter faktisk hente- og leveringstid. */
+  pickupHour?: number;
+  dropoffHour?: number;
+  /** Annet leveringssted (enveisleie). Tomt = leveres der den hentes. */
+  dropoffType?: "airport" | "city" | "";
+  dropoffValue?: string;
+  dropoffPlace?: string;
+}
+
+export const DEFAULT_CAR_HOUR = 10;
+
+/** `ph=14` i URL-en → 14; alt utenfor 0–23 gir standardtimen. */
+export function parseHour(param: string | null | undefined, fallback = DEFAULT_CAR_HOUR): number {
+  const n = Number(param);
+  return param != null && Number.isInteger(n) && n >= 0 && n <= 23 ? n : fallback;
+}
+
+export function hourLabel(h: number): string {
+  return `${String(h).padStart(2, "0")}:00`;
 }
 
 export function hotelSearchHref(v: HotelSearchValues): string {
@@ -56,6 +75,13 @@ export function carSearchHref(v: CarSearchValues): string {
   if (v.type && v.value) {
     q.set("type", v.type);
     q.set("value", v.value);
+  }
+  if (v.pickupHour != null && v.pickupHour !== DEFAULT_CAR_HOUR) q.set("ph", String(v.pickupHour));
+  if (v.dropoffHour != null && v.dropoffHour !== DEFAULT_CAR_HOUR) q.set("dh", String(v.dropoffHour));
+  if (v.dropoffType && v.dropoffValue) {
+    q.set("dtype", v.dropoffType);
+    q.set("dvalue", v.dropoffValue);
+    if (v.dropoffPlace) q.set("dplace", v.dropoffPlace);
   }
   return `/leiebil?${q.toString()}`;
 }

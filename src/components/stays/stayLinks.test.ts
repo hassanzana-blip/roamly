@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hotelSearchHref, parseChildAges, splitRooms } from "./stayLinks";
+import { carSearchHref, hotelSearchHref, hourLabel, parseChildAges, parseHour, splitRooms } from "./stayLinks";
 
 describe("splitRooms", () => {
   it("fordeler voksne jevnt og teller aldri dobbelt", () => {
@@ -36,5 +36,23 @@ describe("hotelSearchHref", () => {
     const base = { dest: "kplace:1", place: "Lisboa", checkin: "2026-10-03", checkout: "2026-10-06", adults: 2, rooms: 1 };
     expect(hotelSearchHref(base)).not.toContain("kids=");
     expect(hotelSearchHref({ ...base, childAges: [4, 9] })).toContain("kids=4%2C9");
+  });
+});
+
+describe("carSearchHref", () => {
+  const base = { type: "airport" as const, value: "OSL", place: "Oslo Gardermoen", pickup: "2026-10-03", dropoff: "2026-10-06" };
+  it("utelater standardtiden og tar med avvikende tider og annet leveringssted", () => {
+    expect(carSearchHref(base)).not.toMatch(/ph=|dh=|dtype=/);
+    const href = carSearchHref({ ...base, pickupHour: 14, dropoffHour: 10, dropoffType: "airport", dropoffValue: "BGO", dropoffPlace: "Bergen" });
+    expect(href).toContain("ph=14");
+    expect(href).not.toContain("dh=");
+    expect(href).toContain("dtype=airport");
+    expect(href).toContain("dvalue=BGO");
+  });
+  it("leser timer trygt", () => {
+    expect(parseHour("14")).toBe(14);
+    expect(parseHour("24")).toBe(10);
+    expect(parseHour(null)).toBe(10);
+    expect(hourLabel(9)).toBe("09:00");
   });
 });

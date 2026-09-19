@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CarAgency, CarOffer, CarPlace, CarSearchResult } from "../../contracts/cars";
+import type { CarAgency, CarLocationType, CarMileage, CarOffer, CarPlace, CarSearchResult } from "../../contracts/cars";
 import { env } from "./env";
 import { log } from "./logger";
 import { kayakAutocomplete, kayakConfig, kayakRequest, KayakError, normalizeUserTrackId } from "./kayak";
@@ -115,6 +115,32 @@ function isHttps(url: string | undefined): url is string {
   }
 }
 
+function locationType(raw: string | undefined): CarLocationType {
+  switch (raw) {
+    case "inTerminal":
+      return "inTerminal";
+    case "shuttle":
+      return "shuttle";
+    case "meetAndGreet":
+    case "meetGreet":
+      return "meetAndGreet";
+    case "offAirport":
+    case "nonAirport":
+      return "offAirport";
+    default:
+      return "unknown";
+  }
+}
+
+function mileageOf(m: { code: string; limit?: number; displayName?: string } | undefined): CarMileage | null {
+  if (!m) return null;
+  const unitMatch = m.displayName?.match(/\b(mi|km)\b/i);
+  const unit = unitMatch ? (unitMatch[1]!.toLowerCase() as "mi" | "km") : undefined;
+  if (m.code === "unlimited") return { code: "unlimited", displayName: m.displayName };
+  if (m.code === "limited" || typeof m.limit === "number") return { code: "limited", limit: m.limit, unit, displayName: m.displayName };
+  return { code: "unknown", displayName: m.displayName };
+}
+
 export function daysBetween(pickup: string, dropoff: string): number {
   return Math.max(1, Math.ceil((Date.parse(dropoff) - Date.parse(pickup)) / 86_400_000));
 }
@@ -208,9 +234,19 @@ export function mapCarResponse(body: z.infer<typeof responseSchema>, input: CarS
       pickup: {
         name: pick?.airport ? `${pick.airport.displayName} (${pick.airport.code})${pick.airport.terminalName ? ` · ${pick.airport.terminalName}` : ""}` : [pick?.address, pick?.cityName].filter(Boolean).join(", ") || "",
         inTerminal: pick?.locationType === "inTerminal",
+        locationType: locationType(pick?.locationType),
+        distance: pick?.displayDistance,
       },
-      dropoff: { name: drop?.airport ? `${drop.airport.displayName} (${drop.airport.code})` : [drop?.address, drop?.cityName].filter(Boolean).join(", ") || "" },
+      dropoff: {
+        name: drop?.airport ? `${drop.airport.displayName} (${drop.airport.code})` : [drop?.address, drop?.cityName].filter(Boolean).join(", ") || "",
+        sameAsPickup: !o.dropoffLocationId || o.dropoffLocationId === o.pickupLocationId,
+      },
       policies: Array.from(new Set(policies)),
+      mileage: mileageOf(o.policy?.mileage),
+      fuelPolicy: o.policy?.fuel ? { code: o.policy.fuel.code, displayName: o.policy.fuel.displayName ?? o.policy.fuel.code } : null,
+      cancellationLimitHours: o.policy?.cancellation?.limitHours ?? null,
+      badges: (o.badges ?? []).filter((b) => b.displayName),
+      features: (car.features ?? []).filter((f) => f.displayName),
       unlimitedMileage: o.policy?.mileage ? o.policy.mileage.code === "unlimited" : null,
       freeCancellation: o.policy?.cancellation ? Boolean(o.policy.cancellation.isUnlimited || o.policy.cancellation.limitHours) : (o.badges ?? []).some((b) => b.code === "freeCancellation") || null,
       days,

@@ -99,6 +99,12 @@ describe("kayakCars", () => {
     expect(fiat.doors).toBe(4);
     expect(fiat.unlimitedMileage).toBe(false);
     expect(fiat.policies).toEqual(expect.arrayContaining(["100 mi", "full-to-full", "Free Cancellation", "Great Deal"]));
+    // Strukturerte vilkår: klienten oversetter kodene i stedet for å vise engelsk råtekst.
+    expect(fiat.mileage).toEqual({ code: "limited", limit: 100, unit: "mi", displayName: "100 mi" });
+    expect(fiat.fuelPolicy).toEqual({ code: "fullToFull", displayName: "full-to-full" });
+    expect(fiat.badges.map((b) => b.code)).toEqual(["freeCancellation", "greatDeal"]);
+    expect(fiat.pickup.locationType).toBe("shuttle");
+    expect(fiat.dropoff.sameAsPickup).toBe(true);
     expect(fiat.pickup.name).toContain("Boston Logan Intl (BOS)");
     expect(fiat.bookUrl).toMatch(/^https:\/\/sandbox-en-us\.kayakaffiliates\.com\/in/);
     expect(fiat.imageUrl).toContain("content.r9cdn.net");

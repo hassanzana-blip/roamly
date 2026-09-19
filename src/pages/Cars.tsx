@@ -8,6 +8,7 @@ import HeroBar from "@/components/app/HeroBar";
 import ServiceTabs from "@/components/app/ServiceTabs";
 import CarCard from "@/components/stays/CarCard";
 import { CarSearchForm } from "@/components/stays/StaySearchForms";
+import { hourLabel, parseHour } from "@/components/stays/stayLinks";
 import { CurrencyNote, DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
 import { Chip } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
@@ -32,12 +33,27 @@ export default function Cars() {
   const place = params.get("place") ?? "";
   const pickup = params.get("pickup") ?? "";
   const dropoff = params.get("dropoff") ?? "";
+  const pickupHour = parseHour(params.get("ph"));
+  const dropoffHour = parseHour(params.get("dh"));
+  const dropoffType = params.get("dtype") === "city" ? "city" : params.get("dtype") === "airport" ? "airport" : "";
+  const dropoffValue = params.get("dvalue") ?? "";
+  const dropoffPlace = params.get("dplace") ?? "";
+  const otherDropoff = Boolean(dropoffType && dropoffValue);
   const hasSearch = Boolean(type && value && pickup && dropoff);
 
   const status = trpc.cars.status.useQuery(undefined, { staleTime: 300_000, retry: false });
   const enabled = status.data?.enabled === true;
   const search = trpc.cars.search.useQuery(
-    { pickup: { type: type as "airport" | "city", value }, pickupDate: pickup, dropoffDate: dropoff, pickupHour: 10, dropoffHour: 10, currency, sessionId: searchSessionId() },
+    {
+      pickup: { type: type as "airport" | "city", value },
+      ...(otherDropoff ? { dropoff: { type: dropoffType as "airport" | "city", value: dropoffValue } } : {}),
+      pickupDate: pickup,
+      dropoffDate: dropoff,
+      pickupHour,
+      dropoffHour,
+      currency,
+      sessionId: searchSessionId(),
+    },
     { enabled: enabled && hasSearch, staleTime: 10 * 60_000, retry: false },
   );
 
@@ -112,7 +128,8 @@ export default function Cars() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="min-w-0">
                 <h1 className="t-h1">{place || t("cr.title")}</h1>
-                <p className="mt-2 text-[17px] text-foreground">{formatDateShort(pickup)} 10:00 – {formatDateShort(dropoff)} 10:00</p>
+                <p className="mt-2 text-[17px] text-foreground">{formatDateShort(pickup)} {hourLabel(pickupHour)} – {formatDateShort(dropoff)} {hourLabel(dropoffHour)}</p>
+                {otherDropoff && <p className="mt-1 text-[15px] text-muted-foreground">{t("cr.dropoff.at", { name: dropoffPlace || dropoffValue })}</p>}
               </div>
               <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-foreground underline underline-offset-4">
                 {t("common.change")} <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
@@ -127,7 +144,7 @@ export default function Cars() {
           <ServiceTabs active="bil" className="mt-5" />
           {(editOpen || !hasSearch) && (
             <div className={cn("card-soft mt-4 p-3 sm:p-4", hasSearch && "fade-up")}>
-              <CarSearchForm initial={{ type, value, place, pickup: pickup || undefined, dropoff: dropoff || undefined }} compact onSubmitted={() => setEditOpen(false)} />
+              <CarSearchForm initial={{ type, value, place, pickup: pickup || undefined, dropoff: dropoff || undefined, pickupHour, dropoffHour, dropoffType, dropoffValue, dropoffPlace }} compact onSubmitted={() => setEditOpen(false)} />
             </div>
           )}
         </div>
