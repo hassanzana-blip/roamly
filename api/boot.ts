@@ -57,9 +57,10 @@ app.use(
       formAction: ["'self'"],
       scriptSrc: ["'self'", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", ...scriptHashes],
       // tiles.openfreemap.org: vektorfliser, sprites og skrifttyper til reisemålskartet (MapLibre) på forsiden.
-      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", "https://tiles.openfreemap.org", ...(env.isProduction ? [] : ["ws:", "wss:"])],
+      // emrldco.com + www.travelpayouts.com: Travelpayouts Drive (skriptet, dets stilark og autentiseringskallet).
+      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", "https://www.travelpayouts.com", "https://tiles.openfreemap.org", ...(env.isProduction ? [] : ["ws:", "wss:"])],
       frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://emrldco.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
       // Bilder: leverandørenes egne (KAYAK: kayak.*, content.r9cdn.net) er alltid https. Lokal stub kun i utvikling.
       imgSrc: ["'self'", "data:", "https:", ...(env.isProduction ? [] : ["http://127.0.0.1:*", "http://localhost:*"])],

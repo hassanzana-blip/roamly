@@ -2,6 +2,10 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+// MapLibre 6 loads its worker from a sibling module file that a bundler does not
+// emit on its own. Vite bundles it here as a self-contained, same-origin worker
+// (CSP worker-src 'self'); without it the map never fetches a single tile.
+import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { useReducedMotion } from "motion/react";
 import type { Pin } from "./StaticDiscoveryMap";
 import { useT } from "@/lib/i18n";
@@ -23,6 +27,7 @@ import { cn } from "@/lib/utils";
 const StaticDiscoveryMap = lazy(() => import("./StaticDiscoveryMap"));
 
 export const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
+maplibregl.setWorkerUrl(mapWorkerUrl);
 
 function pinContent(btn: HTMLButtonElement, p: Pin, on: boolean) {
   btn.replaceChildren();
