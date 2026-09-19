@@ -49,6 +49,12 @@ const Security = lazy(() => import('./pages/account/Security'))
 const Rewards = lazy(() => import('./pages/account/Rewards'))
 const Referral = lazy(() => import('./pages/account/Referral'))
 const Trips = lazy(() => import('./pages/Trips'))
+const TripPlanPage = lazy(() => import('./pages/TripPlan'))
+const Documents = lazy(() => import('./pages/account/Documents'))
+const Friends = lazy(() => import('./pages/account/Friends'))
+const GroupPage = lazy(() => import('./pages/account/Group'))
+const FriendInvite = lazy(() => import('./pages/account/Invites').then((m) => ({ default: m.FriendInvite })))
+const GroupInvite = lazy(() => import('./pages/account/Invites').then((m) => ({ default: m.GroupInvite })))
 const MatchSession = lazy(() => import('./pages/MatchSession'))
 const Boards = lazy(() => import('./pages/Boards'))
 const BoardPage = lazy(() => import('./pages/Board'))
@@ -161,6 +167,13 @@ export default function App() {
             <Route path="/profil/inviter" element={<Referral />} />
             <Route path="/velkommen" element={<Onboarding />} />
             <Route path="/reiser" element={<Trips />} />
+            <Route path="/reiser/dokumenter" element={<Documents />} />
+            <Route path="/reiser/plan/ny" element={<TripPlanPage />} />
+            <Route path="/reiser/plan/:id" element={<TripPlanPage />} />
+            <Route path="/profil/venner" element={<Friends />} />
+            <Route path="/profil/venner/grupper/:id" element={<GroupPage />} />
+            <Route path="/venner/invitasjon/:token" element={<FriendInvite />} />
+            <Route path="/grupper/invitasjon/:token" element={<GroupInvite />} />
             <Route path="/kvittering/:orderId" element={<Receipt />} />
             <Route path="/vilkar" element={<Terms />} />
             <Route path="/personvern" element={<Privacy />} />

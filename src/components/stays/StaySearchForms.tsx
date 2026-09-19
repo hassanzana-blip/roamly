@@ -50,7 +50,7 @@ function DateInput({ label, value, min, onChange, hour, hourLabelText, onHour }:
 
 
 /** Hotellsøk: sted (leverandørens forslag), datoer, gjester og rom. */
-export function HotelSearchForm({ initial, compact, onSubmitted }: { initial?: Partial<HotelSearchValues>; compact?: boolean; onSubmitted?: () => void }) {
+export function HotelSearchForm({ initial, compact, onSubmitted, submitLabel }: { initial?: Partial<HotelSearchValues>; compact?: boolean; onSubmitted?: () => void; submitLabel?: string }) {
   const t = useT();
   const navigate = useNavigate();
   const [text, setText] = useState(initial?.place ?? "");
@@ -78,7 +78,7 @@ export function HotelSearchForm({ initial, compact, onSubmitted }: { initial?: P
         setTouched(true);
         if (!valid) return;
         onSubmitted?.();
-        navigate(hotelSearchHref({ dest: place?.id ?? "", place: place?.label ?? text.trim(), checkin, checkout, adults, rooms, childAges }));
+        navigate(hotelSearchHref({ dest: place?.id ?? "", place: place?.label ?? text.trim(), checkin, checkout, adults, rooms, childAges, prefs: initial?.prefs }));
       }}
       className="space-y-3"
     >
@@ -135,7 +135,7 @@ export function HotelSearchForm({ initial, compact, onSubmitted }: { initial?: P
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="t-caption">{t("home.search.meta.note")}</p>
         <Button type="submit" size="lg" className="w-full rounded-full sm:w-auto sm:min-w-52">
-          <Search /> {t("ht.search")}
+          <Search /> {submitLabel ?? t("ht.search")}
         </Button>
       </div>
     </form>

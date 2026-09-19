@@ -127,6 +127,12 @@
     /* Hearts and saved items: petrol, like the rest of the brand. */
     --like: 193 59% 17%;
 
+    /* Min side-flater (godkjent design): status-gul, lys himmel, lys rose. */
+    --sunny: 52 96% 82%;
+    --sunny-ink: 40 60% 18%;
+    --sky-soft: 215 85% 95%;
+    --rose-soft: 355 65% 96%;
+
     /* Layout: the phone tab bar (white, edge to edge). */
     --tabbar-h: 64px;
 
@@ -188,6 +194,10 @@
     --sand: 195 16% 16%;
     --skyline: 212 92% 74%;
     --like: 214 90% 66%;
+    --sunny: 48 60% 30%;
+    --sunny-ink: 50 90% 88%;
+    --sky-soft: 215 30% 16%;
+    --rose-soft: 350 22% 17%;
     --sidebar-background: 195 26% 10%;
     --sidebar-foreground: 190 20% 94%;
     --sidebar-primary: 214 90% 66%;

@@ -1,5 +1,6 @@
 import {
   Bell,
+  FileText,
   Gift,
   Heart,
   LayoutGrid,
@@ -7,6 +8,7 @@ import {
   MessagesSquare,
   Settings2,
   Sparkles,
+  UserRoundPlus,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -28,6 +30,8 @@ export type AccountItem = {
 export const ACCOUNT_NAV: AccountItem[] = [
   { to: "/profil", label: "Oversikt", icon: LayoutGrid, end: true },
   { to: "/reiser", label: "Mine reiser", icon: Luggage },
+  { to: "/reiser/dokumenter", label: "Billetter og dokumenter", icon: FileText },
+  { to: "/profil/venner", label: "Venner", icon: UserRoundPlus },
   { to: "/lagret", label: "Lagret", icon: Heart },
   { to: "/tavler", label: "Reisetavler", icon: MessagesSquare },
   { to: "/profil/reisende", label: "Reisende", icon: Users },
