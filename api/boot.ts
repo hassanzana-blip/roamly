@@ -5,7 +5,7 @@ import type { HttpBindings } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router";
 import { createContext } from "./context";
-import { assertProductionSafety, env } from "./lib/env";
+import { assertProductionSafety, env, clerkFrontendApiOrigin } from "./lib/env";
 import { log, newRequestId, withContext } from "./lib/logger";
 import { stripeWebhookApp } from "./webhooks/stripe";
 import { duffelWebhookApp } from "./webhooks/duffel";
@@ -46,6 +46,11 @@ app.use("*", async (c, next) => {
 // 'unsafe-inline' for style er nødvendig for Stripe Elements/Tailwind-runtime.
 // Inline-skript i index.html (tema-init) tillates via sha256-hash, ikke 'unsafe-inline'.
 const scriptHashes = inlineScriptHashes();
+// Clerk serverer clerk.browser.js fra sin frontend-API-vert (clerk.<domenet>).
+// Uten den i script-src blokkerer nettleseren skriptet, og innloggingsknappen
+// vises uten å virke. Tom liste når Clerk ikke er konfigurert.
+const clerkOrigin = clerkFrontendApiOrigin();
+const clerkSrc = clerkOrigin ? [clerkOrigin] : [];
 app.use(
   "*",
   secureHeaders({
@@ -55,10 +60,10 @@ app.use(
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
       formAction: ["'self'"],
-      scriptSrc: ["'self'", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", ...scriptHashes],
+      scriptSrc: ["'self'", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", ...clerkSrc, ...scriptHashes],
       // tiles.openfreemap.org: vektorfliser, sprites og skrifttyper til reisemålskartet (MapLibre) på forsiden.
       // emrldco.com + www.travelpayouts.com: Travelpayouts Drive (skriptet, dets stilark og autentiseringskallet).
-      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", "https://www.travelpayouts.com", "https://tiles.openfreemap.org", ...(env.isProduction ? [] : ["ws:", "wss:"])],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://js.stripe.com", "https://plausible.io", "https://emrldco.com", "https://www.travelpayouts.com", "https://tiles.openfreemap.org", ...clerkSrc, ...(env.isProduction ? [] : ["ws:", "wss:"])],
       frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://emrldco.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
