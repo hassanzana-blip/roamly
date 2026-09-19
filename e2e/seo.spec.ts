@@ -21,6 +21,10 @@ for (const p of PAGES) {
   test(`${p.path} har nøyaktig én canonical, tittel og description etter hydrering`, async ({ page, baseURL }) => {
     await page.goto(p.path);
     await expect(page).toHaveTitle(p.title);
+    // Serveren leverer allerede riktig tittel, så toHaveTitle sier ingenting om
+    // hydreringen. Vent til klienten har tatt over (rutens chunk er lastet,
+    // usePageMeta har kjørt og serverens tagger er fjernet) før vi teller.
+    await page.waitForFunction(() => document.querySelectorAll("[data-hs-seo]").length === 0, undefined, { timeout: 15_000 });
 
     const counts = await page.evaluate(() => ({
       canonical: document.querySelectorAll('link[rel="canonical"]').length,
@@ -33,7 +37,9 @@ for (const p of PAGES) {
 
     const canonical = await page.getAttribute('link[rel="canonical"]', "href");
     expect(new URL(canonical!).pathname).toBe(p.path);
-    expect(canonical).not.toBe(`${baseURL}/`);
+    // Undersider skal aldri peke på forsiden – det var den opprinnelige feilen.
+    // Forsiden selv skal selvsagt peke på forsiden.
+    if (p.path !== "/") expect(canonical).not.toBe(`${baseURL}/`);
   });
 }
 
