@@ -194,7 +194,10 @@ export const PAGE_META = {
   hotelDetail: {
     title: "Hotell – priser fra flere leverandører",
     description: "Se rom, priser og vilkår fra flere leverandører for samme hotell. Bestillingen fullføres hos leverandøren.",
+    // Én side per hotell og datoer, med leverandørens innhold: ikke i indeksen. Canonical til
+    // /hotell ville sagt «dette er søkesiden», og det er den ikke.
     canonicalPath: "/hotell",
+    noindex: true,
   },
   cars: {
     title: "Søk og sammenlign leiebil",
@@ -216,7 +219,7 @@ export const PAGE_META = {
   },
   explore: { title: "Utforsk reisemål", description: "Reisemål fra Norge etter stemning, region og reisetid. Ekte priser fra vårt eget prissøk.", canonicalPath: "/utforsk" },
   journal: { title: "HelloSky Journal", description: "Det vi faktisk vet om reisen: bagasje, mellomlandinger, barn og stedene vi flyr til. Oppdaterte, nyttige artikler uten priser som tall.", canonicalPath: "/journal" },
-  destinations: { title: "Reisemål", description: "Guider til de rutene vi kjenner best – fra Oslo til Istanbul, Erbil, Beirut, Casablanca og resten av verden.", canonicalPath: "/reisemal" },
+  destinations: { title: "Reisemål", description: "Reiseguider fra Norge til hele verden: når du bør reise, hvordan du kommer deg fra flyplassen, hvor du bør bo og hva som er verdt å vite før du bestiller.", canonicalPath: "/reisemal" },
   support: { title: "Kundeservice", description: "Hjelp med bestilling, endring, refusjon og bagasje. Norsk kundeservice alle dager 06–24.", canonicalPath: "/hjelp" },
   flightStatus: { title: "Flystatus", description: "Sjekk avganger, ankomster og forsinkelser for flyet ditt.", canonicalPath: "/flystatus" },
   hotelCar: { title: "Hotell og leiebil", description: "Vi hjelper deg med hotell og leiebil på reisemålet.", canonicalPath: "/hotell-bil" },
@@ -250,7 +253,7 @@ export const PAGE_META = {
   privacy: { title: "Personvernerklæring", description: "Hvordan HelloSky behandler personopplysninger: behandlingsansvarlig, databehandlere, lagringstid og dine rettigheter.", canonicalPath: "/personvern" },
   baggage: { title: "Bagasjeguiden", description: "Håndbagasje, innsjekket bagasje, barn, spesialbagasje og hva du gjør om bagasjen blir borte.", canonicalPath: "/bagasje" },
   visa: { title: "Visumguiden", description: "Generell veiledning om pass og visum for norske pass til populære reisemål.", canonicalPath: "/visum" },
-  about: { title: "Om HelloSky", description: "Norsk reisebyrå for hele verden – strandferie, storbyhelg, langtur og reiser hjem til familien, med ekte mennesker i kundeservice.", canonicalPath: "/om-oss" },
+  about: { title: "Om HelloSky", description: "Norsk reisebyrå for hele verden – strandferie, storbyhelg, langtur og besøk hos familie og venner, med ekte mennesker i kundeservice.", canonicalPath: "/om-oss" },
   notFound: { title: "Siden finnes ikke", description: "Siden du leter etter finnes ikke.", canonicalPath: "/404", noindex: true },
   admin: { title: "Administrasjon", description: "Internportal for ansatte.", canonicalPath: "/admin", noindex: true },
 } as const satisfies Record<string, PageMeta>;

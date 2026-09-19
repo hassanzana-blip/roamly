@@ -1,5 +1,5 @@
-// Reisemålsinnhold – skrevet for dem som reiser hjem til familien,
-// og for alle som vil utforske verden fra Norge.
+// Reisemålsinnhold – guider for alle som reiser fra Norge: flyplassvalg,
+// reisetid, sesonger og det praktiske som avgjør om reisen blir god.
 
 export interface Gateway {
   iata: string;
@@ -42,7 +42,7 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Tyrkia og Kurdistan",
     headline: "Bazaren, fjellene og familiens bord",
     community:
-      "En av Norges største innvandrergrupper – med røtter i både Tyrkia og Kurdistan-regionen.",
+      "Istanbul er en av verdens største flyknutepunkter – og porten videre til hele Tyrkia og Kurdistan-regionen.",
     gateways: [
       { iata: "IST", label: "Istanbul" },
       { iata: "AYT", label: "Antalya" },
@@ -50,8 +50,8 @@ export const FEATURED: FeaturedDestination[] = [
       { iata: "BGW", label: "Bagdad" },
     ],
     paragraphs: [
-      "For titusener av nordmenn med tyrkiske og kurdiske røtter er reisen hjem mer enn en ferie – det er tepper av lammegryte, te i små glass, besteforeldre som venter på trappen og et språk som høres hjemme i gatene. Istanbul er den naturlige porten: Turkish Airlines flyr Oslo–Istanbul daglig, og derfra går det forbindelser videre til Ankara, Izmir, Diyarbakır, Gaziantep og over hundre andre byer – ofte med bare én kort mellomlanding.",
-      "Mange i det kurdiske miljøet reiser videre til Kurdistan-regionen i Nord-Irak. Erbil (EBL) er hovedflyplassen, med forbindelser via Istanbul, og er utgangspunktet for reiser videre til Sulaymaniyah, Duhok og fjellandsbyene der slekten bor. Bagdad (BGW) dekker dem som har familie lenger sør. Vi vet at disse reisene ofte handler om hele familien – besteforeldre, barn og barnebarn på samme billett – og at bagasjen er full av gaver begge veier. Derfor gjør vi det enkelt å legge til ekstra kolli allerede i bestillingen.",
+      "Istanbul er den naturlige porten til hele regionen: Turkish Airlines flyr Oslo–Istanbul daglig, og derfra går det forbindelser videre til Ankara, Izmir, Diyarbakır, Gaziantep og over hundre andre byer – ofte med bare én kort mellomlanding. Byen i seg selv er verdt et stopp på noen dager: te i små glass, bazarene og bosporosferjene mellom to kontinenter.",
+      "Skal du videre til Kurdistan-regionen i Nord-Irak, er Erbil (EBL) hovedflyplassen, med forbindelser via Istanbul, og utgangspunktet for reiser videre til Sulaymaniyah, Duhok og fjellandsbyene. Bagdad (BGW) dekker reiser lenger sør. Mange av disse reisene gjelder hele familien – besteforeldre, barn og barnebarn på samme billett – og bagasjen er ofte full av gaver begge veier. Derfor gjør vi det enkelt å legge til ekstra kolli allerede i bestillingen.",
       "Sommeren er høysesong, men de sterkeste prisoppgangene ser vi rundt ramadan bayram (Eid al-fitr) og kurban bayram (Eid al-adha), da halve Norge–Tyrkia-korridoren reiser samtidig. Vårt råd: book bayram-reisen minst tre måneder før, og vurder å fly ut et par dager før selve høytiden – prisforskjellen kan være flere tusen kroner per person.",
     ],
     tips: [
@@ -69,13 +69,13 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Syria",
     headline: "Damaskus – verdens eldste levende by",
     community:
-      "Et av de nyeste og største miljøene i Norge – med familie både i Syria og i nabolandene.",
+      "Reiser til Syria krever ekstra planlegging: rutetilbudet endrer seg med forholdene, og vi følger med for deg.",
     gateways: [
       { iata: "DAM", label: "Damaskus" },
       { iata: "BEY", label: "Beirut (inngangsport)" },
     ],
     paragraphs: [
-      "Det syriske miljøet i Norge har vokst til å bli en av landets største innvandrergrupper i løpet av det siste tiåret. For mange er drømmen om å se familien igjen sterk, og reiseruten endrer seg med forholdene i regionen. Damaskus internasjonale lufthavn (DAM) er igjen åpen for internasjonal trafikk, med forbindelser blant annet via Istanbul. Mange velger også å fly til Beirut (BEY) og fortsette over landegrensen – en reise på rundt tre timer med bil.",
+      "Reiseruten til Syria endrer seg med forholdene i regionen. Damaskus internasjonale lufthavn (DAM) er igjen åpen for internasjonal trafikk, med forbindelser blant annet via Istanbul. Mange velger også å fly til Beirut (BEY) og fortsette over landegrensen – en reise på rundt tre timer med bil.",
       "Forholdene kan endre seg raskt, og rutetilbudet med dem. Derfor anbefaler vi alltid å snakke med oss før du booker til Syria: vi følger med på hvilke selskaper som faktisk flyr, hvilke mellomlandinger som fungerer, og hva som gjelder av dokumentasjon for deg og familien. Det er nettopp på slike reiser at personlig hjelp betyr mest.",
       "For familier som reiser med barn er fleksible billetter gull verdt på denne ruten. Vi hjelper deg å finne billetter som kan endres uten at det koster skjorta, og vi holder deg oppdatert dersom flyselskapet endrer rutetidene – noe som skjer oftere her enn på europeiske ruter.",
     ],
@@ -95,10 +95,10 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Libanon",
     headline: "Middelhav, fjell og verdens beste meze",
     community:
-      "Et veletablert libanesisk miljø – med bryllupssomre og familiebesøk året rundt.",
+      "Middelhavsby med fjell én time unna – matscene i verdensklasse og travle bryllupssomre.",
     gateways: [{ iata: "BEY", label: "Beirut" }],
     paragraphs: [
-      "Libanon er lite av størrelse, men enormt i opplevelser – og for det libanesiske miljøet i Norge er Beirut byen der alle veier møtes. Rafic Hariri internasjonale lufthavn (BEY) ligger like sør for byen, og hit flyr du enkelt fra Oslo med én mellomlanding i Istanbul, Frankfurt eller Paris. Om sommeren fylles flyene av familier på vei til bryllup, dåp og lange kvelder på verandaen i fjellandsbyene.",
+      "Libanon er lite av størrelse, men enormt i opplevelser – og Beirut er byen der alle veier møtes. Rafic Hariri internasjonale lufthavn (BEY) ligger like sør for byen, og hit flyr du enkelt fra Oslo med én mellomlanding i Istanbul, Frankfurt eller Paris. Om sommeren fylles flyene av bryllupsgjester og folk på vei til lange kvelder på verandaen i fjellandsbyene – bestill tidlig.",
       "Beirut er kjent for matkulturen som aldri slutter å imponere: meze-bord som dekker hele bordet, fersk fisk ved Corniche, og kaffe servert slik den har vært servert i hundre år. Samtidig ligger fjellene en halvtime unna – på vinteren kan du stå på ski om morgenen og bade i Middelhavet om ettermiddagen. For barnefamilier er Libanon et land der barn bæres, kysses og mates overalt dere kommer.",
       "Valuta- og banksituasjonen i Libanon gjør at kontanter (USD) er kongen. Ta med dollar i sedler i god stand, og regn med at kort ikke alltid virker. Vi deler gjerne oppdaterte praktiske råd når du booker.",
     ],
@@ -118,21 +118,21 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Marokko",
     headline: "Souker, Atlasfjell og myntete på takterrassen",
     community:
-      "Et stort marokkansk miljø i Norge – sommerflyene til Casablanca og Marrakech fylles tidlig.",
+      "Fire–fem timer fra Oslo: souker, Atlasfjell og kyst. Sommerflyene til Casablanca og Marrakech fylles tidlig.",
     gateways: [
       { iata: "CMN", label: "Casablanca" },
       { iata: "RAK", label: "Marrakech" },
     ],
     paragraphs: [
-      "Marokko ligger bare fire-fem timer unna, men føles som en annen verden – det er nettopp derfor så mange nordmenn med marokkanske røtter reiser hjem hver eneste sommer. Casablanca Mohammed V (CMN) er hovedinngangsporten, med togforbindelse videre til Rabat, Fès og Meknès rett fra flyplassen. Marrakech Menara (RAK) dekker sør, med soukene, Majorelle-hagen og veien videre over Atlasfjellene til Agadir og Souss-dalen der mange familiar har røttene sine.",
+      "Marokko ligger bare fire–fem timer unna, men føles som en annen verden – derfor er sommerflyene fulle år etter år. Casablanca Mohammed V (CMN) er hovedinngangsporten, med togforbindelse videre til Rabat, Fès og Meknès rett fra flyplassen. Marrakech Menara (RAK) dekker sør, med soukene, Majorelle-hagen og veien videre over Atlasfjellene til Agadir og Souss-dalen.",
       "Sommerens familiebesøk er landets store reisebegivenhet: billetter til juli og august bør sikres tidlig, spesielt for større familier. Rundt Eid al-adha og i ramadan er tempoet et helt annet – magisk å oppleve, men verdt å planlegge rundt. Utover høsten og vinteren er Marokko også en fantastisk feriedestinasjon: 20 plussgrader i Marrakech i november, surfing i Taghazout og rosa solnedganger over Koutoubia-moskeen.",
       "Reiser du med barn, husk at det marokkanske veinettet er komfortabelt: høyhastighetstoget Al Boraq tar deg fra Casablanca til Tanger på drøyt to timer. Vi hjelper deg gjerne med å legge opp reisen slik at hele slekten nås – fra Tanger i nord til Agadir i sør.",
     ],
     tips: [
       "Sommerbilletter til Casablanca og Marrakech bør bookes 3+ måneder før avreise.",
-      "Fly til Casablanca hvis familien bor i Rabat/Fès-området – toget fra flyplassen er raskt og billig.",
+      "Fly til Casablanca hvis du skal til Rabat/Fès-området – toget fra flyplassen er raskt og billig.",
       "Vinteren er perfekt for Marrakech: varmt, rimelig og færre turister.",
-      "Ekstra kolli for gaver hjem og olivenolje tilbake – legg det inn i bestillingen.",
+      "Ekstra kolli for gaver dit og olivenolje tilbake – legg det inn i bestillingen.",
     ],
     bestTime: "Hele året – vår og høst er best. Sommeren er familiebesøksesong.",
     flightTime: "Ca. 4,5–7 t avhengig av mellomlanding",
@@ -143,11 +143,11 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Eritrea",
     headline: "Asmara – Afrikas lille Roma over skyene",
     community:
-      "Et sterkt eritreisk miljø – reisen hjem er lang, men betydningen er stor.",
+      "Asmara ligger 2 300 meter over havet, med art deco-arkitektur og et mildt klima året rundt. Reisen er lang og krever planlegging.",
     gateways: [{ iata: "ASM", label: "Asmara" }],
     paragraphs: [
-      "For det eritreiske miljøet i Norge er reisen til Asmara en av årets viktigste begivenheter. Byen ligger 2 300 meter over havet, med evig vårvær, italiensk art deco-arkitektur og macchiato servert på gamle espressomaskiner – et stykke Italia på Afrikas horn. Asmara internasjonale lufthavn (ASM) nås fra Oslo med mellomlanding i Istanbul, Kairo eller Addis Abeba, og vi kjenner kombinasjonene som gir kortest total reisetid.",
-      "Mange reiser hjem i juli–august og rundt jul (Gena feires 7. januar), og billettene på disse ukene forsvinner raskt. Det er ikke uvanlig at tre generasjoner reiser sammen, og at hjemmebesøket varer tre-fire uker. Planlegger du å reise med små barn for første gang, anbefaler vi å legge inn en rolig mellomlanding heller enn den korteste – vi hjelper deg å finne riktig balanse.",
+      "Asmara ligger 2 300 meter over havet, med evig vårvær, italiensk art deco-arkitektur og macchiato servert på gamle espressomaskiner – et stykke Italia på Afrikas horn. Asmara internasjonale lufthavn (ASM) nås fra Oslo med mellomlanding i Istanbul, Kairo eller Addis Abeba, og vi kjenner kombinasjonene som gir kortest total reisetid.",
+      "Juli–august og ukene rundt jul (Gena feires 7. januar) er høysesong, og billettene på disse ukene forsvinner raskt. Det er ikke uvanlig at tre generasjoner reiser sammen, og at oppholdet varer tre–fire uker. Reiser du med små barn for første gang, anbefaler vi en rolig mellomlanding heller enn den korteste – vi hjelper deg å finne riktig balanse.",
       "Praktisk å vite: pass må være gyldig minst seks måneder, visum ordnes via eritreiske myndigheter eller ambassade, og valuta (nakfa) veksles lokalt – ta med euro eller dollar. Internett er begrenset i Eritrea, så avtal gjerne med familien om møtepunkt og tid før du lander. Og pakk gaver i god tid: bagasjekvoten går fort når en hel slekt skal glede seg.",
     ],
     tips: [
@@ -166,15 +166,15 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Afghanistan",
     headline: "Hindukush, granatepler og gjestfrihet uten sidestykke",
     community:
-      "Et voksende afghansk miljø – mange reiser via nabolandene for å møte familien.",
+      "Reiser til Afghanistan krever grundig planlegging. Følg UDs reiseråd, og snakk med oss om ruter via Istanbul, Dubai eller Islamabad.",
     gateways: [
       { iata: "KBL", label: "Kabul" },
       { iata: "ISB", label: "Islamabad (inngangsport)" },
     ],
     paragraphs: [
-      "Reiser til Afghanistan krever mer planlegging enn de fleste andre destinasjoner – og det er akkurat her vi gjør størst nytte. Kabul internasjonale lufthavn (KBL) betjenes av blant andre Turkish Airlines via Istanbul og flyselskaper via Dubai, og mange i det afghanske miljøet velger også å fly til Islamabad (ISB) i Pakistan og møte familien der eller reise videre over land.",
+      "Reiser til Afghanistan krever mer planlegging enn de fleste andre destinasjoner – og det er akkurat her vi gjør størst nytte. Kabul internasjonale lufthavn (KBL) betjenes av blant andre Turkish Airlines via Istanbul og flyselskaper via Dubai, og mange velger også å fly til Islamabad (ISB) i Pakistan og reise videre over land.",
       "Forholdene på bakken kan endre seg, og flyselskapene justerer rutene sine med kort varsel. Derfor anbefaler vi alltid personlig oppfølging på denne ruten: vi sjekker hvilke forbindelser som faktisk opererer når du skal reise, legger inn generøse mellomlandinger, og sørger for at billetten din kan endres dersom noe skulle skje.",
-      "For dem som reiser for første gang på lenge: Kabul ligger 1 800 meter over havet, vintrene er kalde og sommernettene kjølige. Pakk etter sesong, og husk at afghansk gjestfrihet betyr at du aldri reiser tomhendt – verken dit eller hjem. Planlegg bagasjen deretter.",
+      "Kabul ligger 1 800 meter over havet, vintrene er kalde og sommernettene kjølige. Pakk etter sesong, og husk at afghansk gjestfrihet betyr at du sjelden reiser tomhendt – i noen retning. Planlegg bagasjen deretter.",
     ],
     tips: [
       "Kontakt oss før du booker – rutetilbudet til Kabul endrer seg, og vi finner den tryggeste reiseveien.",
@@ -192,16 +192,16 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Pakistan",
     headline: "Fra Lahores festmåltider til Karakorams giganter",
     community:
-      "En av Norges aller største innvandrergrupper – desember er bryllupssesong.",
+      "Fra Lahores matgater til Karakorams topper. Desember er bryllupssesong, og flyene fylles tidlig.",
     gateways: [
       { iata: "ISB", label: "Islamabad" },
       { iata: "LHE", label: "Lahore" },
       { iata: "KHI", label: "Karachi" },
     ],
     paragraphs: [
-      "Få reisemål betyr like mye for like mange nordmenn som Pakistan. Det pakistanske miljøet er en av Norges eldste og største innvandrergrupper, og korridoren Oslo–Islamabad/Lahore er en av de mest trafikkerte familie­rutene vi har. Islamabad (ISB) er den moderne hovedstaden med Margalla Hills som bakteppe, Lahore (LHE) er landets sjel – matbyen over alle, med Mughal-arkitektur og festmiddager som varer til langt på natt – mens Karachi (KHI) dekker dem med røtter i Sindh og ved kysten.",
+      "Korridoren Oslo–Islamabad/Lahore er en av de mest trafikkerte langrutene fra Norge, og landet har tre inngangsporter med hver sin karakter. Islamabad (ISB) er den moderne hovedstaden med Margalla Hills som bakteppe, Lahore (LHE) er landets sjel – matbyen over alle, med Mughal-arkitektur og festmiddager som varer til langt på natt – mens Karachi (KHI) dekker Sindh og kysten.",
       "De travleste reiseperiodene er sommerferien og desember, da pakistanske bryllupssesonger tiltrekker hele slekter. Et pakistansk bryllup varer i flere dager, og halve Norge kan være invitert. Vårt råd er å booke desemberreisen allerede på sensommeren – prisene på de populære ukene rundt 20. desember–5. januar kan doble seg jo nærmere du kommer.",
-      "Vanlige reiseveier fra Oslo går via Istanbul, Doha eller Dubai – alle med gode forbindelser til både ISB, LHE og KHI. Mange familier lander i én by og reiser hjem fra en annen (f.eks. inn til Lahore, ut fra Islamabad). Det heter multicity-søk, og søkemotoren vår støtter det direkte – prøv det neste gang dere skal besøke slekt i flere byer.",
+      "Vanlige reiseveier fra Oslo går via Istanbul, Doha eller Dubai – alle med gode forbindelser til både ISB, LHE og KHI. Mange lander i én by og reiser tilbake fra en annen (f.eks. inn til Lahore, ut fra Islamabad). Det heter multicity-søk, og søkemotoren vår støtter det direkte – prøv det neste gang dere skal besøke flere byer på én reise.",
     ],
     tips: [
       "Desember er bryllupssesong – book før oktober for de beste prisene.",
@@ -219,14 +219,14 @@ export const FEATURED: FeaturedDestination[] = [
     country: "India",
     headline: "Et kontinent av smaker, språk og farger",
     community:
-      "Et stort og voksende indisk miljø – med familie spredt fra Punjab til Kerala.",
+      "Et kontinent i ett land: Delhi, Mumbai og Punjab i nord, Kerala og Goa i sør – og rimelige innenlandsfly imellom.",
     gateways: [
       { iata: "DEL", label: "New Delhi" },
       { iata: "BOM", label: "Mumbai" },
     ],
     paragraphs: [
-      "India er ikke ett reisemål, men hundre – og det indiske miljøet i Norge har røtter i dem alle: Punjab og Gujarat, Kerala og Tamil Nadu, Hyderabad og Bengaluru. New Delhi (DEL) er den største inngangsporten fra Norge, med videreforbindelser til hele Nord-India. Mumbai (BOM) dekker vestkysten og er knutepunktet for reiser videre sørover. Begge nås fra Oslo med én mellomlanding i Doha, Dubai, Istanbul eller Helsinki.",
-      "Reisesesongene følger høytidskalenderen: Diwali (oktober/november) er landets største fest, da hele India gløder av lys og flyene er fulle av familier med gaver og søtsaker. Vinterferien (desember–januar) er perfekt tid for de fleste regioner – 20–28 grader, lite regn og behagelige netter. Sommeren er varm, men det er da mange familier har ferie og reiser hjem i flere uker.",
+      "India er ikke ett reisemål, men hundre: Punjab og Gujarat, Kerala og Tamil Nadu, Hyderabad og Bengaluru. New Delhi (DEL) er den største inngangsporten fra Norge, med videreforbindelser til hele Nord-India. Mumbai (BOM) dekker vestkysten og er knutepunktet for reiser videre sørover. Begge nås fra Oslo med én mellomlanding i Doha, Dubai, Istanbul eller Helsinki.",
+      "Reisesesongene følger høytidskalenderen: Diwali (oktober/november) er landets største fest, da hele India gløder av lys og flyene er fulle. Vinterferien (desember–januar) er perfekt tid for de fleste regioner – 20–28 grader, lite regn og behagelige netter. Sommeren er varm, men det er da mange har ferie og reiser i flere uker.",
       "India krever visum for norske statsborgere, men e-visumordningen er rask og enkel – søk minst en uke før avreise. Og et praktisk tips til store familiegrupper: indre innenlandsflyvninger er svært rimelige, så land i Delhi eller Mumbai og fly videre til familiens by heller enn å velge den billigste enkeltbilletten med fem timers ventetid.",
     ],
     tips: [
@@ -245,10 +245,10 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Bangladesh",
     headline: "Elvelandet der alle kjenner alle",
     community:
-      "Et etablert bangladeshisk miljø – med sterke bånd til Sylhet og Dhaka.",
+      "Elvelandet der gjestfriheten er legendarisk. Dhaka er inngangsporten, med Sylhet og Chittagong et kort innenlandsfly unna.",
     gateways: [{ iata: "DAC", label: "Dhaka" }],
     paragraphs: [
-      "For det bangladeshiske miljøet i Norge fører de fleste reiser til Hazrat Shahjalal internasjonale lufthavn i Dhaka (DAC) – og mange videre nordøst til Sylhet, regionen en stor del av miljøet stammer fra. Fra Oslo flyr du med én mellomlanding i Doha, Dubai eller Istanbul, og innenlandsforbindelsen videre til Sylhet tar under en time.",
+      "De fleste reiser går til Hazrat Shahjalal internasjonale lufthavn i Dhaka (DAC) – og mange videre nordøst til Sylhet, med teplantasjer og et grønt åslandskap. Fra Oslo flyr du med én mellomlanding i Doha, Dubai eller Istanbul, og innenlandsforbindelsen videre til Sylhet tar under en time.",
       "Vinterhalvåret (november–februar) er den gylne reisetiden: tørke, 18–28 grader og grøn telandskap så langt øyet rekker. Det er også bryllupssesong, og flyene fylles av familier med store pakker og enda større forventninger. Monsunen (juni–september) er våt og heftig, men landskapet er på sitt frodigste – og prisene på sitt laveste.",
       "Bangladesh er gjestfrihetens land: forvent å bli invitert hjem på middag av folk du så vidt har møtt, og forvent at bordet alltid har plass til én til. Praktisk: visum ordnes som e-visum eller ved ankomst for enkelte kategorier – sjekk hva som gjelder for deg før avreise, og sørg for at passet er gyldig minst seks måneder.",
     ],
@@ -268,10 +268,10 @@ export const FEATURED: FeaturedDestination[] = [
     country: "Sri Lanka",
     headline: "Teplantasjer, templer og tamilske tradisjoner",
     community:
-      "Et av Norges eldste asiatiske miljøer – med sterke bånd til nord og øst på øya.",
+      "Teplantasjer, templer og strender på én øy. Desember–mars er tørketid på vest- og sørkysten.",
     gateways: [{ iata: "CMB", label: "Colombo" }],
     paragraphs: [
-      "Det tamilske miljøet fra Sri Lanka er en av Norges mest etablerte innvandrergrupper, og reisen til Colombo (CMB) er en kjær tradisjon for tusenvis av familier. Bandaranaike internasjonale lufthavn ligger nord for hovedstaden, og derfra går veiene videre til Jaffna i nord, Batticaloa og Trincomalee i øst, eller til teplantasjene i høylandet. Fra Oslo er Doha, Dubai og Istanbul de smidigste mellomlandingene.",
+      "Colombo (CMB) er inngangsporten til hele øya. Bandaranaike internasjonale lufthavn ligger nord for hovedstaden, og derfra går veiene videre til Jaffna i nord, Batticaloa og Trincomalee i øst, eller til teplantasjene i høylandet. Fra Oslo er Doha, Dubai og Istanbul de smidigste mellomlandingene.",
       "Reisekalenderen følger både vær og høytider: desember–mars er tørketiden på vest- og sørkysten og høysesong for alle. Tamilsk nyttår (Puthandu) i april og Thai Pongal i januar samler familiene. Om sommeren er det østkysten som leverer sitt beste vær – Trincomalees strender er blant Asias vakreste, og langt mindre kjent enn de fortjener.",
       "For førstegangsreisende med norske barn: Sri Lanka er et av Asias enkleste land å reise i med familie – korte avstander, toglinjen gjennom tefjellene (en av verdens vakreste togturer), safariparker med elefanter og en matkultur barna vil snakke om lenge. Norske statsborgere trenger ETA (elektronisk reisetillatelse), som ordnes på nett på få minutter.",
     ],
@@ -289,16 +289,16 @@ export const FEATURED: FeaturedDestination[] = [
     id: "polen",
     photo: "warszawa",
     country: "Polen",
-    headline: "Norges nærmeste naboland – og største fellesskap",
+    headline: "Norges nærmeste naboland – og enkleste storbyhelg",
     community:
-      "Den største innvandrergruppen i Norge – med daglige direktefly til hele landet.",
+      "Norges nærmeste storbyhelg: under to timer til Warszawa, Kraków og Gdańsk, med direktefly flere ganger daglig.",
     gateways: [
       { iata: "WAW", label: "Warszawa" },
       { iata: "KRK", label: "Kraków" },
       { iata: "GDN", label: "Gdańsk" },
     ],
     paragraphs: [
-      "Polakker utgjør den største innvandrergruppen i Norge, og flyrutene mellom landene er deretter: direktefly til Warszawa (WAW), Kraków (KRK) og Gdańsk (GDN) flere ganger daglig, pluss forbindelser til Wrocław, Poznań, Katowice og Szczecin. På under to timer er du fremme – nærmere enn mange norske byer. Det gjør Polen til det enkleste «hjemmebesøket» av dem alle: langhelg til mamma i Kraków er fullt mulig, og mange gjør nettopp det.",
+      "Flyrutene mellom Norge og Polen er blant de tetteste vi har: direktefly til Warszawa (WAW), Kraków (KRK) og Gdańsk (GDN) flere ganger daglig, pluss forbindelser til Wrocław, Poznań, Katowice og Szczecin. På under to timer er du fremme – nærmere enn mange norske byer. Det gjør Polen til den enkleste langhelgen av dem alle, enten målet er Krakóws gamleby eller Baltikum-kysten.",
       "Reisetoppene er like forutsigbare som de er hyggelige: julen (Wigilia er hellig i polske hjem), påsken med sine tradisjoner, og sommeren ved Mazury-sjøene eller Baltikum-kysten. Rundt disse høytidene bør du booke noen uker tidlig – ellers finnes det nesten alltid rimelige billetter, ofte billigere enn toget til Bergen.",
       "Polen byr også på noen av Europas mest undervurderte storbyer: Krakóws middelaldertorg, Warszawas gjenoppbygde gamleby, Gdańsks gullgater ved Motława-elven og Wrocławs øyby. For familier er landet enkelt: gode priser, trygge byer, barnevennlig mat – og alle snakker i praksis engelsk i tillegg til polsk.",
     ],

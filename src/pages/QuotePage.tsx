@@ -14,6 +14,8 @@ import { cabinLabel, formatDateTime, formatMinor, formatPrice } from "@/lib/form
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { COMPANY } from "@/pages/content/company";
+import { WHATSAPP_LINK } from "@/components/WhatsAppFab";
 
 type Slice = {
   origin?: { city?: string; cityName?: string; iata?: string };
@@ -22,8 +24,8 @@ type Slice = {
   arrivingAt?: string;
 };
 
-const SUPPORT_PHONE: string = import.meta.env.VITE_SUPPORT_PHONE ?? "+47 22 41 00 00";
-const WA = "https://wa.me/4797917976";
+// Telefon og WhatsApp deles med resten av appen – aldri to nummer i omløp.
+const WA = WHATSAPP_LINK;
 const TERMINAL = new Set(["confirmed", "failed", "expired", "price_changed", "cancelled"]);
 const POLL_MAX_MS = 3 * 60_000;
 
@@ -491,8 +493,8 @@ export default function QuotePage() {
                     <a href={WA} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-6 text-sm font-semibold text-foreground hover:opacity-90">
                       <MessageCircle className="h-4 w-4" aria-hidden="true" /> WhatsApp
                     </a>
-                    <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, "")}`} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border px-6 text-sm font-semibold text-foreground hover:bg-muted">
-                      <Phone className="h-4 w-4" aria-hidden="true" /> Ring {SUPPORT_PHONE}
+                    <a href={`tel:${COMPANY.supportPhoneTel}`} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border px-6 text-sm font-semibold text-foreground hover:bg-muted">
+                      <Phone className="h-4 w-4" aria-hidden="true" /> Ring {COMPANY.supportPhone}
                     </a>
                   </div>
                   <p className="mt-4 text-xs text-muted-foreground">Personlig reisehjelp · alle dager 06–24</p>

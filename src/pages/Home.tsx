@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
  */
 const HERO_PHOTO = DESTINATIONS.find((d) => d.id === "lisboa");
 
+import { useMinWidth } from "@/hooks/use-min-width";
 const DiscoveryMap = lazy(() => import("@/components/home/DiscoveryMap"));
 
 function inDays(n: number) {
@@ -258,6 +259,8 @@ function TrustRow() {
 /** Oppdagelsen: chips, fotokort og kartet med ekte fra-priser. */
 function Discovery({ preferIata }: { preferIata?: string }) {
   const t = useT();
+  // Skrivebordsdelen (filtre, rutenett, kart) monteres først fra lg: kartet er en 1 MB-chunk som telefonen aldri ser.
+  const isDesktop = useMinWidth(1024);
   const { ids: saved, toggle } = useSavedDestinations();
   const [chip, setChip] = useState<ChipId | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
@@ -316,6 +319,7 @@ function Discovery({ preferIata }: { preferIata?: string }) {
       </div>
 
       {/* Desktop: filtre, rutenett og kart side om side. */}
+      {isDesktop && (
       <div className="hidden lg:block">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">
@@ -362,6 +366,7 @@ function Discovery({ preferIata }: { preferIata?: string }) {
           </div>
         </div>
       </div>
+      )}
     </section>
   );
 }

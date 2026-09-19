@@ -34,6 +34,7 @@ const Cruise = lazy(() => import('./pages/Cruise'))
 const StayResults = lazy(() => import('./pages/StayResults'))
 const QuotePage = lazy(() => import('./pages/QuotePage'))
 const Auth = lazy(() => import('./pages/Auth'))
+const SsoCallback = lazy(() => import('./pages/SsoCallback'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Community = lazy(() => import('./pages/Community'))
 const EditProfile = lazy(() => import('./pages/account/EditProfile'))
@@ -143,6 +144,8 @@ export default function App() {
             <Route path="/overnatting-bil" element={<StayResults />} />
             <Route path="/tilbud/:token" element={<QuotePage />} />
             <Route path="/logg-inn" element={<Auth />} />
+            <Route path="/logg-inn/sso-callback" element={<SsoCallback step="callback" />} />
+            <Route path="/logg-inn/sso-fullfor" element={<SsoCallback step="complete" />} />
             <Route path="/tilbakestill-passord" element={<ResetPassword />} />
             <Route path="/samfunn" element={<Community />} />
             <Route path="/bekreft-epost" element={<VerifyEmail />} />

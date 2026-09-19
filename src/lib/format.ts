@@ -155,9 +155,15 @@ export function previewTotalMinor(supplierAmount: string | number, currency: str
  * feilgrensen. Formatererne returnerer nå tom streng i stedet, og siden
  * håndterer den manglende verdien der den faktisk hører hjemme.
  */
+/**
+ * En ren dato (YYYY-MM-DD) er en kalenderdag, ikke et tidspunkt. `new Date("2026-10-03")`
+ * gir midnatt UTC, som vest for Greenwich er kvelden 2. oktober – og hele
+ * bestillingen viste én dag for tidlig. Derfor tolkes rene datoer som lokal dag.
+ */
 function safeDate(iso: string | null | undefined): Date | null {
   if (!iso) return null;
-  const d = new Date(iso);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { KeyRound, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
@@ -12,6 +12,8 @@ import { trpc } from "@/providers/trpc";
 import { humanMessage } from "@/lib/apiError";
 import { useAuthProviders } from "@/lib/authProviders";
 
+const ClerkSocialButtons = lazy(() => import("@/components/account/ClerkSocial"));
+
 /** Sikkerhet – hvilke enheter som er logget inn, og én knapp for å kaste ut alle andre. */
 export default function Security() {
   usePageMeta(PAGE_META.security);
@@ -22,7 +24,9 @@ export default function Security() {
   const sessions = trpc.account.sessions.useQuery(undefined, { enabled: Boolean(customer), retry: false });
   const revoke = trpc.account.revokeSession.useMutation({ onSuccess: () => utils.account.sessions.invalidate() });
   const logoutAll = trpc.customerAuth.logoutAll.useMutation({ onSuccess: () => { utils.customerAuth.me.invalidate(); navigate("/logg-inn"); } });
-  const { oauth } = useAuthProviders();
+  const { oauth, clerk } = useAuthProviders();
+  const identities = trpc.customerAuth.identities.useQuery(undefined, { enabled: Boolean(customer), retry: false });
+  const unlink = trpc.customerAuth.unlinkIdentity.useMutation({ onSuccess: () => utils.customerAuth.identities.invalidate() });
 
   useEffect(() => {
     if (!isLoading && !customer) navigate("/logg-inn?next=/profil/sikkerhet");
@@ -71,8 +75,49 @@ export default function Security() {
         <section className="mt-8">
           <h2 className="font-display text-xl">{t("sec.linked")}</h2>
           <p className="mt-1 text-[13px] text-muted-foreground">{t("sec.linkedsub")}</p>
+          {(identities.data ?? []).length > 0 && (
+            <ul className="mt-4 flex flex-col gap-2">
+              {(identities.data ?? []).map((idn) => {
+                const prov = oauth.find((p) => p.id === idn.social);
+                const Mark = prov?.icon;
+                const lastWithoutPassword = !customer.hasPassword && (identities.data ?? []).length <= 1;
+                return (
+                  <li key={idn.id} className="surface flex items-center gap-3 px-4 py-3">
+                    {Mark && <Mark className="size-5 shrink-0" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold">{prov?.label ?? idn.social ?? t("sec.linked.connected")}{idn.email ? ` · ${idn.email}` : ""}</span>
+                      <span className="block text-[12px] text-muted-foreground">{t("sec.linked.since", { date: formatDateShort(String(idn.createdAt)) })}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => unlink.mutate({ id: idn.id })}
+                      disabled={unlink.isPending || lastWithoutPassword}
+                      title={lastWithoutPassword ? t("sec.linked.nopw") : undefined}
+                      className="press inline-flex min-h-10 items-center rounded-lg border border-border px-3.5 text-sm font-semibold transition-colors hover:border-foreground/40 disabled:opacity-50"
+                    >
+                      {t("sec.linked.disconnect")}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {!customer.hasPassword && (identities.data ?? []).length <= 1 && <p className="mt-3 text-[12px] text-muted-foreground">{t("sec.linked.nopw")}</p>}
+          {unlink.isError && <p role="alert" className="mt-2 text-[13px] text-destructive">{humanMessage(unlink.error)}</p>}
           {oauth.length === 0 ? (
             <p className="mt-4 rounded-xl bg-muted/60 px-4 py-3.5 text-[13px] text-muted-foreground">{t("sec.linked.none")}</p>
+          ) : clerk ? (
+            (() => {
+              const linked = new Set((identities.data ?? []).map((i) => i.social));
+              const available = oauth.filter((p) => clerk.providers.includes(p.id) && !linked.has(p.id));
+              return available.length > 0 ? (
+                <div className="mt-4">
+                  <Suspense fallback={<div className="h-12 animate-pulse rounded-lg bg-muted" />}>
+                    <ClerkSocialButtons config={clerk} providers={available} next="/profil/sikkerhet" />
+                  </Suspense>
+                </div>
+              ) : null;
+            })()
           ) : (
             <ul className="mt-4 flex flex-col gap-2">
               {oauth.map((prov) => {
@@ -81,10 +126,7 @@ export default function Security() {
                   <li key={prov.id} className="surface flex items-center gap-3 px-4 py-3">
                     <Mark className="size-5 shrink-0" />
                     <span className="min-w-0 flex-1 text-[15px] font-semibold">{prov.label}</span>
-                    <a
-                      href={prov.startPath}
-                      className="press inline-flex min-h-10 items-center rounded-lg border border-border px-3.5 text-sm font-semibold transition-colors hover:border-foreground/40"
-                    >
+                    <a href={`${prov.startPath}?next=/profil/sikkerhet`} className="press inline-flex min-h-10 items-center rounded-lg border border-border px-3.5 text-sm font-semibold transition-colors hover:border-foreground/40">
                       {t("sec.linked.connect")}
                     </a>
                   </li>

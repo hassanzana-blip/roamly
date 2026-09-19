@@ -37,6 +37,15 @@ const schema = z.object({
   OAUTH_FACEBOOK_CLIENT_SECRET: z.string().optional(),
   OAUTH_X_CLIENT_ID: z.string().optional(),
   OAUTH_X_CLIENT_SECRET: z.string().optional(),
+  // ── Sosial innlogging via Clerk (Apple, Google, Facebook) ──────────────
+  // Clerk er identitetsmegleren: den kjører OAuth-flyten (state, nonce, PKCE)
+  // og gir klienten et kortlevd token som serveren verifiserer og bytter mot
+  // HelloSkys egen sesjon. Hemmeligheten finnes KUN her på serveren; den
+  // publiserbare nøkkelen er laget for å stå i nettleseren.
+  CLERK_SECRET_KEY: z.string().optional(),
+  CLERK_PUBLISHABLE_KEY: z.string().optional(),
+  /** Hvilke sosiale leverandører som er slått på i Clerk-dashbordet, f.eks. «google,apple,facebook». */
+  CLERK_SOCIAL_PROVIDERS: z.string().optional(),
   TRAVELPORT_CONTENT_SOURCE: z.string().optional(),
 
   // ── KAYAK Affiliate Flights API (metasøk: kunden bestiller hos leverandøren) ──
@@ -179,6 +188,23 @@ export function configuredOAuthProviders(): OAuthProviderId[] {
     ["x", raw.OAUTH_X_CLIENT_ID, raw.OAUTH_X_CLIENT_SECRET],
   ];
   return pairs.filter(([, id, secret]) => Boolean(id?.trim()) && Boolean(secret?.trim())).map(([id]) => id);
+}
+
+/**
+ * Sosial innlogging via Clerk er «på» først når hemmelig nøkkel, publiserbar
+ * nøkkel og minst én leverandør er satt. Da – og bare da – vises knappene.
+ */
+const CLERK_SOCIALS = ["apple", "google", "facebook", "x"] as const;
+export type ClerkSocial = (typeof CLERK_SOCIALS)[number];
+export function clerkConfig(): { enabled: boolean; publishableKey: string | null; secretKey: string | null; providers: ClerkSocial[] } {
+  const secretKey = raw.CLERK_SECRET_KEY?.trim() || null;
+  const publishableKey = raw.CLERK_PUBLISHABLE_KEY?.trim() || null;
+  const providers = (raw.CLERK_SOCIAL_PROVIDERS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((s): s is ClerkSocial => (CLERK_SOCIALS as readonly string[]).includes(s));
+  const enabled = Boolean(secretKey && publishableKey && providers.length > 0);
+  return { enabled, publishableKey: enabled ? publishableKey : null, secretKey: enabled ? secretKey : null, providers: enabled ? providers : [] };
 }
 
 export const env = {

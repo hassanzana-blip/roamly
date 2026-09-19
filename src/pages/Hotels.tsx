@@ -8,7 +8,8 @@ import HeroBar from "@/components/app/HeroBar";
 import ServiceTabs from "@/components/app/ServiceTabs";
 import HotelCard from "@/components/stays/HotelCard";
 import { HotelSearchForm } from "@/components/stays/StaySearchForms";
-import { DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
+import { parseChildAges, splitRooms } from "@/components/stays/stayLinks";
+import { CurrencyNote, DisabledState, DisclosureNote, RetryButton, SandboxBadge, SortBar, StateBlock, StaySkeleton } from "@/components/stays/StayLayout";
 import { Chip } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -55,7 +56,9 @@ export default function Hotels() {
 
   const status = trpc.hotels.status.useQuery(undefined, { staleTime: 300_000, retry: false });
   const enabled = status.data?.enabled === true;
-  const roomList = useMemo(() => Array.from({ length: rooms }, (_, i) => ({ adults: Math.max(1, Math.round(adults / rooms) + (i === 0 ? adults % rooms : 0)) })), [adults, rooms]);
+  const kidsParam = params.get("kids");
+  const childAges = useMemo(() => parseChildAges(kidsParam), [kidsParam]);
+  const roomList = useMemo(() => splitRooms(adults, childAges, rooms), [adults, childAges, rooms]);
   const search = trpc.hotels.search.useQuery(
     { destination: dest, checkin, checkout, rooms: roomList, currency, language: lang, sessionId: searchSessionId() },
     { enabled: enabled && hasSearch, staleTime: 10 * 60_000, retry: false },
@@ -103,7 +106,7 @@ export default function Hotels() {
     setBreakfast(false);
     setPhotosOnly(false);
   };
-  const detailHref = (h: HotelSummary) => `/hotell/${encodeURIComponent(h.key)}?checkin=${checkin}&checkout=${checkout}&adults=${adults}&rooms=${rooms}&place=${encodeURIComponent(place)}`;
+  const detailHref = (h: HotelSummary) => `/hotell/${encodeURIComponent(h.key)}?checkin=${checkin}&checkout=${checkout}&adults=${adults}&rooms=${rooms}${childAges.length ? `&kids=${childAges.join(",")}` : ""}&place=${encodeURIComponent(place)}`;
 
   const filterPanel = (
     <div className="space-y-6">
@@ -169,7 +172,7 @@ export default function Hotels() {
               <div className="min-w-0">
                 <h1 className="t-h1">{place || t("ht.title")}</h1>
                 <p className="mt-2 text-[17px] text-foreground">
-                  {formatDateShort(checkin)} – {formatDateShort(checkout)} · {t("ht.nights", { count: search.data?.nights ?? Math.max(1, Math.round((Date.parse(checkout) - Date.parse(checkin)) / 86_400_000)) })} · {t("ht.adults", { count: adults })} · {t("ht.rooms", { count: rooms })}
+                  {formatDateShort(checkin)} – {formatDateShort(checkout)} · {t("ht.nights", { count: search.data?.nights ?? Math.max(1, Math.round((Date.parse(checkout) - Date.parse(checkin)) / 86_400_000)) })} · {t("ht.adults", { count: adults })}{childAges.length > 0 ? ` · ${childAges.length === 1 ? t("ht.children.one") : t("ht.children", { count: childAges.length })}` : ""} · {t("ht.rooms", { count: rooms })}
                 </p>
               </div>
               <button type="button" onClick={() => setEditOpen((o) => !o)} aria-expanded={editOpen} className="inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-foreground underline underline-offset-4">
@@ -185,7 +188,7 @@ export default function Hotels() {
           <ServiceTabs active="hotell" className="mt-5" />
           {(editOpen || !hasSearch) && (
             <div className={cn("card-soft mt-4 p-3 sm:p-4", hasSearch && "fade-up")}>
-              <HotelSearchForm initial={{ dest, place, checkin: checkin || undefined, checkout: checkout || undefined, adults, rooms }} compact onSubmitted={() => setEditOpen(false)} />
+              <HotelSearchForm initial={{ dest, place, checkin: checkin || undefined, checkout: checkout || undefined, adults, rooms, childAges }} compact onSubmitted={() => setEditOpen(false)} />
             </div>
           )}
         </div>
@@ -253,6 +256,7 @@ export default function Hotels() {
                     {search.data.sandbox && <SandboxBadge />}
                     {!search.data.complete && <span className="text-xs">{t("common.partial")}</span>}
                   </p>
+                  <CurrencyNote currency={search.data.currency} preferred={currency} />
                   {filtered.map((h, i) => (
                     <div key={h.key} className={i < 6 ? "fade-up" : undefined} style={i < 6 ? { animationDelay: `${i * 45}ms` } : undefined}>
                       <HotelCard hotel={h} to={detailHref(h)} sandbox={search.data.sandbox} />

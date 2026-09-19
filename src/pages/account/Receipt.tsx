@@ -16,13 +16,14 @@ import {
 } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
+import { COMPANY } from "@/pages/content/company";
 
 const SELLER = {
   name: "HelloSky AS",
-  orgNumber: import.meta.env.VITE_ORG_NUMBER ?? "—",
-  address: import.meta.env.VITE_COMPANY_ADDRESS ?? "Oslo, Norge",
-  email: "hei@hellosky.no",
-  phone: import.meta.env.VITE_SUPPORT_PHONE ?? "+47 22 41 00 00",
+  orgNumber: COMPANY.orgNumber || "—",
+  address: COMPANY.address,
+  email: COMPANY.supportEmail,
+  phone: COMPANY.supportPhone,
 };
 /** MVA-sats på servicegebyret (prosent). Flybilletter faktureres av flyselskapet med sin egen sats. */
 const FEE_VAT_PERCENT = Number(

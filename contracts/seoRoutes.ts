@@ -50,7 +50,7 @@ export const STATIC_ROUTES: StaticRoute[] = [
     path: "/reisemal",
     title: "Reisemål",
     description:
-      "Guider til de rutene vi kjenner best – fra Oslo til Istanbul, Erbil, Beirut, Casablanca og resten av verden.",
+      "Reiseguider fra Norge til hele verden: når du bør reise, hvordan du kommer deg fra flyplassen, hvor du bør bo og hva som er verdt å vite før du bestiller.",
     changefreq: "weekly",
     priority: 0.8,
   },
@@ -131,7 +131,7 @@ export const STATIC_ROUTES: StaticRoute[] = [
     path: "/om-oss",
     title: "Om HelloSky",
     description:
-      "Norsk reisebyrå for hele verden – strandferie, storbyhelg, langtur og reiser hjem til familien, med ekte mennesker i kundeservice.",
+      "Norsk reisebyrå for hele verden – strandferie, storbyhelg, langtur og besøk hos familie og venner, med ekte mennesker i kundeservice.",
     changefreq: "monthly",
     priority: 0.5,
   },
@@ -193,6 +193,7 @@ export function isNoindexPath(path: string): boolean {
  * appskallet, som gjorde at Google fant uendelig mange «sider».
  */
 const DYNAMIC_ROUTE_PATTERNS: RegExp[] = [
+  /^\/logg-inn\/sso-(callback|fullfor)$/,
   /^\/reisemal\/[^/]+$/,
   /^\/journal\/[^/]+$/,
   /^\/quiz\/[^/]+$/,

@@ -58,6 +58,20 @@ export function DisclosureNote({ text }: { text: string }) {
   );
 }
 
+/**
+ * Kunden valgte én valuta, leverandøren svarte i en annen (KAYAK-sandkassen
+ * svarer alltid i USD). Vi regner aldri om selv – vi sier det som det er.
+ */
+export function CurrencyNote({ currency, preferred }: { currency: string | undefined; preferred: string }) {
+  const t = useT();
+  if (!currency || currency.toUpperCase() === preferred.toUpperCase()) return null;
+  return (
+    <p role="note" className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-[13px] leading-snug text-muted-foreground">
+      {t("common.currency.note", { currency: currency.toUpperCase(), preferred: preferred.toUpperCase() })}
+    </p>
+  );
+}
+
 export function SandboxBadge() {
   const t = useT();
   return <span className="rounded-md bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">{t("sr.sandbox.badge")}</span>;

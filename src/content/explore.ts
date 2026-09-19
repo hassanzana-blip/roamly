@@ -55,7 +55,7 @@ export type Mood = { id: string; label: string; ids?: string[] };
 
 export const MOODS: Mood[] = [
   { id: "alle", label: "Alle" },
-  { id: "hjem", label: "Hjem til familien", ids: ["istanbul", "erbil", "sulaymaniyah", "beirut", "marrakech", "asmara", "kabul", "islamabad", "delhi", "dhaka", "colombo", "warszawa"] },
+  { id: "hjem", label: "Familie og venner", ids: ["istanbul", "erbil", "sulaymaniyah", "beirut", "marrakech", "asmara", "kabul", "islamabad", "delhi", "dhaka", "colombo", "warszawa"] },
   { id: "fotball", label: "Fotball", ids: ["london", "barcelona", "istanbul", "dubai"] },
   { id: "romantisk", label: "Romantisk", ids: ["paris", "rome", "lisboa", "beirut"] },
   { id: "familie", label: "Familie", ids: ["istanbul", "erbil", "sulaymaniyah", "beirut", "marrakech", "colombo"] },

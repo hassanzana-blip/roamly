@@ -1,5 +1,5 @@
-import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeft, ArrowRight, CalendarDays, Plane } from "lucide-react";
+import { Link, useParams } from "react-router";
+import { ArrowLeft, ArrowRight, CalendarDays, Plane, BedDouble, CarFront } from "lucide-react";
 import AppShell from "@/components/app/AppShell";
 import Icon from "@/components/app/Icon";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -30,7 +30,6 @@ const fmtNok = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
 
 function View({ d }: { d: DiscoverDestination }) {
   const t = useT();
-  const navigate = useNavigate();
   const { ids: favs, toggle: toggleFav } = useSavedDestinations();
   const region = REGION_OF[d.id];
   const flight = FLIGHT_OF[d.id];
@@ -77,7 +76,7 @@ function View({ d }: { d: DiscoverDestination }) {
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-night/95 via-night/55 to-night/15" aria-hidden="true" />
         <div className="container-x relative flex min-h-[420px] flex-col justify-between pb-8 pt-5 sm:min-h-[540px] sm:pb-12 lg:pt-8">
           <div className="flex items-center justify-between">
             <Link to="/utforsk" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-white/30 bg-night/50 px-3.5 text-[14px] font-medium transition-colors duration-fast hover:bg-night/70">
@@ -90,7 +89,7 @@ function View({ d }: { d: DiscoverDestination }) {
           </div>
           <div className="max-w-3xl">
             <h1 className="t-display">{d.city}</h1>
-            <p className="t-lead mt-3 max-w-xl text-white/85">{d.tagline}</p>
+            <p className="t-lead mt-3 max-w-xl text-white [text-shadow:0_1px_14px_rgba(0,0,0,0.55)]">{d.tagline}</p>
             <p className="mt-4 text-[14px] text-white/75">
               {d.country}
               {regionLabel && regionLabel !== d.country ? ` · ${regionLabel}` : ""}
@@ -118,7 +117,7 @@ function View({ d }: { d: DiscoverDestination }) {
             </dl>
 
             <h2 className="t-h2 mt-12">{t("dest.nextDepartures")}</h2>
-            <p className="t-caption mt-2 max-w-xl">Veiledende pris for én voksen, hentet fra vårt eget prissøk. Endelig pris med bagasje og gebyrer ser du i søket.</p>
+            <p className="t-caption mt-2 max-w-xl">Velg en dato, så søker vi ekte priser fra Oslo for én voksen. Vi viser ingen «fra»-pris før søket er gjort.</p>
             <ul className="surface mt-4 divide-y divide-border overflow-hidden">
               {DAY_OFFSETS.map((offset, i) => {
                 const date = departDate(offset);
@@ -144,9 +143,33 @@ function View({ d }: { d: DiscoverDestination }) {
                 );
               })}
             </ul>
-            <Button size="lg" onClick={() => navigate(searchHref(d.iata))} className="mt-5 w-full sm:w-auto">
-              <Icon icon={Plane} size={20} /> {t("dest.searchTo", { city: d.city })}
+            <Button asChild size="lg" className="mt-5 w-full sm:w-auto">
+              <Link to={searchHref(d.iata)}>
+                <Icon icon={Plane} size={20} /> {t("dest.searchTo", { city: d.city })}
+              </Link>
             </Button>
+
+            {/* Resten av reisen: hotell og leiebil på samme sted, forhåndsutfylt. Ingen priser før søket. */}
+            <h2 className="t-h2 mt-12">{t("dest.stayAndDrive", { city: d.city })}</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <Link to={`/hotell?place=${encodeURIComponent(d.city)}&checkin=${departDate(35)}&checkout=${departDate(38)}&adults=2&rooms=1`} className="surface press flex items-center gap-3 p-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-mint text-petrol"><Icon icon={BedDouble} size={20} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold">{t("dest.hotelsIn", { city: d.city })}</span>
+                  <span className="t-caption block">{t("dest.hotelsInSub")}</span>
+                </span>
+                <Icon icon={ArrowRight} size={16} className="shrink-0 text-muted-foreground" />
+              </Link>
+              <Link to={`/leiebil?type=airport&value=${d.iata}&place=${encodeURIComponent(`${d.city} (${d.iata})`)}&pickup=${departDate(35)}&dropoff=${departDate(38)}`} className="surface press flex items-center gap-3 p-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-mint text-petrol"><Icon icon={CarFront} size={20} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold">{t("dest.carsAt", { city: d.city })}</span>
+                  <span className="t-caption block">{t("dest.carsAtSub")}</span>
+                </span>
+                <Icon icon={ArrowRight} size={16} className="shrink-0 text-muted-foreground" />
+              </Link>
+            </div>
+            <p className="t-caption mt-6 max-w-xl">{t("dest.editorial")}</p>
           </div>
 
           <aside className="space-y-5">

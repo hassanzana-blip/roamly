@@ -125,7 +125,7 @@ export default function HotelCard({ hotel, to, sandbox }: { hotel: HotelSummary;
               </Button>
             )}
             {hotel.numberOfProviders > 1 && (
-              <Link to={to} className="text-xs font-semibold text-accent-foreground underline-offset-4 hover:underline">
+              <Link to={to} className="inline-flex min-h-10 items-center text-xs font-semibold text-accent-foreground underline-offset-4 hover:underline">
                 {t("ht.compare", { count: hotel.numberOfProviders })}
               </Link>
             )}

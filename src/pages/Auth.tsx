@@ -68,7 +68,7 @@ export default function Auth() {
   const refCode = params.get("ref") ?? "";
 
   const [mode, setMode] = useState<Mode>(
-    params.get("modus") === "registrer" ? "register" : "login",
+    params.get("modus") === "registrer" ? "register" : params.get("modus") === "glemt" ? "forgot" : "login",
   );
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -398,7 +398,7 @@ export default function Auth() {
                   setError(null);
                   setForgotSent(false);
                 }}
-                className="mx-auto mt-1 text-[14px] font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+                className="mx-auto mt-1 inline-flex min-h-11 items-center text-[14px] font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
               >
                 {t("au.forgotpw")}
               </button>
@@ -410,7 +410,7 @@ export default function Auth() {
                   setMode("login");
                   setError(null);
                 }}
-                className="mx-auto mt-1 text-[14px] font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+                className="mx-auto mt-1 inline-flex min-h-11 items-center text-[14px] font-semibold text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
               >
                 {t("au.backtologin")}
               </button>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Briefcase, Car, ExternalLink, MapPin, Users } from "lucide-react";
 import type { CarOffer } from "@contracts/cars";
+import { carTerms, LOCATION_KEYS } from "./carTerms";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { formatMoney } from "@/lib/format";
@@ -26,12 +27,15 @@ function AgencyLogo({ name, url }: { name: string; url?: string }) {
 /** Leiebilkort: bilde, klasse og fakta fra leverandøren, vilkår, pris per dag + totalt, ekstern CTA. */
 export default function CarCard({ car, sandbox }: { car: CarOffer; sandbox?: boolean }) {
   const t = useT();
+  const terms = carTerms(car, t);
+  const locationKey = LOCATION_KEYS[car.pickup.locationType];
+  // Ikonet følger fakta-typen, ikke posisjonen i listen (før falt setene på feil ikon når klassen manglet).
   const facts = [
-    car.className,
-    car.transmission ? (car.transmission === "automatic" ? t("cr.automatic") : t("cr.manual")) : null,
-    car.seats ? t("cr.seats", { count: car.seats }) : null,
-    car.bags ? t("cr.bags", { count: car.bags }) : null,
-  ].filter(Boolean) as string[];
+    car.className ? { icon: "class", text: car.className } : null,
+    car.transmission ? { icon: "gear", text: car.transmission === "automatic" ? t("cr.automatic") : t("cr.manual") } : null,
+    car.seats ? { icon: "seats", text: t("cr.seats", { count: car.seats }) } : null,
+    car.bags ? { icon: "bags", text: t("cr.bags", { count: car.bags }) } : null,
+  ].filter((f): f is { icon: string; text: string } => f !== null);
   const seller = car.provider.name && car.provider.name !== car.agency.name ? car.provider.name : car.agency.name;
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-[border-color] duration-base hover:border-primary/50 md:flex">
@@ -41,32 +45,38 @@ export default function CarCard({ car, sandbox }: { car: CarOffer; sandbox?: boo
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:p-5">
         <div>
           <h3 className="text-[17px] font-semibold leading-snug">
-            {car.model} {car.orSimilar && <span className="font-normal text-muted-foreground">{t("cr.orsimilar")}</span>}
+            {car.model}{" "}
+            {car.orSimilar && (
+              <span className="font-normal text-muted-foreground" title={t("cr.orsimilar.explain")}>
+                {t("cr.orsimilar")}
+              </span>
+            )}
           </h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {facts.map((f) => (
-              <span key={f} className="inline-flex items-center gap-1">
-                {f === facts[2] ? <Users className="size-3.5" aria-hidden="true" /> : f === facts[3] ? <Briefcase className="size-3.5" aria-hidden="true" /> : null}
-                {f}
+              <span key={f.text} className="inline-flex items-center gap-1">
+                {f.icon === "seats" ? <Users className="size-3.5" aria-hidden="true" /> : f.icon === "bags" ? <Briefcase className="size-3.5" aria-hidden="true" /> : null}
+                {f.text}
               </span>
             ))}
           </p>
         </div>
-        {car.policies.length > 0 && (
-          <ul className="flex flex-wrap gap-1.5">
-            {car.policies.slice(0, 5).map((p) => (
+        {terms.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5" aria-label={t("cr.terms.more")}>
+            {terms.slice(0, 5).map((p) => (
               <li key={p} className="rounded-full bg-secondary px-2.5 py-1 text-xs text-foreground">{p}</li>
             ))}
           </ul>
         )}
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
           <AgencyLogo name={car.agency.name} url={car.agency.logoUrl} />
           {car.pickup.name && (
             <span className="inline-flex items-center gap-1">
               <MapPin className="size-3.5" aria-hidden="true" /> {car.pickup.name}
-              {car.pickup.inTerminal ? " · i terminalen" : ""}
+              {locationKey ? ` · ${t(locationKey)}` : ""}
             </span>
           )}
+          {!car.dropoff.sameAsPickup && car.dropoff.name && <span className="inline-flex items-center gap-1">{t("cr.dropoff.at", { name: car.dropoff.name })}</span>}
         </div>
         <div className="mt-auto flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end sm:justify-between">
           <div>

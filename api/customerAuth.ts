@@ -13,6 +13,7 @@ import {
   consents,
   customerAccounts,
   customerEmailTokens,
+  customerIdentities,
   customerOtpCodes,
   customerPasswordResets,
   customerSessions,
@@ -37,7 +38,8 @@ import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { sendLoginAlertEmail, sendPasswordResetEmail, sendVerifyEmail } from "./lib/mailer";
 import { sendSms } from "./lib/sms";
 import { AppError } from "./lib/errors";
-import { env, configuredOAuthProviders } from "./lib/env";
+import { env, clerkConfig, configuredOAuthProviders } from "./lib/env";
+import { decideLink, hasPassword, NO_PASSWORD_HASH, verifySocialToken } from "./lib/socialLogin";
 import { logAudit } from "./lib/audit";
 import { log } from "./lib/logger";
 import { normalizePhone } from "./lib/validation";
@@ -137,6 +139,8 @@ function publicProfile(a: Partial<AccountRow> & { id: number; firstName: string;
     locale: a.locale ?? "nb",
     currency: a.currency ?? "NOK",
     marketingConsent: Boolean(a.marketingConsentAt),
+    /** false for kontoer opprettet med sosial innlogging – da kreves ikke passord for sletting, og «bytt passord» blir «lag passord». */
+    hasPassword: a.passwordHash ? hasPassword(a.passwordHash) : true,
   };
 }
 
@@ -400,10 +404,129 @@ export const customerAuthRouter = createRouter({
    * miljøvariabler i Railway, uten at noen rører koden – og en leverandør som
    * ikke er konfigurert blir aldri en død knapp.
    */
-  authProviders: publicQuery.query(() => ({
-    oauth: configuredOAuthProviders(),
-    passkeys: false as const,
-  })),
+  authProviders: publicQuery.query(() => {
+    const clerk = clerkConfig();
+    return {
+      // Egne OAuth-handlere (ikke i bruk) + leverandørene Clerk kjører for oss.
+      oauth: Array.from(new Set<string>([...configuredOAuthProviders(), ...clerk.providers])),
+      /** Publiserbar nøkkel til Clerk-klienten – laget for nettleseren. null = sosial innlogging er av. */
+      clerk: clerk.enabled ? { publishableKey: clerk.publishableKey!, providers: clerk.providers } : null,
+      passkeys: false as const,
+    };
+  }),
+
+  /**
+   * Sosial innlogging: bytt et verifisert Clerk-token mot en HelloSky-sesjon.
+   *
+   * Kjent identitet → innlogging. Innlogget kunde → kobling til egen konto.
+   * Verifisert e-post som matcher → kobling. Ellers ny konto uten passord.
+   * Vi kobler aldri på en uverifisert e-post alene, og flytter aldri en
+   * identitet fra én konto til en annen.
+   */
+  exchangeSocialToken: publicQuery
+    .input(z.object({ token: z.string().min(20).max(4096), locale: z.enum(LOCALES).optional(), referralCode: z.string().trim().max(16).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const ip = clientIp(ctx.req);
+      assertRateLimit("customer-social", ip, 10, 5 * 60_000);
+      const who = await verifySocialToken(input.token);
+      const db = getDb();
+
+      const [identity] = await db
+        .select({ id: customerIdentities.id, customerId: customerIdentities.customerId })
+        .from(customerIdentities)
+        .where(and(eq(customerIdentities.provider, "clerk"), eq(customerIdentities.subject, who.subject)))
+        .limit(1);
+      const emailMatch = who.email
+        ? (await db.select({ id: customerAccounts.id }).from(customerAccounts).where(and(eq(customerAccounts.email, who.email), isNull(customerAccounts.deletedAt))).limit(1))[0]
+        : undefined;
+      const decision = decideLink({
+        existingIdentityCustomerId: identity?.customerId ?? null,
+        currentCustomerId: ctx.customer?.customerId ?? null,
+        emailMatchCustomerId: emailMatch?.id ?? null,
+        emailVerified: who.emailVerified,
+      });
+
+      if (decision.action === "conflict") {
+        throw new AppError("CONFLICT", {
+          message:
+            decision.reason === "other_account"
+              ? "Denne innloggingen er allerede koblet til en annen HelloSky-konto. Logg ut først, eller koble den fra i Sikkerhet på den andre kontoen."
+              : "Det finnes allerede en konto med denne e-postadressen. Logg inn med passord først, så kan du koble til innloggingen under Sikkerhet.",
+          data: { field: "social", reason: decision.reason },
+        });
+      }
+
+      let customerId: number;
+      let created = false;
+      if (decision.action === "create") {
+        let referrerId: number | null = null;
+        if (input.referralCode) {
+          const rows = await db.select({ id: customerAccounts.id }).from(customerAccounts).where(and(eq(customerAccounts.referralCode, input.referralCode.toUpperCase()), isNull(customerAccounts.deletedAt))).limit(1);
+          referrerId = rows[0]?.id ?? null;
+        }
+        const result = await db.insert(customerAccounts).values({
+          email: who.email,
+          phone: null,
+          passwordHash: NO_PASSWORD_HASH,
+          firstName: (who.firstName ?? "").trim().slice(0, 60) || "Reisende",
+          lastName: (who.lastName ?? "").trim().slice(0, 60) || "",
+          emailVerified: Boolean(who.email && who.emailVerified),
+          referralCode: genReferralCode(),
+          referredById: referrerId,
+          locale: input.locale ?? "nb",
+        });
+        customerId = Number(result[0].insertId);
+        created = true;
+        await db.insert(customerIdentities).values({ customerId, provider: "clerk", subject: who.subject, social: who.social, email: who.email, lastLoginAt: new Date() });
+      } else {
+        customerId = decision.customerId;
+        const [acc] = await db.select({ id: customerAccounts.id, deletedAt: customerAccounts.deletedAt, emailVerified: customerAccounts.emailVerified, email: customerAccounts.email }).from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
+        if (!acc || acc.deletedAt) throw new AppError("UNAUTHORIZED", { message: "Kontoen finnes ikke lenger." });
+        if (decision.action === "link") {
+          await db.insert(customerIdentities).values({ customerId, provider: "clerk", subject: who.subject, social: who.social, email: who.email, lastLoginAt: new Date() });
+          // En verifisert e-post fra leverandøren bekrefter også vår e-post når den er den samme.
+          if (who.email && who.emailVerified && acc.email === who.email && !acc.emailVerified) {
+            await db.update(customerAccounts).set({ emailVerified: true }).where(eq(customerAccounts.id, customerId));
+          }
+        } else if (identity) {
+          await db.update(customerIdentities).set({ lastLoginAt: new Date(), email: who.email }).where(eq(customerIdentities.id, identity.id));
+        }
+      }
+
+      const token = await createCustomerSession(customerId, ctx.req);
+      setCustomerCookie(ctx.resHeaders, token);
+      await logAudit({
+        actorType: "customer", actorId: customerId, action: created ? "customer.social_register" : decision.action === "link" ? "customer.social_link" : "customer.social_login",
+        targetType: "customer_account", targetId: customerId, ip, metadata: { social: who.social },
+      });
+      const [account] = await db.select().from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
+      if (!account) throw new AppError("NOT_FOUND");
+      return { created, linked: decision.action === "link", profile: publicProfile(account) };
+    }),
+
+  /** Sosiale innlogginger koblet til kontoen – til Sikkerhet-siden. */
+  identities: customerProcedure.query(async ({ ctx }) => {
+    const rows = await getDb()
+      .select({ id: customerIdentities.id, social: customerIdentities.social, email: customerIdentities.email, createdAt: customerIdentities.createdAt, lastLoginAt: customerIdentities.lastLoginAt })
+      .from(customerIdentities)
+      .where(eq(customerIdentities.customerId, ctx.customer.customerId));
+    return rows;
+  }),
+
+  /** Koble fra en sosial innlogging – aldri den siste veien inn på en konto uten passord. */
+  unlinkIdentity: customerProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
+    const db = getDb();
+    const customerId = ctx.customer.customerId;
+    const [account] = await db.select({ passwordHash: customerAccounts.passwordHash }).from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
+    const all = await db.select({ id: customerIdentities.id }).from(customerIdentities).where(eq(customerIdentities.customerId, customerId));
+    if (!all.some((i) => i.id === input.id)) throw new AppError("NOT_FOUND");
+    if (account && !hasPassword(account.passwordHash) && all.length <= 1) {
+      throw new AppError("VALIDATION", { message: "Dette er den eneste måten å logge inn på denne kontoen. Lag et passord først (Glemt passord), så kan du koble fra." });
+    }
+    await db.delete(customerIdentities).where(and(eq(customerIdentities.id, input.id), eq(customerIdentities.customerId, customerId)));
+    await logAudit({ actorType: "customer", actorId: customerId, action: "customer.social_unlink", targetType: "customer_account", targetId: customerId, ip: clientIp(ctx.req) });
+    return { ok: true };
+  }),
 
   me: publicQuery.query(async ({ ctx }) => {
     if (!ctx.customer) return null;
@@ -759,7 +882,7 @@ export const customerAuthRouter = createRouter({
    * anonymiseres i stedet for å slettes fysisk slik at FK-er og revisjon holder.
    */
   deleteAccount: customerProcedure
-    .input(z.object({ password: z.string().min(1).max(128) }))
+    .input(z.object({ password: z.string().min(1).max(128).optional(), confirmation: z.string().max(16).optional() }))
     .mutation(async ({ input, ctx }) => {
       const ip = clientIp(ctx.req);
       assertRateLimit("customer-delete", String(ctx.customer.customerId), 5, 10 * 60_000);
@@ -767,8 +890,16 @@ export const customerAuthRouter = createRouter({
       const account = (
         await db.select().from(customerAccounts).where(eq(customerAccounts.id, ctx.customer.customerId)).limit(1)
       )[0];
-      if (!account || !(await verifyPassword(account.passwordHash, input.password))) {
-        throw new AppError("UNAUTHORIZED", { message: "Passordet er feil." });
+      if (!account) throw new AppError("NOT_FOUND");
+      // Konto med passord: passordet bekrefter. Konto uten passord (sosial
+      // innlogging): kunden skriver SLETT – sesjonen alene er ikke nok for et
+      // uopprettelig valg, og et passord finnes ikke å be om.
+      if (hasPassword(account.passwordHash)) {
+        if (!input.password || !(await verifyPassword(account.passwordHash, input.password))) {
+          throw new AppError("UNAUTHORIZED", { message: "Passordet er feil." });
+        }
+      } else if (input.confirmation?.trim().toUpperCase() !== "SLETT") {
+        throw new AppError("VALIDATION", { message: "Skriv SLETT for å bekrefte.", data: { field: "confirmation" } });
       }
       const id = account.id;
       await db.transaction(async (tx) => {
@@ -777,6 +908,7 @@ export const customerAuthRouter = createRouter({
         await tx.delete(customerOtpCodes).where(eq(customerOtpCodes.customerId, id));
         await tx.delete(customerEmailTokens).where(eq(customerEmailTokens.customerId, id));
         await tx.delete(customerPasswordResets).where(eq(customerPasswordResets.customerId, id));
+        await tx.delete(customerIdentities).where(eq(customerIdentities.customerId, id));
         // Personopplysninger knyttet til kontoen
         await tx.delete(savedTravelers).where(eq(savedTravelers.customerId, id));
         await tx.delete(bookingHolds).where(eq(bookingHolds.customerId, id));

@@ -34,7 +34,7 @@ const HELP: FooterLink[] = [
   { to: "/fotokreditering", label: "footer.photocredits" },
 ];
 
-const linkCls = "inline-flex min-h-8 items-center text-sm text-white/70 transition-colors hover:text-white";
+const linkCls = "inline-flex min-h-10 items-center text-sm text-white/70 transition-colors hover:text-white";
 
 function Column({ title, links }: { title: string; links: FooterLink[] }) {
   const t = useT();

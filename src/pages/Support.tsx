@@ -31,8 +31,8 @@ import { cn } from "@/lib/utils";
  * fyller ut. Menneskene og kanalene står tydelig, med ekte åpningstider.
  */
 
-const SUPPORT_PHONE: string = import.meta.env.VITE_SUPPORT_PHONE ?? "+47 22 41 00 00";
-const SUPPORT_PHONE_DISPLAY = SUPPORT_PHONE.replace(/^\+47\s?/, "").replace(/(\d{2})(\d{2})(\d{2})(\d{2})/, "$1 $2 $3 $4");
+// Ett nummer, ett sted: COMPANY leser VITE_SUPPORT_PHONE og lager tel:-formatet.
+const SUPPORT_PHONE_DISPLAY = COMPANY.supportPhone.replace(/^\+47\s?/, "").replace(/^(\d{2})(\d{2})(\d{2})(\d{2})$/, "$1 $2 $3 $4");
 
 const FAQ_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 type FaqQ = `sp.faq.${(typeof FAQ_IDS)[number]}.q`;
@@ -312,7 +312,7 @@ export default function Support() {
           <h2 className="t-h2">{t("sp.channels")}</h2>
           <p className="mt-1 max-w-xl text-[14px] text-muted-foreground">{t("sp.channels.sub")}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <a href={`tel:${SUPPORT_PHONE.replace(/\s/g, "")}`} className="press surface flex items-center gap-4 p-5 transition-colors hover:border-foreground/25">
+            <a href={`tel:${COMPANY.supportPhoneTel}`} className="press surface flex items-center gap-4 p-5 transition-colors hover:border-foreground/25">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted"><Icon icon={Phone} size={20} /></span>
               <span><span className="block text-[17px] font-semibold">{SUPPORT_PHONE_DISPLAY}</span><span className="block text-[13px] text-muted-foreground">{t("sp.hours")}</span></span>
             </a>

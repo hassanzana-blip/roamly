@@ -38,7 +38,8 @@ export const carsRouter = createRouter({
     .query(async ({ input, ctx }) => {
       assertRateLimit("car-search", clientIp(ctx.req), 20, 60_000);
       assertRateLimit("car-search-hourly", clientIp(ctx.req), 120, 60 * 60_000);
-      const today = new Date().toISOString().slice(0, 10);
+      // Tidligste «i dag» i noen tidssone (UTC−12): klientens dato er lokal.
+      const today = new Date(Date.now() - 12 * 60 * 60_000).toISOString().slice(0, 10);
       if (input.pickupDate < today) throw new AppError("VALIDATION", { message: "Hentedato kan ikke være i fortiden.", data: { field: "pickupDate" } });
       if (input.dropoffDate < input.pickupDate) throw new AppError("VALIDATION", { message: "Leveringsdato må være etter hentedato.", data: { field: "dropoffDate" } });
       return kayakCarSearch(input, { userTrackId: input.sessionId, userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
