@@ -41,7 +41,12 @@ export function safeFileName(raw: string, mime: DocumentMime, fallback = "dokume
     .split(/[\\/]/)
     .pop()!
     .replace(/\.[A-Za-z0-9]{1,5}$/, "")
-    .replace(/[\u0000-\u001f\u007f"';<>]/g, "")
+    .split("")
+    .filter((ch) => {
+      const code = ch.codePointAt(0)!;
+      return code >= 0x20 && code !== 0x7f && !"\"';<>".includes(ch);
+    })
+    .join("")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 80);

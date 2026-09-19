@@ -43,7 +43,7 @@ documentsApp.post("/upload", async (c) => {
   if (!customer) return c.json({ error: "Logg inn for å laste opp dokumenter.", code: "UNAUTHORIZED" }, 401);
   try {
     assertRateLimit("document-upload", String(customer.customerId), 30, 60 * 60_000);
-  } catch (err) {
+  } catch {
     return c.json({ error: "For mange opplastinger. Prøv igjen om en stund.", code: "RATE_LIMITED" }, 429);
   }
   const parsed = uploadSchema.safeParse(await c.req.json().catch(() => null));
