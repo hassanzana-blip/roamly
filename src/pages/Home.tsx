@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, ArrowUpRight, ChevronRight, Clock3, Globe, LayoutList, Map as MapIcon, ShieldCheck, Tag, TrendingDown } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronRight, Clock3, Globe, Info, LayoutList, Map as MapIcon, ShieldCheck, Tag, TrendingDown } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import AppShell from "@/components/app/AppShell";
 import BelowFold from "@/components/app/BelowFold";
@@ -16,7 +16,10 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import ForYou from "@/components/home/ForYou";
-import PriceFinder from "@/components/home/PriceFinder";
+import HotelDiscover from "@/components/home/HotelDiscover";
+import { BreakStyles, BudgetOffers, BudgetPanel, DeparturePanel, SeasonBanner, WeekendAway } from "@/components/home/HomeDiscover";
+import type { Budget, OriginIata } from "@/lib/homeDiscover";
+import { datesFor } from "@/lib/tripDates";
 import ArticleCard from "@/components/journal/ArticleCard";
 import { featured } from "@/content/journal";
 import { loadRecentSearches, onRecentSearchesChange, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
@@ -44,7 +47,6 @@ import { cn } from "@/lib/utils";
  * Headerfotoet er Lisboa (den gule trikken) – det eneste Lisboa-motivet vi
  * har rettigheter til lokalt; referansens utsikt over Tejo er ikke gjengitt.
  */
-const HERO_PHOTO = DESTINATIONS.find((d) => d.id === "lisboa");
 
 import { useMinWidth } from "@/hooks/use-min-width";
 const DiscoveryMap = lazy(() => import("@/components/home/DiscoveryMap"));
@@ -131,7 +133,7 @@ function PersonalStrip() {
 }
 
 const SeeAll = ({ to, label }: { to: string; label: string }) => (
-  <Link to={to} className="inline-flex min-h-11 items-center gap-0.5 text-[16px] font-semibold text-azure-ink underline-offset-4 hover:underline sm:min-h-9">
+  <Link to={to} className="inline-flex min-h-11 items-center gap-0.5 whitespace-nowrap text-[16px] font-semibold text-azure-ink underline-offset-4 hover:underline lg:min-h-9">
     {label} <Icon icon={ChevronRight} size={20} />
   </Link>
 );
@@ -306,7 +308,7 @@ function Discovery({ preferIata }: { preferIata?: string }) {
     <section aria-labelledby="discover" className="mt-8 sm:mt-10">
       {/* Telefon (HelloSky 4.0): overskrift, «Se alle», ett stort redaksjonelt fotografi. */}
       <div className="lg:hidden">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <h2 id="discover" className="t-h2">{t("home.feel.title")}</h2>
           <SeeAll to="/utforsk" label={t("home.seeall")} />
         </div>
@@ -380,27 +382,32 @@ export default function Home() {
   const [product, setProduct] = useState<ServiceId>("fly");
   const [quickView, setQuickView] = useState<DiscoverDestination | null>(null);
   const [recent, setRecent] = useState<RecentSearch[]>(() => loadRecentSearches());
+  // Oppdagelsen under søket deler tre ting: ramme, avreisested og datoene vi
+  // faktisk kommer til å søke på. Alle tre vises før man trykker.
+  const [budget, setBudget] = useState<Budget>(null);
+  const [origin, setOrigin] = useState<OriginIata>("OSL");
+  const trip = useMemo(() => datesFor("weekend", 3), []);
   useEffect(() => onRecentSearchesChange(() => setRecent(loadRecentSearches())), []);
   const sandbox = status.data?.flightProviders?.kayak.enabled && status.data.flightProviders.kayak.mode === "sandbox" && status.data.flightProviders.active === "kayak";
 
   return (
-    <div className="min-h-[100dvh] bg-background">
-      {/* Fotografiet med spørsmålet. Telefon: merke + profil i fotoet. Desktop: toppraden ligger i AppShell. */}
-      <header className="relative isolate overflow-hidden bg-petrol text-white lg:mt-16">
-        {HERO_PHOTO?.image && (
-          <img src={HERO_PHOTO.image} srcSet={imageSrcSet(HERO_PHOTO.image)} sizes="100vw" alt="" width={1024} height={640} fetchPriority="high" className="absolute inset-0 -z-10 h-full w-full object-cover object-[center_40%]" />
-        )}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-petrol/55 via-petrol/20 to-petrol/70" aria-hidden="true" />
-        <div className="container-x pb-14 lg:pb-16 lg:pt-14">
-          <GreetingBar tone="dark" className="lg:hidden" />
-          <h1 className="t-display mt-3 text-white lg:mt-0">{t("home.ask.title")}</h1>
-          <p className="mt-1.5 text-[18px] font-medium text-white/90 lg:text-[20px]">{t("home.ask.sub")}</p>
-        </div>
-      </header>
+    <div className="min-h-[100dvh] bg-page">
+      <AppShell className="pb-4">
+        {/*
+          Toppen, slik den er godkjent: merket til venstre, kontoen til høyre,
+          løftet i to linjer og søket rett under. Ingen fotohero – på en
+          prisjaktforside er søket det første man skal se.
+        */}
+        <GreetingBar tone="light" className="lg:hidden" />
+        <h1 className="t-display mt-1 lg:mt-6">
+          {t("home.hero.line1")}
+          <br />
+          {t("home.hero.line2")}
+        </h1>
+        <p className="mt-1.5 text-[17px] text-muted-foreground lg:text-[19px]">{t("home.hero.sub")}</p>
 
-      <AppShell className="relative -mt-6 rounded-t-[20px] bg-white pt-1 lg:-mt-10 lg:rounded-t-2xl">
-        <ServiceTabs active={product} onSelect={setProduct} />
-        <div className="mt-4">
+        <ServiceTabs variant="card" active={product} onSelect={setProduct} className="mt-5" />
+        <div className="mt-3">
           <SearchCard product={product} />
         </div>
 
@@ -412,25 +419,34 @@ export default function Home() {
         )}
         {sandbox && <p className="t-caption mt-3">{t("sr.sandbox")}</p>}
 
+        {/*
+          Oppdagelsen. Budsjettet og avreisestedet velges her og følger med i
+          hver eneste lenke nedover – de er ekte søkeparametere, ikke pynt.
+        */}
+        <div className="mt-8 space-y-8 sm:mt-10 sm:space-y-10">
+          <BudgetPanel budget={budget} onChange={setBudget} trip={trip} />
+          <WeekendAway origin={origin} trip={trip} budget={budget} />
+          <SeasonBanner origin={origin} trip={trip} budget={budget} />
+          <HotelDiscover />
+          <DeparturePanel origin={origin} onChange={setOrigin} />
+          <BudgetOffers origin={origin} trip={trip} budget={budget} />
+          <BreakStyles />
+          <p className="flex items-start gap-2.5 rounded-2xl bg-muted/60 px-4 py-3.5 text-[14px] leading-snug text-muted-foreground">
+            <Icon icon={Info} size={20} className="mt-0.5 shrink-0" />
+            {t("hd.booking.note")}
+          </p>
+        </div>
+
         <Discovery preferIata={recent[0]?.to} />
 
         {customer && <PersonalStrip />}
         {customer && <ForYou />}
 
-        {/*
-          Rett under søket: prisjakten som faktisk virker. Kontrollene her
-          setter ekte parametere på søket – budsjett, reiselengde, direktefly
-          og bagasje – i stedet for å vise tilbud vi ikke har dekning for.
-        */}
-        <section className="mt-10 sm:mt-12">
-          <PriceFinder />
-        </section>
-
         <BelowFold minHeight={2400}>
           <HowItWorks />
 
           <section aria-labelledby="routes" className="mt-16 sm:mt-24">
-            <div className="mb-4 flex items-end justify-between gap-4">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
               <h2 id="routes" className="t-h2">{t("home.routes.title")}</h2>
               <SeeAll to="/reisemal" label={t("home.routes.cta")} />
             </div>
@@ -444,7 +460,7 @@ export default function Home() {
           <TrustRow />
 
           <section className="mt-16 sm:mt-24">
-            <div className="mb-4 flex items-end justify-between gap-4">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
               <h2 className="t-h2">{t("home.journal")}</h2>
               <SeeAll to="/journal" label={t("home.journal.all")} />
             </div>
@@ -454,12 +470,12 @@ export default function Home() {
           </section>
 
           <section className="mt-16 sm:mt-24">
-            <div className="card-soft grid gap-6 p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-10">
-              <div>
-                <h2 className="t-h2">{t("home.watch.title")}</h2>
-                <p className="t-body mt-3 max-w-lg text-muted-foreground">{t("home.watch.body")}</p>
+            <div className="card-soft grid grid-cols-[minmax(0,1fr)] gap-6 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-10">
+              <div className="min-w-0">
+                <h2 className="t-h2 text-balance [overflow-wrap:anywhere]">{t("home.watch.title")}</h2>
+                <p className="t-body mt-3 max-w-lg text-muted-foreground [overflow-wrap:anywhere]">{t("home.watch.body")}</p>
               </div>
-              <Button asChild size="lg" className="rounded-full">
+              <Button asChild size="lg" className="h-auto min-h-12 w-full whitespace-normal rounded-2xl px-4 py-3 text-balance [overflow-wrap:anywhere] sm:w-auto sm:rounded-full sm:px-8">
                 <Link to={customer ? "/profil/prisovervaking" : "/logg-inn?next=/profil/prisovervaking"}>
                   <Icon icon={TrendingDown} size={20} /> {t("home.watch.cta")}
                 </Link>

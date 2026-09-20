@@ -16,7 +16,7 @@ export type { ServiceId } from "./services";
 
 type Props = {
   active: ServiceId;
-  variant?: "underline" | "pill";
+  variant?: "underline" | "pill" | "card";
   onSelect?: (id: ServiceId) => void;
   hrefFor?: (id: ServiceId) => string;
   className?: string;
@@ -25,6 +25,7 @@ type Props = {
 export default function ServiceTabs({ active, variant = "underline", onSelect, hrefFor, className }: Props) {
   const t = useT();
   const underline = variant === "underline";
+  const card = variant === "card";
   const itemCls = (on: boolean) =>
     cn(
       "outline-none transition-[background-color,color,border-color] duration-fast focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
@@ -34,23 +35,29 @@ export default function ServiceTabs({ active, variant = "underline", onSelect, h
             "after:absolute after:inset-x-1 after:bottom-0 after:h-[3px] after:rounded-full after:transition-colors after:duration-fast",
             on ? "text-petrol after:bg-petrol" : "text-petrol/80 hover:text-petrol after:bg-transparent",
           )
-        : cn(
-            "inline-flex h-12 shrink-0 items-center gap-2 rounded-xl border px-4 text-[15px] font-medium",
-            on ? "border-petrol bg-petrol text-white" : "border-border bg-white text-petrol hover:border-petrol/40",
-          ),
+        : card
+          ? cn(
+              // Godkjent forside: brede piller, valgt i kongeblått med hvitt ikon og hvit tekst.
+              "inline-flex h-[52px] shrink-0 items-center gap-2 rounded-2xl border px-5 text-[16px] font-semibold",
+              on ? "border-primary bg-primary text-primary-foreground shadow-soft" : "border-border bg-card text-petrol hover:border-petrol/40",
+            )
+          : cn(
+              "inline-flex h-12 shrink-0 items-center gap-2 rounded-xl border px-4 text-[15px] font-medium",
+              on ? "border-petrol bg-petrol text-white" : "border-border bg-white text-petrol hover:border-petrol/40",
+            ),
     );
 
   return (
     <div
       role={onSelect ? "tablist" : undefined}
       aria-label={t("home.services")}
-      className={cn(underline ? "grid grid-cols-4 border-b border-border" : "no-scrollbar flex gap-2 overflow-x-auto", className)}
+      className={cn(underline ? "grid grid-cols-4 border-b border-border" : "no-scrollbar flex gap-2.5 overflow-x-auto", className)}
     >
       {SERVICES.map((s) => {
         const on = s.id === active;
         const inner = (
           <>
-            <Icon icon={s.icon} size={24} className={underline ? "shrink-0" : "shrink-0 [&]:size-5"} />
+            <Icon icon={s.icon} size={24} className={underline || card ? "shrink-0" : "shrink-0 [&]:size-5"} />
             <span>{t(s.label)}</span>
           </>
         );

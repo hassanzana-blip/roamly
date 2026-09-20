@@ -194,6 +194,21 @@ export function formatDayMonth(iso: string, locale = currentLocale()): string {
   return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(d);
 }
 
+/**
+ * «16.–19. okt.» – datoområdet slik man sier det høyt. Samme måned skrives
+ * bare én gang; over et månedsskifte står begge.
+ */
+export function formatDateRangeShort(from: string, to: string, locale = currentLocale()): string {
+  const a = safeDate(from);
+  const b = safeDate(to);
+  if (!a || !b) return "";
+  const sameMonth = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  // Norsk skriver dagen med punktum allerede («25.»), engelsk gjør det ikke.
+  // Vi legger på ett punktum, aldri to.
+  const day = new Intl.DateTimeFormat(locale, { day: "numeric" }).format(a).replace(/\.$/, "");
+  return sameMonth ? `${day}.–${formatDayMonth(to, locale)}` : `${formatDayMonth(from, locale)} – ${formatDayMonth(to, locale)}`;
+}
+
 export function formatDateLong(iso: string, locale = currentLocale()): string {
   const d = safeDate(iso);
   if (!d) return "";

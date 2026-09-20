@@ -22,6 +22,9 @@ export const AIRPORTS: Airport[] = [
   { iata: "BGO", name: "Bergen lufthavn Flesland", city: "Bergen", country: "Norge", countryCode: "NO", lat: 60.2934, lng: 5.2181, timeZone: "Europe/Oslo", popular: true },
   { iata: "TRD", name: "Trondheim lufthavn Værnes", city: "Trondheim", country: "Norge", countryCode: "NO", lat: 63.4578, lng: 10.924, timeZone: "Europe/Oslo", popular: true },
   { iata: "SVG", name: "Stavanger lufthavn Sola", city: "Stavanger", country: "Norge", countryCode: "NO", lat: 58.8768, lng: 5.6378, timeZone: "Europe/Oslo", popular: true },
+  // Torp er den andre inngangen til Oslo-området for mange reisende, og en egen
+  // flyplass med egen kode – den skal aldri blandes med OSL.
+  { iata: "TRF", name: "Sandefjord lufthavn Torp", city: "Sandefjord", country: "Norge", countryCode: "NO", lat: 59.1867, lng: 10.2586, timeZone: "Europe/Oslo", popular: true },
   { iata: "TOS", name: "Tromsø lufthavn", city: "Tromsø", country: "Norge", countryCode: "NO", lat: 69.6833, lng: 18.9189, timeZone: "Europe/Oslo", popular: true },
   { iata: "BOO", name: "Bodø lufthavn", city: "Bodø", country: "Norge", countryCode: "NO", lat: 67.2692, lng: 14.3653, timeZone: "Europe/Oslo" },
   { iata: "AES", name: "Ålesund lufthavn Vigra", city: "Ålesund", country: "Norge", countryCode: "NO", lat: 62.5625, lng: 6.1197, timeZone: "Europe/Oslo" },

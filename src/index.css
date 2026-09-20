@@ -127,6 +127,19 @@
     /* Hearts and saved items: petrol, like the rest of the brand. */
     --like: 193 59% 17%;
 
+    /*
+      Forsidens godkjente palett. Flatene bærer mening: sjøgrønn = velg noe
+      (budsjett, avreisested), aprikos og gul = reisemålskort, lavendel =
+      inspirasjon. Skogsgrønn er den valgte tilstanden på de sjøgrønne flatene.
+    */
+    --sea: 159 40% 85%;
+    --forest: 174 50% 16%;
+    --apricot: 20 85% 85%;
+    --sunny-warm: 48 85% 75%;
+    --lav-soft: 226 75% 92%;
+    /* Forsidens sideflate – litt kjøligere enn hvitt, som i referansen. */
+    --page: 216 33% 97%;
+
     /* Min side-flater (godkjent design): status-gul, lys himmel, lys rose. */
     --sunny: 52 96% 82%;
     --sunny-ink: 40 60% 18%;
@@ -194,6 +207,12 @@
     --sand: 195 16% 16%;
     --skyline: 212 92% 74%;
     --like: 214 90% 66%;
+    --sea: 168 22% 20%;
+    --forest: 168 30% 78%;
+    --apricot: 20 30% 22%;
+    --sunny-warm: 45 35% 24%;
+    --lav-soft: 226 24% 22%;
+    --page: 195 30% 8%;
     --sunny: 48 60% 30%;
     --sunny-ink: 50 90% 88%;
     --sky-soft: 215 30% 16%;
