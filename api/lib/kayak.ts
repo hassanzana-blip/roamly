@@ -426,9 +426,25 @@ function point(code: string, airports: KayakPollResponse["airports"]): AirportPo
   };
 }
 
+/**
+ * Sandkassen svarer med plassholdere der ekte merkevare ville stått – blant
+ * annet bilder og navn som bokstavelig talt sier «Not available in Sandbox».
+ * En slik plassholder skal aldri havne på skjermen som om den var et
+ * flyselskaps logo eller navn: da faller vi heller tilbake på IATA-koden og
+ * et rent monogram, som er ærlig.
+ */
+const PLACEHOLDER_RE = /not[\s_-]*available|sandbox|placeholder|no[\s_-]?image|dummy/i;
+
+export function realOrUndefined(value: string | undefined): string | undefined {
+  const v = value?.trim();
+  return v && !PLACEHOLDER_RE.test(v) ? v : undefined;
+}
+
 function carrierOf(code: string, airlines: KayakPollResponse["airlines"]): Carrier {
   const a = airlines[code];
-  return { iata: code, name: a?.displayName ?? code, ...(a?.logoUrl ? { logoUrl: a.logoUrl } : {}) };
+  const name = realOrUndefined(a?.displayName);
+  const logoUrl = realOrUndefined(a?.logoUrl);
+  return { iata: code, name: name ?? code, ...(logoUrl ? { logoUrl } : {}) };
 }
 
 type BookingOption = z.infer<typeof bookingOptionSchema>;
@@ -573,11 +589,11 @@ export function mapPollResponse(body: KayakPollResponse, input: KayakSearchInput
       const booking: ExternalBooking = {
         kind: "external",
         url: bo.bookingUrl,
-        provider: {
-          code: bo.providerCode,
-          name: provider?.displayName ?? bo.providerCode,
-          ...(provider?.logoUrls?.imageUrl ? { logoUrl: provider.logoUrls.imageUrl } : {}),
-        },
+        provider: (() => {
+          const name = realOrUndefined(provider?.displayName);
+          const logoUrl = realOrUndefined(provider?.logoUrls?.imageUrl);
+          return { code: bo.providerCode, name: name ?? bo.providerCode, ...(logoUrl ? { logoUrl } : {}) };
+        })(),
         sellerKind: classifySeller(bo.providerCode, itineraryAirlines, body.providers),
         ...(badges.length ? { badges } : {}),
         ...(bo.fees?.nonRefundableDisclosure ? { disclosure: bo.fees.nonRefundableDisclosure } : {}),

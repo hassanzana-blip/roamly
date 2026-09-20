@@ -16,6 +16,7 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import ForYou from "@/components/home/ForYou";
+import PriceFinder from "@/components/home/PriceFinder";
 import ArticleCard from "@/components/journal/ArticleCard";
 import { featured } from "@/content/journal";
 import { loadRecentSearches, onRecentSearchesChange, recentSearchHref, type RecentSearch } from "@/lib/recentSearches";
@@ -415,6 +416,15 @@ export default function Home() {
 
         {customer && <PersonalStrip />}
         {customer && <ForYou />}
+
+        {/*
+          Rett under søket: prisjakten som faktisk virker. Kontrollene her
+          setter ekte parametere på søket – budsjett, reiselengde, direktefly
+          og bagasje – i stedet for å vise tilbud vi ikke har dekning for.
+        */}
+        <section className="mt-10 sm:mt-12">
+          <PriceFinder />
+        </section>
 
         <BelowFold minHeight={2400}>
           <HowItWorks />

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { AlertTriangle, CalendarPlus, Loader2, Mail, ReceiptText, RefreshCw, Ticket, Undo2 } from "lucide-react";
 import { trpc } from "@/providers/trpc";
-import { SliceViz } from "@/components/offers/OfferCard";
+import { SliceViz } from "@/components/offers/SliceViz";
 import { sliceLabel } from "@/components/offers/offerUtils";
 import {
   AlertDialog,

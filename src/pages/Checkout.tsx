@@ -4,7 +4,7 @@ import { ArrowLeft, CalendarClock, CheckCircle2, Info, Loader2, Lock, Luggage, M
 import { trpc, type RouterOutputs } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import { SliceViz } from "@/components/offers/OfferCard";
+import { SliceViz } from "@/components/offers/SliceViz";
 import AirlineLogo from "@/components/brand/AirlineLogo";
 import ExtrasSection from "@/components/checkout/ExtrasSection";
 import PassengerForm, { Field } from "@/components/checkout/PassengerForm";

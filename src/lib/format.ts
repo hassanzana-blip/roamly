@@ -217,6 +217,36 @@ export function formatDateTime(iso: string, locale = currentLocale()): string {
   }).format(d);
 }
 
+/**
+ * Leverandørens egen beløpsstreng skrevet om til norsk.
+ *
+ * KAYAK og flyselskapene sender gebyrer som «NOK 450», «NOK58.0» eller
+ * «450.00 NOK». Står de urørt, møter kunden «NOK58.0» – et tall ingen leser
+ * som penger. Vi tolker beløpet og skriver det som vi skriver alle andre
+ * priser. Klarer vi ikke å lese det trygt, viser vi ingenting: en uleselig
+ * pris er verre enn ingen pris, og vi gjetter aldri på et beløp.
+ */
+export function formatSupplierMoney(raw: string | null | undefined, locale = currentLocale()): string | null {
+  if (!raw) return null;
+  const text = raw.trim();
+  const currency = text.match(/\b([A-Z]{3})\b/)?.[1] ?? "NOK";
+  const digits = text.replace(/[^\d.,]/g, "");
+  if (!/\d/.test(digits)) return null;
+
+  const lastComma = digits.lastIndexOf(",");
+  const lastDot = digits.lastIndexOf(".");
+  const sep = Math.max(lastComma, lastDot);
+  // Et skilletegn helt til slutt med 1–2 sifre etter seg er desimaler.
+  // Alt annet (1.234 / 1,234) er tusenskille og skal bare bort.
+  const decimals = sep > -1 && digits.length - sep - 1 <= 2 && digits.length - sep - 1 > 0;
+  const normalised = decimals
+    ? `${digits.slice(0, sep).replace(/[.,]/g, "")}.${digits.slice(sep + 1)}`
+    : digits.replace(/[.,]/g, "");
+  const amount = Number(normalised);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return formatPrice(amount, currency, locale);
+}
+
 export function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;

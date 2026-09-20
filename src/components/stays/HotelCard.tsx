@@ -53,20 +53,33 @@ export function Stars({ n, className }: { n: number; className?: string }) {
   );
 }
 
-export function RatingChip({ rating, reviews, sentiment }: { rating: number | null; reviews: number; sentiment?: string }) {
+/** Vurderingen, hvem som har samlet den, og hvor mange den bygger på. */
+export function RatingChip({ rating, reviews, sentiment, showSource }: { rating: number | null; reviews: number; sentiment?: string; showSource?: boolean }) {
   const t = useT();
   if (rating === null) return <span className="text-xs text-muted-foreground">{t("ht.norating")}</span>;
   const label = sentiment?.split(",")[0]?.trim();
   return (
-    <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
       <span className="rounded-md bg-primary px-1.5 py-0.5 text-[12px] font-bold tabular-nums text-primary-foreground">{rating.toFixed(1).replace(".", ",")}</span>
       {label && <span className="font-medium text-foreground">{label}</span>}
       {reviews > 0 && <span>· {t("ht.reviews", { count: reviews })}</span>}
+      {showSource && <span>· {t("ht.rating.source")}</span>}
     </span>
   );
 }
 
-export default function HotelCard({ hotel, to, sandbox }: { hotel: HotelSummary; to: string; sandbox?: boolean }) {
+export default function HotelCard({
+  hotel,
+  to,
+  sandbox,
+  stay,
+}: {
+  hotel: HotelSummary;
+  to: string;
+  sandbox?: boolean;
+  /** Rom og gjester fra søket – prisen betyr lite uten dem. */
+  stay?: { rooms: number; guests: number };
+}) {
   const t = useT();
   const best = hotel.rates[0];
   const perks = new Set<string>();
@@ -94,7 +107,7 @@ export default function HotelCard({ hotel, to, sandbox }: { hotel: HotelSummary;
             <Stars n={hotel.starRating} className="mt-1" />
           </div>
         </div>
-        <RatingChip rating={hotel.guestRating} reviews={hotel.numberOfReviews} sentiment={hotel.ratingSentiment} />
+        <RatingChip rating={hotel.guestRating} reviews={hotel.numberOfReviews} sentiment={hotel.ratingSentiment} showSource />
         {perks.size > 0 && (
           <ul className="flex flex-wrap gap-1.5">
             {[...perks].map((p) => (
@@ -106,10 +119,20 @@ export default function HotelCard({ hotel, to, sandbox }: { hotel: HotelSummary;
           <div>
             {best ? (
               <>
-                <p className="t-num text-2xl font-bold leading-none tracking-tight">{formatMoney(best.perNightAmount, hotel.currency)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("ht.pernight")} · {best.provider.name} · {t("ht.total", { count: hotel.nights, price: formatMoney(best.totalAmount, hotel.currency) })}
+                {/*
+                  Totalen står størst. Et lite nattetall øverst og hele beløpet
+                  gjemt i grå småtekst får hotellet til å se billigere ut enn
+                  det er – det er nettopp det denne rekkefølgen hindrer.
+                */}
+                <p className="t-num text-2xl font-bold leading-none tracking-tight">{formatMoney(best.totalAmount, hotel.currency)}</p>
+                <p className="mt-1 text-[13px] font-medium text-foreground">
+                  {t("ht.stay.total")} · {t("ht.stay.nights", { count: hotel.nights })}
+                  {stay ? ` · ${t("ht.stay.rooms", { count: stay.rooms })} · ${t("ht.stay.guests", { count: stay.guests })}` : ""}
                 </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t("ht.stay.pernight", { price: formatMoney(best.perNightAmount, hotel.currency) })} · {t("ht.stay.quotedby", { name: best.provider.name })}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t("ht.stay.localfees")}</p>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">{t("ht.norates")}</p>

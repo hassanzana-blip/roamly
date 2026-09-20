@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import { ArrowUpDown, Bell, CalendarDays, Check, ChevronDown, Info, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
+import { Bell, CalendarDays, Check, ChevronDown, Info, Luggage, Pencil, RefreshCw, SlidersHorizontal, TimerReset } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -11,7 +11,16 @@ import { carSearchHref, hotelSearchHref } from "@/components/stays/stayLinks";
 import { DESTINATIONS } from "@/content/discover";
 import { useSavedDestinations } from "@/lib/useAccount";
 import { useCollections } from "@/lib/collections";
-import OfferCard from "@/components/offers/OfferCard";
+import ResultCard from "@/components/offers/ResultCard";
+import OfferDetailsSheet from "@/components/offers/OfferDetailsSheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CurrencyNote } from "@/components/stays/StayLayout";
 import { partyLabel, providerName } from "@/components/offers/offerUtils";
 import SearchWidget, { type SearchParamsState, type TripLeg } from "@/components/search/SearchWidget";
@@ -25,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { useCustomer } from "@/lib/useCustomer";
 import { useRecordSearch } from "@/lib/useAccount";
 import { humanMessage } from "@/lib/apiError";
-import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CabinClass, Offer, SearchPassengerInput, SearchSliceInput } from "@contracts/types";
 import { airportByIata } from "@contracts/airports";
 import { cabinLabel, formatClock, formatDateShort, formatDayMonth, formatDuration, formatMinor, formatPrice, layoverInfo, previewTotalMinor, toMinor } from "@/lib/format";
@@ -119,6 +128,15 @@ export default function SearchResults() {
   const cabin = (params.get("cabin") ?? "economy") as CabinClass;
   const sortParam = params.get("sort");
   const directOnly = params.get("direct") === "1";
+  /**
+   * Budsjett og bagasjekrav kommer fra prisfinneren på forsiden. De er ekte
+   * filtre, ikke pynt: taket skjærer bort tilbud over beløpet, og bagasjekravet
+   * beholder bare billetter med innsjekket bagasje. Uten dem i lenken ville
+   * knappene på forsiden vært en løgn.
+   */
+  const budgetParam = Number(params.get("maxpris"));
+  const budgetMinor = Number.isFinite(budgetParam) && budgetParam > 0 ? Math.round(budgetParam) * 100 : null;
+  const baggageRequired = params.get("bagasje") === "1";
   const requestedProvider = providerParam(params.get("provider"));
 
   const slices = useMemo<SearchSliceInput[]>(() => {
@@ -141,14 +159,14 @@ export default function SearchResults() {
   const [sort, setSort] = useState<SortKey>(() => (isPreference(sortParam) ? sortParam : "best"));
   const [stopsFilter, setStopsFilter] = useState<"all" | "direct" | "max1">("all");
   const [airlines, setAirlines] = useState<string[]>([]);
-  const [baggageOnly, setBaggageOnly] = useState(false);
+  const [baggageOnly, setBaggageOnly] = useState(baggageRequired);
   const [airlineDirectOnly, setAirlineDirectOnly] = useState(false);
   const [refundableOnly, setRefundableOnly] = useState(false);
   const [depTime, setDepTime] = useState<TimeBand>("all");
   const [arrTime, setArrTime] = useState<TimeBand>("all");
   const [maxDurationH, setMaxDurationH] = useState(0); // 0 = unlimited
   const [maxLayoverH, setMaxLayoverH] = useState(0); // 0 = unlimited
-  const [priceMax, setPriceMax] = useState<number | null>(null); // minor, null = unlimited
+  const [priceMax, setPriceMax] = useState<number | null>(budgetMinor); // minor, null = ubegrenset
   const [originAirports, setOriginAirports] = useState<string[]>([]);
   const [destAirports, setDestAirports] = useState<string[]>([]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
@@ -158,7 +176,8 @@ export default function SearchResults() {
   const [alertTarget, setAlertTarget] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
+  const [detailsOffer, setDetailsOffer] = useState<Offer | null>(null);
+  const [headerPassed, setHeaderPassed] = useState(false);
   const [saveNote, setSaveNote] = useState("");
   const collections = useCollections((city) => t("sv.trip", { city }));
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -170,7 +189,8 @@ export default function SearchResults() {
   const doSearch = () => {
     if (!slices.length) return;
     setVisible(PAGE_SIZE);
-    setPriceMax(null);
+    setPriceMax(budgetMinor);
+    setBaggageOnly(baggageRequired);
     search.mutate({
       slices,
       passengers,
@@ -203,6 +223,19 @@ export default function SearchResults() {
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
+  }, []);
+
+  /**
+   * Toppen med ruten ruller bort når man begynner å lese tilbud; da overtar
+   * den klebrige linjen og viser ruten i kortform. Én klebrig linje, ikke tre.
+   */
+  const headerSentinel = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = headerSentinel.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setHeaderPassed(!entry.isIntersecting), { rootMargin: "-72px 0px 0px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   const result = search.data;
@@ -303,7 +336,8 @@ export default function SearchResults() {
     return { min: Math.min(...totals), max: Math.max(...totals) };
   }, [allOffers, totalOf]);
 
-  const filtered = useMemo(() => {
+  /** Filtrene alene. Fanene over listen leser herfra, slik at prisen de viser alltid finnes i listen under. */
+  const filteredBase = useMemo(() => {
     let offers: Offer[] = allOffers;
     if (stopsFilter !== "all") {
       offers = offers.filter((o) => {
@@ -322,17 +356,21 @@ export default function SearchResults() {
     if (priceMax !== null) offers = offers.filter((o) => totalOf(o) <= priceMax);
     if (originAirports.length) offers = offers.filter((o) => originAirports.includes(o.slices[0].origin.iata));
     if (destAirports.length) offers = offers.filter((o) => destAirports.includes(o.slices[0].destination.iata));
+    return offers;
+  }, [allOffers, totalOf, stopsFilter, airlines, baggageOnly, airlineDirectOnly, refundableOnly, depTime, arrTime, maxDurationH, maxLayoverH, priceMax, originAirports, destAirports]);
+
+  const filtered = useMemo(() => {
     if (sort === "earliest") {
-      return [...offers].sort((a, b) => new Date(a.slices[0].departingAt).getTime() - new Date(b.slices[0].departingAt).getTime());
+      return [...filteredBase].sort((a, b) => new Date(a.slices[0].departingAt).getTime() - new Date(b.slices[0].departingAt).getTime());
     }
-    return rank(offers, sort, totalOf);
-  }, [allOffers, totalOf, sort, stopsFilter, airlines, baggageOnly, airlineDirectOnly, refundableOnly, depTime, arrTime, maxDurationH, maxLayoverH, priceMax, originAirports, destAirports]);
+    return rank(filteredBase, sort, totalOf);
+  }, [filteredBase, sort, totalOf]);
 
   const summary = useMemo(() => {
-    if (!allOffers.length) return null;
-    const pick = (p: Preference) => rank(allOffers, p, totalOf)[0];
+    if (!filteredBase.length) return null;
+    const pick = (p: Preference) => rank(filteredBase, p, totalOf)[0];
     return { best: pick("best"), cheapest: pick("cheapest"), fastest: pick("fastest"), family: family ? pick("family") : null };
-  }, [allOffers, totalOf, family]);
+  }, [filteredBase, totalOf, family]);
 
   const fromAirport = airportByIata(from);
   const toAirport = airportByIata(to);
@@ -448,8 +486,62 @@ export default function SearchResults() {
 
   const toggleIn = (list: string[], set: (v: string[]) => void, code: string, on: boolean) => set(on ? [...list, code] : list.filter((x) => x !== code));
 
+  // Sorteringsfanene: Anbefalt · Billigst · Raskest (+ Familie når det reiser barn).
+  // Alltid alle tre, også når samme fly vinner alle – rekkefølgen under er fortsatt ulik.
+  const tabKeys: SortKey[] = summary?.family ? ["best", "cheapest", "fastest", "family"] : ["best", "cheapest", "fastest"];
+  const tabs: { key: SortKey; label: string; offer: Offer | null }[] = summary
+    ? tabKeys.map((key) => ({
+        key,
+        label: key === "best" ? t("sr.sort.recommended") : t(PREFERENCES.find((p) => p.key === key)!.label),
+        offer: key === "family" ? summary.family : summary[key as "best" | "cheapest" | "fastest"],
+      }))
+    : [];
+
+  // Alle sorteringene i én liste: de tre (fire) hovedvalgene med sitt beste tilbud, så resten.
+  const sortOptions: { key: SortKey; label: string; hint?: string; offer: Offer | null }[] = [
+    ...tabs,
+    ...PREFERENCES.filter((p) => !tabKeys.includes(p.key)).map((p) => ({ key: p.key as SortKey, label: t(p.label), hint: t(p.hint), offer: null })),
+    { key: "earliest", label: t("sr.sort.earliest"), offer: null },
+  ];
+  const sortLabel = sortOptions.find((o) => o.key === sort)?.label ?? t("sr.sort.recommended");
+
+  const sortList = (
+    <ul role="radiogroup" aria-label={t("sr.sort.title")} className="divide-y divide-border">
+      {sortOptions.map((o) => {
+        const on = sort === o.key;
+        return (
+          <li key={o.key}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => {
+                setSort(o.key);
+                setFiltersOpen(false);
+              }}
+              className="flex min-h-14 w-full items-center gap-3 px-1 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            >
+              <span className="min-w-0 flex-1">
+                <span className={cn("block text-[17px]", on ? "font-bold text-petrol" : "font-medium text-foreground")}>{o.label}</span>
+                {o.offer ? (
+                  <span className="block text-[14px] text-muted-foreground">
+                    {formatMinor(totalOf(o.offer), o.offer.totalCurrency)} · {formatDuration(sliceDuration(o.offer))} · {o.offer.owner.name}
+                  </span>
+                ) : o.hint ? (
+                  <span className="block text-[14px] text-muted-foreground">{o.hint}</span>
+                ) : null}
+              </span>
+              {on && <Check className="size-6 shrink-0 text-petrol" aria-hidden="true" />}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   const filterPanel = (
     <div className="space-y-6">
+      <FilterGroup title={t("sr.sort.title")}>{sortList}</FilterGroup>
       {priceBounds && priceBounds.max > priceBounds.min && (
         <FilterGroup title={t("sr.filter.maxprice")}>
           <Slider
@@ -551,16 +643,116 @@ export default function SearchResults() {
     </div>
   );
 
-  // Sorteringsfanene: Anbefalt · Billigst · Raskest (+ Familie når det reiser barn).
-  // Alltid alle tre, også når samme fly vinner alle – rekkefølgen under er fortsatt ulik.
-  const tabKeys: SortKey[] = summary?.family ? ["best", "cheapest", "fastest", "family"] : ["best", "cheapest", "fastest"];
-  const tabs: { key: SortKey; label: string; offer: Offer | null }[] = summary
-    ? tabKeys.map((key) => ({
-        key,
-        label: key === "best" ? t("sr.sort.recommended") : t(PREFERENCES.find((p) => p.key === key)!.label),
-        offer: key === "family" ? summary.family : summary[key as "best" | "cheapest" | "fastest"],
-      }))
-    : [];
+  /**
+   * Fanene over listen: tre måter å lese det samme utvalget på, hver med
+   * prisen på det tilbudet som faktisk vinner den kategorien. Prisen er hentet
+   * fra et tilbud som ligger i listen under – aldri en påstand om markedet.
+   */
+  const sortTabs = tabs.length > 0 && (
+    <div role="tablist" aria-label={t("sr.sort.title")} className={cn("grid border-b border-border", tabs.length === 4 ? "grid-cols-4" : "grid-cols-3")}>
+      {tabs.map((tab) => {
+        const on = sort === tab.key;
+        const price = tab.offer ? formatMinor(totalOf(tab.offer), tab.offer.totalCurrency) : null;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            aria-label={price ? t("sr.tab.aria", { label: tab.label, price }) : tab.label}
+            onClick={() => setSort(tab.key)}
+            className={cn(
+              "min-h-[58px] border-b-[3px] px-1.5 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+              on ? "border-primary bg-sky-soft" : "border-transparent hover:bg-muted/60",
+            )}
+          >
+            <span className={cn("block truncate text-[13.5px] leading-tight", on ? "font-bold text-azure-ink" : "font-semibold text-muted-foreground")}>{tab.label}</span>
+            <span className={cn("t-num mt-0.5 block truncate text-[16px] font-bold leading-tight", on ? "text-azure-ink" : "text-foreground")}>
+              {price ?? t("sr.tab.nooffer")}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  /** Filterknapp + de fire som faktisk brukes: stopp, bagasje, tider, selskap. */
+  const quickFilterChip = "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-[14px] font-semibold text-foreground transition-colors hover:border-foreground/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  const quickFilters = (
+    <div className="no-scrollbar flex items-center gap-2 overflow-x-auto py-2.5">
+      <button type="button" onClick={() => setFiltersOpen(true)} className={cn(quickFilterChip, activeFilters > 0 && "border-primary text-azure-ink")}>
+        <SlidersHorizontal className="size-4" aria-hidden="true" />
+        {t("sr.filter")}
+        {activeFilters > 0 && <span className="grid size-5 place-items-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{activeFilters}</span>}
+      </button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(quickFilterChip, stopsFilter !== "all" && "border-primary text-azure-ink")}>
+          {t("sr.q.stops")}
+          <ChevronDown className="size-4" aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup value={stopsFilter} onValueChange={(v) => setStopsFilter(v as typeof stopsFilter)}>
+            <DropdownMenuRadioItem value="all">{t("sr.time.all")}</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="direct">{t("sr.filter.direct")}</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="max1">{t("sr.filter.max1")}</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(quickFilterChip, baggageOnly && "border-primary text-azure-ink")}>
+          <Luggage className="size-4" aria-hidden="true" />
+          {t("sr.q.baggage")}
+          <ChevronDown className="size-4" aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup value={baggageOnly ? "checked" : "all"} onValueChange={(v) => setBaggageOnly(v === "checked")}>
+            <DropdownMenuRadioItem value="all">{t("sr.time.all")}</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="checked">{t("sr.filter.baggage")}</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(quickFilterChip, depTime !== "all" && "border-primary text-azure-ink")}>
+          {t("sr.q.times")}
+          <ChevronDown className="size-4" aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuRadioGroup value={depTime} onValueChange={(v) => setDepTime(v as TimeBand)}>
+            {TIME_BANDS.map((b) => (
+              <DropdownMenuRadioItem key={b.key} value={b.key}>
+                {t(b.label)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {availableAirlines.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger className={cn(quickFilterChip, airlines.length > 0 && "border-primary text-azure-ink")}>
+            {t("sr.q.airlines")}
+            {airlines.length > 0 && <span className="t-num">{airlines.length}</span>}
+            <ChevronDown className="size-4" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-[60vh] overflow-y-auto">
+            {availableAirlines.map(([code, name]) => (
+              <DropdownMenuCheckboxItem
+                key={code}
+                checked={airlines.includes(code)}
+                onCheckedChange={(on) => toggleIn(airlines, setAirlines, code, on === true)}
+                onSelect={(e) => e.preventDefault()}
+              >
+                {name}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
 
   // ±3-dagers prisstripe + priskalender: i «Endre søk»-panelet, sammen med resten av søket.
   const priceStrip = stripDates.length > 0 && (
@@ -610,48 +802,6 @@ export default function SearchResults() {
     </div>
   );
 
-  // Alle sorteringene i én liste: de tre (fire) hovedvalgene med sitt beste tilbud, så resten.
-  const sortOptions: { key: SortKey; label: string; hint?: string; offer: Offer | null }[] = [
-    ...tabs,
-    ...PREFERENCES.filter((p) => !tabKeys.includes(p.key)).map((p) => ({ key: p.key as SortKey, label: t(p.label), hint: t(p.hint), offer: null })),
-    { key: "earliest", label: t("sr.sort.earliest"), offer: null },
-  ];
-  const sortLabel = sortOptions.find((o) => o.key === sort)?.label ?? t("sr.sort.recommended");
-
-  const sortList = (
-    <ul role="radiogroup" aria-label={t("sr.sort.title")} className="divide-y divide-border">
-      {sortOptions.map((o) => {
-        const on = sort === o.key;
-        return (
-          <li key={o.key}>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={on}
-              onClick={() => {
-                setSort(o.key);
-                setSortOpen(false);
-              }}
-              className="flex min-h-14 w-full items-center gap-3 px-1 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-            >
-              <span className="min-w-0 flex-1">
-                <span className={cn("block text-[17px]", on ? "font-bold text-petrol" : "font-medium text-foreground")}>{o.label}</span>
-                {o.offer ? (
-                  <span className="block text-[14px] text-muted-foreground">
-                    {formatMinor(totalOf(o.offer), o.offer.totalCurrency)} · {formatDuration(sliceDuration(o.offer))} · {o.offer.owner.name}
-                  </span>
-                ) : o.hint ? (
-                  <span className="block text-[14px] text-muted-foreground">{o.hint}</span>
-                ) : null}
-              </span>
-              {on && <Check className="size-6 shrink-0 text-petrol" aria-hidden="true" />}
-            </button>
-          </li>
-        );
-      })}
-    </ul>
-  );
-
   /**
    * En lenke uten reisemål eller dato er ikke en feil, det er et uferdig søk.
    * Før falt siden i feilgrensen fordi datoformatereren fikk en tom streng.
@@ -686,7 +836,7 @@ export default function SearchResults() {
   // «16. okt. · Én vei · 1 voksen»
   const summaryLine = (
     <>
-      {isMulti ? legs.map((l) => formatDayMonth(l.date)).join(" · ") : ret ? `${formatDayMonth(depart)} – ${formatDayMonth(ret)} · ${t("sr.roundtrip.cap")}` : `${formatDayMonth(depart)} · ${t("sr.oneway.cap")}`}
+      {isMulti ? legs.map((l) => formatDayMonth(l.date)).join(" · ") : ret ? `${formatDayMonth(depart)} – ${formatDayMonth(ret)}` : `${formatDayMonth(depart)} · ${t("sr.oneway.cap")}`}
       {" · "}
       {partyLabel(passengers, t)}
       {cabin !== "economy" ? ` · ${cabinLabel(cabin)}` : ""}
@@ -695,7 +845,7 @@ export default function SearchResults() {
   const heroBar = (
     <HeroBar
       backTo="/"
-      tone="dark"
+      tone="light"
       saved={heroDest ? savedIds.has(heroDest.id) : undefined}
       onToggleSaved={heroDest ? () => toggleSaved(heroDest.id) : undefined}
       saveLabel={heroDest ? (savedIds.has(heroDest.id) ? t("sr.unsavedest", { city: heroDest.city }) : t("sr.savedest", { city: heroDest.city })) : undefined}
@@ -707,50 +857,62 @@ export default function SearchResults() {
     <div className="relative min-h-screen bg-background">
       <div className="hidden lg:block"><SiteHeader /></div>
 
-      {/* Den mintgrønne toppen: ruten, datoen og reisefølget, og «Endre søk». */}
-      <header className="bg-mint text-petrol lg:mt-16">
-        <div className="container-x pb-5 pt-[max(8px,env(safe-area-inset-top))] lg:pb-7 lg:pt-6">
+      {/*
+        Toppen: hvem som flyr hvor, når, og hvor mange – og én vei tilbake til
+        søket. Den ruller bort når man begynner å lese tilbud; den klebrige
+        linjen under overtar da med ruten i kortform, slik at skjermen viser
+        tilbud og ikke kontroller.
+      */}
+      <header className="bg-petrol text-white lg:mt-16">
+        <div className="container-x pb-4 pt-[max(6px,env(safe-area-inset-top))] lg:pb-5 lg:pt-5">
           {heroBar}
-          <h1 className="t-display mt-4 lg:mt-2">{title}</h1>
-          <p className="mt-1.5 text-[18px] font-medium">{summaryLine}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-2.5 flex items-start justify-between gap-3 lg:mt-0">
+            <div className="min-w-0">
+              {/* Ruten er det siden handler om; den får bryte over to linjer heller enn
+                  å ende som «Oslo → Colom…». */}
+              <h1 className="text-balance text-[26px] font-bold leading-tight sm:text-[30px]">{title}</h1>
+              <p className="mt-1 text-[14.5px] text-white/75 sm:text-[15px]">{summaryLine}</p>
+            </div>
             <button
               type="button"
               onClick={() => setEditOpen((o) => !o)}
               aria-expanded={editOpen}
-              className="inline-flex h-12 items-center gap-2.5 rounded-xl bg-petrol/10 px-4 text-[17px] font-semibold text-petrol transition-colors hover:bg-petrol/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              <CalendarDays className="size-6" aria-hidden="true" />
+              <Pencil className="size-[18px]" aria-hidden="true" />
               {t("sr.edit")}
               <ChevronDown className={cn("size-4 transition-transform", editOpen && "rotate-180")} aria-hidden="true" />
             </button>
-            {!isMulti && depart && priceAlertsAvailable && (
-              <Button
-                variant={alertOpen ? "subtle" : "ghost"}
-                size="md"
-                className="h-12 rounded-xl text-[15px] hover:bg-petrol/10"
-                onClick={() => {
-                  setAlertOpen((o) => !o);
-                  createAlert.reset();
-                  if (!alertEmail && customer?.email) setAlertEmail(customer.email);
-                }}
-                aria-expanded={alertOpen}
-              >
-                <Bell aria-hidden="true" /> {t("sr.alert")}
-              </Button>
-            )}
-            {result?.demoMode && <span className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-[13px] font-semibold text-warning">{t("sr.demo")}</span>}
-            {result?.sandbox && !result.demoMode && (
-              <span role="status" className="rounded-lg bg-warning/10 px-2.5 py-1.5 text-[13px] font-semibold text-warning">
-                {t("sr.sandbox")}
-              </span>
-            )}
           </div>
+          {(result?.demoMode || result?.sandbox || (!isMulti && depart && priceAlertsAvailable)) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {!isMulti && depart && priceAlertsAvailable && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAlertOpen((o) => !o);
+                    createAlert.reset();
+                    if (!alertEmail && customer?.email) setAlertEmail(customer.email);
+                  }}
+                  aria-expanded={alertOpen}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-white/10 px-3 text-[14px] font-semibold text-white transition-colors hover:bg-white/20"
+                >
+                  <Bell className="size-4" aria-hidden="true" /> {t("sr.alert")}
+                </button>
+              )}
+              {result?.demoMode && <span className="rounded-lg bg-sunny px-2.5 py-1.5 text-[13px] font-semibold text-sunny-ink">{t("sr.demo")}</span>}
+              {result?.sandbox && !result.demoMode && (
+                <span role="status" className="rounded-lg bg-sunny px-2.5 py-1.5 text-[13px] font-semibold text-sunny-ink">
+                  {t("sr.sandbox")}
+                </span>
+              )}
+            </div>
+          )}
         </div>
-        {allOffers.length > 0 && <CurrencyNote currency={currency} preferred={preferredCurrency} />}
       </header>
+      <div ref={headerSentinel} aria-hidden="true" />
 
-      <div className="container-x pt-4">
+      <div className="container-x pt-3">
         <ServiceTabs variant="pill" active="fly" hrefFor={serviceHref} />
 
         {editOpen && (
@@ -803,6 +965,34 @@ export default function SearchResults() {
           )}
       </div>
 
+      {/* Den ene klebrige linjen på siden. Alt annet ruller. */}
+      <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-md lg:top-16">
+        {/* Fra lg står filtrene i en 280 px sidestolpe med 32 px luft; fanene
+            følger resultatkolonnen så de hører til listen og ikke til filtrene. */}
+        <div className="container-x lg:pl-[calc(theme(spacing.8)+280px+2rem)]">
+          {headerPassed && (
+            <div className="flex items-center justify-between gap-3 border-b border-border/70 py-2 lg:hidden">
+              <p className="min-w-0 truncate text-[14px] font-semibold text-foreground">
+                {isMulti ? `${fromAirport?.iata ?? from}–${legs[legs.length - 1]?.to?.iata ?? to}` : `${fromAirport?.iata ?? from} → ${toAirport?.iata ?? to}`}
+                <span className="font-normal text-muted-foreground"> · {isMulti ? t("sr.multicity") : ret ? `${formatDayMonth(depart)}–${formatDayMonth(ret)}` : formatDayMonth(depart)}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditOpen(true);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[14px] font-semibold text-azure-ink hover:bg-muted"
+              >
+                <Pencil className="size-4" aria-hidden="true" /> {t("sr.edit")}
+              </button>
+            </div>
+          )}
+          {sortTabs}
+          <div className="lg:hidden">{quickFilters}</div>
+        </div>
+      </div>
+
       {/* min-h keeps the footer below the fold while results stream in, so the skeleton→cards swap doesn't shift it (CLS). */}
       <main id="main" tabIndex={-1} className="container-x min-h-[100dvh] gap-8 py-4 outline-none sm:py-6 lg:grid lg:grid-cols-[280px_1fr]">
         <aside className="hidden lg:block">
@@ -826,44 +1016,20 @@ export default function SearchResults() {
             </div>
           )}
 
-          {/* Filtrer og Sorter: to store kontroller, som i referansen. Filtrene bor i sidestolpen fra lg. */}
-          <div className="mb-4 grid grid-cols-[auto_1fr] gap-3 lg:grid-cols-[auto_auto] lg:justify-end">
-            <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <SheetTrigger asChild>
-                <button type="button" aria-label={t("sr.filters.open")} className="flex h-[52px] items-center gap-2.5 rounded-xl border border-border bg-white px-4 text-[16px] font-semibold text-petrol transition-colors hover:border-petrol/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:hidden">
-                  <SlidersHorizontal className="size-6 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{t("sr.filter")}</span>
-                  {activeFilters > 0 && <span className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-petrol text-[12px] font-bold text-white">{activeFilters}</span>}
-                </button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[88dvh] rounded-t-[20px]">
-                <SheetHeader>
-                  <SheetTitle>{t("sr.filter.title")}</SheetTitle>
-                </SheetHeader>
-                <SheetBody>{filterPanel}</SheetBody>
-                <SheetFooter>
-                  <Button size="lg" className="h-[52px] rounded-xl text-[17px] font-bold" onClick={() => setFiltersOpen(false)}>
-                    {t("sr.filter.show", { count: filtered.length })}
-                  </Button>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
-            <Sheet open={sortOpen} onOpenChange={setSortOpen}>
-              <SheetTrigger asChild>
-                <button type="button" aria-label={`${t("sr.sort.title")}: ${sortLabel}`} className="flex h-[52px] min-w-0 items-center gap-2.5 rounded-xl border border-border bg-white px-3.5 text-[16px] font-semibold text-petrol transition-colors hover:border-petrol/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:col-start-2 lg:px-4">
-                  <ArrowUpDown className="size-6 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{t("sr.sortby", { label: sortLabel })}</span>
-                  <ChevronDown className="ml-auto size-5 shrink-0" aria-hidden="true" />
-                </button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="max-h-[88dvh] rounded-t-[20px]">
-                <SheetHeader>
-                  <SheetTitle>{t("sr.sort.title")}</SheetTitle>
-                </SheetHeader>
-                <SheetBody>{sortList}</SheetBody>
-              </SheetContent>
-            </Sheet>
-          </div>
+          {/* Alle filtrene (og sorteringen) i ett ark. Åpnes fra linjen over. */}
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <SheetContent side="bottom" className="max-h-[88dvh] rounded-t-[20px]">
+              <SheetHeader>
+                <SheetTitle>{t("sr.filter.title")}</SheetTitle>
+              </SheetHeader>
+              <SheetBody>{filterPanel}</SheetBody>
+              <SheetFooter>
+                <Button size="lg" className="h-[52px] rounded-xl text-[17px] font-bold" onClick={() => setFiltersOpen(false)}>
+                  {t("sr.filter.show", { count: filtered.length })}
+                </Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
           {saveNote && (
             <p role="status" className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-lavender px-4 py-3 text-[15px] font-medium text-petrol">
               {saveNote}
@@ -923,6 +1089,7 @@ export default function SearchResults() {
                 {!externalBooking ? ` · ${t("sr.totalnote")}` : ""}
                 {expiresInMin !== null && expiresInMin > 0 ? ` · ${t("sr.validfor", { count: expiresInMin })}` : ""}
               </p>
+              <CurrencyNote currency={currency} preferred={preferredCurrency} />
               {result.partial && (
                 <p role="status" className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
                   {t("sr.partial")}
@@ -930,17 +1097,13 @@ export default function SearchResults() {
               )}
               {filtered.slice(0, visible).map((offer, i) => (
                 <div key={offer.id} className={i < 8 ? "fade-up" : undefined} style={i < 8 ? { animationDelay: `${i * 45}ms` } : undefined}>
-                <OfferCard
-                  offer={offer}
-                  onSelect={selectOffer}
-                  comparing={compareIds.includes(offer.id)}
-                  compareDisabled={compareIds.length >= 3}
-                  onToggleCompare={toggleCompare}
-                  shareText={shareText(offer)}
-                  recommended={i === 0 && sort !== "earliest" ? sort : undefined}
-                  saved={collections.savedOfferIds.has(offer.id)}
-                  onToggleSave={toggleSaveOffer}
-                />
+                  <ResultCard
+                    offer={offer}
+                    totalMinor={totalOf(offer)}
+                    onDetails={setDetailsOffer}
+                    onSelect={selectOffer}
+                    badge={i === 0 && sort !== "earliest" ? tabs.find((x) => x.key === sort)?.label ?? sortLabel : undefined}
+                  />
                 </div>
               ))}
               {visible < filtered.length && (
@@ -962,6 +1125,24 @@ export default function SearchResults() {
       </main>
 
       <SiteFooter />
+
+      <OfferDetailsSheet
+        offer={detailsOffer}
+        totalMinor={detailsOffer ? totalOf(detailsOffer) : 0}
+        onClose={() => setDetailsOffer(null)}
+        onSelect={(o) => {
+          setDetailsOffer(null);
+          selectOffer(o);
+        }}
+        actions={{
+          saved: detailsOffer ? collections.savedOfferIds.has(detailsOffer.id) : false,
+          onToggleSave: toggleSaveOffer,
+          comparing: detailsOffer ? compareIds.includes(detailsOffer.id) : false,
+          compareDisabled: compareIds.length >= 3,
+          onToggleCompare: toggleCompare,
+          shareUrl: detailsOffer ? `https://wa.me/?text=${encodeURIComponent(shareText(detailsOffer))}` : undefined,
+        }}
+      />
 
       <CompareTray offers={compareOffers} onRemove={(id) => setCompareIds((p) => p.filter((x) => x !== id))} onClear={() => setCompareIds([])} onSelect={selectOffer} />
     </div>

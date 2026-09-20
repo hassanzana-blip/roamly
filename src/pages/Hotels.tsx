@@ -262,7 +262,7 @@ export default function Hotels() {
                   <CurrencyNote currency={search.data.currency} preferred={currency} />
                   {filtered.map((h, i) => (
                     <div key={h.key} className={i < 6 ? "fade-up" : undefined} style={i < 6 ? { animationDelay: `${i * 45}ms` } : undefined}>
-                      <HotelCard hotel={h} to={detailHref(h)} sandbox={search.data.sandbox} />
+                      <HotelCard hotel={h} to={detailHref(h)} sandbox={search.data.sandbox} stay={{ rooms, guests: adults + childAges.length }} />
                     </div>
                   ))}
                   <DisclosureNote text={t("ht.disclosure")} />
