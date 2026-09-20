@@ -127,3 +127,38 @@ Skjermbilder ligger i arbeidsmappen for denne økten:
 | København, Porto, Gdańsk | Warszawa, Roma | Ingen lisensierte bilder, og ingen nettilgang til å hente dem |
 | Tre budsjettvalg på én linje | To på første linje, ett på andre | På 390 px får ikke tre plass. Strekker vi dem, ser det valgte ut som en hovedknapp |
 | «Finn reisetilbud →» | «Finn reisen →» | Søkekortet er den godkjente produksjonskomponenten og er ikke rørt |
+
+## Figma
+
+Forsiden er også tegnet opp i Figma, fra koden – ikke omvendt:
+
+**https://www.figma.com/design/mV44PmCN93PhNtJ6aspmjW** (side «Forside 5.0»)
+
+| Ramme | Hva den viser |
+|-------|----------------|
+| `Forside – mobil 390` | Hele siden på telefon, fra logolinjen til bunnmenyen |
+| `Forside – desktop 1440` | Toppmeny, tittel, kategorivalg, søkekort, budsjettpanel og helgeforslagene |
+| `Om denne filen` | Kort notat om hva filen er og hva den ikke påstår |
+
+Grunnlaget er hentet ut av koden, ikke gjenskapt på frihånd:
+
+* Variabelsamlingen **HelloSky/Farge** har lyst og mørkt tema og speiler
+  tokenene i `src/index.css` (`page`, `card`, `foreground`, `muted-foreground`,
+  `border`, `primary`, `azure-ink`, `petrol`, `sea`, `forest`, `apricot`,
+  `sunny-warm`, `lav-soft`, `mint`). Alle flater og all tekst er bundet til
+  variabler, ikke til hex-verdier.
+* Tekststilene er Manrope i de størrelsene forsiden faktisk rendrer
+  (display 36/56, H2 24/30, H3 18, brødtekst 16, caption 13, micro 12), med
+  linjehøyde og knipning fra `src/index.css`.
+* Logoen er den godkjente `public/brand/hellosky-mark.svg`, importert som
+  vektor. Den er ikke tegnet på nytt.
+
+To ting filen med vilje ikke gjør:
+
+* **Ingen priser på reisemålskortene.** Samme grunn som i koden – det finnes
+  ingen priskilde. Kortene sier «Se flyreiser».
+* **Fotorutene er plassholdere** med filnavnet på bildet som hører hjemme der
+  (`public/destinations/lisboa-640.jpg` og så videre). Nettverkspolicyen i
+  byggemiljøet avviser opplasting til `mcp.figma.com`, så bildebytes kunne
+  ikke sendes inn. Bildene dras inn manuelt, eller lastes opp fra en maskin
+  med nettilgang; rutene er allerede i riktig størrelse og navngitt.
