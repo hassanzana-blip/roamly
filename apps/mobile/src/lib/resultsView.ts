@@ -19,23 +19,16 @@ export type ResultsView = { sort: SortKey; stops: StopsFilter; bags: boolean; de
 
 export const DEFAULT_VIEW: ResultsView = { sort: "price", stops: "any", bags: false, departBands: [] };
 
-export const SORTS: { value: SortKey; label: string; summary: string }[] = [
-  { value: "price", label: "Billigst", summary: "Laveste pris først" },
-  { value: "duration", label: "Raskest", summary: "Korteste reisetid først" },
-  { value: "stops", label: "Færrest mellomlandinger", summary: "Færrest mellomlandinger først" },
-];
+/** Rekkefølgen valgene vises i; tekstene står i ordboken (t.results). */
+export const SORTS: readonly SortKey[] = ["price", "duration", "stops"];
 
-export const STOPS: { value: StopsFilter; label: string }[] = [
-  { value: "any", label: "Alle" },
-  { value: "direct", label: "Direkte" },
-  { value: "max1", label: "Maks 1 mellomlanding" },
-];
+export const STOPS: readonly StopsFilter[] = ["any", "direct", "max1"];
 
-export const TIME_BANDS: { value: TimeBand; label: string; range: string; from: number; to: number }[] = [
-  { value: "night", label: "Natt", range: "00–06", from: 0, to: 6 },
-  { value: "morning", label: "Morgen", range: "06–12", from: 6, to: 12 },
-  { value: "afternoon", label: "Ettermiddag", range: "12–18", from: 12, to: 18 },
-  { value: "evening", label: "Kveld", range: "18–24", from: 18, to: 24 },
+export const TIME_BANDS: { value: TimeBand; range: string; from: number; to: number }[] = [
+  { value: "night", range: "00–06", from: 0, to: 6 },
+  { value: "morning", range: "06–12", from: 6, to: 12 },
+  { value: "afternoon", range: "12–18", from: 12, to: 18 },
+  { value: "evening", range: "18–24", from: 18, to: 24 },
 ];
 
 /** Samlet reisetid i minutter, eller null når en strekning mangler gyldig varighet. */

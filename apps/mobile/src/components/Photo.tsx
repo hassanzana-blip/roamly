@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { Photo as PhotoData } from "../lib/destinations";
 import { colors } from "../lib/theme";
+import { useI18n } from "../i18n";
 
 /**
  * Foto med nøytralt svart overlegg for lesbar tekst. Bildet følger med appen;
@@ -25,6 +26,7 @@ export function PhotoBackdrop({
   credit?: boolean;
   testID?: string;
 }) {
+  const { t, locale } = useI18n();
   const [failed, setFailed] = useState(false);
   const show = photo && !failed;
   return (
@@ -37,14 +39,14 @@ export function PhotoBackdrop({
           transition={150}
           onError={() => setFailed(true)}
           accessible
-          accessibilityLabel={photo.credit.caption}
+          accessibilityLabel={photo.credit.caption[locale]}
         />
       ) : null}
       <View style={[StyleSheet.absoluteFill, scrim === "light" ? styles.scrimLight : scrim === "strong" ? styles.scrimStrong : styles.scrimMedium]} />
       {children}
       {show && credit ? (
-        <Text style={styles.credit} accessibilityLabel={`Foto: ${photo.credit.photographer ? `${photo.credit.photographer}, ` : ""}${photo.credit.source}`}>
-          {`Foto: ${photo.credit.photographer ? `${photo.credit.photographer} / ` : ""}${photo.credit.source}`}
+        <Text style={styles.credit} accessibilityLabel={t.common.photoCreditLabel(photo.credit.photographer ?? null, photo.credit.source)}>
+          {t.common.photoCredit(photo.credit.photographer ?? null, photo.credit.source)}
         </Text>
       ) : null}
     </View>

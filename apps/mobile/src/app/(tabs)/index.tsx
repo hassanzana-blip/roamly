@@ -4,8 +4,10 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
-import { greeting } from "../../lib/format";
-import { FEATURED, HEADER_PHOTO, type Destination } from "../../lib/destinations";
+import { FEATURED, HEADER_PHOTO, destinationChoice, type Destination } from "../../lib/destinations";
+import { formErrorText } from "../../lib/searchForm";
+import { useI18n } from "../../i18n";
+import type { FormErrorCode } from "../../i18n/ns/search";
 import { Banner, IconButton, LinkButton, Wordmark } from "../../components/ui";
 import { PhotoBackdrop } from "../../components/Photo";
 import { SearchPanel } from "../../components/SearchPanel";
@@ -22,14 +24,16 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { auth, runSearch } = useApp();
-  const [cardProblem, setCardProblem] = useState<string | null>(null);
+  const i18n = useI18n();
+  const { t, f, locale } = i18n;
+  const [cardProblem, setCardProblem] = useState<FormErrorCode | null>(null);
 
   const profile = auth.status === "signedIn" ? auth.profile : null;
   const name = profile?.firstName?.trim();
   const initials = initialsOf(profile?.firstName, profile?.lastName);
 
   const searchTo = (d: Destination) => {
-    const err = runSearch({ destination: { iata: d.iata, name: d.airportName, city: d.city, country: d.country } });
+    const err = runSearch({ destination: destinationChoice(d, locale) });
     setCardProblem(err);
     if (!err) router.push("/resultater");
   };
@@ -42,34 +46,34 @@ export default function HomeScreen() {
           <View style={styles.heroTop}>
             <Wordmark />
             {auth.status === "signedIn" ? (
-              <Pressable onPress={() => router.push("/profil")} accessibilityRole="button" accessibilityLabel="Din profil" testID="account-button" style={({ pressed }) => [styles.avatar, pressed && { opacity: 0.8 }]}>
+              <Pressable onPress={() => router.push("/profil")} accessibilityRole="button" accessibilityLabel={t.home.profileButton} testID="account-button" style={({ pressed }) => [styles.avatar, pressed && { opacity: 0.8 }]}>
                 {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
               </Pressable>
             ) : (
-              <IconButton icon="user" label="Logg inn" variant="glass" onPress={() => router.push("/profil")} testID="account-button" />
+              <IconButton icon="user" label={t.home.loginButton} variant="glass" onPress={() => router.push("/profil")} testID="account-button" />
             )}
           </View>
           <View style={styles.heroText}>
-            <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{name ? `${greeting()}, ${name}` : greeting()}</Text>
+            <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{name ? t.home.greetingName(f.greeting(), name) : f.greeting()}</Text>
             <Text style={[type.hero, { color: colors.onDark }]} accessibilityRole="header">
-              {"Nye opplevelser\ner bare en reise unna."}
+              {t.home.heroTitle}
             </Text>
           </View>
         </PhotoBackdrop>
 
         <View style={styles.sheet}>
           <SearchPanel />
-          <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>Du trenger ikke logge inn for å søke.</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
 
           <View style={styles.sectionHead}>
             <Text style={[type.section, { color: colors.text }]} accessibilityRole="header">
-              Utforsk reisemål
+              {t.home.exploreTitle}
             </Text>
-            <LinkButton label="Se alle" accessibilityLabel="Se alle reisemål" onPress={() => router.push("/utforsk")} />
+            <LinkButton label={t.home.seeAll} accessibilityLabel={t.home.seeAllLabel} onPress={() => router.push("/utforsk")} />
           </View>
           {cardProblem ? (
             <Banner tone="error" testID="card-error">
-              {cardProblem}
+              {formErrorText(cardProblem, i18n)}
             </Banner>
           ) : null}
         </View>

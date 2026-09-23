@@ -45,7 +45,7 @@ function Destination() {
 async function renderPicker(factory: ApiFactory) {
   setParams({ felt: "til" });
   await render(
-    <AppProvider apiFactory={factory}>
+    <AppProvider initialLocale="nb" apiFactory={factory}>
       <AirportPicker />
       <Destination />
     </AppProvider>,
@@ -139,7 +139,7 @@ describe("resultatsiden uten søk", () => {
   it("viser en tom tilstand på bokmål med knapp til søket – ingen evig spinner", async () => {
     const api = controlledAirports();
     await render(
-      <AppProvider apiFactory={api.factory}>
+      <AppProvider initialLocale="nb" apiFactory={api.factory}>
         <ResultsScreen />
       </AppProvider>,
     );

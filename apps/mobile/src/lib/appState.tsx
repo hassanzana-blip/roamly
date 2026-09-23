@@ -7,6 +7,9 @@ import { API_BASE } from "./config";
 import { clearSession, loadSession, saveSession } from "./tokenStore";
 import { initialForm, toSearchRequest, validateForm, type SearchForm } from "./searchForm";
 import { DEFAULT_VIEW, type ResultsView } from "./resultsView";
+import { I18nProvider } from "../i18n";
+import type { Locale } from "../i18n/types";
+import type { FormErrorCode } from "../i18n/ns/search";
 
 // ─── Tjenester for hele appen: API-klient, kundesesjon og søk ───────────────
 
@@ -19,8 +22,10 @@ type AuthState =
 type SearchState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; result: MobileSearchResult }
-  | { status: "error"; message: string };
+  /** `at`: da svaret kom (telefonens klokke) – for «sjekket kl. …» og utdaterte priser. */
+  | { status: "done"; result: MobileSearchResult; at: number }
+  /** Feilen selv (ikke tekst), så meldingen alltid vises på gjeldende språk. */
+  | { status: "error"; error: unknown };
 
 type AppContextValue = {
   api: ApiClient;
@@ -35,7 +40,9 @@ type AppContextValue = {
    * Starter søket for skjemaet (med ev. endringer, f.eks. et reisemål valgt fra
    * et kort). Returnerer feilmelding hvis skjemaet ikke er gyldig.
    */
-  runSearch: (patch?: Partial<SearchForm>) => string | null;
+  runSearch: (patch?: Partial<SearchForm>) => FormErrorCode | null;
+  /** Avbryter et pågående søk (forespørselen avbrytes, svaret ignoreres). Skjemaet beholdes. */
+  cancelSearch: () => void;
   /** Sortering og filtre på resultatlisten. Nullstilles ved hvert nytt søk. */
   view: ResultsView;
   setView: (update: (v: ResultsView) => ResultsView) => void;
@@ -63,7 +70,19 @@ const defaultFactory: ApiFactory = (getToken) => {
   return createApiClient({ baseUrl: API_BASE.url, getToken });
 };
 
-export function AppProvider({ children, apiFactory = defaultFactory, initial }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm> }) {
+/**
+ * Hele appens tilstand, pakket i språkvalget. `initialLocale` er for tester og
+ * forhåndsvisninger; ellers leses det lagrede valget (engelsk som standard).
+ */
+export function AppProvider({ children, initialLocale, ...rest }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm>; initialLocale?: Locale }) {
+  return (
+    <I18nProvider initialLocale={initialLocale}>
+      <AppStateProvider {...rest}>{children}</AppStateProvider>
+    </I18nProvider>
+  );
+}
+
+function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm> }) {
   // Tokenet ligger i minnet (for kall) og i nøkkelringen (mellom oppstarter). Ingen andre steder.
   const [tokens] = useState(createTokenHolder);
   const api = useMemo(() => apiFactory(tokens.get), [apiFactory, tokens]);
@@ -74,6 +93,7 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
   const [form, setFormState] = useState<SearchForm>(() => ({ ...initialForm(), ...initial }));
   const [search, setSearch] = useState<SearchState>({ status: "idle" });
   const searchSeq = useRef(0);
+  const searchAbort = useRef<AbortController | null>(null);
   const [view, setViewState] = useState<ResultsView>(DEFAULT_VIEW);
 
   useEffect(() => {
@@ -147,26 +167,35 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
 
   const setForm = useCallback((update: (f: SearchForm) => SearchForm) => setFormState((f) => update(f)), []);
 
-  const runSearch = useCallback((patch?: Partial<SearchForm>): string | null => {
+  const runSearch = useCallback((patch?: Partial<SearchForm>): FormErrorCode | null => {
     const next = patch ? { ...form, ...patch } : form;
     if (patch) setFormState(next);
     const problem = validateForm(next);
     if (problem) return problem;
     const seq = ++searchSeq.current;
+    searchAbort.current?.abort();
+    const abort = new AbortController();
+    searchAbort.current = abort;
     setSearch({ status: "loading" });
     setViewState(DEFAULT_VIEW);
     api
-      .search(toSearchRequest(next, sessionId))
+      .search(toSearchRequest(next, sessionId), abort.signal)
       .then((result) => {
-        if (seq === searchSeq.current) setSearch({ status: "done", result });
+        if (seq === searchSeq.current) setSearch({ status: "done", result, at: Date.now() });
       })
       .catch((err: unknown) => {
         if (seq !== searchSeq.current) return;
-        const message = err instanceof ApiError ? err.message : "Noe gikk galt. Prøv igjen.";
-        setSearch({ status: "error", message });
+        setSearch({ status: "error", error: err });
       });
     return null;
   }, [api, form, sessionId]);
+
+  const cancelSearch = useCallback(() => {
+    searchSeq.current++;
+    searchAbort.current?.abort();
+    searchAbort.current = null;
+    setSearch({ status: "idle" });
+  }, []);
 
   const setView = useCallback((update: (v: ResultsView) => ResultsView) => setViewState((v) => update(v)), []);
 
@@ -179,8 +208,8 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
   );
 
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, form, setForm, search, runSearch, view, setView, trackClick }),
-    [api, auth, login, register, logout, form, setForm, search, runSearch, view, setView, trackClick],
+    () => ({ api, auth, login, register, logout, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick }),
+    [api, auth, login, register, logout, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

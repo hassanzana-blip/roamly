@@ -4,7 +4,8 @@ import type { Journey } from "../lib/journeys";
 import { PriceTag } from "./PriceTag";
 import { AirlineLogo } from "./AirlineLogo";
 import { Icon } from "./Icon";
-import { dayOffset, formatDuration, formatShortDay, formatStops, formatTime, stopsSummary } from "../lib/format";
+import { dayOffset, formatTime } from "../lib/format";
+import { useI18n } from "../i18n";
 import { priceDisplay } from "../lib/price";
 import { baggageFacts, baggageShort, priceBasis, type BagFact } from "../lib/offer";
 import { cabinLabel } from "../lib/searchForm";
@@ -42,6 +43,7 @@ export function TimeText({ at, from, style }: { at: string; from?: string; style
 
 /** Én strekning: kode og tid i hver ende, rute i midten. */
 export function FlightLegRow({ slice, label }: { slice: OfferSlice; label?: string }) {
+  const { f } = useI18n();
   return (
     <View style={{ gap: 6 }}>
       {label ? <Text style={styles.legLabel}>{label}</Text> : null}
@@ -50,7 +52,7 @@ export function FlightLegRow({ slice, label }: { slice: OfferSlice; label?: stri
           <Text style={[type.codeSmall, { color: colors.text }]}>{slice.origin.iata}</Text>
           <TimeText at={slice.departingAt} />
         </View>
-        <RouteLine top={formatDuration(slice.durationMinutes)} bottom={formatStops(slice.stops)} />
+        <RouteLine top={f.duration(slice.durationMinutes)} bottom={f.stops(slice.stops)} />
         <View style={[styles.end, { alignItems: "flex-end" }]}>
           <Text style={[type.codeSmall, { color: colors.text }]}>{slice.destination.iata}</Text>
           <TimeText at={slice.arrivingAt} from={slice.departingAt} />
@@ -62,12 +64,13 @@ export function FlightLegRow({ slice, label }: { slice: OfferSlice; label?: stri
 
 /** Kjent bagasje, kort. «Ikke oppgitt» er ikke det samme som «ikke inkludert». */
 export function BaggageSummary({ facts }: { facts: BagFact[] }) {
+  const i18n = useI18n();
   return (
     <View style={styles.bags}>
       {facts.map((f) => (
         <View key={f.key} style={styles.bag}>
           <Icon name={f.key === "carryOn" ? "bag" : "luggage"} size={14} color={f.state === "included" ? colors.text : colors.textSecondary} strokeWidth={1.75} />
-          <Text style={[type.caption, { color: f.state === "included" ? colors.text : colors.textSecondary }]}>{baggageShort(f)}</Text>
+          <Text style={[type.caption, { color: f.state === "included" ? colors.text : colors.textSecondary }]}>{baggageShort(f, i18n)}</Text>
         </View>
       ))}
     </View>
@@ -81,19 +84,21 @@ export function BaggageSummary({ facts }: { facts: BagFact[] }) {
 export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () => void }) {
   const item = journey.best;
   const { offer, price } = item;
-  const d = priceDisplay(price);
-  const facts = baggageFacts(offer);
+  const i18n = useI18n();
+  const { t, f } = i18n;
+  const d = priceDisplay(price, i18n);
+  const facts = baggageFacts(offer, i18n);
   const sellers = journey.sellers.length;
   const roundTrip = offer.slices.length > 1;
   const legs = offer.slices
-    .map((s) => `${s.origin.city || s.origin.iata} til ${s.destination.city || s.destination.iata}, ${formatTime(s.departingAt)} til ${formatTime(s.arrivingAt)}, ${formatDuration(s.durationMinutes)}, ${formatStops(s.stops).toLowerCase()}`)
+    .map((s) => t.results.card.leg(s.origin.city || s.origin.iata, s.destination.city || s.destination.iata, formatTime(s.departingAt), formatTime(s.arrivingAt), f.spokenDuration(s.durationMinutes), f.stops(s.stops).toLowerCase()))
     .join(". ");
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${offer.owner.name}. ${legs}. ${d.accessibilityLabel}, ${priceBasis(offer).toLowerCase()}.${sellers > 1 ? ` ${sellers} tilbydere.` : ""}`}
-      accessibilityHint="Viser flydetaljer"
+      accessibilityLabel={`${offer.owner.name}. ${legs}. ${d.accessibilityLabel}, ${priceBasis(offer, i18n).toLowerCase()}.${sellers > 1 ? t.results.card.providersSpoken(sellers) : ""}`}
+      accessibilityHint={t.results.card.detailsHint}
       style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
       testID={`offer-${offer.id}`}
     >
@@ -104,19 +109,19 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
             {offer.owner.name}
           </Text>
           <Text style={[type.footnote, { color: colors.textSecondary }]} numberOfLines={1}>
-            {`${stopsSummary(offer.slices)} · ${cabinLabel(offer.cabinClass)}`}
+            {`${f.stopsSummary(offer.slices)} · ${cabinLabel(offer.cabinClass, i18n)}`}
           </Text>
         </View>
         {sellers > 1 ? (
           <View style={styles.sellers}>
-            <Text style={[type.caption, { color: colors.text, fontWeight: "600" }]}>{`${sellers} tilbydere`}</Text>
+            <Text style={[type.caption, { color: colors.text, fontWeight: "600" }]}>{t.results.providers(sellers)}</Text>
           </View>
         ) : null}
       </View>
 
       <View style={{ gap: space.md }}>
         {offer.slices.map((s, i) => (
-          <FlightLegRow key={s.id || i} slice={s} label={roundTrip ? `${i === 0 ? "Ut" : "Hjem"} · ${formatShortDay(s.departingAt)}` : undefined} />
+          <FlightLegRow key={s.id || i} slice={s} label={roundTrip ? (i === 0 ? t.results.card.out(f.shortDay(s.departingAt)) : t.results.card.back(f.shortDay(s.departingAt))) : undefined} />
         ))}
       </View>
 
@@ -127,10 +132,10 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
       <View style={styles.footer}>
         <View style={{ flex: 1, gap: 2 }}>
           <PriceTag price={price} testID={`price-${offer.id}`} />
-          <Text style={[type.caption, { color: colors.textSecondary }]}>{priceBasis(offer)}</Text>
+          <Text style={[type.caption, { color: colors.textSecondary }]}>{priceBasis(offer, i18n)}</Text>
         </View>
         <View style={styles.details} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Text style={[type.calloutStrong, { color: colors.text }]}>Detaljer</Text>
+          <Text style={[type.calloutStrong, { color: colors.text }]}>{t.results.card.details}</Text>
           <Icon name="arrowRight" size={16} color={colors.text} />
         </View>
       </View>

@@ -1,4 +1,6 @@
 import type { FareCondition, Offer } from "@contracts/types";
+import type { I18n } from "../i18n";
+import type { SellerKind, TripKind } from "../i18n/ns/offer";
 
 /**
  * Fakta om et tilbud slik appen viser dem. Alt her kommer fra leverandørens
@@ -51,12 +53,12 @@ export function providerHandoff(offer: Offer): Handoff {
   };
 }
 
-export function handoffLabel(h: Extract<Handoff, { kind: "external" }>): string {
-  return `Se tilbud hos ${h.providerName}`;
+export function handoffLabel(h: Extract<Handoff, { kind: "external" }>, { t }: Pick<I18n, "t">): string {
+  return t.offer.handoff(h.providerName);
 }
 
-export function sellerKindLabel(kind: "airline" | "agency" | "unknown"): string {
-  return kind === "airline" ? "Flyselskap" : kind === "agency" ? "Reisebyrå" : "Tilbyder";
+export function sellerKindLabel(kind: SellerKind, { t }: Pick<I18n, "t">): string {
+  return t.offer.sellerKinds[kind];
 }
 
 // ─── Vilkår: bare det leverandøren faktisk oppga ────────────────────────────
@@ -67,8 +69,8 @@ export type ConditionFact = { key: "refund" | "change"; label: string; value: st
  * Bare om endring/refusjon er tillatt. Gebyrbeløp vises aldri: de kan være i
  * annen valuta, og appen viser bare kroner (kildekodetesten sperrer feltene).
  */
-function conditionText(c: FareCondition): string {
-  return c.allowed ? "Tillatt ifølge tilbyderen" : "Ikke tillatt";
+function conditionText(c: FareCondition, { t }: Pick<I18n, "t">): string {
+  return c.allowed ? t.offer.conditions.allowed : t.offer.conditions.notAllowed;
 }
 
 /**
@@ -76,11 +78,12 @@ function conditionText(c: FareCondition): string {
  * `refundable`/`changeable` er false også når leverandøren ikke sa noe, så de
  * brukes aldri alene til å si «kan ikke refunderes».
  */
-export function conditionFacts(offer: Offer): ConditionFact[] {
+export function conditionFacts(offer: Offer, i18n: Pick<I18n, "t">): ConditionFact[] {
   const out: ConditionFact[] = [];
   const c = offer.conditions;
-  if (c?.refundBeforeDeparture) out.push({ key: "refund", label: "Refusjon før avreise", value: conditionText(c.refundBeforeDeparture), allowed: c.refundBeforeDeparture.allowed });
-  if (c?.changeBeforeDeparture) out.push({ key: "change", label: "Endring før avreise", value: conditionText(c.changeBeforeDeparture), allowed: c.changeBeforeDeparture.allowed });
+  const t = i18n.t.offer.conditions;
+  if (c?.refundBeforeDeparture) out.push({ key: "refund", label: t.refund, value: conditionText(c.refundBeforeDeparture, i18n), allowed: c.refundBeforeDeparture.allowed });
+  if (c?.changeBeforeDeparture) out.push({ key: "change", label: t.change, value: conditionText(c.changeBeforeDeparture, i18n), allowed: c.changeBeforeDeparture.allowed });
   return out;
 }
 
@@ -94,21 +97,22 @@ export type BagFact = { key: "carryOn" | "checked"; label: string; state: BagSta
  * «Ikke oppgitt» er ikke det samme som «ikke inkludert». Leverandøren skiller
  * ikke liten veske fra kabinkoffert, så det gjør heller ikke appen.
  */
-export function baggageFacts(offer: Offer): BagFact[] {
+export function baggageFacts(offer: Offer, { t }: Pick<I18n, "t">): BagFact[] {
   const b = offer.baggage;
+  const w = t.offer.bags;
   const fact = (key: BagFact["key"], label: string, count: number, unknown: boolean | undefined): BagFact => {
-    if (unknown) return { key, label, state: "unknown", value: "Ikke oppgitt" };
-    if (count > 0) return { key, label, state: "included", value: count === 1 ? "Inkludert" : `${count} stk. inkludert` };
-    return { key, label, state: "not_included", value: "Ikke inkludert" };
+    if (unknown) return { key, label, state: "unknown", value: w.unknown };
+    if (count > 0) return { key, label, state: "included", value: count === 1 ? w.included : w.includedCount(count) };
+    return { key, label, state: "not_included", value: w.notIncluded };
   };
-  return [fact("carryOn", "Håndbagasje", b.carryOnBags, b.carryOnUnknown), fact("checked", "Innsjekket bagasje", b.checkedBags, b.checkedUnknown)];
+  return [fact("carryOn", w.carryOn, b.carryOnBags, b.carryOnUnknown), fact("checked", w.checked, b.checkedBags, b.checkedUnknown)];
 }
 
 /** Kort bagasjelinje til resultatkortet. */
-export function baggageShort(f: BagFact): string {
-  if (f.state === "unknown") return `${f.label}: ikke oppgitt`;
-  if (f.state === "included") return `${f.label} inkludert`;
-  return `Uten ${f.label.toLowerCase()}`;
+export function baggageShort(f: BagFact, { t }: Pick<I18n, "t">): string {
+  if (f.state === "unknown") return t.offer.bags.shortUnknown(f.label);
+  if (f.state === "included") return t.offer.bags.shortIncluded(f.label);
+  return t.offer.bags.shortNotIncluded(f.label);
 }
 
 /** Innsjekket bagasje er med i prisen ifølge tilbyderen (til filteret). */
@@ -118,29 +122,33 @@ export function checkedBagIncluded(offer: Offer): boolean {
 
 // ─── Hva prisen gjelder ─────────────────────────────────────────────────────
 
-/** «1 voksen», «2 voksne, 1 barn» – fra tilbudets egne passasjerer. */
-export function travellersOf(offer: Offer): string {
-  const count = (t: string) => offer.passengers.filter((p) => p.type === t).length;
+/** «1 voksen», «2 voksne, 1 barn» / «2 adults, 1 child» – fra tilbudets egne passasjerer. */
+export function travellersOf(offer: Offer, { t }: Pick<I18n, "t">): string {
+  const count = (type: string) => offer.passengers.filter((p) => p.type === type).length;
   const adults = count("adult");
   const children = count("child");
   const infants = offer.passengers.filter((p) => p.type.startsWith("infant")).length;
-  const parts = [`${adults} ${adults === 1 ? "voksen" : "voksne"}`];
-  if (children) parts.push(`${children} barn`);
-  if (infants) parts.push(`${infants} spedbarn`);
+  const parts = [t.offer.adults(adults)];
+  if (children) parts.push(t.offer.children(children));
+  if (infants) parts.push(t.offer.infants(infants));
   return parts.join(", ");
 }
 
-export function tripKind(offer: Offer): "Tur-retur" | "Én vei" | "Flere strekninger" {
-  if (offer.slices.length === 1) return "Én vei";
+export function tripKind(offer: Offer): TripKind {
+  if (offer.slices.length === 1) return "oneway";
   const first = offer.slices[0]!;
   const last = offer.slices[offer.slices.length - 1]!;
-  return offer.slices.length === 2 && last.destination.iata === first.origin.iata ? "Tur-retur" : "Flere strekninger";
+  return offer.slices.length === 2 && last.destination.iata === first.origin.iata ? "roundtrip" : "multi";
+}
+
+export function tripKindLabel(offer: Offer, { t }: Pick<I18n, "t">): string {
+  return t.offer.tripKinds[tripKind(offer)];
 }
 
 /**
  * Prisen er totalen for alle reisende (KAYAK spørres med priceMode=total;
  * Duffel oppgir total_amount). Aldri «per person».
  */
-export function priceBasis(offer: Offer): string {
-  return `Totalt for ${travellersOf(offer)} · ${tripKind(offer)}`;
+export function priceBasis(offer: Offer, i18n: Pick<I18n, "t">): string {
+  return i18n.t.offer.priceBasis(travellersOf(offer, i18n), tripKindLabel(offer, i18n));
 }

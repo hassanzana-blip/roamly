@@ -6,7 +6,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useApp } from "../lib/appState";
 import { fxNotice } from "../lib/price";
-import { addDays, formatDay, formatShortDay, fromIsoDate, toIsoDate } from "../lib/format";
+import { addDays, formatClock, fromIsoDate, toIsoDate } from "../lib/format";
+import { errorText } from "../lib/errorText";
+import { pricesStale, providerDisplayName, resultKind } from "../lib/resultStatus";
+import { useI18n } from "../i18n";
 import { cabinLabel, passengerSummary } from "../lib/searchForm";
 import { activeFilterCount, applyView, countWith, SORTS, STOPS, TIME_BANDS, type SortKey, type TimeBand } from "../lib/resultsView";
 import { groupJourneys } from "../lib/journeys";
@@ -16,16 +19,16 @@ import { Icon, type IconName } from "../components/Icon";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
 
 const BAND_ICON: Record<TimeBand, IconName> = { night: "moon", morning: "sunrise", afternoon: "sun", evening: "sunset" };
-const reiser = (n: number) => `${n} ${n === 1 ? "reise" : "reiser"}`;
 
 /** Knapp i den flytende verktøylinjen nederst. */
 function ToolButton({ icon, label, onPress, badge, testID, primary }: { icon: IconName; label: string; onPress: () => void; badge?: number; testID: string; primary?: boolean }) {
+  const { t } = useI18n();
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}, ${badge} aktive` : label}
+      accessibilityLabel={badge ? t.common.activeCount(label, badge) : label}
       style={({ pressed }) => [styles.tool, pressed && { opacity: 0.7 }]}
     >
       <View style={[styles.toolIcon, primary && { backgroundColor: colors.blue }]}>
@@ -63,7 +66,17 @@ function OptionRow({ label, detail, selected, disabled, onPress, testID }: { lab
 export default function ResultsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { search, runSearch, form, setForm, view, setView } = useApp();
+  const { search, runSearch, cancelSearch, form, setForm, view, setView } = useApp();
+  const i18n = useI18n();
+  const { t, f, locale } = i18n;
+  const r = t.results.screen;
+  const reiser = t.results.journeys;
+  // Klokke for «prisene kan ha endret seg»: oppdateres hvert halve minutt.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const [sheet, setSheet] = useState<null | "filter" | "sort" | "dates">(null);
   // En treg leverandør: si fra etter en stund, i stedet for å bare vise en
   // spinner. Tidtakeren merker akkurat dette søket; et nytt søk starter på nytt.
@@ -80,14 +93,15 @@ export default function ResultsScreen() {
   const journeys = useMemo(() => groupJourneys(shown), [shown]);
   const filters = activeFilterCount(view);
 
-  const title = form.origin && form.destination ? `${form.origin.city} → ${form.destination.city}` : "Flyreiser";
-  const dates = form.tripType === "roundtrip" ? `${formatShortDay(form.departDate)} – ${formatShortDay(form.returnDate)}` : formatShortDay(form.departDate);
-  const subtitle = `${dates} · ${passengerSummary(form)} · ${cabinLabel(form.cabinClass)}`;
-  const demo = search.status === "done" && (search.result.sandbox === true || search.result.demoMode);
+  const title = form.origin && form.destination ? `${form.origin.city} → ${form.destination.city}` : r.fallbackTitle;
+  const dates = form.tripType === "roundtrip" ? `${f.shortDay(form.departDate)} – ${f.shortDay(form.returnDate)}` : f.shortDay(form.departDate);
+  const subtitle = `${dates} · ${passengerSummary(form, i18n)} · ${cabinLabel(form.cabinClass, i18n)}`;
+  const kind = search.status === "done" ? resultKind(search.result) : null;
+  const demo = kind === "demo" || kind === "sandbox";
 
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
-      <IconButton icon="chevronLeft" label="Tilbake" variant="plain" onPress={() => router.back()} testID="header-back" />
+      <IconButton icon="chevronLeft" label={r.back} variant="plain" onPress={() => router.back()} testID="header-back" />
       <View style={styles.headerText}>
         <View style={styles.titleRow}>
           <Text style={[type.headline, { color: colors.onDark }]} numberOfLines={1} accessibilityRole="header">
@@ -99,7 +113,7 @@ export default function ResultsScreen() {
           {subtitle}
         </Text>
       </View>
-      <IconButton icon="search" label="Endre søk" onPress={() => router.back()} testID="edit-search" />
+      <IconButton icon="search" label={r.editSearch} onPress={() => router.back()} testID="edit-search" />
     </View>
   );
 
@@ -114,8 +128,8 @@ export default function ResultsScreen() {
   if (search.status === "idle") {
     // Åpnet uten et søk (lenke, omstart eller tilbakestilt tilstand): ingen evig spinner.
     return shell(
-      <StateView icon="search" title="Ingen søk ennå" body="Velg reisemål og datoer, så sammenligner vi prisene for deg." testID="results-empty">
-        <PrimaryButton testID="start-search" label="Start et søk" onPress={() => router.replace("/")} />
+      <StateView icon="search" title={r.idleTitle} body={r.idleBody} testID="results-empty">
+        <PrimaryButton testID="start-search" label={r.startSearch} onPress={() => router.replace("/")} />
       </StateView>,
     );
   }
@@ -125,10 +139,20 @@ export default function ResultsScreen() {
       <StateView
         busy
         icon="plane"
-        title="Vi sammenligner priser …"
-        body={slow ? "Noen tilbydere bruker lenger tid enn vanlig. Vi venter på svarene deres." : "Det kan ta opptil 20 sekunder."}
+        title={r.loadingTitle}
+        body={slow ? r.loadingSlow : r.loadingBody}
         testID="results-loading"
-      />,
+      >
+        <SecondaryButton
+          dark
+          testID="cancel-search"
+          label={r.cancelSearch}
+          onPress={() => {
+            cancelSearch();
+            router.back();
+          }}
+        />
+      </StateView>,
     );
   }
 
@@ -136,32 +160,36 @@ export default function ResultsScreen() {
     return shell(
       <View style={styles.errorBox} testID="results-error">
         <Banner tone="error" dark>
-          {search.message}
+          {errorText(search.error, i18n)}
         </Banner>
-        <PrimaryButton label="Prøv igjen" icon="refresh" onPress={() => runSearch()} />
-        <SecondaryButton dark label="Endre søk" onPress={() => router.back()} />
+        <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch()} testID="retry-search" />
+        <SecondaryButton dark label={r.editSearch} onPress={() => router.back()} />
       </View>,
     );
   }
 
-  const { result } = search;
+  const { result, at } = search;
   const all = result.offers;
-  const notice = fxNotice(result);
+  const notice = fxNotice(result, i18n);
+  const checkedAt = formatClock(new Date(at));
+  const stale = pricesStale(at, now);
   // Korte linjer, så første reise står høyt oppe; valutaforklaringen kan åpnes.
+  // Demo og testmiljø sies rett ut; ekte priser merkes med når de ble sjekket.
   const notices: NoticeItem[] = [
-    ...(demo ? [{ key: "demo", tone: "warning" as const, text: "Demo: testdata, ikke ekte tilbud.", testID: "sandbox-banner" }] : []),
-    ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: "Ikke alle tilbydere rakk å svare. Søk på nytt for å se flere reiser." }] : []),
+    ...(kind === "demo" ? [{ key: "demo", tone: "warning" as const, text: r.status.demo, testID: "sandbox-banner" }] : []),
+    ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
+    ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: r.status.partial, testID: "partial-banner" }] : []),
     ...(notice ? [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }] : []),
   ];
-  const sortLabel = SORTS.find((s) => s.value === view.sort)?.summary ?? "";
+  const sortLabel = t.results.sorts[view.sort].summary;
   const clearFilters = () => setView((v) => ({ ...v, stops: "any", bags: false, departBands: [] }));
   const toggleStops = (value: "direct" | "max1") => setView((v) => ({ ...v, stops: v.stops === value ? "any" : value }));
 
   const chips: { key: string; label: string; selected: boolean; count: number; onPress: () => void }[] = [
-    { key: "all", label: "Alle", selected: filters === 0, count: all.length, onPress: clearFilters },
-    { key: "direct", label: "Direkte", selected: view.stops === "direct", count: countWith(all, view, { stops: "direct" }), onPress: () => toggleStops("direct") },
-    { key: "max1", label: "Maks 1 mellomlanding", selected: view.stops === "max1", count: countWith(all, view, { stops: "max1" }), onPress: () => toggleStops("max1") },
-    { key: "bags", label: "Bagasje inkludert", selected: view.bags, count: countWith(all, view, { bags: true }), onPress: () => setView((v) => ({ ...v, bags: !v.bags })) },
+    { key: "all", label: r.chips.all, selected: filters === 0, count: all.length, onPress: clearFilters },
+    { key: "direct", label: r.chips.direct, selected: view.stops === "direct", count: countWith(all, view, { stops: "direct" }), onPress: () => toggleStops("direct") },
+    { key: "max1", label: r.chips.max1, selected: view.stops === "max1", count: countWith(all, view, { stops: "max1" }), onPress: () => toggleStops("max1") },
+    { key: "bags", label: r.chips.bags, selected: view.bags, count: countWith(all, view, { bags: true }), onPress: () => setView((v) => ({ ...v, bags: !v.bags })) },
   ];
 
   const listHeader = (
@@ -181,13 +209,31 @@ export default function ResultsScreen() {
           <Notices items={notices} />
         </View>
       ) : null}
+      {kind === "live" ? (
+        <View style={styles.statusRow} testID="price-status">
+          {stale ? (
+            <>
+              <Icon name="clock" size={14} color={colors.warningOnDark} />
+              <Text style={[type.footnote, { color: colors.warningOnDark, flex: 1 }]}>{r.status.stale(checkedAt)}</Text>
+              <Pressable onPress={() => runSearch()} accessibilityRole="button" hitSlop={10} style={styles.sortLink} testID="refresh-prices">
+                <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{r.status.refresh}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <View style={styles.liveDot} />
+              <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.live(checkedAt)}</Text>
+            </>
+          )}
+        </View>
+      ) : null}
       {journeys.length ? (
         <View style={styles.countRow}>
           <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]} testID="result-count">
-            {`${reiser(journeys.length)} · ${shown.length} tilbud`}
-            {all.length - shown.length > 0 ? ` · ${all.length - shown.length} skjult av filtre` : ""}
+            {`${reiser(journeys.length)} · ${t.results.offers(shown.length)}`}
+            {all.length - shown.length > 0 ? ` · ${t.results.hiddenByFilters(all.length - shown.length)}` : ""}
           </Text>
-          <Pressable onPress={() => setSheet("sort")} accessibilityRole="button" accessibilityLabel={`Sortering: ${sortLabel}. Endre`} hitSlop={10} style={styles.sortLink} testID="open-sort">
+          <Pressable onPress={() => setSheet("sort")} accessibilityRole="button" accessibilityLabel={r.sortSpoken(sortLabel)} hitSlop={10} style={styles.sortLink} testID="open-sort">
             <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{sortLabel}</Text>
             <Icon name="swap" size={14} color={colors.onDark} />
           </Pressable>
@@ -210,12 +256,12 @@ export default function ResultsScreen() {
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
           all.length ? (
-            <StateView icon="filter" title="Ingen reiser passer filtrene" body={`${reiser(all.length)} er skjult. Endre eller nullstill filtrene.`}>
-              <PrimaryButton label="Nullstill filtre" testID="reset-filters" onPress={clearFilters} />
+            <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(all.length))}>
+              <PrimaryButton label={r.clearFilters} testID="reset-filters" onPress={clearFilters} />
             </StateView>
           ) : (
-            <StateView icon="plane" title="Ingen fly funnet" body="Vi fant ingen fly for dette søket. Prøv andre datoer eller flyplasser.">
-              <SecondaryButton dark label="Endre søk" onPress={() => router.back()} />
+            <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody}>
+              <SecondaryButton dark label={r.editSearch} onPress={() => router.back()} />
             </StateView>
           )
         }
@@ -230,44 +276,44 @@ export default function ResultsScreen() {
       {all.length ? (
         <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
           <View style={styles.toolbar}>
-            <ToolButton icon="filter" label="Filtrer" primary badge={filters} onPress={() => setSheet("filter")} testID="open-filters" />
+            <ToolButton icon="filter" label={r.filter} primary badge={filters} onPress={() => setSheet("filter")} testID="open-filters" />
             <View style={styles.toolDivider} />
-            <ToolButton icon="swap" label="Sorter" onPress={() => setSheet("sort")} testID="open-sort-toolbar" />
+            <ToolButton icon="swap" label={r.sort} onPress={() => setSheet("sort")} testID="open-sort-toolbar" />
             <View style={styles.toolDivider} />
-            <ToolButton icon="calendar" label="Datoer" onPress={() => setSheet("dates")} testID="open-dates" />
+            <ToolButton icon="calendar" label={r.dates} onPress={() => setSheet("dates")} testID="open-dates" />
           </View>
         </View>
       ) : null}
 
       <BottomSheet
         visible={sheet === "filter"}
-        title="Filtrer"
+        title={r.filter}
         onClose={() => setSheet(null)}
         testID="filter-sheet"
         footer={
           <View style={{ gap: space.sm }}>
-            <PrimaryButton testID="filter-apply" label={shownFor({}) ? `Vis ${reiser(shownFor({}))}` : "Ingen reiser passer"} disabled={!shownFor({})} onPress={() => setSheet(null)} />
-            {filters ? <SecondaryButton label="Nullstill filtre" onPress={clearFilters} testID="filter-reset" /> : null}
+            <PrimaryButton testID="filter-apply" label={shownFor({}) ? r.show(reiser(shownFor({}))) : r.noneMatch} disabled={!shownFor({})} onPress={() => setSheet(null)} />
+            {filters ? <SecondaryButton label={r.clearFilters} onPress={clearFilters} testID="filter-reset" /> : null}
           </View>
         }
       >
         <ScrollView contentContainerStyle={{ gap: space.lg }} testID="filter-screen">
-          <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel="Mellomlandinger">
-            <Text style={[type.bodyStrong, { color: colors.text }]}>Mellomlandinger</Text>
-            {STOPS.map((s) => {
-              const n = shownFor({ stops: s.value });
-              const selected = view.stops === s.value;
-              return <OptionRow key={s.value} testID={`stops-${s.value}`} label={s.label} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, stops: s.value }))} />;
+          <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.stopsTitle}>
+            <Text style={[type.bodyStrong, { color: colors.text }]}>{r.stopsTitle}</Text>
+            {STOPS.map((value) => {
+              const n = shownFor({ stops: value });
+              const selected = view.stops === value;
+              return <OptionRow key={value} testID={`stops-${value}`} label={t.results.stops[value]} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, stops: value }))} />;
             })}
           </View>
           <View style={styles.switchRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[type.bodyStrong, { color: colors.text }]}>Innsjekket bagasje inkludert</Text>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{`Ifølge tilbyderen · ${reiser(shownFor({ bags: true }))}`}</Text>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.bagsTitle}</Text>
+              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.bagsDetail(reiser(shownFor({ bags: true })))}</Text>
             </View>
             <Switch
               testID="bags-switch"
-              accessibilityLabel="Innsjekket bagasje inkludert"
+              accessibilityLabel={r.bagsTitle}
               value={view.bags}
               disabled={!view.bags && !shownFor({ bags: true })}
               onValueChange={(bags) => setView((v) => ({ ...v, bags }))}
@@ -275,8 +321,8 @@ export default function ResultsScreen() {
             />
           </View>
           <View style={{ gap: space.sm }}>
-            <Text style={[type.bodyStrong, { color: colors.text }]}>Avgangstid, utreise</Text>
-            <Text style={[type.footnote, { color: colors.textSecondary }]}>Lokal tid på flyplassen du reiser fra.</Text>
+            <Text style={[type.bodyStrong, { color: colors.text }]}>{r.departTitle}</Text>
+            <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.departHint}</Text>
             <View style={styles.bands}>
               {TIME_BANDS.map((b) => {
                 const selected = view.departBands.includes(b.value);
@@ -290,11 +336,11 @@ export default function ResultsScreen() {
                     disabled={disabled}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: selected, disabled }}
-                    accessibilityLabel={`${b.label}, ${b.range}, ${reiser(n)}`}
+                    accessibilityLabel={r.bandSpoken(t.results.bands[b.value], b.range, reiser(n))}
                     style={({ pressed }) => [styles.band, selected && styles.bandOn, disabled && { opacity: 0.4 }, pressed && !selected && { opacity: 0.7 }]}
                   >
                     <View style={styles.bandTop}>
-                      <Text style={[type.footnote, { color: selected ? colors.white : colors.textSecondary }]}>{b.label}</Text>
+                      <Text style={[type.footnote, { color: selected ? colors.white : colors.textSecondary }]}>{t.results.bands[b.value]}</Text>
                       <Icon name={BAND_ICON[b.value]} size={18} color={selected ? colors.white : colors.text} strokeWidth={1.75} />
                     </View>
                     <Text style={[type.bodyStrong, type.tabular, { color: selected ? colors.white : colors.text }]}>{b.range}</Text>
@@ -307,65 +353,66 @@ export default function ResultsScreen() {
         </ScrollView>
       </BottomSheet>
 
-      <BottomSheet visible={sheet === "sort"} title="Sorter" onClose={() => setSheet(null)} testID="sort-sheet">
-        <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel="Sortering">
-          {SORTS.map((s) => (
+      <BottomSheet visible={sheet === "sort"} title={r.sort} onClose={() => setSheet(null)} testID="sort-sheet">
+        <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.sortingLabel}>
+          {SORTS.map((value) => (
             <OptionRow
-              key={s.value}
-              testID={`sort-${s.value}`}
-              label={s.label}
-              selected={view.sort === s.value}
+              key={value}
+              testID={`sort-${value}`}
+              label={t.results.sorts[value].label}
+              detail={t.results.sorts[value].summary}
+              selected={view.sort === value}
               onPress={() => {
-                setView((v) => ({ ...v, sort: s.value as SortKey }));
+                setView((v) => ({ ...v, sort: value as SortKey }));
                 setSheet(null);
               }}
             />
           ))}
-          <Text style={[type.footnote, { color: colors.textSecondary }]}>Tilbud uten pris i kroner står alltid nederst.</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.noNokLast}</Text>
         </View>
       </BottomSheet>
 
-      <BottomSheet visible={sheet === "dates"} title="Datoer" onClose={() => setSheet(null)} testID="dates-sheet">
+      <BottomSheet visible={sheet === "dates"} title={r.dates} onClose={() => setSheet(null)} testID="dates-sheet">
         <View style={{ gap: space.md }}>
           <View style={styles.dateRow}>
-            <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{`Avreise · ${formatDay(form.departDate)}`}</Text>
+            <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{r.departDate(f.day(form.departDate))}</Text>
             <DateTimePicker
               testID="dates-depart"
               value={fromIsoDate(form.departDate)}
               minimumDate={new Date()}
               mode="date"
               display={Platform.OS === "ios" ? "compact" : "default"}
-              locale="nb-NO"
+              locale={locale === "nb" ? "nb-NO" : "en-GB"}
               accentColor={colors.blue}
               themeVariant="light"
               onChange={(_e: DateTimePickerEvent, d?: Date) => {
                 if (!d) return;
                 const departDate = toIsoDate(d);
-                setForm((f) => ({ ...f, departDate, returnDate: f.returnDate < departDate ? addDays(departDate, 7) : f.returnDate }));
+                setForm((prev) => ({ ...prev, departDate, returnDate: prev.returnDate < departDate ? addDays(departDate, 7) : prev.returnDate }));
               }}
             />
           </View>
           {form.tripType === "roundtrip" ? (
             <View style={styles.dateRow}>
-              <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{`Retur · ${formatDay(form.returnDate)}`}</Text>
+              <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{r.returnDate(f.day(form.returnDate))}</Text>
               <DateTimePicker
                 testID="dates-return"
                 value={fromIsoDate(form.returnDate)}
                 minimumDate={fromIsoDate(form.departDate)}
                 mode="date"
                 display={Platform.OS === "ios" ? "compact" : "default"}
-                locale="nb-NO"
+                locale={locale === "nb" ? "nb-NO" : "en-GB"}
                 accentColor={colors.blue}
                 themeVariant="light"
                 onChange={(_e: DateTimePickerEvent, d?: Date) => {
-                  if (d) setForm((f) => ({ ...f, returnDate: toIsoDate(d) }));
+                  if (d) setForm((prev) => ({ ...prev, returnDate: toIsoDate(d) }));
                 }}
               />
             </View>
           ) : null}
           <PrimaryButton
             testID="dates-search"
-            label="Søk på nytt"
+            label={r.searchAgain}
             icon="search"
             onPress={() => {
               setSheet(null);
@@ -385,6 +432,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", gap: space.sm, maxWidth: "100%" },
   chips: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.md },
   notices: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.xs, minHeight: 28 },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#3DDC84" },
   countRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingBottom: space.md, minHeight: TOUCH },
   sortLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH },
   item: { paddingHorizontal: space.lg },

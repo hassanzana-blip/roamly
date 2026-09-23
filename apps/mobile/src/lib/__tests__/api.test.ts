@@ -51,11 +51,13 @@ describe("API-klienten mot /api/mobile/trpc", () => {
     expect(server.calls[2]).toMatchObject({ method: "POST", path: "mobileAuth.logout", headers: { authorization: `Bearer ${TOKEN}` } });
   });
 
-  it("registrering sender kundefelter og locale nb", async () => {
+  it("registrering sender kundefelter og appens valgte språk (aldri hardkodet)", async () => {
     const server = fakeServer({ "mobileAuth.register": () => ({ data: AUTH_RESULT }) });
     const api = createApiClient({ baseUrl: BASE, getToken: () => null, fetchImpl: server.fetchImpl });
-    await api.register({ email: "kari@example.no", password: "passord-123456", firstName: " Kari ", lastName: "Nordmann" });
+    await api.register({ email: "kari@example.no", password: "passord-123456", firstName: " Kari ", lastName: "Nordmann", locale: "nb" });
     expect(server.calls[0]!.input).toEqual({ identifier: "kari@example.no", password: "passord-123456", firstName: "Kari", lastName: "Nordmann", locale: "nb" });
+    await api.register({ email: "sam@example.com", password: "password-123456", firstName: "Sam", lastName: "Smith", locale: "en" });
+    expect(server.calls[1]!.input).toMatchObject({ locale: "en" });
   });
 
   it("serverfeil blir ApiError med serverens norske melding, kode og felt", async () => {
@@ -65,7 +67,7 @@ describe("API-klienten mot /api/mobile/trpc", () => {
     });
     const api = createApiClient({ baseUrl: BASE, getToken: () => null, fetchImpl: server.fetchImpl });
     await expect(api.login("a@b.no", "x")).rejects.toMatchObject({ name: "ApiError", code: "UNAUTHORIZED", status: 401, message: "Feil e-post/telefon eller passord." });
-    await expect(api.register({ email: "a@b.no", password: "x".repeat(12), firstName: "A", lastName: "B" })).rejects.toMatchObject({ code: "CONFLICT", field: "identifier" });
+    await expect(api.register({ email: "a@b.no", password: "x".repeat(12), firstName: "A", lastName: "B", locale: "nb" })).rejects.toMatchObject({ code: "CONFLICT", field: "identifier" });
   });
 
   it("interne feil vises aldri ordrett", async () => {

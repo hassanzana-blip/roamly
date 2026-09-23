@@ -4,6 +4,7 @@ import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./Icon";
 import { colors, radius, SKY_MARK_PATH, space, TOUCH, type } from "../lib/theme";
+import { useI18n } from "../i18n";
 
 // ─── Merke ──────────────────────────────────────────────────────────────────
 
@@ -120,13 +121,14 @@ export function IconButton({
   testID?: string;
   size?: number;
 }) {
+  const { t } = useI18n();
   const fg = variant === "light" ? colors.text : colors.onDark;
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}, ${badge} aktive` : label}
+      accessibilityLabel={badge ? t.common.activeCount(label, badge) : label}
       hitSlop={(TOUCH - size) / 2 + 2}
       style={({ pressed }) => [
         { width: size, height: size, borderRadius: size / 2, alignItems: "center", justifyContent: "center" },
@@ -208,6 +210,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
         return (
           <Pressable
             key={o.value}
+            testID={`segment-${o.value}`}
             onPress={() => onChange(o.value)}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
@@ -317,6 +320,7 @@ export function Notices({ items }: { items: NoticeItem[] }) {
 }
 
 function NoticeLine({ tone, text, detail, testID }: Omit<NoticeItem, "key">) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const fg = tone === "warning" ? colors.warningOnDark : colors.onDarkMuted;
   const body = (
@@ -346,7 +350,7 @@ function NoticeLine({ tone, text, detail, testID }: Omit<NoticeItem, "key">) {
       hitSlop={8}
       accessibilityRole="button"
       accessibilityState={{ expanded: open }}
-      accessibilityHint={open ? "Viser kortversjonen" : "Viser hele forklaringen"}
+      accessibilityHint={open ? t.common.showShort : t.common.showFull}
       style={({ pressed }) => [styles.noticeLine, pressed && { opacity: 0.7 }]}
     >
       {body}
@@ -356,9 +360,10 @@ function NoticeLine({ tone, text, detail, testID }: Omit<NoticeItem, "key">) {
 
 /** «Demo»-merke: testdata skal aldri kunne forveksles med ekte priser. */
 export function DemoBadge({ testID }: { testID?: string }) {
+  const { t } = useI18n();
   return (
-    <View style={styles.demo} testID={testID} accessible accessibilityLabel="Demo: prisene er ikke ekte">
-      <Text style={styles.demoText}>DEMO</Text>
+    <View style={styles.demo} testID={testID} accessible accessibilityLabel={t.common.demoBadgeLabel}>
+      <Text style={styles.demoText}>{t.common.demoBadge}</Text>
     </View>
   );
 }
@@ -391,6 +396,7 @@ export function Field({ label, error, icon, ...props }: TextInputProps & { label
 }
 
 export function Stepper({ label, hint, value, min, max, onChange }: { label: string; hint?: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+  const { t } = useI18n();
   return (
     <View style={styles.stepperRow}>
       <View style={{ flex: 1 }}>
@@ -398,11 +404,11 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
         {hint ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{hint}</Text> : null}
       </View>
       <View style={styles.row12} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${value}`}>
-        <Pressable onPress={() => onChange(value - 1)} disabled={value <= min} accessibilityRole="button" accessibilityLabel={`Færre ${label.toLowerCase()}`} style={[styles.stepButton, value <= min && { opacity: 0.35 }]}>
+        <Pressable onPress={() => onChange(value - 1)} disabled={value <= min} accessibilityRole="button" accessibilityLabel={t.common.fewer(label)} style={[styles.stepButton, value <= min && { opacity: 0.35 }]}>
           <Icon name="minus" size={18} color={colors.text} />
         </Pressable>
         <Text style={[type.bodyStrong, type.tabular, { color: colors.text, minWidth: 20, textAlign: "center" }]}>{value}</Text>
-        <Pressable onPress={() => onChange(value + 1)} disabled={value >= max} accessibilityRole="button" accessibilityLabel={`Flere ${label.toLowerCase()}`} style={[styles.stepButton, value >= max && { opacity: 0.35 }]}>
+        <Pressable onPress={() => onChange(value + 1)} disabled={value >= max} accessibilityRole="button" accessibilityLabel={t.common.more(label)} style={[styles.stepButton, value >= max && { opacity: 0.35 }]}>
           <Icon name="plus" size={18} color={colors.text} />
         </Pressable>
       </View>
@@ -412,18 +418,19 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
 
 /** Ark fra bunnen (hvitt) med tittel og «Ferdig». */
 export function BottomSheet({ visible, title, onClose, children, testID, footer }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; testID?: string; footer?: ReactNode }) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetRoot}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Lukk" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
         <View style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]} testID={testID}>
           <View style={styles.grabber} />
           <View style={styles.sheetHead}>
             <Text style={[type.title, { color: colors.text }]} accessibilityRole="header">
               {title}
             </Text>
-            <LinkButton label="Ferdig" onPress={onClose} testID={testID ? `${testID}-done` : undefined} />
+            <LinkButton label={t.common.done} onPress={onClose} testID={testID ? `${testID}-done` : undefined} />
           </View>
           {children}
           {footer}

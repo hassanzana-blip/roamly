@@ -106,7 +106,7 @@ describe("søk uten innlogging", () => {
   it("ufullstendig skjema gir norsk feilmelding og søker ikke", async () => {
     const { server, factory } = setup({});
     await render(
-      <AppProvider apiFactory={factory}>
+      <AppProvider initialLocale="nb" apiFactory={factory}>
         <SearchScreen />
       </AppProvider>,
     );
@@ -119,7 +119,7 @@ describe("søk uten innlogging", () => {
   it("anonymt søk: riktig forespørsel uten token, og resultatene vises sortert med «ca.» og kurskilde", async () => {
     const { server, factory } = setup({ "flights.search": () => ({ data: SEARCH_RESULT }) });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN, departDate: "2026-10-23", returnDate: "2026-10-30" }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN, departDate: "2026-10-23", returnDate: "2026-10-30" }}>
         <SearchScreen />
         <ResultsScreen />
       </AppProvider>,
@@ -172,7 +172,7 @@ describe("søk uten innlogging", () => {
   it("serverfeil vises med serverens melding", async () => {
     const { factory } = setup({ "flights.search": () => ({ status: 429, error: { message: "For mange forespørsler på kort tid. Vent 30 sekunder og prøv igjen.", appCode: "RATE_LIMITED" } }) });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <ResultsScreen />
         </SearchOnMount>
@@ -185,7 +185,7 @@ describe("søk uten innlogging", () => {
   it("testdata merkes tydelig", async () => {
     const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, sandbox: true } }) });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <ResultsScreen />
         </SearchOnMount>
@@ -200,7 +200,7 @@ describe("tilbudsdetaljer og videresending", () => {
     const { factory } = setup({ "flights.search": () => ({ data: SEARCH_RESULT }) });
     setParams({ id });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <OfferScreen />
         </SearchOnMount>
@@ -213,7 +213,7 @@ describe("tilbudsdetaljer og videresending", () => {
     const { server, factory } = setup({ "flights.search": () => ({ data: SEARCH_RESULT }), "flights.trackProviderClick": () => ({ data: { clickRef: "ref-1" } }) });
     setParams({ id: "sek_1" });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <OfferScreen />
         </SearchOnMount>
@@ -285,7 +285,7 @@ describe("tilbudsdetaljer og videresending", () => {
     const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, offers: [SEK_OFFER, SAME_TRIP_OTHER_SELLER] } }) });
     setParams({ id: "sek_1" });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <OfferScreen />
         </SearchOnMount>
@@ -323,7 +323,7 @@ describe("tilbudsdetaljer og videresending", () => {
     const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, offers: [old] } }) });
     setParams({ id: "old_1" });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <OfferScreen />
         </SearchOnMount>
@@ -338,7 +338,7 @@ describe("tilbudsdetaljer og videresending", () => {
     const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, offers: [nokHs] } }) });
     setParams({ id: "hs_nok" });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <OfferScreen />
         </SearchOnMount>
@@ -359,7 +359,7 @@ describe("tilbudsdetaljer og videresending", () => {
     const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, offers: [dst] } }) });
     setParams({ id: "dst_1" });
     await render(
-      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
         <SearchOnMount>
           <OfferScreen />
         </SearchOnMount>
@@ -374,7 +374,7 @@ describe("tilbudsdetaljer og videresending", () => {
     const { factory } = setup({});
     setParams({ id: "finnes-ikke" });
     await render(
-      <AppProvider apiFactory={factory}>
+      <AppProvider initialLocale="nb" apiFactory={factory}>
         <OfferScreen />
       </AppProvider>,
     );
@@ -389,7 +389,7 @@ describe("kundekonto", () => {
       "mobileAuth.logout": () => ({ data: { ok: true } }),
     });
     await render(
-      <AppProvider apiFactory={factory}>
+      <AppProvider initialLocale="nb" apiFactory={factory}>
         <AccountScreen />
       </AppProvider>,
     );
@@ -421,7 +421,7 @@ describe("kundekonto", () => {
   it("utlogging uten nett sletter tokenet lokalt likevel", async () => {
     const { factory } = setup({ "mobileAuth.login": () => ({ data: AUTH_RESULT }), "mobileAuth.logout": () => Promise.reject(new Error("offline")) });
     await render(
-      <AppProvider apiFactory={factory}>
+      <AppProvider initialLocale="nb" apiFactory={factory}>
         <AccountScreen />
       </AppProvider>,
     );
@@ -440,7 +440,7 @@ describe("kundekonto", () => {
       "mobileAuth.register": () => ({ status: 409, error: { message: "Det finnes allerede en konto med denne e-postadressen. Prøv å logge inn.", appCode: "CONFLICT", field: "identifier" } }),
     });
     await render(
-      <AppProvider apiFactory={factory}>
+      <AppProvider initialLocale="nb" apiFactory={factory}>
         <AccountScreen />
       </AppProvider>,
     );
@@ -464,7 +464,7 @@ describe("kundekonto", () => {
     keychain.set("hellosky.customer-session", { value: JSON.stringify({ token: TOKEN, expiresAt: "2099-01-01T00:00:00Z" }), options: {} });
     const { server, factory } = setup({ "mobileAuth.me": () => ({ data: null }) });
     await render(
-      <AppProvider apiFactory={factory}>
+      <AppProvider initialLocale="nb" apiFactory={factory}>
         <AccountScreen />
       </AppProvider>,
     );
@@ -477,7 +477,7 @@ describe("kundekonto", () => {
     keychain.set("hellosky.customer-session", { value: JSON.stringify({ token: TOKEN, expiresAt: "2099-01-01T00:00:00Z" }), options: {} });
     const ok = setup({ "mobileAuth.me": () => ({ data: PROFILE }) });
     const first = await render(
-      <AppProvider apiFactory={ok.factory}>
+      <AppProvider initialLocale="nb" apiFactory={ok.factory}>
         <AccountScreen />
       </AppProvider>,
     );
@@ -486,7 +486,7 @@ describe("kundekonto", () => {
 
     const offline = setup({ "mobileAuth.me": () => Promise.reject(new Error("offline")) });
     await render(
-      <AppProvider apiFactory={offline.factory}>
+      <AppProvider initialLocale="nb" apiFactory={offline.factory}>
         <AccountScreen />
       </AppProvider>,
     );

@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Airport } from "@contracts/airports";
 import { useApp } from "../lib/appState";
 import { normalizeQuery } from "../lib/searchForm";
-import { ApiError } from "../lib/api";
+import { errorText } from "../lib/errorText";
+import { useI18n } from "../i18n";
 import { Banner, Field, IconButton, StateView } from "../components/ui";
 import { Icon } from "../components/Icon";
 import { colors, radius, space, type } from "../lib/theme";
@@ -21,10 +22,12 @@ export default function AirportPicker() {
   const { felt } = useLocalSearchParams<{ felt?: string }>();
   const field = felt === "til" ? "destination" : "origin";
   const { api, setForm } = useApp();
+  const i18n = useI18n();
+  const a = i18n.t.airport;
   const [query, setQuery] = useState("");
   // Svaret lagres sammen med søket det gjelder. Bare et svar for akkurat det
   // som står i feltet nå vises og kan velges – aldri treff fra forrige søk.
-  const [answer, setAnswer] = useState<{ key: string; results: Airport[]; error: string | null } | null>(null);
+  const [answer, setAnswer] = useState<{ key: string; results: Airport[]; error: unknown } | null>(null);
 
   const q = normalizeQuery(query);
   const key = q.toLowerCase();
@@ -40,7 +43,7 @@ export default function AirportPicker() {
           if (!cancelled) setAnswer({ key, results, error: null });
         })
         .catch((e: unknown) => {
-          if (!cancelled) setAnswer({ key, results: [], error: e instanceof ApiError ? e.message : "Kunne ikke søke etter flyplasser." });
+          if (!cancelled) setAnswer({ key, results: [], error: e ?? new Error("airports") });
         });
     }, 250);
     return () => {
@@ -61,14 +64,14 @@ export default function AirportPicker() {
     router.back();
   };
 
-  const question = field === "origin" ? "Hvor reiser du fra?" : "Hvor skal du?";
+  const question = field === "origin" ? a.from : a.to;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, space.lg) }]}>
       <View style={styles.head}>
-        <IconButton icon="close" label="Lukk" variant="light" onPress={() => router.back()} testID="header-back" />
+        <IconButton icon="close" label={a.close} variant="light" onPress={() => router.back()} testID="header-back" />
         <Text style={[type.headline, styles.title]} accessibilityRole="header">
-          Velg flyplass
+          {a.title}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -76,7 +79,7 @@ export default function AirportPicker() {
         <Field
           label={question}
           icon="search"
-          placeholder="By, flyplass eller kode"
+          placeholder={a.placeholder}
           value={query}
           onChangeText={setQuery}
           autoFocus
@@ -86,16 +89,16 @@ export default function AirportPicker() {
           clearButtonMode="while-editing"
           testID="airport-query"
         />
-        <Text style={[type.caption, { color: colors.textSecondary }]}>Vi søker bare fra og til flyplassen du velger – aldri andre flyplasser i samme by.</Text>
+        <Text style={[type.caption, { color: colors.textSecondary }]}>{a.exactOnly}</Text>
         {shownError ? (
           <Banner tone="error" testID="airport-error">
-            {shownError}
+            {errorText(shownError, i18n, { BAD_RESPONSE: a.error })}
           </Banner>
         ) : null}
         {loading ? (
           <View style={styles.loading}>
             <ActivityIndicator color={colors.text} testID="airport-loading" />
-            <Text style={[type.footnote, { color: colors.textSecondary }]}>Søker …</Text>
+            <Text style={[type.footnote, { color: colors.textSecondary }]}>{a.searching}</Text>
           </View>
         ) : null}
         <FlatList
@@ -106,16 +109,16 @@ export default function AirportPicker() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             !active ? (
-              <StateView dark={false} icon="mapPin" title="Finn flyplassen" body="Skriv minst to bokstaver: by, flyplass eller kode, for eksempel Barcelona eller BCN." />
+              <StateView dark={false} icon="mapPin" title={a.emptyTitle} body={a.emptyBody} />
             ) : !loading && !shownError ? (
-              <StateView dark={false} icon="search" title="Fant ingen flyplass" body="Ingen treff. Prøv et annet navn eller en flyplasskode." />
+              <StateView dark={false} icon="search" title={a.noneTitle} body={a.noneBody} />
             ) : null
           }
           renderItem={({ item }) => (
             <Pressable
               onPress={() => choose(item)}
               accessibilityRole="button"
-              accessibilityLabel={`${item.city}, ${item.name}, ${item.country}, kode ${item.iata}`}
+              accessibilityLabel={a.rowLabel(item.city, item.name, item.country, item.iata)}
               style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.inset }]}
               testID={`airport-${item.iata}`}
             >

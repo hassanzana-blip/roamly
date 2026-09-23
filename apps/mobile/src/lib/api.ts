@@ -32,9 +32,15 @@ export type RegisterRequest = {
   password: string;
   firstName: string;
   lastName: string;
+  /** Kontoens språk (e-poster fra HelloSky); appens valgte språk, aldri hardkodet. */
+  locale: "en" | "nb";
 };
 
-/** Feil fra serveren eller nettet, med en melding som kan vises på norsk. */
+/**
+ * Feil fra serveren eller nettet. `code` er det stabile som oversettes i
+ * appen (errorText.ts); `message` er serverens norske kundetekst når serveren
+ * sendte en, ellers en intern engelsk beskrivelse som aldri vises.
+ */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -50,9 +56,12 @@ export class ApiError extends Error {
   }
 }
 
-const NETWORK_MESSAGE = "Fikk ikke kontakt med HelloSky. Sjekk nettforbindelsen og prøv igjen.";
-const TIMEOUT_MESSAGE = "Det tok for lang tid å få svar. Prøv igjen.";
-const GENERIC_MESSAGE = "Noe gikk galt hos oss. Prøv igjen om litt.";
+/** Koder appen setter selv (ingen servermelding å vise). */
+export const CLIENT_ERROR_CODES = ["NETWORK", "TIMEOUT", "BAD_RESPONSE", "CANCELLED"] as const;
+
+const NETWORK_MESSAGE = "network error";
+const TIMEOUT_MESSAGE = "request timed out";
+const GENERIC_MESSAGE = "unexpected response";
 
 type ClientOptions = {
   baseUrl: string;
@@ -62,7 +71,8 @@ type ClientOptions = {
   timeoutMs?: number;
 };
 
-type CallOptions = { auth?: boolean; timeoutMs?: number };
+/** `signal`: brukeren kan avbryte (f.eks. et tregt søk); gir ApiError med kode CANCELLED. */
+type CallOptions = { auth?: boolean; timeoutMs?: number; signal?: AbortSignal };
 
 type ErrorEnvelope = {
   error?: {
@@ -99,15 +109,24 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     }
 
     const controller = new AbortController();
+    let cancelled = false;
+    const onCancel = () => {
+      cancelled = true;
+      controller.abort();
+    };
+    if (opts.signal?.aborted) throw new ApiError("cancelled", "CANCELLED", 0, true);
+    opts.signal?.addEventListener("abort", onCancel);
     const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? timeoutMs);
     let res: Response;
     try {
       res = await fetchImpl(url, { ...init, signal: controller.signal });
     } catch {
+      if (cancelled) throw new ApiError("cancelled", "CANCELLED", 0, true);
       if (controller.signal.aborted) throw new ApiError(TIMEOUT_MESSAGE, "TIMEOUT", 0, true);
       throw new ApiError(NETWORK_MESSAGE, "NETWORK", 0, true);
     } finally {
       clearTimeout(timer);
+      opts.signal?.removeEventListener("abort", onCancel);
     }
 
     // Tekst + JSON.parse i stedet for res.json(): objektene lages da alltid i
@@ -127,10 +146,10 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
   return {
     airports: (query: string, limit = 10) => call<Airport[]>("query", "flights.airports", { query, limit }),
     /** KAYAK kan bruke opptil ~22 s; gi søket god tid. */
-    search: (input: SearchRequest) => call<MobileSearchResult>("mutation", "flights.search", input, { timeoutMs: 45_000 }),
+    search: (input: SearchRequest, signal?: AbortSignal) => call<MobileSearchResult>("mutation", "flights.search", input, { timeoutMs: 45_000, signal }),
     login: (email: string, password: string) => call<MobileAuthResult>("mutation", "mobileAuth.login", { identifier: email.trim(), password }),
     register: (r: RegisterRequest) =>
-      call<MobileAuthResult>("mutation", "mobileAuth.register", { identifier: r.email.trim(), password: r.password, firstName: r.firstName.trim(), lastName: r.lastName.trim(), locale: "nb" }),
+      call<MobileAuthResult>("mutation", "mobileAuth.register", { identifier: r.email.trim(), password: r.password, firstName: r.firstName.trim(), lastName: r.lastName.trim(), locale: r.locale }),
     me: () => call<CustomerProfile | null>("query", "mobileAuth.me", undefined, { auth: true }),
     logout: () => call<{ ok: true }>("mutation", "mobileAuth.logout", undefined, { auth: true }),
     /**

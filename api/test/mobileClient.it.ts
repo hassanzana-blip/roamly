@@ -73,7 +73,7 @@ describe("iOS-klienten mot /api/mobile/trpc", () => {
   });
 
   it("registrering, Bearer på me, utlogging som tilbakekaller", async () => {
-    const reg = await client().register({ email: "app@hellosky.test", password: "kundepassord-2026", firstName: "App", lastName: "Kunde" });
+    const reg = await client().register({ email: "app@hellosky.test", password: "kundepassord-2026", firstName: "App", lastName: "Kunde", locale: "nb" });
     expect(reg.session.tokenType).toBe("Bearer");
     expect(reg.profile).toMatchObject({ email: "app@hellosky.test", firstName: "App", locale: "nb" });
 

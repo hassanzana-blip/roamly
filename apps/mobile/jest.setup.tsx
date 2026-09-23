@@ -22,6 +22,37 @@ jest.mock("expo-secure-store", () => {
   };
 });
 
+// Filsystemet (innstillinger på telefonen): filer i minnet, tømt før hver test.
+jest.mock("expo-file-system", () => {
+  const files = new Map<string, string>();
+  class File {
+    uri: string;
+    constructor(...parts: (string | { uri: string })[]) {
+      this.uri = parts.map((p) => (typeof p === "string" ? p : p.uri)).join("/");
+    }
+    get exists() {
+      return files.has(this.uri);
+    }
+    textSync() {
+      const v = files.get(this.uri);
+      if (v === undefined) throw new Error("ENOENT");
+      return v;
+    }
+    write(content: string) {
+      files.set(this.uri, content);
+    }
+    delete() {
+      files.delete(this.uri);
+    }
+  }
+  return { __files: files, File, Paths: { document: { uri: "file:///documents" }, cache: { uri: "file:///cache" } } };
+});
+
+beforeEach(() => {
+  require("expo-file-system").__files.clear();
+  require("./src/lib/localStore").__resetLocalStoreForTests();
+});
+
 // Leverandørens side åpnes i SFSafariViewController – her et spionobjekt.
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "dismiss" })),

@@ -1,5 +1,5 @@
-import type { MobileOfferPrice, MobileSearchResult, NokUnavailableReason } from "@contracts/mobileSearch";
-import { formatNok, formatNumericDate } from "./format";
+import type { MobileOfferPrice, MobileSearchResult } from "@contracts/mobileSearch";
+import type { I18n } from "../i18n";
 
 /**
  * Hvordan en pris vises. Appen viser BARE kronebeløp:
@@ -20,40 +20,24 @@ export type PriceDisplay = {
   accessibilityLabel: string;
 };
 
-const REASONS: Record<NokUnavailableReason, string> = {
-  rate_unavailable: "Valutakursen er ikke tilgjengelig akkurat nå",
-  rate_stale: "Valutakursen er for gammel til å brukes",
-  unsupported_currency: "Vi har ingen kurs for valutaen leverandøren priser i",
-  invalid_amount: "Leverandøren oppga et beløp vi ikke kan regne med",
-};
-
-/** Skjermleser: «1 234 kr» leses som «1234 kroner». */
-function spokenNok(amountMinor: number): string {
-  return formatNok(amountMinor).replace(/ kr$/, " kroner");
-}
-
-export function priceDisplay(price: MobileOfferPrice): PriceDisplay {
+export function priceDisplay(price: MobileOfferPrice, { t, f }: Pick<I18n, "t" | "f">): PriceDisplay {
   const nok = price.nok;
   if (nok.kind === "exact") {
-    return { primary: formatNok(nok.amountMinor), secondary: null, approx: false, available: true, accessibilityLabel: `Pris ${spokenNok(nok.amountMinor)}` };
+    return { primary: f.nok(nok.amountMinor), secondary: null, approx: false, available: true, accessibilityLabel: t.price.spokenExact(f.spokenNok(nok.amountMinor)) };
   }
   if (nok.kind === "converted") {
-    const date = formatNumericDate(nok.rate.rateDate);
+    const date = f.numericDate(nok.rate.rateDate);
     return {
-      primary: `ca. ${formatNok(nok.amountMinor)}`,
-      secondary: `Omregnet med Norges Banks kurs ${date}`,
+      primary: t.price.approx(f.nok(nok.amountMinor)),
+      secondary: t.price.convertedWith(date),
       approx: true,
       available: true,
-      accessibilityLabel: `Omtrent ${spokenNok(nok.amountMinor)}, omregnet med Norges Banks kurs ${date}`,
+      accessibilityLabel: t.price.spokenApprox(f.spokenNok(nok.amountMinor), date),
     };
   }
-  const reason = REASONS[nok.reason];
-  return { primary: "Ingen pris i kroner", secondary: reason, approx: false, available: false, accessibilityLabel: `Ingen pris i kroner. ${reason}` };
+  const reason = t.price.reasons[nok.reason];
+  return { primary: t.price.noNok, secondary: reason, approx: false, available: false, accessibilityLabel: `${t.price.noNok}. ${reason}` };
 }
-
-/** Merknaden som alltid står ved en omregnet pris (resultatliste og tilbud). */
-export const CONVERTED_NOTICE =
-  "Leverandøren kan ta betalt i en annen valuta enn norske kroner. Kronebeløpet er et anslag med Norges Banks veiledende midtkurs, og endelig beløp kan avvike.";
 
 /**
  * Servicegebyret i kroner når det er priset i kroner; ellers null (da sier
@@ -72,28 +56,22 @@ export function serviceFeeNokMinor(price: MobileOfferPrice): number | null {
  * Meldingen over resultatlisten om valuta. null når alt er i kroner. `short`
  * er den korte linjen over listen; `text` er hele forklaringen.
  */
-export function fxNotice(result: Pick<MobileSearchResult, "fx">): { tone: "info" | "warning"; short: string; text: string } | null {
+export function fxNotice(result: Pick<MobileSearchResult, "fx">, { t, f }: Pick<I18n, "t" | "f">): { tone: "info" | "warning"; short: string; text: string } | null {
   const { status, rateDate, unconvertedCount } = result.fx;
-  const dated = rateDate ? ` ${formatNumericDate(rateDate)}` : "";
-  const converted = `Priser merket «ca.» er omregnet til kroner med Norges Banks midtkurs${dated}. Leverandøren kan ta betalt i en annen valuta, og endelig beløp kan avvike.`;
-  const shortConverted = `Priser merket «ca.» er omregnet med Norges Banks kurs${dated} og kan avvike.`;
+  const date = rateDate ? f.numericDate(rateDate) : null;
   switch (status) {
     case "not_needed":
       return null;
     case "ok":
-      return { tone: "info", short: shortConverted, text: converted };
+      return { tone: "info", short: t.price.fx.shortConverted(date), text: t.price.fx.converted(date) };
     case "partial": {
-      const missing = `${unconvertedCount === 1 ? "Ett tilbud" : `${unconvertedCount} tilbud`} kunne ikke regnes om til kroner og står nederst.`;
-      return { tone: "warning", short: `${shortConverted} ${missing}`, text: `${converted} ${missing}` };
+      const missing = t.price.fx.missing(unconvertedCount);
+      return { tone: "warning", short: `${t.price.fx.shortConverted(date)} ${missing}`, text: `${t.price.fx.converted(date)} ${missing}` };
     }
-    case "stale": {
-      const text = "Valutakursene er for gamle til å brukes. Tilbud priset i annen valuta vises uten pris, nederst i listen.";
-      return { tone: "warning", short: text, text };
-    }
+    case "stale":
+      return { tone: "warning", short: t.price.fx.stale, text: t.price.fx.stale };
     case "unavailable":
-    default: {
-      const text = "Tilbud priset i annen valuta kunne ikke regnes om til kroner akkurat nå. De vises uten pris, nederst i listen.";
-      return { tone: "warning", short: text, text };
-    }
+    default:
+      return { tone: "warning", short: t.price.fx.unavailable, text: t.price.fx.unavailable };
   }
 }

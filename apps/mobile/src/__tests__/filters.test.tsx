@@ -33,7 +33,7 @@ async function renderResults(result: MobileSearchResult) {
   const server = fakeServer({ "flights.search": () => ({ data: result }) });
   const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
   await render(
-    <AppProvider apiFactory={factory} initial={{ destination: BCN, departDate: "2026-10-23", returnDate: "2026-10-30" }}>
+    <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN, departDate: "2026-10-23", returnDate: "2026-10-30" }}>
       <SearchOnMount>
         <ResultsScreen />
       </SearchOnMount>

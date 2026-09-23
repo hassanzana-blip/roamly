@@ -4,9 +4,10 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
-import { formatShortDay } from "../../lib/format";
-import { DESTINATIONS, type Destination } from "../../lib/destinations";
-import { passengerSummary } from "../../lib/searchForm";
+import { DESTINATIONS, destinationChoice, type Destination } from "../../lib/destinations";
+import { formErrorText, passengerSummary } from "../../lib/searchForm";
+import { useI18n } from "../../i18n";
+import type { FormErrorCode } from "../../i18n/ns/search";
 import { Banner } from "../../components/ui";
 import { DestinationCard } from "../../components/DestinationCard";
 import { colors, space, type } from "../../lib/theme";
@@ -20,30 +21,32 @@ export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { form, runSearch } = useApp();
-  const [problem, setProblem] = useState<string | null>(null);
+  const i18n = useI18n();
+  const { t, f, locale } = i18n;
+  const [problem, setProblem] = useState<FormErrorCode | null>(null);
   const cardWidth = (width - space.lg * 2 - space.md) / 2;
 
   const searchTo = (d: Destination) => {
-    const err = runSearch({ destination: { iata: d.iata, name: d.airportName, city: d.city, country: d.country } });
+    const err = runSearch({ destination: destinationChoice(d, locale) });
     setProblem(err);
     if (!err) router.push("/resultater");
   };
 
-  const dates = form.tripType === "roundtrip" ? `${formatShortDay(form.departDate)} – ${formatShortDay(form.returnDate)}` : formatShortDay(form.departDate);
+  const dates = form.tripType === "roundtrip" ? `${f.shortDay(form.departDate)} – ${f.shortDay(form.returnDate)}` : f.shortDay(form.departDate);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + space.lg, paddingBottom: space.xxxl }} testID="explore-screen">
       <StatusBar style="light" />
       <View style={styles.head}>
         <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
-          Utforsk reisemål
+          {t.explore.title}
         </Text>
         <Text style={[type.footnote, { color: colors.onDarkMuted }]}>
-          {form.origin ? `Fra ${form.origin.city} (${form.origin.iata}) · ${dates} · ${passengerSummary(form)}` : "Velg hvor du reiser fra på forsiden."}
+          {form.origin ? t.explore.fromSummary(form.origin.city, form.origin.iata, dates, passengerSummary(form, i18n)) : t.explore.chooseOrigin}
         </Text>
         {problem ? (
           <Banner tone="error" dark testID="explore-error">
-            {problem}
+            {formErrorText(problem, i18n)}
           </Banner>
         ) : null}
       </View>
@@ -51,11 +54,11 @@ export default function ExploreScreen() {
         {DESTINATIONS.map((d) => (
           <View key={d.id} style={{ width: cardWidth, gap: space.xs }}>
             <DestinationCard destination={d} onPress={() => searchTo(d)} style={{ width: cardWidth, height: cardWidth * 0.9 }} testID={`explore-${d.id}`} />
-            <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>{`${d.country} · ${d.iata}`}</Text>
+            <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>{t.explore.countryCode(d.names[locale].country, d.iata)}</Text>
           </View>
         ))}
       </View>
-      <Text style={[type.caption, styles.credit]}>Foto: Unsplash. Se Profil for kreditering.</Text>
+      <Text style={[type.caption, styles.credit]}>{t.explore.photoNote}</Text>
     </ScrollView>
   );
 }

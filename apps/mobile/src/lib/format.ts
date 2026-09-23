@@ -1,26 +1,50 @@
+import type { Locale } from "../i18n/types";
+
 /**
- * Norsk formatering uten flyttall og uten å stole på enhetens Intl-data.
- * Appen formaterer bare kronebeløp – det finnes med vilje ingen formaterer for
+ * Formatering uten flyttall og uten å stole på enhetens Intl-data, på engelsk
+ * eller norsk. Språket styrer bare ord og skrivemåte – aldri valutaen: appen
+ * formaterer bare kronebeløp, og det finnes med vilje ingen formaterer for
  * andre valutaer.
  */
 
-const NBSP = " ";
+const NBSP = "\u00A0";
 
-function group(digits: string): string {
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
+function group(digits: string, sep: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
 }
 
-/** 123450 → «1 234,50 kr»; 123400 → «1 234 kr». */
-export function formatNok(amountMinor: number): string {
+/** nb: 123450 → «1 234,50 kr», 123400 → «1 234 kr». en: «NOK 1,234.50», «NOK 1,234». */
+export function formatNok(amountMinor: number, locale: Locale): string {
   const negative = amountMinor < 0;
   const abs = Math.abs(Math.trunc(amountMinor));
   const kroner = Math.floor(abs / 100);
   const ore = abs % 100;
-  return `${negative ? "−" : ""}${group(String(kroner))}${ore ? `,${String(ore).padStart(2, "0")}` : ""}${NBSP}kr`;
+  const sign = negative ? "−" : "";
+  if (locale === "en") return `${sign}NOK${NBSP}${group(String(kroner), ",")}${ore ? `.${String(ore).padStart(2, "0")}` : ""}`;
+  return `${sign}${group(String(kroner), NBSP)}${ore ? `,${String(ore).padStart(2, "0")}` : ""}${NBSP}kr`;
 }
 
-const WEEKDAYS = ["søn.", "man.", "tir.", "ons.", "tor.", "fre.", "lør."];
-const MONTHS = ["jan.", "feb.", "mars", "apr.", "mai", "juni", "juli", "aug.", "sep.", "okt.", "nov.", "des."];
+/** Til skjermleser: nb «1 234 kroner», en «1,234 Norwegian kroner». */
+export function spokenNok(amountMinor: number, locale: Locale): string {
+  const abs = Math.abs(Math.trunc(amountMinor));
+  const kroner = Math.floor(abs / 100);
+  const ore = abs % 100;
+  if (locale === "en") return `${group(String(kroner), ",")}${ore ? `.${String(ore).padStart(2, "0")}` : ""} Norwegian kroner`;
+  return `${group(String(kroner), NBSP)}${ore ? `,${String(ore).padStart(2, "0")}` : ""} kroner`;
+}
+
+const WEEKDAYS: Record<Locale, string[]> = {
+  nb: ["søn.", "man.", "tir.", "ons.", "tor.", "fre.", "lør."],
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+};
+const MONTHS: Record<Locale, string[]> = {
+  nb: ["jan.", "feb.", "mars", "apr.", "mai", "juni", "juli", "aug.", "sep.", "okt.", "nov.", "des."],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+};
+const MONTHS_LONG: Record<Locale, string[]> = {
+  nb: ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+};
 
 function parseIsoDate(iso: string): { y: number; m: number; d: number } | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
@@ -28,19 +52,25 @@ function parseIsoDate(iso: string): { y: number; m: number; d: number } | null {
   return { y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) };
 }
 
-/** «2026-10-23» → «fre. 23. okt.» */
-export function formatDay(iso: string): string {
+/** nb «fre. 23. okt.», en «Fri 23 Oct». */
+export function formatDay(iso: string, locale: Locale): string {
   const p = parseIsoDate(iso);
   if (!p) return "";
-  const weekday = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay();
-  return `${WEEKDAYS[weekday]} ${p.d}. ${MONTHS[p.m - 1]}`;
+  const weekday = WEEKDAYS[locale][new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay()];
+  return locale === "en" ? `${weekday} ${p.d} ${MONTHS.en[p.m - 1]}` : `${weekday} ${p.d}. ${MONTHS.nb[p.m - 1]}`;
 }
 
-/** «2026-09-22» → «22.09.2026» */
-export function formatNumericDate(iso: string): string {
+/** nb «22.09.2026», en «22 Sep 2026» (entydig for engelske lesere). */
+export function formatNumericDate(iso: string, locale: Locale): string {
   const p = parseIsoDate(iso);
   if (!p) return "";
+  if (locale === "en") return `${p.d} ${MONTHS.en[p.m - 1]} ${p.y}`;
   return `${String(p.d).padStart(2, "0")}.${String(p.m).padStart(2, "0")}.${p.y}`;
+}
+
+/** Måned og år for kalenderen: nb «oktober 2026», en «October 2026». */
+export function formatMonthYear(year: number, month0: number, locale: Locale): string {
+  return `${MONTHS_LONG[locale][month0]} ${year}`;
 }
 
 /** Klokkeslett slik leverandøren oppga det (lokal tid på flyplassen): «2026-10-23T07:05:00» → «07:05». */
@@ -49,26 +79,47 @@ export function formatTime(isoDateTime: string): string {
   return m ? `${m[1]}:${m[2]}` : "";
 }
 
-/** 155 → «2 t 35 min» */
-export function formatDuration(minutes: number): string {
+/** 155 → nb «2 t 35 min», en «2h 35m». */
+export function formatDuration(minutes: number, locale: Locale): string {
   if (!Number.isFinite(minutes) || minutes <= 0) return "";
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
+  if (locale === "en") return h === 0 ? `${m}m` : m ? `${h}h ${m}m` : `${h}h`;
   if (h === 0) return `${m} min`;
   return m ? `${h} t ${m} min` : `${h} t`;
 }
 
-export function formatStops(stops: number): string {
+/** Varighet til skjermleser: en «2 hours 35 minutes», nb «2 timer 35 minutter». */
+export function spokenDuration(minutes: number, locale: Locale): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "";
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  const parts: string[] = [];
+  if (locale === "en") {
+    if (h) parts.push(`${h} ${h === 1 ? "hour" : "hours"}`);
+    if (m) parts.push(`${m} ${m === 1 ? "minute" : "minutes"}`);
+  } else {
+    if (h) parts.push(`${h} ${h === 1 ? "time" : "timer"}`);
+    if (m) parts.push(`${m} ${m === 1 ? "minutt" : "minutter"}`);
+  }
+  return parts.join(" ");
+}
+
+/** nb «Direkte», «1 mellomlanding», «2 mellomlandinger»; en «Direct», «1 stop», «2 stops». */
+export function formatStops(stops: number, locale: Locale): string {
+  if (locale === "en") return stops <= 0 ? "Direct" : stops === 1 ? "1 stop" : `${stops} stops`;
   if (stops <= 0) return "Direkte";
   return stops === 1 ? "1 mellomlanding" : `${stops} mellomlandinger`;
 }
 
-/** Hele reisen: «Direkte», «1 mellomlanding hver vei» – «Opptil» bare når strekningene er ulike. */
-export function stopsSummary(slices: readonly { stops: number }[]): string {
+/** Hele reisen: «1 mellomlanding hver vei» / «1 stop each way» – «Opptil»/«Up to» bare når strekningene er ulike. */
+export function stopsSummary(slices: readonly { stops: number }[], locale: Locale): string {
   const max = slices.reduce((m, s) => Math.max(m, s.stops), 0);
-  if (max === 0) return "Direkte";
-  if (slices.length === 1) return formatStops(max);
-  return slices.every((s) => s.stops === max) ? `${formatStops(max)} hver vei` : `Opptil ${formatStops(max).toLowerCase()}`;
+  if (max === 0) return formatStops(0, locale);
+  if (slices.length === 1) return formatStops(max, locale);
+  const same = slices.every((s) => s.stops === max);
+  if (locale === "en") return same ? `${formatStops(max, locale)} each way` : `Up to ${formatStops(max, locale)}`;
+  return same ? `${formatStops(max, locale)} hver vei` : `Opptil ${formatStops(max, locale).toLowerCase()}`;
 }
 
 /**
@@ -82,15 +133,27 @@ export function dayOffset(departingAt: string, arrivingAt: string): number {
   return Math.round((Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 86_400_000);
 }
 
-/** «23. okt.» – kort dato uten ukedag. */
-export function formatShortDay(iso: string): string {
+/** Klokkeslett på telefonen (24 t, begge språk): «14:05». */
+export function formatClock(date: Date): string {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Kort dato uten ukedag: nb «23. okt.», en «23 Oct». */
+export function formatShortDay(iso: string, locale: Locale): string {
   const p = parseIsoDate(iso);
-  return p ? `${p.d}. ${MONTHS[p.m - 1]}` : "";
+  if (!p) return "";
+  return locale === "en" ? `${p.d} ${MONTHS.en[p.m - 1]}` : `${p.d}. ${MONTHS.nb[p.m - 1]}`;
 }
 
 /** Hilsen etter klokken på telefonen. */
-export function greeting(now: Date = new Date()): string {
+export function greeting(locale: Locale, now: Date = new Date()): string {
   const h = now.getHours();
+  if (locale === "en") {
+    if (h >= 5 && h < 12) return "Good morning";
+    if (h >= 12 && h < 18) return "Good afternoon";
+    if (h >= 18) return "Good evening";
+    return "Hi";
+  }
   if (h >= 5 && h < 10) return "God morgen";
   if (h >= 10 && h < 12) return "God formiddag";
   if (h >= 12 && h < 18) return "God ettermiddag";

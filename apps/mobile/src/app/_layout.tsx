@@ -5,19 +5,36 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { AppProvider } from "../lib/appState";
 import { API_BASE } from "../lib/config";
 import { InformationCard, Wordmark } from "../components/ui";
+import { I18nProvider, useI18n } from "../i18n";
 import { colors, space, type } from "../lib/theme";
 
-function ConfigError({ message }: { message: string }) {
+function ConfigError() {
+  const { t } = useI18n();
   return (
     <SafeAreaView style={{ flex: 1, padding: space.xl, gap: space.xl, backgroundColor: colors.bg }}>
       <Wordmark />
       <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
-        Appen er ikke satt opp
+        {t.common.configTitle}
       </Text>
       <InformationCard>
-        <Text style={[type.body, { color: colors.text }]}>{message}</Text>
+        <Text style={[type.body, { color: colors.text }]}>{t.common.configBody}</Text>
       </InformationCard>
     </SafeAreaView>
+  );
+}
+
+/** Skjermene, med titler på brukerens språk. */
+function AppStack() {
+  const { t } = useI18n();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        <Stack.Screen name="(tabs)" options={{ title: t.common.tabs.home }} />
+        <Stack.Screen name="resultater" options={{ title: t.results.screen.fallbackTitle }} />
+        <Stack.Screen name="tilbud/[id]" options={{ title: t.details.title }} />
+        <Stack.Screen name="flyplass" options={{ presentation: "modal", title: t.airport.title, contentStyle: { backgroundColor: colors.white } }} />
+      </Stack>
+    </View>
   );
 }
 
@@ -31,7 +48,9 @@ export default function RootLayout() {
     return (
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <ConfigError message={API_BASE.message} />
+        <I18nProvider>
+          <ConfigError />
+        </I18nProvider>
       </SafeAreaProvider>
     );
   }
@@ -39,14 +58,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AppProvider>
         <StatusBar style="light" />
-        <View style={{ flex: 1, backgroundColor: colors.bg }}>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-            <Stack.Screen name="(tabs)" options={{ title: "Hjem" }} />
-            <Stack.Screen name="resultater" options={{ title: "Flyreiser" }} />
-            <Stack.Screen name="tilbud/[id]" options={{ title: "Flydetaljer" }} />
-            <Stack.Screen name="flyplass" options={{ presentation: "modal", title: "Velg flyplass", contentStyle: { backgroundColor: colors.white } }} />
-          </Stack>
-        </View>
+        <AppStack />
       </AppProvider>
     </SafeAreaProvider>
   );

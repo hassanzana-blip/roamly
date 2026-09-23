@@ -2,18 +2,21 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import type { Destination } from "../lib/destinations";
 import { BottomFade, PhotoBackdrop } from "./Photo";
 import { colors, radius, space, type } from "../lib/theme";
+import { useI18n } from "../i18n";
 
 /**
  * Reisemål med foto. Ingen «fra»-pris: vi har ingen verifisert pris uten
  * datoer og reisende, så kortet lover bare det det gjør – å søke.
  */
 export function DestinationCard({ destination, onPress, style, testID }: { destination: Destination; onPress: () => void; style?: StyleProp<ViewStyle>; testID?: string }) {
+  const { t, locale } = useI18n();
+  const names = destination.names[locale];
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={`Se flyreiser til ${destination.city}, ${destination.airportName}`}
+      accessibilityLabel={t.explore.seeFlightsTo(names.city, names.airport)}
       style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.85 }]}
     >
       <PhotoBackdrop photo={destination.photo} scrim="light" credit={false} style={StyleSheet.absoluteFill}>
@@ -21,10 +24,10 @@ export function DestinationCard({ destination, onPress, style, testID }: { desti
       </PhotoBackdrop>
       <View style={styles.text}>
         <Text style={[type.calloutStrong, { color: colors.onDark }]} numberOfLines={1}>
-          {destination.city}
+          {names.city}
         </Text>
         <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>
-          Se flyreiser
+          {t.explore.seeFlights}
         </Text>
       </View>
     </Pressable>

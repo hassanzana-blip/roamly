@@ -2,6 +2,8 @@ import type { Airport } from "@contracts/airports";
 import type { CabinClass, SearchPassengerInput } from "@contracts/types";
 import type { SearchRequest } from "./api";
 import { addDays, toIsoDate } from "./format";
+import type { I18n } from "../i18n";
+import type { FormErrorCode } from "../i18n/ns/search";
 
 /** Samme regler som nettets passasjervelger. */
 export const MAX_PASSENGERS = 9;
@@ -25,15 +27,10 @@ export type SearchForm = {
   directOnly: boolean;
 };
 
-export const CABINS: { value: CabinClass; label: string }[] = [
-  { value: "economy", label: "Økonomi" },
-  { value: "premium_economy", label: "Premium økonomi" },
-  { value: "business", label: "Business" },
-  { value: "first", label: "Første klasse" },
-];
+export const CABINS: readonly CabinClass[] = ["economy", "premium_economy", "business", "first"];
 
-export function cabinLabel(c: CabinClass): string {
-  return CABINS.find((x) => x.value === c)?.label ?? c;
+export function cabinLabel(c: CabinClass, { t }: Pick<I18n, "t">): string {
+  return t.search.cabins[c] ?? c;
 }
 
 export const OSLO: AirportChoice = { iata: "OSL", name: "Oslo lufthavn Gardermoen", city: "Oslo", country: "Norge" };
@@ -58,29 +55,35 @@ export function passengerCount(f: Pick<SearchForm, "adults" | "childAges" | "inf
   return f.adults + f.childAges.length + f.infantAges.length;
 }
 
-export function passengerSummary(f: Pick<SearchForm, "adults" | "childAges" | "infantAges">): string {
-  const parts = [`${f.adults} ${f.adults === 1 ? "voksen" : "voksne"}`];
-  if (f.childAges.length) parts.push(`${f.childAges.length} ${f.childAges.length === 1 ? "barn" : "barn"}`);
-  if (f.infantAges.length) parts.push(`${f.infantAges.length} ${f.infantAges.length === 1 ? "spedbarn" : "spedbarn"}`);
+export function passengerSummary(f: Pick<SearchForm, "adults" | "childAges" | "infantAges">, { t }: Pick<I18n, "t">): string {
+  const parts = [t.search.adults(f.adults)];
+  if (f.childAges.length) parts.push(t.search.children(f.childAges.length));
+  if (f.infantAges.length) parts.push(t.search.infants(f.infantAges.length));
   return parts.join(", ");
 }
 
-/** Hva som mangler eller er feil, på norsk. null = klar til søk. */
-export function validateForm(f: SearchForm, today: string = toIsoDate(new Date())): string | null {
-  if (!f.origin) return "Velg hvor du reiser fra.";
-  if (!f.destination) return "Velg hvor du skal.";
-  if (f.origin.iata === f.destination.iata) return "Avreise og reisemål kan ikke være samme flyplass.";
-  if (f.departDate < today) return "Utreisedatoen har passert. Velg en ny dato.";
-  if (f.tripType === "roundtrip" && f.returnDate < f.departDate) return "Hjemreisen kan ikke være før utreisen.";
-  if (f.adults < 1) return "Minst én voksen må reise.";
-  if (passengerCount(f) > MAX_PASSENGERS) return `Maks ${MAX_PASSENGERS} reisende per søk.`;
-  if (f.infantAges.length > f.adults) return "Hvert spedbarn må ha en voksen på fanget.";
+/** Hva som mangler eller er feil, som en kode (teksten står i ordboken). null = klar til søk. */
+export function validateForm(f: SearchForm, today: string = toIsoDate(new Date())): FormErrorCode | null {
+  if (!f.origin) return "noOrigin";
+  if (!f.destination) return "noDestination";
+  if (f.origin.iata === f.destination.iata) return "sameAirport";
+  if (f.departDate < today) return "departPassed";
+  if (f.tripType === "roundtrip" && f.returnDate < f.departDate) return "returnBeforeDepart";
+  if (f.adults < 1) return "noAdult";
+  if (passengerCount(f) > MAX_PASSENGERS) return "tooMany";
+  if (f.infantAges.length > f.adults) return "infantsExceedAdults";
   return null;
+}
+
+/** Feilkoden som tekst på brukerens språk. */
+export function formErrorText(code: FormErrorCode, { t }: Pick<I18n, "t">): string {
+  const e = t.search.errors[code];
+  return typeof e === "function" ? e(MAX_PASSENGERS) : e;
 }
 
 /** Skjemaet → søket serveren forventer. Barn og spedbarn sendes med alder. */
 export function toSearchRequest(f: SearchForm, sessionId?: string): SearchRequest {
-  if (!f.origin || !f.destination) throw new Error("Skjemaet er ikke komplett");
+  if (!f.origin || !f.destination) throw new Error("Incomplete search form");
   const passengers: SearchPassengerInput[] = [
     ...Array.from({ length: f.adults }, () => ({ type: "adult" as const })),
     ...f.childAges.map((age) => ({ type: "child" as const, age })),

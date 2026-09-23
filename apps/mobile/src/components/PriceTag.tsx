@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { MobileOfferPrice } from "@contracts/mobileSearch";
 import { priceDisplay } from "../lib/price";
+import { useI18n } from "../i18n";
 import { colors, type } from "../lib/theme";
 
 /**
@@ -8,7 +9,7 @@ import { colors, type } from "../lib/theme";
  * kroner». Hovedbeløpet er én tekst med tabellsifre.
  */
 export function PriceTag({ price, align = "left", size = "card", dark, testID }: { price: MobileOfferPrice; align?: "left" | "right"; size?: "card" | "large"; dark?: boolean; testID?: string }) {
-  const d = priceDisplay(price);
+  const d = priceDisplay(price, useI18n());
   const fg = dark ? colors.onDark : colors.text;
   const sub = dark ? colors.onDarkMuted : colors.textSecondary;
   return (
