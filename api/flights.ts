@@ -17,6 +17,7 @@ import { isKayakOffer, kayakAutocomplete, kayakConfig } from "./lib/kayak";
 import { flightProvidersStatus, getFlightProvider, type FlightProviderId } from "./lib/flightProviders";
 import { fetchFlightStatus, flightStatusConfig } from "./lib/flightStatus";
 import type { FlightStatus, Offer, Order, PriceHint, SearchResult, ServiceStatus } from "../contracts/types";
+import type { TrpcContext } from "./context";
 
 // ─── Søk, tilbud og offentlige oppslag ─────────────────────────────────────
 // Booking skjer KUN via checkout.* (OTA-020). Ordre hentes via orders.get.
@@ -34,7 +35,7 @@ const sliceSchema = z.object({
 
 const providerSchema = z.enum(["duffel", "travelport", "kayak", "demo"]);
 
-const searchSchema = z.object({
+export const searchSchema = z.object({
   slices: z.array(sliceSchema).min(1).max(3),
   passengers: z.array(passengerSearchSchema).min(1).max(9),
   cabinClass: z.enum(["economy", "premium_economy", "business", "first"]),
@@ -48,7 +49,7 @@ const searchSchema = z.object({
   sessionId: z.string().uuid().optional(),
 });
 
-type SearchInput = z.infer<typeof searchSchema>;
+export type SearchInput = z.infer<typeof searchSchema>;
 
 /**
  * Tidligste «i dag» i noen tidssone (UTC−12). Datoen fra klienten er en lokal
@@ -126,7 +127,63 @@ export async function resolveOffer(offerId: string): Promise<Offer> {
   return offer;
 }
 
+/**
+ * Selve søket: rategrense, validering, leverandørvalg og cache. Delt mellom
+ * nettets flights.search og appens NOK-søk (api/mobileFlights.ts), så begge
+ * går gjennom nøyaktig samme dør inn til leverandørene.
+ */
+export async function runFlightSearch(input: SearchInput, ctx: TrpcContext): Promise<SearchResult> {
+  assertRateLimit("search", clientIp(ctx.req), 20, 60_000);
+  const today = todayIso();
+  for (const s of input.slices) {
+    if (s.origin.toUpperCase() === s.destination.toUpperCase()) {
+      throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass.", data: { field: "slices" } });
+    }
+    if (s.departureDate < today) {
+      throw new AppError("VALIDATION", { message: "Avreisedatoen er passert. Velg en dato fra og med i dag.", data: { field: "departureDate" } });
+    }
+  }
+  const provider = getFlightProvider(input.provider);
+  const request = {
+    slices: input.slices,
+    passengers: input.passengers,
+    cabinClass: input.cabinClass,
+    currency: input.currency,
+    directOnly: input.directOnly,
+    userTrackId: input.sessionId,
+    userAgent: ctx.req.headers.get("user-agent") ?? undefined,
+    clientIp: clientIp(ctx.req),
+  };
+  if (!provider.cacheable) return await provider.search(request);
+  const key = searchCacheKey(input, provider.id);
+  const hit = searchCache.get(key);
+  if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) return hit.result;
+  const result = await provider.search(request);
+  // Delvise svar (leverandøren rakk ikke å bli ferdig) caches ikke – neste søk får en ny sjanse.
+  if (!result.partial) searchCache.set(key, { at: Date.now(), result });
+  return result;
+}
+
 export type FlightStatusResult = (FlightStatus & { fetchedAt: string; demo: boolean }) | { unavailable: true; reason: string };
+
+/**
+ * Flyplassøk over hele verden. Registeret ligger på serveren fordi det er
+ * 454 kB; nettleseren har det kuraterte settet for øyeblikkelige forslag og
+ * spør hit for alt annet. Brukes også av appen (api/mobileFlights.ts).
+ */
+export const airportsProcedure = publicQuery
+  .input(z.object({ query: z.string().max(60), limit: z.number().int().min(1).max(20).optional() }))
+  .query(async ({ input, ctx }) => {
+    const limit = input.limit ?? 12;
+    const local = searchAirportsWorldwide(input.query, limit);
+    // KAYAKs Autocomplete API fyller på først når registeret vårt kommer til
+    // kort – sandkassen tillater bare 100 kall i timen, så den spørres ikke
+    // for hvert tastetrykk.
+    if (!kayakConfig.enabled || local.length >= 3 || input.query.trim().length < 3) return local;
+    const extra = await kayakAutocomplete(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
+    const seen = new Set(local.map((a) => a.iata));
+    return [...local, ...extra.filter((a) => !seen.has(a.iata))].slice(0, limit);
+  });
 
 export const flightsRouter = createRouter({
   status: publicQuery.query((): Promise<ServiceStatusWithFees> => serviceStatus()),
@@ -136,51 +193,11 @@ export const flightsRouter = createRouter({
    * 454 kB; nettleseren har det kuraterte settet for øyeblikkelige forslag og
    * spør hit for alt annet.
    */
-  airports: publicQuery
-    .input(z.object({ query: z.string().max(60), limit: z.number().int().min(1).max(20).optional() }))
-    .query(async ({ input, ctx }) => {
-      const limit = input.limit ?? 12;
-      const local = searchAirportsWorldwide(input.query, limit);
-      // KAYAKs Autocomplete API fyller på først når registeret vårt kommer til
-      // kort – sandkassen tillater bare 100 kall i timen, så den spørres ikke
-      // for hvert tastetrykk.
-      if (!kayakConfig.enabled || local.length >= 3 || input.query.trim().length < 3) return local;
-      const extra = await kayakAutocomplete(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
-      const seen = new Set(local.map((a) => a.iata));
-      return [...local, ...extra.filter((a) => !seen.has(a.iata))].slice(0, limit);
-    }),
+  airports: airportsProcedure,
 
   search: publicQuery.input(searchSchema).mutation(async ({ input, ctx }): Promise<SearchResult> => {
     try {
-      assertRateLimit("search", clientIp(ctx.req), 20, 60_000);
-      const today = todayIso();
-      for (const s of input.slices) {
-        if (s.origin.toUpperCase() === s.destination.toUpperCase()) {
-          throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass.", data: { field: "slices" } });
-        }
-        if (s.departureDate < today) {
-          throw new AppError("VALIDATION", { message: "Avreisedatoen er passert. Velg en dato fra og med i dag.", data: { field: "departureDate" } });
-        }
-      }
-      const provider = getFlightProvider(input.provider);
-      const request = {
-        slices: input.slices,
-        passengers: input.passengers,
-        cabinClass: input.cabinClass,
-        currency: input.currency,
-        directOnly: input.directOnly,
-        userTrackId: input.sessionId,
-        userAgent: ctx.req.headers.get("user-agent") ?? undefined,
-        clientIp: clientIp(ctx.req),
-      };
-      if (!provider.cacheable) return await provider.search(request);
-      const key = searchCacheKey(input, provider.id);
-      const hit = searchCache.get(key);
-      if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) return hit.result;
-      const result = await provider.search(request);
-      // Delvise svar (leverandøren rakk ikke å bli ferdig) caches ikke – neste søk får en ny sjanse.
-      if (!result.partial) searchCache.set(key, { at: Date.now(), result });
-      return result;
+      return await runFlightSearch(input, ctx);
     } catch (err) {
       throw toTRPCError(err);
     }
