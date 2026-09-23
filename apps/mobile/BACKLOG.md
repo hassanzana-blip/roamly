@@ -2,8 +2,8 @@
 
 Status on 2026-09-23. It is based on a read-only audit (7 agents,
 file:line evidence) plus the work done since. Branch
-`claude/bold-shannon-0wuhsd`: the pushed head is `d8c3e68`, and `local` means
-committed or in progress here but not pushed yet.
+`claude/bold-shannon-0wuhsd`, updated with the account and security batch.
+`local` means committed or in progress here but not pushed yet.
 
 **Statuses**
 - **verified:** done, with tests, at the named commit.
@@ -31,6 +31,12 @@ Codex's (ChatGPT).
 | `677da1e` | Icon repair; mobile CI job (Codex) | pushed |
 | `8325293` | Web route scrolling; result card totals (Codex) | pushed |
 | `60b052a` | Expo SDK 57 config and dependency alignment (Codex) | pushed |
+| `5f8567a` | Clicks on KAYAK offers are recorded (web + app) | pushed |
+| `83398da` | Register returns the real referral code | pushed |
+| `8610e32` | Click dedupe (offer + IP, 10 min) and per-IP / per-offer caps | pushed |
+| `0962f90` | Account services over Bearer, with the review's security fixes; **today's deletion scope** | pushed |
+| `3285865` | App account screens, expired session, draft restore | pushed |
+| `b4ff05b` | Accessibility: 44pt, reduced motion, modal sheets, stepper, announcements | pushed |
 
 ## Needs Ali's approval (nothing here is pushed)
 
@@ -53,16 +59,20 @@ Codex's (ChatGPT).
      still unconfirmed);
    - adds a one-off cleanup for accounts deleted earlier (written, not run).
 
-   It is held in a separate commit marked HELD on a local branch. It needs
-   yes or no per line, and new wording on the web and in the app.
+   It is held in a separate commit marked HELD (local branch
+   `facade-gated-on-main-trial`, `fddfddc`, 103/103 integration tests). It
+   needs yes or no per line, new wording on the web and in the app, and a
+   check with Clerk that deleting the user also revokes the Apple token.
+   What shipped (`0962f90`) keeps today's scope exactly; tests fail if it
+   deletes more.
 2. **Privacy policy and terms for the app.** hellosky.no's privacy and terms
    pages do not mention the iOS app. That is legal text and Ali's call.
 3. **Contact channels.** The phone and e-mail in the web config come from
    environment fallbacks and are unverified, so the app links only to
    hellosky.no/hjelp.
-4. **Staging redeploy to the branch head.** It is the existing Railway
-   service, with no new cost. It is needed before the app's account
-   screens and KAYAK click tracking can be checked end to end.
+
+Staging deploys are already covered by Ali's development mandate; Codex
+runs them from a green CI candidate.
 
 ## Mobile API map (item 1)
 
@@ -75,14 +85,12 @@ the web, with a Bearer token instead of a cookie.
   exchangeSocialToken, me, logout, logoutAll. These are the web's own
   registerCustomer, passwordLogin, socialLogin and verifyLoginCodeLogin
   services.
+- `mobileAuth` (`0962f90`): requestPasswordReset, updateProfile,
+  requestPhoneChange, confirmPhoneChange, deleteAccount, using the web's
+  reset, profile and deletion services.
 - `flights`: airports and trackProviderClick (the same procedure objects as
   the web), and search (runFlightSearch in NOK, with Norges Bank
   comparison prices).
-
-**Ready locally, pending the security split:** mobileAuth
-requestPasswordReset, updateProfile, requestPhoneChange, confirmPhoneChange
-and deleteAccount. They reuse the web's reset, profile and deletion
-services.
 
 **Deliberately not exposed:**
 - staff, admin and owner routes (the staff boundary is tested);
@@ -97,23 +105,23 @@ services.
 | 1 | Customer API inventory vs mobile | verified | See the map above. |
 | 2 | Mobile search and airports against deployed staging | verified (by Codex) | The app's client passes against Railway staging: OSL airports 200, anonymous `me` = null, OSL→BCN 16 offers. The Jest live suite passes 3/3 after `ca5ffb9`. Staging answers `provider=demo, sandbox=true`, so real provider data is **not** proven. This container can't reach Railway (proxy 403). |
 | 3 | Same customer records; staff isolated | verified | Shared services; `api/test/mobileAuth.it.ts` (staff cannot sign in, no staff route). Live proof so far is anonymous only. |
-| 4 | Original HTTPS hand-off; one click per tap | partial | Original https URL, one tap = one tracking call = one browser (`3046d65`, singleFlight tested). Gap: on the pushed head, clicks on KAYAK offers are never recorded (resolveOffer throws for `kyk_` ids). The fix and click dedupe are in the local split. The click store is per process. |
+| 4 | Original HTTPS hand-off; one click per tap | verified | One tap = one tracking call = one browser (`3046d65`). KAYAK clicks are recorded (`5f8567a`), deduplicated per offer and IP, and capped (`8610e32`); integration tests in `mobileFlights.it.ts`. Known limit: the click store is per process, so a restart or another replica gives `clickRef: null` (the link still opens). |
 | 5 | Demo / sandbox / partial / live shown truthfully | verified | `2b8ee6f`: "live" only with a known provider and `sandbox: false`, otherwise "unverified". Tests: `resultStatus.test.ts`, `languageTrust.test.tsx`. |
 | 6 | Price freshness, expired offers | partial | Results warn after 15 min and can refresh; an expired offer gets "search again" or "continue anyway" (`3046d65`). No revalidation is invented. Gap: on the details screen, expiry is checked only when it renders. |
 | 7 | Passenger totals and NOK FX provenance | partial | `priceMode: total`; Norges Bank rate and date shown; "approx." marked. Gap: the response's `priceMode` is not checked. |
 | 8 | English default, typed dictionary, Norwegian alternative | verified | `3046d65` + `2b8ee6f`: `nb: typeof en` catches missing keys at compile time. iOS `CFBundleLocalizations` lives in app.json (Codex). |
-| 9 | Language switch persists, before login and in Profile, no restart | verified | `languageTrust.test.tsx` (switch, remount, same request in both languages). Account locale is saved with the profile in local batch D. |
+| 9 | Language switch persists, before login and in Profile, no restart | verified | `languageTrust.test.tsx` (switch, remount, same request in both languages). Saving the profile also stores the language on the account (`3285865`). |
 | 10 | Localized dates, plurals, a11y labels, validation, errors | partial | Formatters take the locale; errors map by code. Gap: some server messages are Norwegian only (e.g. VALIDATION details). |
 | 11 | Account locale on registration | verified | `3046d65`: register sends the app language (`api.test.ts`, `mobileClient.it.ts`). |
-| 12 | Password recovery through the web's safe flow | partial (local) | App sheet with a neutral answer (batch D, `account.test.tsx`). Server: the lookalike-address takeover (review blocker) is fixed, plus a per-account cap and a timing floor. Waiting on the split and push. |
-| 13 | In-app account deletion | partial (local) | App: password, or DELETE/SLETT; wrong password changes nothing; a notice after deletion. Server: today's web deletion only; a passwordless account needs a login under 10 min old. The full purge is held (see approvals). Apple revocation unconfirmed. |
-| 14 | Profile editing | partial (local) | Name and language. A phone number is a login key: changing it needs the SMS-verified flow (server ready; app UI not built). The web still changes it directly (web UI needed). |
-| 15 | Session expiry, offline, relaunch keep the search | partial (local) | An expired session shows a notice and keeps the search; the token lives only in the keychain; the account is refetched when the app returns to the foreground. Gap: no offline detection before a request fails. |
-| 16 | Privacy, terms, help, contact | partial (local) | Opens hellosky.no/hjelp, /personvern, /vilkar and /om-oss in a Safari view, marked "in Norwegian" in English. Blocked: app-specific legal text and verified contact channels (approvals 2–3). |
-| 17 | Plain explanation of HelloSky | verified | `2b8ee6f` on Home; hand-off note on details; "How HelloSky works" in Profile (local). |
+| 12 | Password recovery through the web's safe flow | verified | `0962f90`: the web's reset flow over the mobile API. The lookalike-address takeover (review blocker) is fixed: the link goes only to the stored, exactly matching address, ASCII only, with a per-account cap and a timing floor (`mobileAccount.it.ts`). `3285865`: the app sheet gives a neutral answer (`account.test.tsx`). |
+| 13 | In-app account deletion | partial | Shipped (`0962f90`, `3285865`): password, or DELETE/SLETT with a login under 10 min old; a wrong password changes nothing; idempotent under a double tap; the token is cleared. Scope is today's web policy. Held for approval: the full data purge and Clerk/Apple cleanup (approval 1). |
+| 14 | Profile editing | verified | `3285865`: name and language, with the server's rules shown at the field and an immediate refresh. The phone number is a login key, so it changes only through the SMS-verified flow (`0962f90`, server). The app UI for that flow is not built; the web still changes it directly (web UI needed). |
+| 15 | Session expiry, offline, relaunch keep the search | verified | `3285865`: a session that has ended (at launch, while saving or while deleting) signs out with "your search is still here"; the token lives only in the keychain; after an offline launch the account is fetched again when the app returns to the foreground. Gap: no offline banner before a request fails. |
+| 16 | Privacy, terms, help, contact | partial | `3285865`: hellosky.no/hjelp, /personvern, /vilkar and /om-oss open in a Safari view, marked "in Norwegian" in English. Blocked: app-specific legal text and verified contact channels (approvals 2–3). |
+| 17 | Plain explanation of HelloSky | verified | Home (`2b8ee6f`), the details hand-off note, and "How HelloSky works" in Profile (`3285865`). |
 | 18 | No inert primary controls | verified | `d8c3e68`: HelloSky-sold offers now open the same search on hellosky.no; an unsafe link gets no button; "Edit search" always reaches the form (tested). |
 | 19 | Recent searches stored locally, with remove and clear | missing | Next (batch E): on-device only. |
-| 20 | Draft restored after relaunch without stale dates | partial (local) | `parseDraft`: past dates roll forward and keep the trip length (tested). |
+| 20 | Draft restored after relaunch without stale dates | verified | `3285865`: `parseDraft`; past dates roll forward with the same trip length (tested); no token, name or e-mail is stored. |
 | 21 | Preferred departure airport | missing | Batch E. |
 | 22 | Airport autocomplete: recent and popular | partial | Server lookup with KAYAK fallback. No recent or popular; no one-tap recovery. |
 | 23 | Calendar bounds | partial | Minimum date only; no maximum (the provider horizon isn't known). Codex fixed web date validation in `79565c3`. |
@@ -136,13 +144,13 @@ services.
 | 40 | Explore: search and context | partial | Static list of 24 destinations; no search or filter. |
 | 41 | Compact hierarchy | partial | Before/after images: `docs/evidence`. |
 | 42 | Small and large phones, keyboard, long strings | partial | Safe areas on every screen. Gaps: no keyboard handling in the airport picker; fixed widths and one-line labels can clip long English strings; nothing checked on a device (web captures only). |
-| 43 | VoiceOver order, roles, announcements | partial | Roles and labels widely used; no live announcements. |
-| 44 | Dynamic Type, contrast, touch targets, reduced motion | partial | Theme contrast recalculated: every text pair ≥ 4.5:1 except disabled text (4.37, exempt). Gaps: three 40pt controls; reduced motion ignored; Dynamic Type never tested at large sizes. |
+| 43 | VoiceOver order, roles, announcements | partial | `b4ff05b`: modal sheets with the escape gesture; the backdrop hidden from VoiceOver; an adjustable stepper with a value and actions; results announced; the wordmark no longer a heading (`a11y.test.tsx`). Not yet checked with VoiceOver on a device. |
+| 44 | Dynamic Type, contrast, touch targets, reduced motion | partial | Theme contrast ≥ 4.5:1 (disabled text 4.37, exempt). `b4ff05b`: 44pt minimum on secondary buttons, segments and tabs; Reduce Motion makes sheets fade and photos appear without a transition. Gap: Dynamic Type never tested at large sizes. |
 | 45 | Loading and tap feedback | partial | No skeletons. |
 | 46 | Performance measured | partial | Nothing measured yet. |
-| 47 | Settings layout: credits below help | partial (local) | Batch D: help and legal group; credits collapsed at the bottom. |
+| 47 | Settings layout: credits below help | verified | `3285865`: account, language, help and legal, log out, delete account; photo credits collapsed at the bottom. |
 | 48 | Icon, splash, logo | partial | Icon repaired (`677da1e`); splash via the SDK 57 `expo-splash-screen` plugin (`60b052a`), both by Codex. Gap: three brand blues; the white splash against the dark app. |
-| 49 | End-to-end tests | partial | 123 app Jest tests on the pushed head (screens with a mocked router); env-gated live suite. No device end-to-end. |
+| 49 | End-to-end tests | partial | 146 app Jest tests (screens with a mocked router), 516 root unit, 180 integration; env-gated live suite. No device end-to-end. |
 | 50 | Private preview (EN + NB, fixtures labelled) | partial | PNG evidence in `docs/evidence`, re-captured at `79c2730` as one traceable first-card → details flow (offer `dy_eve`, checked automatically). Interactive preview being republished from `79c2730`. |
 | 51 | EAS configuration | partial (Codex) | `60b052a`: SDK 57 config and dependencies aligned; Expo Doctor 21/21; native config introspection passes. Not verifiable here: that owner, bundle ID and ASC app ID match the registered accounts. |
 | 52 | Signed build and real-device smoke test | in progress (Codex) | A simulator build within the free quota, to catch native compile errors. A signed device build and TestFlight need Ali's approval; nothing is submitted. |
