@@ -146,7 +146,7 @@ the web, with a Bearer token instead of a cookie.
 | 39 | Price alerts only if real | blocked | The server has `watch.*` (web only). The worker, live Duffel and SMTP can't be checked from here, so no switch is shown. |
 | 40 | Explore: search and context | partial | Static list of 24 destinations; no search or filter. |
 | 41 | Compact hierarchy | verified (web, simulated safe area) | `dbb5bb2`: result cards 359 → 243 pt. `dad15c4` (measured, `docs/evidence`): at 375/393/430 the Home destinations show 77/108/132 pt of photo above the tab bar, the next journey is 90/100/100 % visible, and the Details bar is 131 pt. The demo warning stays visible. Not yet checked on a device. |
-| 42 | Small and large phones, keyboard, long strings | partial | Safe areas on every screen. Gaps: no keyboard handling in the airport picker; fixed widths and one-line labels can clip long English strings; nothing checked on a device (web captures only). `dad15c4`: the offer bar and primary buttons wrap instead of clipping; at 135 % text nothing is cut and nothing overflows sideways (web approximation, not Dynamic Type). |
+| 42 | Small and large phones, keyboard, long strings | partial | Safe areas on every screen. Gaps: no keyboard handling in the airport picker; fixed widths and one-line labels can clip long English strings; nothing checked on a device (web captures only). `dad15c4`: the offer bar and primary buttons wrap instead of clipping; at 135 % text nothing is cut and nothing overflows sideways (web approximation, not Dynamic Type). `00d18db` + `be41be4`: four travellers and long seller names at 375 pt, nb and en, normal and 135 % text. Nothing is cut and no word is split: the seller price moves below text that does not fit beside it (web approximation; MANIFEST). |
 | 43 | VoiceOver order, roles, announcements | partial | `b4ff05b`: modal sheets with the escape gesture; the backdrop hidden from VoiceOver; an adjustable stepper with a value and actions; results announced; the wordmark no longer a heading (`a11y.test.tsx`). `00d18db`: explicit `accessibilityLanguage` (nb-NO/en-GB) on every text, button, switch, field, accessible group and sheet root. The language names in Profile use their own language. A tree test checks every focusable element on Home, Results, Details, the airport picker and Profile, in both languages (`a11yLanguage.test.tsx`). Not yet checked with VoiceOver on a device. |
 | 44 | Dynamic Type, contrast, touch targets, reduced motion | partial | Theme contrast ≥ 4.5:1 (disabled text 4.37, exempt). `b4ff05b`: 44pt minimum on secondary buttons, segments and tabs; Reduce Motion makes sheets fade and photos appear without a transition. Gap: Dynamic Type never tested at large sizes. `dad15c4`: «Om «ca.»-priser» is a real 44 pt row; filter chips reach 44 pt inside their scroll view. |
 | 45 | Loading and tap feedback | partial | No skeletons. |
@@ -167,10 +167,6 @@ the web, with a Bearer token instead of a cookie.
 | 60 | Final handover | partial | This file plus `docs/evidence`; handover with the top 10 at the end. |
 
 ## Known risks
-
-- At 135 % text, a very long word in a seller's name splits across lines
-  in the seller row. Nothing is cut. The fix needs a layout decision; see
-  DESIGN.md, «Igjen å vurdere» 4.
 
 - Staging answers with demo data. The first real-provider run of the app is
   still to come.
@@ -204,11 +200,16 @@ the other person holds the password for.
 - Tests: 4 in `api/test/mobileAccount.it.ts` (the two security tests fail
   on the old code) and 1 in the app.
 
-**Web copy (Codex's lane, not edited here).** `src/pages/Auth.tsx` in
-register mode still asks for "E-mail or phone number" (`au.identifier`,
-`au.identifier.ph`, `au.register.sub`). A phone number there now gets the
-server's Norwegian message. Suggested fix: register mode asks for an e-mail
-address only; login keeps "e-mail or phone".
+**Web copy (closed; the earlier warning here was stale).** Checked on this
+branch: since `6b400fd` (Codex), `src/pages/Auth.tsx` in register mode shows
+- the e-mail label (`common.email`), `type="email"` and the e-mail
+  placeholder (`common.emailph`);
+- the hint "Use an e-mail address you can access…" (`au.identifier.hint`);
+- the subtitle "Name, e-mail and password. You can add a phone number with
+  SMS verification in your profile." (`au.register.sub`).
+
+"E-mail or phone number" (`au.identifier`, `au.identifier.ph`) is used for
+login only. No web code was changed here.
 
 **Remaining risk.** Accounts registered with a phone number before this
 change keep it as a login key. The audit log records them as

@@ -320,10 +320,9 @@ data is 2 adults, 1 child (8) and 1 infant (1), and four offers with
 - A second journey has one offer, at 21 340 kr.
 
 The travellers were set with the steppers on Home. The recorded search
-request carried all four passengers. The fixture's flights are dated
-23/30 Oct. The form keeps its default dates (8–15 Oct), so the Results
-header and the cards show different dates. That comes from the fixture, not
-the app.
+request carried all four passengers. In this run the form kept its default
+dates (8–15 Oct), while the fixture's flights are 23/30 Oct. From `be41be4`
+on, the capture sets the form dates to the fixture's flights (next section).
 
 **Runs.** Bokmål (fresh install), English (chosen in Profile), and Bokmål at
 135 % text. The 135 % run uses CSS `zoom: 1.35` on every text block. That is
@@ -363,14 +362,11 @@ note, and the Baggage and Terms tabs. It checked three things:
 | Offer bar height, including the 34 pt inset | 159 (the basis and the provider note take two lines each) | 159 | 273 / 273 / 252; price alone, button below | PASSED (grows instead of cutting) |
 | Details tabs | one row, 84/80/65/91 pt wide | one row | 3 + 1 rows | PASSED |
 | Clipped text / sideways overflow | none / none | none / none | none / none | PASSED |
-| Words split across lines | none | none | «Testflyselskap», «Interkontinentale» in the airline's seller row | FAILED (open, see below) |
+| Words split across lines | none | none | «Testflyselskap», «Interkontinentale» in the airline's seller row | FAILED (fixed in `be41be4`, next section) |
 
-**Open.** At 135 % text the airline's seller row splits its two long words
-(«Testflyselska» / «p»). The name column there is ~150 pt, next to the
-price. The row is complete and readable, and nothing is cut. Fixing it
-changes the seller row's layout, for example moving the price below a name
-that does not fit. That needs a design decision, so it is left for review.
-At normal text in both languages no word is split.
+**Not accepted in review, fixed in `be41be4`.** At 135 % text the airline's
+seller row split its two long words («Testflyselska» / «p»). The name
+column there was ~150 pt, next to the price.
 
 Also checked on the standard fixture at `00d18db`, 375 pt, nb and en, with no
 images: the price and «Gå til tilbud» share one row, the timeline keeps
@@ -397,3 +393,94 @@ Not checked here:
   (`a11yLanguage.test.tsx`). VoiceOver itself has not been run.
 - The price basis in the bar can still break between «1» and «spedbarn».
   That is ordinary wrapping, not clipping.
+
+## Seller rows: price below when the text needs the width (be41be4)
+
+Only the changed seller card, plus a short-name comparison. Each side was
+captured from a clean worktree at its commit:
+- **Before** is `0a9e781` (app code identical to `00d18db`).
+- **After** is `be41be4`, rebased on Codex's `af27946` and `dabd93c`
+  (docs and `.easignore` only).
+
+Both runs are at 375 × 812 pt with a safe area of 50/34 pt.
+
+**Method** (scratch script, not in the repo):
+- **Form dates:** set to the test data's own flight dates. For the edge
+  cases that is 23 and 30 Oct, so the Results header reads «23. okt. –
+  30. okt.» and matches the cards. The standard fixture uses 7 and 14 Oct.
+- **Edge runs:** the edge test data with 4 travellers in Bokmål and English,
+  each at normal text and 135 % text (CSS zoom, an approximation, not
+  Dynamic Type).
+- **Short names:** the standard grouped journey `gtg_dy` (Gotogate,
+  Norwegian) in Bokmål and English.
+- **Split-word check:** the whole sellers card shown in a 375 × 3200
+  viewport, and the detector run inside the card only.
+- **Per seller:** each seller chosen in turn, recording the bar price and
+  basis, the action's accessible name, the provider note, the checked bag
+  and whether the Terms tab exists.
+
+| Run (375 pt) | Split words before | Split words after | Price after (per row) | Card height before → after |
+|---|---|---|---|---|
+| Edge, nb | none | none | below / below / below | 646 → 600 pt |
+| Edge, en | none | none | below / below / below | 752 → 618 pt |
+| Edge, nb, 135 % text | «Testflyselskap», «Interkontinentale» | none | below / below / below | 1207 → 840 pt |
+| Edge, en, 135 % text | «International», «Testflyselskap», «Interkontinentale» | none | below / below / below | 1450 → 883 pt |
+| Short names, nb | none | none | right / right (unchanged) | 328 → 328 pt |
+| Short names, en | none | none | right / right (unchanged) | 330 → 330 pt |
+
+| Check | Result |
+|---|---|
+| No split words in the seller card: nb and en, normal and 135 % text | PASSED (after); FAILED before at 135 % |
+| No clipped text in the seller card | PASSED (before and after) |
+| Short-name card unchanged | PASSED. The before and after PNGs are byte-identical: nb `31581b795f85ec14…`, en `7bfa93efca185758…` (scratch files, not committed) |
+| Choosing each seller: bar price and basis, action name, provider note, checked bag, Terms tab | PASSED; identical before and after in all six runs |
+| Accessible name of every seller row | PASSED; identical before and after |
+
+**How it works** (DESIGN.md, «Lukket i `be41be4`»):
+- **Trigger.** The price moves below the bags line when the name wraps, or
+  when the text column is narrower than 80 pt × the text scale. The longest
+  fixed word, «Håndbagasje» at 12 pt, measures ~74 pt in Inter.
+- **Where the decision lives.** In the screen, scoped to the text scale, so
+  a tab switch does not show the old layout for a frame.
+- **Text-size changes.** Rows and the bar amount are keyed by the text
+  scale, so a text-size change gets a fresh measurement.
+
+**Review.** An independent review (10 agents: three lenses, each finding
+checked by a skeptic) confirmed six findings before commit. All are fixed
+in `be41be4`:
+- **Should-fix, live text size.** On a live Dynamic Type change, Fabric
+  sends layout events before JS re-renders with the new scale, and does not
+  re-send unchanged frames.
+- **Minor, tab switch.** Returning to Overview showed the price at the
+  right for one frame.
+- **Test gaps** (one should-fix and three minor):
+  - the name-trigger test could pass through the column handler;
+  - the two-line threshold was not tested;
+  - the price's position after the bags was not checked;
+  - the reset on a text-size change was not tested.
+
+The a11y-language tree test now also covers the price-below layout.
+
+**Tests.** 218 pass (213 + 5), 3 staging tests skipped. Nine mutations of
+the mechanism each fail at least one test: each trigger removed, a
+2.5-line threshold, the column rule without scale, the price above the
+name, the row key without scale, the bar key without scale, the decision
+without scale, and the decision lost on tab switch.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `sellers-nb-be41be4-375-1-edge.png` | `47d02ba4c0dbb467…` | 1420×1499 |
+| `sellers-en-be41be4-375-1-edge.png` | `2e9e87c2d89a6188…` | 1420×1711 |
+| `sellers-nb-be41be4-375-2-edge-text135.png` | `04213ed351eb86b0…` | 1420×2644 |
+| `sellers-en-be41be4-375-2-edge-text135.png` | `3db8500ae2f7aa34…` | 1420×3130 |
+| `sellers-nb-be41be4-375-3-short-names.png` | `a8ea7161906ddd85…` | 1420×863 |
+
+Each image shows before (left) and after (right), with the split words
+the detector found and the price position per row.
+
+Not checked here:
+- An iPhone or simulator, and real Dynamic Type. The live text-size change
+  path is covered by code tests only. VoiceOver was not run.
+- The bar's price basis can still break between «1» and «spedbarn».
+  That is ordinary wrapping.
+

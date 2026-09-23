@@ -229,9 +229,6 @@ og 430 × 932, pluss Resultater ved 320 × 568.
    - Ingen lagring av reiser (hjerte). Serveren har lagrede reiser for nettet, men de er ikke tilgjengelige i
      mobilfasaden ennå (BACKLOG 37).
 3. *Typografi (valgfritt):* flyplasskodene i Flydetaljer er 32 pt, referansen ~28.
-4. *Selgerraden ved stor tekst (åpen, `00d18db`):* ved 135 % tekst deles et svært langt ord i navnet
-   («Testflyselska» / «p»), fordi navnet står i en smal kolonne ved prisen. Ingenting kuttes. En løsning er å legge
-   prisen under et navn som ikke får plass, men det endrer raden og venter på en beslutning.
 
 **Lukket i `00d18db`:**
 - En innstillingsfil med ukjent versjon beholdes, og bare et bevisst språkvalg skrives inn (BACKLOG 8).
@@ -241,6 +238,14 @@ og 430 × 932, pluss Resultater ved 320 × 568.
   «Edge cases»). Reisende-feltet, navnet i oppsummeringen og tidslinjen og fanene brytes nå i stedet for å kuttes.
   I tidslinjen legger varigheten seg under et langt navn.
 - Ved stor tekst deles ikke beløpet i bunnlinjen lenger («18 450 k» / «r»): prisen står alene og knappen under (D4).
+
+**Lukket i `be41be4`:**
+- Selgerraden: prisen står til høyre så lenge teksten ved siden av har plass. Prisen legger seg under teksten når
+  navnet brytes (langt navn eller stor tekst), eller når tekstkolonnen er smalere enn de faste ordene ved
+  tekststørrelsen (80 pt × tekstskala, der «Håndbagasje» er ~74 pt). Da får navn, bagasje og vilkår hele bredden, og
+  ingen ord deles. Korte navn med vanlig tekst er uendret (pikselidentisk på nett, bokmål og engelsk).
+  Beslutningen bor i skjermen og gjelder for tekststørrelsen den ble målt med, så den overlever fanebytte. Radene og
+  beløpet i bunnlinjen lages på nytt når tekststørrelsen endres, og måles da med den nye skalaen.
 
 ## Forhåndsvisninger
 
