@@ -238,47 +238,52 @@
      Satt av App.tsx (data-theme="admin" på <html> under /admin). Ingen
      kundevendte tokens lekker inn her, og ingen adminflate endres av
      redesignet. Ikke rør uten å teste hele adminen. */
+  /* Adminen fulgte en limegrønn primærfarge. Den er byttet til HelloSky-blå,
+     samme azure som kundesiden bruker, slik at eier og kunde ser samme merke.
+     Svartflatene står urørt – de er referansens kontrast og skal være det.
+     Sidebakgrunnen er løftet fra ren hvit til en svak kjølig tone, så hvite
+     kort faktisk leser som kort og ikke som hull i siden. */
   :root[data-theme="admin"] {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 240 5% 10%;
     --card: 0 0% 100%;
     --card-foreground: 240 5% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 5% 10%;
-    --primary: 74 93% 54%;
-    --primary-foreground: 240 10% 8%;
-    --primary-hover: 74 93% 49%;
-    --primary-soft: 74 90% 93%;
+    --primary: 217 86% 49%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 217 86% 42%;
+    --primary-soft: 214 100% 96%;
     --night: 240 6% 9%;
-    --sand: 0 0% 95%;
-    --secondary: 0 0% 95%;
+    --sand: 210 25% 95%;
+    --secondary: 210 25% 95%;
     --secondary-foreground: 240 6% 12%;
-    --muted: 0 0% 96.5%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 74 90% 93%;
-    --accent-foreground: 72 85% 20%;
-    --border: 0 0% 91%;
-    --input: 0 0% 84%;
-    --ring: 74 93% 38%;
+    --muted: 210 30% 96.5%;
+    --muted-foreground: 215 14% 40%;
+    --accent: 214 100% 96%;
+    --accent-foreground: 217 86% 30%;
+    --border: 214 20% 90%;
+    --input: 214 18% 82%;
+    --ring: 217 86% 45%;
     --destructive: 4 72% 46%;
     --destructive-foreground: 0 0% 100%;
     --success: 145 63% 30%;
     --success-foreground: 0 0% 100%;
     --warning: 32 92% 30%;
     --warning-foreground: 0 0% 100%;
-    --gold: 74 93% 54%;
-    --skyline: 74 95% 24%;
+    --gold: 217 86% 49%;
+    --skyline: 217 80% 26%;
     --cream: 0 0% 100%;
     --coral: 4 72% 46%;
     --like: 348 82% 52%;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5% 10%;
-    --sidebar-primary: 74 93% 54%;
-    --sidebar-primary-foreground: 240 10% 8%;
-    --sidebar-accent: 0 0% 96.5%;
-    --sidebar-accent-foreground: 240 5% 10%;
-    --sidebar-border: 0 0% 91%;
-    --sidebar-ring: 74 93% 38%;
+    --sidebar-primary: 217 86% 49%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214 100% 96%;
+    --sidebar-accent-foreground: 217 86% 30%;
+    --sidebar-border: 214 20% 90%;
+    --sidebar-ring: 217 86% 45%;
   }
   :root[data-theme="admin"].dark {
     --background: 240 7% 7%;
@@ -287,22 +292,22 @@
     --card-foreground: 0 0% 96%;
     --popover: 240 6% 12%;
     --popover-foreground: 0 0% 96%;
-    --primary: 74 93% 54%;
+    --primary: 214 90% 62%;
     --primary-foreground: 240 10% 8%;
-    --primary-hover: 74 93% 49%;
-    --primary-soft: 74 55% 16%;
+    --primary-hover: 214 92% 70%;
+    --primary-soft: 217 45% 18%;
     --secondary: 240 5% 16%;
     --secondary-foreground: 0 0% 92%;
     --muted: 240 5% 15%;
     --muted-foreground: 240 5% 64%;
-    --accent: 74 55% 16%;
-    --accent-foreground: 74 90% 70%;
+    --accent: 217 45% 18%;
+    --accent-foreground: 212 92% 76%;
     --border: 240 5% 20%;
     --input: 240 5% 26%;
-    --ring: 74 93% 54%;
+    --ring: 214 90% 62%;
     --night: 240 6% 12%;
     --sand: 240 5% 16%;
-    --skyline: 74 80% 62%;
+    --skyline: 212 80% 68%;
     --like: 348 90% 66%;
     --sidebar-background: 240 6% 9%;
     --sidebar-foreground: 0 0% 96%;

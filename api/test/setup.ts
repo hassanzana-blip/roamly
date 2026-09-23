@@ -119,6 +119,7 @@ export function fakeStaff(over: Partial<StaffIdentity> = {}): StaffIdentity {
     name: over.name ?? "Test Staff",
     role: over.role ?? "OWNER",
     status: "active",
+    activeProfile: over.activeProfile ?? null,
     mfaEnabled: over.mfaEnabled ?? true,
     avatarUrl: null,
     sessionId: over.sessionId ?? 1,

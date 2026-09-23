@@ -521,10 +521,17 @@ export default function SearchResults() {
     noindex: true,
   });
 
+  const trackClick = trpc.flights.trackProviderClick.useMutation();
+
   const selectOffer = (offer: Offer) => {
     // Ekstern bestilling: kunden går til leverandøren via KAYAKs offisielle
     // klikklenke. Ingen checkout hos HelloSky – vi verken selger eller utsteder.
     if (offer.booking?.kind === "external") {
+      // Klikket ut er det siste vi ser av reisen, og det eneste stedet
+      // HelloSkys forretningsmodell kan måles. Kallet er «fire and forget»:
+      // det venter vi ikke på, og feiler det, skjer ingenting synlig.
+      // Lenken åpnes nøyaktig som før.
+      trackClick.mutate({ offerId: offer.id, sessionId: searchSessionId() });
       window.open(offer.booking.url, "_blank", "noopener,noreferrer");
       return;
     }

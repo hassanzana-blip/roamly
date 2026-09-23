@@ -1,0 +1,1 @@
+ALTER TABLE `staff_sessions` ADD `active_profile` varchar(16);

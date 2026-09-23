@@ -10,6 +10,7 @@ import { demoFlightStatus, demoGetOffer } from "./lib/demo";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { enqueueJob } from "./lib/jobs";
 import { issueBookingAccessToken } from "./lib/bookingAccess";
+import { deviceFrom, marketFrom, recordProviderClick, recordSearchEvent } from "./lib/metaTracking";
 import { FLAT_FEE_BY_CURRENCY, instantBookingEnabled, loadPricingOverrides, SERVICE_FEE_PERCENT } from "./lib/pricing";
 import { searchAirportsWorldwide } from "./lib/airportMeta";
 import { isTravelportOffer } from "./lib/travelport";
@@ -173,18 +174,135 @@ export const flightsRouter = createRouter({
         userAgent: ctx.req.headers.get("user-agent") ?? undefined,
         clientIp: clientIp(ctx.req),
       };
-      if (!provider.cacheable) return await provider.search(request);
-      const key = searchCacheKey(input, provider.id);
-      const hit = searchCache.get(key);
-      if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) return hit.result;
-      const result = await provider.search(request);
-      // Delvise svar (leverandøren rakk ikke å bli ferdig) caches ikke – neste søk får en ny sjanse.
-      if (!result.partial) searchCache.set(key, { at: Date.now(), result });
-      return result;
+      /**
+       * Målingen ligger utenfor svaret, med vilje.
+       *
+       * Den logger søket etter at resultatet er klart, uten `await` i veien
+       * for kunden, og en feil i loggingen kan ikke velte søket. Uten denne
+       * raden fins ingen tall på hva folk faktisk leter etter – bare på hva
+       * de innloggede leter etter, som er en liten og skjev andel.
+       *
+       * Et cachetreff logges også: kunden gjorde et søk, og det er søket vi
+       * teller, ikke leverandørkallet.
+       */
+      const startedAt = Date.now();
+      const first = input.slices[0]!;
+      const last = input.slices.length > 1 ? input.slices[input.slices.length - 1] : undefined;
+      const paxOf = (type: string) => input.passengers.filter((p) => p.type === type).length;
+      const track = (result: SearchResult | null, errorCode: string | null) => {
+        // «totalAmount» er en desimalstreng fra leverandøren. Vi regner den om
+        // til minste enhet her og aldri til flyttall i databasen.
+        const amounts = (result?.offers ?? [])
+          .map((o) => Math.round(Number(o.totalAmount) * 100))
+          .filter((n) => Number.isFinite(n) && n > 0);
+        const lowest = amounts.length ? Math.min(...amounts) : null;
+        void recordSearchEvent({
+          sessionRef: input.sessionId ?? null,
+          originIata: first.origin,
+          destinationIata: first.destination,
+          departDate: first.departureDate,
+          returnDate: last && last.destination === first.origin ? last.departureDate : null,
+          adults: Math.max(1, paxOf("adult")),
+          children: paxOf("child"),
+          infants: paxOf("infant_without_seat"),
+          cabin: input.cabinClass,
+          provider: provider.id,
+          resultCount: result?.offers?.length ?? 0,
+          lowestPriceMinor: lowest,
+          currency: result?.offers?.[0]?.totalCurrency ?? input.currency ?? null,
+          durationMs: Date.now() - startedAt,
+          errorCode,
+          device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
+          market: marketFrom(ctx.req.headers),
+          sandbox: result?.sandbox === true || provider.sandbox,
+        });
+      };
+
+      try {
+        if (!provider.cacheable) {
+          const fresh = await provider.search(request);
+          track(fresh, null);
+          return fresh;
+        }
+        const key = searchCacheKey(input, provider.id);
+        const hit = searchCache.get(key);
+        if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) {
+          track(hit.result, null);
+          return hit.result;
+        }
+        const result = await provider.search(request);
+        // Delvise svar (leverandøren rakk ikke å bli ferdig) caches ikke – neste søk får en ny sjanse.
+        if (!result.partial) searchCache.set(key, { at: Date.now(), result });
+        track(result, null);
+        return result;
+      } catch (searchErr) {
+        // Et feilet søk er det mest interessante søket: det er der dekningen
+        // mangler. Det skal måles, ikke forsvinne.
+        track(null, searchErr instanceof AppError ? searchErr.code : "UNKNOWN");
+        throw searchErr;
+      }
     } catch (err) {
       throw toTRPCError(err);
     }
   }),
+
+  /**
+   * Klikket ut av HelloSky.
+   *
+   * Kalles i det kunden går videre til leverandøren. Den er bevisst mager:
+   * klienten sender bare tilbuds-id-en og søkeøkten, og serveren slår opp
+   * resten selv. Alternativet – å la nettleseren sende rute, pris og
+   * leverandør – ville gjort forretningstallene til noe hvem som helst kan
+   * skrive inn.
+   *
+   * Svaret er en referanse leverandøren senere kan matche en konvertering
+   * mot. Feiler alt, svarer vi likevel: lenken skal åpne uansett.
+   */
+  trackProviderClick: publicQuery
+    .input(z.object({ offerId: z.string().min(1).max(128), sessionId: z.string().max(64).optional() }))
+    .mutation(async ({ input, ctx }): Promise<{ clickRef: string | null }> => {
+      try {
+        const offer = await resolveOffer(input.offerId);
+        const first = offer.slices[0]!;
+        const last = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : undefined;
+        const paxOf = (type: string) => offer.passengers.filter((p) => p.type === type).length;
+        const amount = Math.round(Number(offer.totalAmount) * 100);
+        // Sandkassestatus hører til leverandøren, ikke til tilbudet. Et klikk
+        // på et testtilbud skal aldri telle som forretning.
+        const source = offer.source ?? "unknown";
+        let sandbox = false;
+        try {
+          sandbox = getFlightProvider(offer.source).sandbox;
+        } catch {
+          sandbox = true; // ukjent opphav teller ikke som ekte
+        }
+        const clickRef = await recordProviderClick({
+          customerId: ctx.customer?.customerId ?? null,
+          sessionRef: input.sessionId ?? null,
+          provider: source,
+          sellerName: offer.booking?.provider?.name ?? offer.owner.name,
+          originIata: first.origin.iata,
+          destinationIata: first.destination.iata,
+          departDate: first.departingAt.slice(0, 10),
+          returnDate: last && last.destination.iata === first.origin.iata ? last.departingAt.slice(0, 10) : null,
+          adults: Math.max(1, paxOf("adult")),
+          children: paxOf("child"),
+          infants: paxOf("infant_without_seat"),
+          cabin: first.segments[0]?.cabinClass ?? "economy",
+          carrierIata: offer.owner.iata,
+          stops: first.stops,
+          shownPriceMinor: Number.isFinite(amount) && amount > 0 ? amount : null,
+          currency: offer.totalCurrency,
+          device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
+          market: marketFrom(ctx.req.headers),
+          sandbox,
+        });
+        return { clickRef };
+      } catch {
+        // Måling er aldri viktigere enn at kunden kommer videre.
+        return { clickRef: null };
+      }
+    }),
 
   getOffer: publicQuery.input(z.object({ offerId: z.string().min(1).max(128) })).query(async ({ input }) => {
     try {

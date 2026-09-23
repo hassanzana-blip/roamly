@@ -6,6 +6,7 @@ import { getDb } from "./queries/connection";
 import { partnerRequests } from "../db/schema";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { logAudit } from "./lib/audit";
+import { staffActorLabel } from "./lib/audit";
 import { sendOpsAlert } from "./lib/mailer";
 import { searchHotels, searchCars, searchCruises, type CarResult, type CruiseResult, type HotelResult } from "../contracts/stay";
 
@@ -175,7 +176,7 @@ export const partnersRouter = createRouter({
         .set({ status: input.status, handledById: ctx.staff.userId })
         .where(eq(partnerRequests.id, input.id));
       await logAudit({
-        actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+        actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
         action: `partner_request.${input.status}`, targetType: "partner_request",
         targetId: String(input.id),
       });

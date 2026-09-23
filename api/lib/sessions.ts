@@ -35,6 +35,13 @@ export type StaffIdentity = {
   mfaVerified: boolean;
   /** Sesjonen er låst og har ingen rettigheter før passordet er skrevet inn. */
   locked: boolean;
+  /**
+   * Hvem av eierne som sitter her nå: «zana», «zyar» eller null.
+   *
+   * Gir ingen ekstra tilgang. Den finnes for at revisjonsloggen skal kunne
+   * si hvem av to personer som delte en konto som gjorde en endring.
+   */
+  activeProfile: string | null;
 };
 
 function cookieAttributes(maxAgeSec: number): string {
@@ -161,7 +168,13 @@ export async function resolveSession(req: Request): Promise<StaffIdentity | null
     sessionCreatedAt: row.session.createdAt,
     mfaVerified: row.session.mfaVerified,
     locked,
+    activeProfile: row.session.activeProfile ?? null,
   };
+}
+
+/** Bytter aktiv eierprofil på økten. Endrer ingen rettigheter. */
+export async function setSessionProfile(sessionId: number, profile: string | null): Promise<void> {
+  await getDb().update(staffSessions).set({ activeProfile: profile }).where(eq(staffSessions.id, sessionId));
 }
 
 /** Lås sesjonen nå – kalles av klienten når skjermen har stått urørt. */

@@ -19,11 +19,13 @@ import {
 } from "./lib/sessions";
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { logAudit } from "./lib/audit";
+import { staffActorLabel } from "./lib/audit";
 import { env } from "./lib/env";
 import { AppError } from "./lib/errors";
 import { ROLE_PERMISSIONS, VALID_ROLES, type StaffRole } from "./lib/rbac";
 import { generateRecoveryCodes, newTotpSecret, totpUri, verifyTotp } from "./lib/totp";
-import { markMfaVerified } from "./lib/sessions";
+import { markMfaVerified, setSessionProfile } from "./lib/sessions";
+import { OWNER_PROFILES, isOwnerProfileId, profileLabel } from "../contracts/ownerProfiles";
 
 const INVITE_TTL_MS = 48 * 60 * 60_000;
 
@@ -69,7 +71,7 @@ export const staffAuthRouter = createRouter({
     if (ctx.staff) {
       await revokeSession(ctx.staff.sessionId);
       await logAudit({
-        actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+        actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "auth.logout", targetType: "staff_user", targetId: ctx.staff.userId,
       });
     }
@@ -91,8 +93,38 @@ export const staffAuthRouter = createRouter({
       mfaVerified: ctx.staff.mfaVerified,
       locked: ctx.staff.locked,
       environment: env.APP_ENV,
+      /** Aktiv eierprofil. Null betyr «ikke valgt ennå». */
+      activeProfile: ctx.staff.activeProfile,
+      /** Profilene kontoen kan opptre som. Tom liste for alle andre enn eier. */
+      profiles: ctx.staff.role === "OWNER" ? OWNER_PROFILES.map((p) => ({ id: p.id, name: p.name, title: p.title })) : [],
     };
   }),
+
+  /**
+   * Velg eller bytt eierprofil.
+   *
+   * Dette er ikke en innlogging. Rollen på kontoen bestemmer fortsatt all
+   * tilgang; profilen sier bare hvem av eierne som sitter her, slik at
+   * revisjonsloggen kan navngi dem. Derfor er den eneste kontrollen at
+   * kontoen faktisk er en eierkonto.
+   */
+  setProfile: staffProcedure
+    .input(z.object({ profile: z.string().max(16).nullable() }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.staff.role !== "OWNER") {
+        throw new AppError("FORBIDDEN", { message: "Bare eierkontoen har profiler." });
+      }
+      if (input.profile !== null && !isOwnerProfileId(input.profile)) {
+        throw new AppError("VALIDATION", { message: "Ukjent profil.", data: { field: "profile" } });
+      }
+      await setSessionProfile(ctx.staff.sessionId, input.profile);
+      await logAudit({
+        actorType: "staff", actorId: String(ctx.staff.userId), actorLabel: profileLabel(input.profile) ?? ctx.staff.name,
+        action: "staff.profile_switched", targetType: "staff_user", targetId: String(ctx.staff.userId),
+        metadata: { profile: input.profile }, ip: clientIp(ctx.req),
+      });
+      return { activeProfile: input.profile };
+    }),
 
   // ─── Totrinn (TOTP) ───────────────────────────────────────────────────────
   // Koden lå ferdig i api/lib/totp.ts uten at noe kalte den, mens
@@ -302,7 +334,7 @@ export const staffAuthRouter = createRouter({
         createdById: ctx.staff.userId, expiresAt: new Date(Date.now() + INVITE_TTL_MS),
       });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+        actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "staff.invited", targetType: "staff_user", targetId: email,
         metadata: { role: input.role }, ip: clientIp(ctx.req),
       });
@@ -323,7 +355,7 @@ export const staffAuthRouter = createRouter({
       await db.update(staffUsers).set({ role: input.role }).where(eq(staffUsers.id, input.userId));
       await revokeAllUserSessions(input.userId); // tving ny innlogging med nye privilegier
       await logAudit({
-        actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+        actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "staff.role_changed", targetType: "staff_user", targetId: input.userId,
         metadata: { newRole: input.role }, ip: clientIp(ctx.req),
       });
@@ -344,7 +376,7 @@ export const staffAuthRouter = createRouter({
       await db.update(staffUsers).set({ status: input.status }).where(eq(staffUsers.id, input.userId));
       if (input.status === "disabled") await revokeAllUserSessions(input.userId);
       await logAudit({
-        actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+        actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
         action: `staff.${input.status === "disabled" ? "disabled" : "enabled"}`,
         targetType: "staff_user", targetId: input.userId, ip: clientIp(ctx.req),
       });
