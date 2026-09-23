@@ -2,7 +2,7 @@
 
 Status on 2026-09-23. It is based on a read-only audit (7 agents,
 file:line evidence) plus the work done since. Branch
-`claude/bold-shannon-0wuhsd`: the pushed head is `5230535`, and `local` means
+`claude/bold-shannon-0wuhsd`: the pushed head is `d8c3e68`, and `local` means
 committed or in progress here but not pushed yet.
 
 **Statuses**
@@ -22,12 +22,15 @@ Codex's (ChatGPT).
 | `2b8ee6f` | "unverified" status; timeouts cover the response body | pushed |
 | `ca5ffb9` | Jest live-test transport | pushed |
 | `5230535` | Conditions: "allowed for a fee" | pushed |
-| `95b64a7` | Unknown bag restriction reads "not stated" | local |
-| `7771d42` | Screenshot evidence | local |
+| `96f6c9f` | Screenshot evidence | pushed |
+| `83ce160` | Unknown bag restriction reads "not stated" | pushed |
+| `a7b7537` | Airline, price, longest-leg and return-time filters | pushed |
+| `d8c3e68` | hellosky.no hand-off for HelloSky-sold offers; share link; Edit search | pushed |
 | `4947657` | Release checks, SEO fixes (Codex) | pushed |
 | `79565c3` | Calendar date validation; MySQL job clock (Codex) | pushed |
 | `677da1e` | Icon repair; mobile CI job (Codex) | pushed |
 | `8325293` | Web route scrolling; result card totals (Codex) | pushed |
+| `60b052a` | Expo SDK 57 config and dependency alignment (Codex) | pushed |
 
 ## Needs Ali's approval (nothing here is pushed)
 
@@ -108,27 +111,27 @@ services.
 | 15 | Session expiry, offline, relaunch keep the search | partial (local) | An expired session shows a notice and keeps the search; the token lives only in the keychain; the account is refetched when the app returns to the foreground. Gap: no offline detection before a request fails. |
 | 16 | Privacy, terms, help, contact | partial (local) | Opens hellosky.no/hjelp, /personvern, /vilkar and /om-oss in a Safari view, marked "in Norwegian" in English. Blocked: app-specific legal text and verified contact channels (approvals 2–3). |
 | 17 | Plain explanation of HelloSky | verified | `2b8ee6f` on Home; hand-off note on details; "How HelloSky works" in Profile (local). |
-| 18 | No inert primary controls | partial | Gaps: "Edit search" after a search started from Explore lands on the wrong screen; a disabled "Not in the app" button for HelloSky-sold offers. |
+| 18 | No inert primary controls | verified | `d8c3e68`: HelloSky-sold offers now open the same search on hellosky.no; an unsafe link gets no button; "Edit search" always reaches the form (tested). |
 | 19 | Recent searches stored locally, with remove and clear | missing | Next (batch E): on-device only. |
 | 20 | Draft restored after relaunch without stale dates | partial (local) | `parseDraft`: past dates roll forward and keep the trip length (tested). |
 | 21 | Preferred departure airport | missing | Batch E. |
 | 22 | Airport autocomplete: recent and popular | partial | Server lookup with KAYAK fallback. No recent or popular; no one-tap recovery. |
 | 23 | Calendar bounds | partial | Minimum date only; no maximum (the provider horizon isn't known). Codex fixed web date validation in `79565c3`. |
 | 24 | Traveller and cabin sheets | partial | Caps and infant rules exist; no UI test of the sheet. |
-| 25 | Edit the search from results | partial | See 18. |
-| 26 | Airline filter | missing | Batch E. |
-| 27 | Maximum price filter (NOK totals) | missing | Batch E. |
-| 28 | Duration filter (unknown handled) | missing | Batch E. |
-| 29 | Outbound and return time filters | partial | Outbound departure bands only. |
+| 25 | Edit the search from results | partial | `d8c3e68`: "Edit search" goes to the form with the search kept. Gap: the results header reads the current form, which can differ from the results if the form is changed without searching. |
+| 26 | Airline filter | verified | `a7b7537`: airlines from the answer with counts; a journey matches when any of its flights is by a chosen airline (unit + screen tests). |
+| 27 | Maximum price filter (NOK totals) | verified | `a7b7537`: limits from the quartiles of the actual NOK totals; offers without a NOK price are hidden while a limit is set, and the sheet says so. |
+| 28 | Duration filter (unknown handled) | verified | `a7b7537`: longest leg, each way, in whole hours; unknown durations are hidden while a limit is set. |
+| 29 | Outbound and return time filters | partial | `a7b7537`: departure bands both ways. Gap: no arrival-time filters. |
 | 30 | Airport-change, overnight and long-layover warnings before hand-off | verified | `3046d65`: warning box above the hand-off button (tested). |
-| 31 | Bag and refund/change: included / not included / unknown / fee | verified | `5230535`: "allowed for a fee" (KAYAK, Duffel, demo, web + app); `95b64a7`: unknown bag restriction = "not stated". |
+| 31 | Bag and refund/change: included / not included / unknown / fee | verified | `5230535`: "allowed for a fee" (KAYAK, Duffel, demo, web + app); `83ce160`: unknown bag restriction = "not stated". |
 | 32 | Compare all providers for the same journey | partial | Sellers are grouped within one search, with price, bags and terms kept in step; different providers are not merged. |
 | 33 | Sort labels explained, stable | partial | Summaries on each option. Gap: nothing explains how estimated "approx." prices rank. |
 | 34 | Filters persist within a search, live counts, clear all | partial | Filters are lost when the search is re-run. |
 | 35 | Cancellable slow search, race-safe | partial | Cancel, abort, sequence guard; the timeout covers the body (`2b8ee6f`). Gap: `retryable` is ignored in the UI. |
 | 36 | Empty, error and offline states keep the input | partial | The input is kept; recovery is generic. |
 | 37 | Saved flights / shortlist | missing | The server has saved items (web only); exposing them is a later facade step. Never implies a fare is reserved. |
-| 38 | Native share with a safe web fallback | partial | Text-only share; no link to the search parameters. |
+| 38 | Native share with a safe web fallback | verified | `d8c3e68`: the share text says the price may have changed and carries the same search on hellosky.no (no token, session or provider link; tested). |
 | 39 | Price alerts only if real | blocked | The server has `watch.*` (web only). The worker, live Duffel and SMTP can't be checked from here, so no switch is shown. |
 | 40 | Explore: search and context | partial | Static list of 24 destinations; no search or filter. |
 | 41 | Compact hierarchy | partial | Before/after images: `docs/evidence`. |
@@ -139,8 +142,8 @@ services.
 | 46 | Performance measured | partial | Nothing measured yet. |
 | 47 | Settings layout: credits below help | partial (local) | Batch D: help and legal group; credits collapsed at the bottom. |
 | 48 | Icon, splash, logo | partial | Icon repaired by Codex (`677da1e`). There are three brand blues; the splash clashes. |
-| 49 | End-to-end tests | partial | 111 app Jest tests on the pushed head, 126 with batch D (screens with a mocked router); env-gated live suite. No device end-to-end. |
-| 50 | Private preview (EN + NB, fixtures labelled) | partial | PNG evidence committed (`7771d42`, local). The interactive preview will be republished from the latest commit. |
+| 49 | End-to-end tests | partial | 123 app Jest tests on the pushed head (screens with a mocked router); env-gated live suite. No device end-to-end. |
+| 50 | Private preview (EN + NB, fixtures labelled) | partial | PNG evidence committed (`96f6c9f`). The interactive preview will be republished from the latest commit. |
 | 51 | EAS configuration | blocked | Codex (app.json, eas.json). |
 | 52 | Signed build and real-device smoke test | blocked | Needs an EAS login and Apple access (Codex coordinating). |
 | 53 | CI green | partial | Codex added a mobile job (`677da1e`) and reports full E2E not green yet. |
