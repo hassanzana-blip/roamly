@@ -254,12 +254,15 @@ describe("tilbudsdetaljer og videresending", () => {
     expect(screen.getByTestId("bag-checked")).toHaveTextContent(/Innsjekket bagasje.*Ikke oppgitt/);
   });
 
-  it("tilbud HelloSky selger: gebyret nevnes uten beløp i annen valuta; ingen knapp videre og ingen vilkårsfane uten vilkår", async () => {
+  it("tilbud HelloSky selger: gebyret nevnes uten beløp i annen valuta; samme søk åpnes på hellosky.no; ingen vilkårsfane uten vilkår", async () => {
     await openOffer("hs_eur");
     expect(screen.getByTestId("service-fee")).toHaveTextContent("Prisen inkluderer HelloSkys servicegebyr.");
     expect(screen.queryByTestId("seller")).toBeNull();
     expect(screen.queryByTestId("handoff-button")).toBeNull();
-    expect(screen.getByTestId("handoff-not-in-app")).toHaveTextContent("Dette tilbudet kan ikke bestilles i appen.");
+    expect(screen.getByTestId("handoff-not-in-app")).toHaveTextContent("HelloSky selger denne billetten på hellosky.no. Det samme søket åpnes der, og prisen sjekkes på nytt.");
+    await fireEvent.press(screen.getByTestId("web-handoff"));
+    const [url] = (WebBrowser.openBrowserAsync as jest.Mock).mock.calls.at(-1)!;
+    expect(url).toMatch(/^https:\/\/hellosky\.no\/sok\?adults=1&children=0&infants=0&cabin=economy&from=[A-Z]{3}&to=[A-Z]{3}&depart=\d{4}-\d{2}-\d{2}/);
     expect(screen.queryByTestId("tab-terms")).toBeNull();
     expectNoForeignAmounts();
     expectNoRawLinks();
@@ -315,6 +318,9 @@ describe("tilbudsdetaljer og videresending", () => {
     const message = (spy.mock.calls[0]![0] as { message: string }).message;
     expect(message).toMatch(/^Oslo → Barcelona, fre\. 23\. okt\. – fre\. 30\. okt\.: ca\. 1\s442\skr \(totalt for 1 voksen · tur-retur\)/);
     expect(message).not.toMatch(/SEK|1500|kayak/i);
+    // Prisen er et øyeblikksbilde; lenken er det samme søket på hellosky.no – uten token eller leverandørlenke.
+    expect(message).toContain("prisen kan ha endret seg siden");
+    expect(message).toMatch(/\nhttps:\/\/hellosky\.no\/sok\?adults=1&children=0&infants=0&cabin=economy&from=OSL&to=BCN&depart=2026-10-23&ret=2026-10-30$/);
     spy.mockRestore();
   });
 

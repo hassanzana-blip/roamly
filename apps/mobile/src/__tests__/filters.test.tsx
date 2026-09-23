@@ -163,3 +163,13 @@ describe("flere filtre i filterarket", () => {
     expect(cardIds()).toContain("offer-thb_1");
   });
 });
+
+describe("endre søket", () => {
+  it("«Endre søk» går til søkeskjemaet på forsiden, også når søket startet fra Utforsk", async () => {
+    const router = (globalThis as unknown as { __router: { navigate: jest.Mock; back: jest.Mock } }).__router;
+    await renderResults(SEARCH_RESULT);
+    await fireEvent.press(screen.getByTestId("edit-search"));
+    expect(router.navigate).toHaveBeenCalledWith("/");
+    expect(router.back).not.toHaveBeenCalled();
+  });
+});

@@ -71,6 +71,8 @@ export default function ResultsScreen() {
   const { t, f, locale } = i18n;
   const r = t.results.screen;
   const reiser = t.results.journeys;
+  // «Endre søk» går alltid til søkeskjemaet på forsiden – også når søket startet fra Utforsk.
+  const editSearch = () => router.navigate("/");
   // Klokke for «prisene kan ha endret seg»: oppdateres hvert halve minutt.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -113,7 +115,7 @@ export default function ResultsScreen() {
           {subtitle}
         </Text>
       </View>
-      <IconButton icon="search" label={r.editSearch} onPress={() => router.back()} testID="edit-search" />
+      <IconButton icon="search" label={r.editSearch} onPress={editSearch} testID="edit-search" />
     </View>
   );
 
@@ -163,7 +165,7 @@ export default function ResultsScreen() {
           {errorText(search.error, i18n)}
         </Banner>
         <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch()} testID="retry-search" />
-        <SecondaryButton dark label={r.editSearch} onPress={() => router.back()} />
+        <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
       </View>,
     );
   }
@@ -298,7 +300,7 @@ export default function ResultsScreen() {
             </StateView>
           ) : (
             <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody}>
-              <SecondaryButton dark label={r.editSearch} onPress={() => router.back()} />
+              <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
             </StateView>
           )
         }

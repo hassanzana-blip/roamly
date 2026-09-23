@@ -85,7 +85,7 @@ jest.mock("react-native-svg", () => {
 });
 
 // expo-router: navigasjonen registreres, skjermene rendres direkte.
-const mockRouter = { push: jest.fn(), back: jest.fn(), replace: jest.fn() };
+const mockRouter = { push: jest.fn(), back: jest.fn(), replace: jest.fn(), navigate: jest.fn() };
 let mockParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
@@ -102,6 +102,7 @@ beforeEach(() => {
   mockRouter.push.mockClear();
   mockRouter.back.mockClear();
   mockRouter.replace.mockClear();
+  mockRouter.navigate.mockClear();
   mockParams = {};
 });
 

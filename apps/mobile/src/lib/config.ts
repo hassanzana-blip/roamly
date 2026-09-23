@@ -20,3 +20,16 @@ export function resolveApiBase(raw: string | undefined, isDev: boolean): ApiBase
 
 // Må leses som `process.env.EXPO_PUBLIC_API_BASE_URL` direkte – Expo bytter ut akkurat dette uttrykket ved bygging.
 export const API_BASE: ApiBase = resolveApiBase(process.env.EXPO_PUBLIC_API_BASE_URL, typeof __DEV__ !== "undefined" && __DEV__);
+
+/**
+ * HelloSkys offentlige nettsider (hjelp og kontakt, personvern, vilkår, om
+ * oss). Faste, offentlige adresser – ikke konfigurasjon. Kontaktkanalene står
+ * på hjelpesiden, så appen dikter aldri opp et nummer eller en adresse.
+ */
+export const WEB_BASE = "https://hellosky.no";
+export const WEB_PAGES = {
+  help: `${WEB_BASE}/hjelp`,
+  privacy: `${WEB_BASE}/personvern`,
+  terms: `${WEB_BASE}/vilkar`,
+  about: `${WEB_BASE}/om-oss`,
+} as const;

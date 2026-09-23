@@ -14,6 +14,7 @@ import { dayOffset, formatTime, minutesBetween } from "../../lib/format";
 import { priceDisplay, serviceFeeNokMinor } from "../../lib/price";
 import { journeyWarnings, type JourneyWarning } from "../../lib/warnings";
 import { singleFlight } from "../../lib/singleFlight";
+import { webSearchUrl } from "../../lib/webLinks";
 import { providerDisplayName, resultKind } from "../../lib/resultStatus";
 import { useI18n, type I18n } from "../../i18n";
 import { cabinLabel } from "../../lib/searchForm";
@@ -325,7 +326,7 @@ export default function OfferScreen() {
     const out = offer.slices[0]!;
     const back = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : null;
     const when = back ? `${f.day(out.departingAt)} – ${f.day(back.departingAt)}` : f.day(out.departingAt);
-    Share.share({ message: dt.shareMessage(out.origin.city, out.destination.city, when, d.primary, basis.toLowerCase(), offer.owner.name) }).catch(() => undefined);
+    Share.share({ message: dt.shareMessage(out.origin.city, out.destination.city, when, d.primary, basis.toLowerCase(), offer.owner.name, webSearchUrl(offer)) }).catch(() => undefined);
   };
 
   const open = () => {
@@ -338,7 +339,9 @@ export default function OfferScreen() {
     router.back();
   };
 
-  const barNote = handoff.kind === "external" ? dt.handoffNote : handoff.kind === "invalid_link" ? dt.invalidLink : dt.notInApp;
+  // HelloSky selger selv noen billetter; de bestilles på hellosky.no, med det samme søket.
+  const webUrl = handoff.kind === "not_in_app" ? webSearchUrl(offer) : null;
+  const barNote = handoff.kind === "external" ? dt.handoffNote : handoff.kind === "invalid_link" ? dt.invalidLink : webUrl ? dt.webNote : dt.notInApp;
   const statusNotice =
     kind === "demo" ? dt.demo : kind === "sandbox" ? dt.sandbox(providerDisplayName(result.provider)) : kind === "unverified" ? dt.unverified : null;
 
@@ -480,9 +483,9 @@ export default function OfferScreen() {
           </>
         ) : handoff.kind === "external" ? (
           <PrimaryButton testID="handoff-button" label={handoffLabel(handoff, i18n)} icon="external" loading={opening} onPress={open} accessibilityHint={dt.handoffHint} />
-        ) : (
-          <PrimaryButton label={dt.notInAppButton} disabled onPress={() => undefined} />
-        )}
+        ) : handoff.kind === "not_in_app" && webUrl ? (
+          <PrimaryButton testID="web-handoff" label={dt.webButton} icon="external" accessibilityHint={dt.webHint} onPress={() => void WebBrowser.openBrowserAsync(webUrl, { controlsColor: colors.blue, dismissButtonStyle: "close" }).catch(() => undefined)} />
+        ) : null}
         <Text style={[type.caption, { color: colors.onDarkMuted, textAlign: "center" }]} testID={handoff.kind === "external" ? "handoff-note" : handoff.kind === "invalid_link" ? "handoff-invalid" : "handoff-not-in-app"}>
           {barNote}
         </Text>

@@ -3,7 +3,8 @@ const en = {
   title: "Flight details",
   back: "Back",
   share: "Share the trip",
-  shareMessage: (from: string, to: string, when: string, price: string, basis: string, airline: string) => `${from} → ${to}, ${when}: ${price} (${basis}), ${airline}. Found with HelloSky.`,
+  shareMessage: (from: string, to: string, when: string, price: string, basis: string, airline: string, link: string | null) =>
+    `${from} → ${to}, ${when}: ${price} (${basis}), ${airline}. Found with HelloSky; the price may have changed since.${link ? `\n${link}` : ""}`,
   goneTitle: "The offer is gone",
   goneBody: "This offer is no longer available. Search again to see current prices.",
   toSearch: "Go to search",
@@ -46,7 +47,9 @@ const en = {
   handoffNote: "You complete the booking with the provider.",
   invalidLink: "The link to the provider doesn't look safe, so we won't open it.",
   notInApp: "This offer can't be booked in the app.",
-  notInAppButton: "Not in the app",
+  webButton: "Continue on hellosky.no",
+  webHint: "Opens the same search on hellosky.no in a browser.",
+  webNote: "HelloSky sells this ticket on hellosky.no. The same search opens there, and the price is checked again.",
   openError: "Couldn't open the provider's website. Try again.",
   warningsTitle: "Before you continue",
   warnings: {
@@ -61,7 +64,8 @@ const nb: typeof en = {
   title: "Flydetaljer",
   back: "Tilbake",
   share: "Del reisen",
-  shareMessage: (from, to, when, price, basis, airline) => `${from} → ${to}, ${when}: ${price} (${basis}), ${airline}. Funnet med HelloSky.`,
+  shareMessage: (from, to, when, price, basis, airline, link) =>
+    `${from} → ${to}, ${when}: ${price} (${basis}), ${airline}. Funnet med HelloSky; prisen kan ha endret seg siden.${link ? `\n${link}` : ""}`,
   goneTitle: "Tilbudet er borte",
   goneBody: "Tilbudet er ikke lenger tilgjengelig. Søk på nytt for å se oppdaterte priser.",
   toSearch: "Til søket",
@@ -104,7 +108,9 @@ const nb: typeof en = {
   handoffNote: "Bestillingen fullføres hos tilbyderen.",
   invalidLink: "Lenken til tilbyderen ser ikke trygg ut, så vi åpner den ikke.",
   notInApp: "Dette tilbudet kan ikke bestilles i appen.",
-  notInAppButton: "Ikke i appen",
+  webButton: "Fortsett på hellosky.no",
+  webHint: "Åpner det samme søket på hellosky.no i en nettleser.",
+  webNote: "HelloSky selger denne billetten på hellosky.no. Det samme søket åpnes der, og prisen sjekkes på nytt.",
   openError: "Kunne ikke åpne tilbyderens side. Prøv igjen.",
   warningsTitle: "Før du går videre",
   warnings: {
