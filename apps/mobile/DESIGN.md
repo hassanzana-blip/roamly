@@ -1,7 +1,15 @@
 # HelloSky iOS – designsystem
 
-Overlevering av appens uttrykk i repoet. Det finnes **ingen Figma-fil** for appen; denne filen og koden er
-kilden. Alle verdier under er hentet fra koden (`src/lib/theme.ts`), ikke skrevet av fra en skisse.
+Overlevering av appens uttrykk i repoet. Tokenverdiene (farger, typografi, mål) er hentet fra koden
+(`src/lib/theme.ts`), ikke skrevet av fra en skisse. Seksjonen «Tre skjermer» har i tillegg målte verdier.
+
+Codex bygger en redigerbar Figma-fil fra koden: https://www.figma.com/design/YE2XDmrOTFY8dRFiarPxSz. Per 23.09
+har den grunnlaget og fire kontrollfamilier (12 varianter); skjermene mangler. Figma-filen bruker Inter fordi SF
+Pro ga tekst uten bredde i koblingen; appen bruker iOS' systemskrift. Inntil skjermene finnes der, er denne filen
+og koden kilden.
+
+**Språk og marked:** norsk bokmål ved første oppstart; engelsk er et valg i Profil som lagres og beholdes. Priser
+alltid i NOK. Bare fly, fra Norge til hele verden. Søk krever ikke innlogging.
 
 ## Prinsipper
 
@@ -123,8 +131,123 @@ I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utfors
 - Nye bilder legges først inn i nettets register med kilde (og helst fotograf), deretter i
   `src/lib/destinations.ts`.
 
+## Tre skjermer – målbar spesifikasjon
+
+**Referanse.** Eierens bilde med tre HelloSky-skjermer (Hjem, Resultater, Flydetaljer), vedlagt i Claude-økten
+23.09.2026 kl. 16:37 UTC: JPEG, 305 928 byte, SHA-256 `a7b86c85100d486f8f02def97570a47beb488c961aa2e955b4e1da7821f02817`.
+Det ligger ikke i repoet: det har tredjeparts flyselskapslogoer og et portrett. Det er en generert illustrasjon og
+brukes for proporsjoner og hierarki, ikke som fasit piksel for piksel. Skjermene i bildet er 393 × ~941 pt
+(forhold 2,39; en iPhone er 2,17), så høyder derfra gjelder ikke direkte på en 852 pt høy skjerm. Referansetall
+under er målt i bildet med 1,013 px per pt (skjermen antatt 393 pt bred).
+
+**Momondo-skjermbilder (sekundær referanse, bare samspill).** Alle 7 kom fram i Claude-økten 23.09.2026
+(1206 × 2622 px, 402 pt ved 3×): valgfri innlogging, søkeskjema, rullet forside med tilbudskort, «Popular tools»,
+Profil (to bilder) og Utforsk-kart. De ligger ikke i repoet (tredjeparts merkevare). Vi tar prinsipper, ikke farger
+(lilla/rosa), logo, illustrasjoner eller tekst:
+
+1. *Innlogging er valgfri og kan hoppes over* («Skip» øverst); ett tydelig hovedvalg. Hos oss: søk uten konto
+   (som nå). Ingen påstand om «bestillingshistorikk» – vi har ingen. Ingen Apple/Google-knapp i appen før det er
+   bygget og godkjent.
+2. *Samlet, kompakt søk:* Fra/Til i én boks med bytt-knappen på skillelinjen, datoene som ett felt («23 Oct ▸
+   30 Oct»), reisende og klasse som små valg. Skjemaet (turtype → Søk) er ~270 pt hos dem (anslått i bildet), 360 pt hos oss
+   (218 → 578). Med våre flater på minst 44 pt blir samme oppbygning anslagsvis ~310 pt. Det gir plass til
+   reisemålskortene.
+3. *Søket krymper til en fast «Finn fly»-linje når man ruller*, så innholdet under blir tilgjengelig.
+4. *Reisemålskort med beslutningsinfo* (reisetid, direkte, datoer, pris). Hos oss: bare det serveren faktisk kan
+   gi for kortet; ingen «deals under …» og ingen pris uten et gyldig tilbud.
+5. *Bunnmenyen er rolig:* fire valg, ett markert. Hos oss: tre (Hjem, Utforsk, Profil), mørk som nå.
+6. *Profil som en ryddig innstillingsliste:* ett innloggingskort øverst, så grupper med rader som viser verdien
+   til høyre («Currency £ (GBP)», «Region»). Hos oss: «Språk – Norsk (bokmål)», «Valuta – NOK» (bare
+   informasjon), Hjelp, Personvern, Vilkår, Om oss. De juridiske radene samlet nederst; «Software licenses»
+   (lisenser for åpen kildekode) er en rad vi mangler.
+7. *Utforsk sier hva et prisanslag er* («Estimated cheapest price per person in economy class»), står fast på
+   avreisestedet («From OSL · Anytime») og har alltid en listevisning. Hos oss: liste, ikke kart (et kart uten
+   ekte priser ville vært dødt), og ingen prisanslag før serveren har dem.
+
+Ikke kopieres: Stays/Cars/Flight+Hotel, «Travel deals under £98», GBP, bjelle/varsler, Trips, «Price Alerts»
+(bare hvis ekte), «Rate the app», kart med prisnåler, «Tracking preferences» (krever først en avklart
+sporingspolicy), bagasje som søkevalg (søket tar ikke imot bagasje; vi filtrerer på bagasje i
+resultatene). Multi-city er en ny funksjon og hører ikke til denne runden.
+
+**Målt slik:** fiksturen (demo, Oslo → Barcelona, 5 tilbud) med vanlig tekststørrelse, ved 375 × 812, 393 × 852
+og 430 × 932.
+- Ny installasjon: ingen lagret språk.
+- react-native-web i Chromium, med Inter i stedet for SF Pro.
+- Simulert safe area øverst/nederst: 50/34 pt ved 375, 59/34 pt ved 393 og 430.
+- Tall i punkter fra toppen av skjermen.
+- Commit `d99568d`. Bildene ligger i `docs/evidence` (`nb-d99568d-*`), metoden står i `MANIFEST.md`.
+- Ikke målt på iPhone ennå.
+
+Målene er forslag til Codex og eieren. ✗ betyr at vi ikke når målet i dag.
+
+| # | Krav | Mål | Målt 375 / 393 / 430 |
+|---|---|---|---|
+| H1 | Ny installasjon er på norsk | «Søk fly», ingen lagret språk | ja / ja / ja |
+| H2 | Fotohodet er kompakt | ≤ 230 pt pluss safe area øverst | 226 + innfelling (276 / 285 / 285) |
+| H3 | «Søk fly» er ett blått hovedvalg og synlig uten rulling | 52 pt, bunn over fanemenyen | 628 < 721 / 637 < 761 / 637 < 841 |
+| H4 | Reisemålene synes i første bilde | ≥ 40 pt av første kort over menyen (referansen på en 852 pt skjerm: ~47) | ✗ 0 / ✗ 0 / 50 |
+| H5 | Reisemålskort uten oppdiktet pris | «Se flyreiser» | ja |
+| R1 | Første reise viser begge etapper | «UT · dato» og «HJEM · dato» med tider, rute og stopp | ja / ja / ja |
+| R2 | Totalpris med grunnlag nede til venstre, «Detaljer» nede til høyre | «Totalt for 1 voksen · Tur-retur»; pillen ≥ 44 pt | ja; pillen 113 × 44 |
+| R3 | Totalpris og «Detaljer» over den flytende linjen | bunn ≤ linjens topp | 495 < 712 / 504 < 752 / 504 < 832 |
+| R4 | Neste reise er synlig før rulling | ≥ 90 % | ✗ 68 % / ✗ 79 % / 100 % |
+| R5 | Grupperte reiser, tilbud per selger | «N reiser · M tilbud» | «4 reiser · 5 tilbud» |
+| R6 | Flytende linje: Filtrer / Sorter / Datoer | hver ≥ 44 pt, ingen «Kart» | 44 / 44 / 44 |
+| R7 | Demo-varselet er alltid synlig | ikke skjult eller forkortet | ja |
+| D1 | Detaljene gjelder kortet man trykket på | `/tilbud/<id>`, samme tider og pris | `dy_eve`, 18:40 22:00 06:55 10:15, 1 990 kr |
+| D2 | Fotoppsummering med begge etapper | utreise stort, hjemreise under | ja |
+| D3 | Faner og «Reiseinformasjon» i første bilde | faner 44 pt; overskriften over bunnlinjen | 533 < 643 / 542 < 683 / 542 < 763 |
+| D4 | Fast bunnlinje | pris, grunnlag, «Se tilbud hos [tilbyder]» og «Bestillingen fullføres hos tilbyderen.»; ≤ 120 pt med safe area (referansen ~88) | ✗ 169 / ✗ 169 / ✗ 169 |
+| F1 | Ingen vannrett rulling | – | ingen på noen skjerm |
+| F2 | Trykkflater ≥ 44 pt (med `hitSlop`) | alle synlige i første bilde (knapp, fane, bryter, lenke) | ✗ «Om «ca.»-priser» er 18 + 2 × 8 = 34 pt |
+
+**Bevisste avvik fra referansen** (produktkrav går foran bildet):
+- «Tur-retur / Én vei» i stedet for Fly/Hotell/Leiebil.
+- Begge etapper på hvert kort.
+- Totalpris for alle reisende, ikke «per person».
+- «Utforsk reisemål», ikke «Populære destinasjoner» (vi har ingen popularitetsdata).
+- Ingen «Kart», bjelle, hjerte, «Mine reiser», «Endre» bagasje, «Fleksible datoer», sete eller distanse, og ingen
+  «Fra … kr» på reisemål. Det finnes ingen fungerende funksjon eller verifisert data bak dem.
+- Flyselskapets kode i en sirkel til verifiserte logoer finnes; ingen halegrafikk.
+- Knappen er «Se tilbud hos [tilbyder]», ikke «Velg denne flyreisen».
+
+**Gap å vurdere i neste runde**, viktigst først (ikke endret nå):
+1. *Hjem – reisemålene er under folden (H4).* Fra «Søk fly» til «Utforsk reisemål» er det 138 pt ved 393, mot ~30 i
+   referansen.
+   - Det meste er to sentrerte tekster: «Du trenger ikke logge inn …» (18 pt) og «HelloSky sammenligner …» (54 pt,
+     tre linjer).
+   - Feltene er høyere enn i referansen: dato og reisende 60 pt (54), ruteboksen 92 pt (85), 8 pt mellom radene (~5).
+   - Mulig grep: flytt forklaringen under reisemålene eller til Profil (–~70 pt). Samle feltparene i én ramme med
+     skillelinje, 52 pt høye (–~25 pt). Samme grep som Momondo-prinsipp 2.
+2. *Flydetaljer – selgerne i en gruppert reise.* Sammenligningen «Tilbydere» ligger under folden (909–1185 ved 393
+   uten safe area). Bagasjeforskjellen mellom selgerne kuttes av «…» (`numberOfLines={2}`). Selgerens egen bagasje
+   skal synes (eierens krav). Mulig grep: vis «Tilbydere» først når det er flere, med bagasjen på egen linje.
+3. *Resultater – neste reise synes for lite (R4).*
+   - Varselboksen (demo + «Om «ca.»-priser») tar ~85 pt før listen.
+   - Bagasjeraden bryter på to linjer ved ≤ 393 og gjør kortet 20 pt høyere (KLM: 282 mot 262 pt).
+   - Mulig grep: la «ca.»-linjen på kortet åpne forklaringen (fjerner raden på 34 pt og løser F2). Kortere
+     bagasjetekst, med full tekst for VoiceOver. Demolinjen blir stående.
+4. *Flydetaljer – bunnlinjen er 169 pt (20 % av skjermen) med safe area (D4).* Referansen har pris og knapp på én
+   rad (~88 pt). «Bestillingen fullføres hos tilbyderen.» er et eierkrav og må stå nær knappen. Én rad er risikabel
+   med lange tilbydernavn og stor tekst. Krever et valg.
+5. *Trykkflater.*
+   - «Om «ca.»-priser» er 34 pt. Større `hitSlop` (18 over, 8 under) gir 44 pt uten å flytte noe.
+   - Ved 320 × 568 på norsk ender «Detaljer»-pillen på 507, 5 pt under den flytende linjen (502). Totalprisen er
+     fri. `3f3d884` ble feilaktig oppgitt som fri; MANIFEST er rettet.
+6. *Hjem – tre blå flater på en ny installasjon:* «Tur-retur», «Velg» (26 pt, blå) og «Søk fly». Referansen har blått
+   bare for valgt fane og handlingen. Mulig grep: «Velg» i tekstfarge.
+7. *Flydetaljer – varselet mellom oppsummering og faner, 64 pt (D3).* Det står der også for testmiljø og for «ikke
+   bekreftet ekte pris», og forsvinner bare når serveren oppgir en kjent tilbyder og `sandbox: false`.
+8. *Resultater:*
+   - Ingen ekte flyselskapslogoer, bare koden.
+   - Ingen lagring av reiser (hjerte). Serveren har lagrede reiser for nettet, men de er ikke tilgjengelige i
+     mobilfasaden ennå (BACKLOG 37).
+9. *Typografi (valgfritt):* flyplasskodene i Flydetaljer er 32 pt, referansen ~28. Ellers er størrelsene nær
+   referansen (anslått).
+
 ## Forhåndsvisninger
 
-Skjermbildene i overleveringen er laget med react-native-web i Chromium (375, 393 og 430 pt brede) med Inter som
-stand-in for SF Pro og uten safe area. De er ikke fra en iOS-simulator; en ekte iPhone/simulator viser SF Pro,
-iOS-kalenderen og safe area.
+Skjermbildene i overleveringen (`docs/evidence`, se `MANIFEST.md`) er laget med react-native-web i Chromium, 375, 393
+og 430 pt brede, med Inter i stedet for SF Pro. De nyeste (`nb-d99568d-*`) har simulert safe area; de eldre har ingen.
+De er ikke fra en iOS-simulator. En ekte iPhone eller simulator viser SF Pro, iOS-kalenderen, statuslinjen og den
+ekte safe area.

@@ -109,7 +109,7 @@ Same harness and fixture. The first card is offer `dy_eve`. Values are in
 points at the viewport size. "Bar" is the top edge of the floating
 Filter/Sort/Dates bar: anything below it is covered until you scroll.
 
-| Viewport, language | Commit | First card top → bottom | Details button bottom | Bar top | Total and Details clear of the bar? |
+| Viewport, language | Commit | First card top → bottom | «Details» label text bottom | Bar top | Total and Details clear of the bar? |
 |---|---|---|---|---|---|
 | 393×852, en | 0271bb6 | 274 → 633 (359 tall) | – | 786 | yes; next card 35% visible |
 | 393×852, en | dbb5bb2 | 274 → 517 (243 tall) | 491 | 786 | yes; next card 100% visible |
@@ -117,7 +117,7 @@ Filter/Sort/Dates bar: anything below it is covered until you scroll.
 | 320×568, en | dbb5bb2 | 310 → 553 | 527 | 502 | **no** |
 | 320×568, en | 3f3d884 | 234 → 477 | 451 | 502 | yes, the whole card |
 | 320×568, nb | dbb5bb2 | 292 → 571 | 537 | 502 | **no** |
-| 320×568, nb | 3f3d884 | 250 → 529 | 495 | 502 | yes; the second line of "Totalt for 1 voksen · Tur-retur" scrolls into view |
+| 320×568, nb | 3f3d884 | 250 → 529 | 495 | 502 | total yes; the «Detaljer» pill **no**, 5 pt under the bar (see the second correction) |
 
 **Correction.** The earlier version of this section said that at 320 pt
 "the first card now fits" (dbb5bb2). That was wrong: the floating bar
@@ -131,6 +131,96 @@ covered its total and Details (Codex's review). 3f3d884 fixes it:
 
 The demo warning is not shortened or hidden.
 
+**Second correction (23 Sep, found by the verification pass).** The
+«Details» column above measured the label text, not the 44 pt pill around
+it, which ends 12 pt lower. Measured again at `d99568d` (the same result
+layout as `3f3d884`), with zero insets like the table above:
+- 320 × 568 nb: the pill is at 463–507 and the bar starts at 502, so the
+  pill is **5 pt under the bar**. The total (453–483) is clear. The earlier
+  "yes" for this row was wrong.
+- 320 × 568 en: the pill ends at 463, clear.
+- 393 × 852: the pill ends at 445, clear.
+
 Files: `density-before-393-en.png` and `density-before-320-nb.png`
 (0271bb6); `density-after-393-en.png`, `density-after-320-nb.png` and
 `density-after-320-en.png` (3f3d884).
+
+## Three screens at 375, 393 and 430 pt, fresh install (d99568d)
+
+Same fixture (5 offers, Oslo → Barcelona, `provider: "demo"`) and the same
+rules as above. Differences from the sets above:
+- One clean git worktree at `d99568d`. Only scratch-only web settings were
+  changed:
+  - `app.json` gets the `web` platform and the Metro web bundler;
+  - `metro.config.js` resolves the date-input shim (`preview-shims/`);
+  - `expo start` rewrote `tsconfig.json`, which affects type checking only.
+- A new browser profile per width, so nothing is saved on the "phone". The
+  script touches nothing before it checks that the search button says
+  «Søk fly». English was the default before this commit, so this proves a
+  fresh install now starts in Bokmål.
+- Viewports 375 × 812, 393 × 852 and 430 × 932, all captured at 2×. Real
+  iPhones at these sizes render at 3×.
+- **Simulated iPhone safe area.** Top/bottom insets are 50/34 pt at 375
+  (iPhone 13 mini) and 59/34 at 393 and 430 (iPhone 15 Pro / Pro Max).
+  - The app reads the insets from a hidden element
+    (react-native-safe-area-context on the web). The script overrides that
+    element and fails unless the app received exactly these values.
+  - No status bar or home indicator is drawn.
+  - Not measured on an iPhone.
+- Each image has a caption bar above the screen. The measurements are in
+  points from the top of the screen, not the image.
+
+A first pass without insets (0 pt), taken before this commit was rebased, was
+replaced by this one. It made the first screen look roomier than it would
+on a phone.
+
+**One traceable flow per width.** Home → pick Barcelona → search → tap the
+first card. The first card was `dy_eve` at every width: Norwegian, OSL
+18:40 → BCN 22:00, back BCN 06:55 → OSL 10:15, «1 990 kr · Totalt for 1
+voksen · Tur-retur». The script fails if any of these checks fails:
+- the details route is `/tilbud/dy_eve`;
+- the card's four times appear on the details screen;
+- the sticky bar shows the card's price (1 990 kr).
+
+Only `flights.airports` and `flights.search` were called, both answered
+inside the page. `flights.search` came from the fixture and
+`flights.airports` from a one-airport stub (BCN) in the capture script.
+
+| Measure (pt, with the simulated insets) | 375 × 812 | 393 × 852 | 430 × 932 |
+|---|---|---|---|
+| Home: photo header bottom | 276 | 285 | 285 |
+| Home: «Søk fly» (52 tall) bottom / tab bar top | 628 / 721 | 637 / 761 | 637 / 841 |
+| Home: «Utforsk reisemål» top / first destination card visible | 766 / 0 of 132 | 775 / 0 of 132 | 757 / 50 of 132 |
+| Results: first card top → bottom | 266 → 509 | 275 → 518 | 275 → 518 |
+| Results: «Detaljer» pill (113 × 44) bottom / floating bar top | 495 / 712 | 504 / 752 | 504 / 832 |
+| Results: second card visible above the bar | 68 % | 79 % | 100 % |
+| Details: summary / tabs (44 tall) | 110–393 / 457–501 | 119–402 / 466–510 | 119–402 / 466–510 |
+| Details: «Reiseinformasjon» top / sticky bar top (height) | 533 / 643 (169) | 542 / 683 (169) | 542 / 763 (169) |
+| Horizontal overflow on any screen | none | none | none |
+
+Touch targets:
+- Icon buttons are 40 pt with `hitSlop` to 48; chips are 36 pt with
+  `hitSlop` to 44.
+- «Om «ca.»-priser» is 18 pt + 2 × 8 = 34 pt, which is **below 44**.
+- At 320 × 568 in Bokmål the «Detaljer» pill is 5 pt under the floating bar
+  (second correction above).
+
+See DESIGN.md, «Gap å vurdere».
+
+| File | SHA-256 (prefix) |
+|---|---|
+| `nb-d99568d-375-1-home.png` | `88b95e3e5782e05a…` |
+| `nb-d99568d-375-2-results.png` | `86564fd9c14cfb46…` |
+| `nb-d99568d-375-3-details.png` | `a5ccc1f0d0d9abca…` |
+| `nb-d99568d-393-1-home.png` | `1df6ac1f83d4e471…` |
+| `nb-d99568d-393-2-results.png` | `4d70970cb9ff89d9…` |
+| `nb-d99568d-393-3-details.png` | `23edd5aa9f1da1eb…` |
+| `nb-d99568d-430-1-home.png` | `283ad98471efa5d1…` |
+| `nb-d99568d-430-2-results.png` | `9776dc676e10a95b…` |
+| `nb-d99568d-430-3-details.png` | `f9c4c29b2c2e1ff3…` |
+
+Sizes: 750 × 1758, 786 × 1838 and 860 × 1998 px (the screen at 2× plus the
+caption bar).
+
+The "after" and density sets above were made while English was the default
+(`79c2730` to `3f3d884`). The "before" set predates English.
