@@ -44,6 +44,8 @@ handoff URL. Confirm one click event per tap and no customer tokens in links.
 ## Build and device verification
 
 1. Pass root CI and mobile lint, typecheck and tests at the exact candidate commit.
+   Run `npx expo install --check` and `npx expo-doctor` as well. An iOS JavaScript
+   export alone does not validate native config or native dependency compatibility.
 2. Set the public API origin in the matching EAS environment. Keep all provider,
    database and signing secrets out of `EXPO_PUBLIC_` variables and Git.
 3. Clear Metro's cache when exporting. Run the existing `check:bundle` command

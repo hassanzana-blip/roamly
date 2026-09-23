@@ -5,21 +5,21 @@
     "owner": "helloskytravels-team",
     "scheme": "hellosky",
     "version": "1.0.0",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "no.hellosky.app",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "en",
-        "CFBundleLocalizations": ["en", "nb"],
+        "CFBundleLocalizations": [
+          "en",
+          "nb"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -29,7 +29,16 @@
       "expo-font",
       "@react-native-community/datetimepicker",
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ]
     ],
     "extra": {
       "eas": {
