@@ -41,6 +41,37 @@ EXPO_PUBLIC_API_BASE_URL=https://… npm run export:ios && EXPO_PUBLIC_API_BASE_
 Kontrakten mot serveren testes også fra serversiden: `api/test/mobileClient.it.ts` kjører denne appens `src/lib/api.ts`
 mot den ekte Hono-appen.
 
+## Privat iPhone-test (EAS) – forberedt, ikke kjørt
+
+`eas.json` har to interne profiler og **ingen** innsending til App Store (ingen `submit`-seksjon, ingen butikkprofil):
+
+| Profil | Hva | Krever Apple Developer Program? |
+|---|---|---|
+| `simulator` | iOS-simulatorbygg (`ios.simulator: true`), ingen signering | Nei |
+| `preview` | Internt ad hoc-bygg for registrerte iPhoner | Ja |
+
+Ingen hemmeligheter eller adresser står i `eas.json`. Begge profilene henter variabler fra EAS-miljøet `preview`.
+Uten `EXPO_PUBLIC_API_BASE_URL` der viser appen «Appen er ikke satt opp» (feiler lukket).
+
+Bundle-ID-en `no.hellosky.app` i `app.json` er en **plassholder** til den er bekreftet og registrert hos Apple.
+
+Gjenstår før et bygg (i rekkefølge, gjøres av eieren av kontoene):
+
+1. **Backend som ikke er produksjon.** Railway-prosjektet har i dag bare miljøet `production`. Appens API
+   (`/api/mobile/trpc`) finnes bare på denne grenen. Et staging-miljø (se `DEPLOYMENT.md` §10) må settes opp og
+   grenen deployes dit, med egen https-adresse.
+2. **Expo-konto** + `npx eas-cli@latest login` og `npx eas-cli@latest init` i `apps/mobile` (skriver prosjekt-ID i
+   `app.json`).
+3. `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_API_BASE_URL --value https://<staging> --visibility plaintext`
+4. Simulator (uten Apple-medlemskap): `npx eas-cli@latest build -p ios --profile simulator`, og kjør bygget i
+   Xcode-simulatoren på en Mac.
+5. iPhone: aktivt Apple Developer Program, endelig bundle-ID, `npx eas-cli@latest device:create` for hver testtelefon,
+   så `npx eas-cli@latest build -p ios --profile preview` (EAS lager ad hoc-profil og sertifikat med Apple-innlogging).
+
+Uten Apple-medlemskap kan appen også prøves på egen iPhone via Expo Go (`npx expo start --tunnel`; alle native moduler
+appen bruker, følger med Expo Go SDK 57), eller via Xcode med gratis Apple-ID (`npx expo run:ios --device` på Mac,
+7 dagers signering). Ingen av dem er testet herfra.
+
 ## Før lansering
 
 - Bekreft `ios.bundleIdentifier` (`no.hellosky.app` er en plassholder) og produksjonsadressen.
