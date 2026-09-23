@@ -7,7 +7,7 @@ import { env } from "./lib/env";
 import { AppError, toTRPCError } from "./lib/errors";
 import { duffelConfig, duffelGetOffer } from "./lib/duffel";
 import { demoFlightStatus, demoGetOffer } from "./lib/demo";
-import { assertRateLimit, clientIp } from "./lib/ratelimit";
+import { assertRateLimit, checkRateLimit, clientIp } from "./lib/ratelimit";
 import { enqueueJob } from "./lib/jobs";
 import { issueBookingAccessToken } from "./lib/bookingAccess";
 import { deviceFrom, marketFrom, recordProviderClick, recordSearchEvent } from "./lib/metaTracking";
@@ -332,13 +332,39 @@ export const airportsProcedure = publicQuery
   });
 
 /**
+ * Samme tilbud klikket fra samme IP innen CLICK_DEDUPE_MS er ett klikk: svaret
+ * er den første referansen, og ingen ny rad skrives. Hindrer at én søkerunde
+ * og en løkke blåser opp klikk og formidlet verdi i eierpanelet.
+ */
+const CLICK_DEDUPE_MS = 10 * 60_000;
+const CLICK_DEDUPE_MAX = 50_000;
+/** Klikk som skrives per IP (og per innlogget kunde) per minutt. Over taket: ingen rad, lenken åpnes likevel. */
+export const CLICKS_PER_MINUTE = 20;
+/**
+ * Klikk som skrives per tilbud per 10 minutter, fra alle IP-er til sammen. Et
+ * tilbud kommer fra ett søk (eller søkecachen i 5 min); langt flere ekte klikk
+ * enn dette på samme tilbud er ikke trolig, men en gjentakelse fra mange
+ * adresser ville ellers telt hver gang.
+ */
+export const CLICKS_PER_OFFER = 30;
+const recentClicks = new Map<string, { expires: number; clickRef: string }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of recentClicks) if (v.expires < now) recentClicks.delete(k);
+}, 60_000).unref();
+
+/**
  * Klikket ut av HelloSky.
  *
  * Kalles i det kunden går videre til leverandøren. Den er bevisst mager:
  * klienten sender bare tilbuds-id-en og søkeøkten, og serveren slår opp
  * resten selv. Alternativet – å la nettleseren sende rute, pris og
  * leverandør – ville gjort forretningstallene til noe hvem som helst kan
- * skrive inn.
+ * skrive inn. Av samme grunn kan ett tilbud ikke telles om og om igjen: samme
+ * tilbud fra samme IP i 10 minutter er ett klikk, hver IP (og innlogget
+ * kunde) kan skrive høyst CLICKS_PER_MINUTE klikk i minuttet, og ett tilbud
+ * høyst CLICKS_PER_OFFER klikk per 10 minutter fra alle adresser til sammen.
  *
  * Svaret er en referanse leverandøren senere kan matche en konvertering
  * mot. Feiler alt, svarer vi likevel: lenken skal åpne uansett.
@@ -349,6 +375,14 @@ export const trackProviderClickProcedure = publicQuery
   .input(z.object({ offerId: z.string().min(1).max(128), sessionId: z.string().max(64).optional() }))
   .mutation(async ({ input, ctx }): Promise<{ clickRef: string | null }> => {
     try {
+      const ip = clientIp(ctx.req);
+      const dedupeKey = `${ip}|${input.offerId}`;
+      const seen = recentClicks.get(dedupeKey);
+      if (seen && seen.expires > Date.now()) return { clickRef: seen.clickRef };
+      if (!checkRateLimit("provider-click", ip, CLICKS_PER_MINUTE, 60_000)) return { clickRef: null };
+      if (ctx.customer && !checkRateLimit("provider-click-customer", String(ctx.customer.customerId), CLICKS_PER_MINUTE, 60_000)) return { clickRef: null };
+      if (!checkRateLimit("provider-click-offer", input.offerId, CLICKS_PER_OFFER, CLICK_DEDUPE_MS)) return { clickRef: null };
+
       const { source: offerSource, ...facts } = await clickFactsFor(input.offerId);
       // Sandkassestatus hører til leverandøren, ikke til tilbudet. Et klikk
       // på et testtilbud skal aldri telle som forretning.
@@ -368,6 +402,13 @@ export const trackProviderClickProcedure = publicQuery
         market: marketFrom(ctx.req.headers),
         sandbox,
       });
+      if (clickRef) {
+        recentClicks.set(dedupeKey, { expires: Date.now() + CLICK_DEDUPE_MS, clickRef });
+        for (const key of recentClicks.keys()) {
+          if (recentClicks.size <= CLICK_DEDUPE_MAX) break;
+          recentClicks.delete(key); // eldste først
+        }
+      }
       return { clickRef };
     } catch {
       // Måling er aldri viktigere enn at kunden kommer videre.

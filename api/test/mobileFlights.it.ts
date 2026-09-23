@@ -10,7 +10,7 @@ vi.mock("../lib/flightProviders", async (importOriginal) => ({
 
 import { closeDb, expectAppCode, getDb, makeCtx, TOMORROW_PLUS, truncateAll } from "./setup";
 import { providerClicks } from "../../db/schema";
-import { flightsRouter, trackProviderClickProcedure } from "../flights";
+import { CLICKS_PER_MINUTE, CLICKS_PER_OFFER, flightsRouter, trackProviderClickProcedure } from "../flights";
 import { createCallerFactory } from "../middleware";
 import { appRouter } from "../router";
 import { mobileAppRouter } from "../mobileRouter";
@@ -32,8 +32,8 @@ const mobile = createCallerFactory(mobileAppRouter);
 const DATE = TOMORROW_PLUS(30);
 const INPUT = { slices: [{ origin: "OSL", destination: "BCN", departureDate: DATE }], passengers: [{ type: "adult" as const }], cabinClass: "economy" as const };
 
-function mobileCtx() {
-  const ctx = makeCtx({ url: "http://localhost:3000/api/mobile/trpc/flights.search" });
+function mobileCtx(ip?: string) {
+  const ctx = makeCtx({ url: "http://localhost:3000/api/mobile/trpc/flights.search", ip });
   ctx.req.headers.delete("origin");
   return ctx;
 }
@@ -346,5 +346,36 @@ describe("mobil flights.trackProviderClick: nettets klikkmåling, urørt", () =>
     expect(res.status).toBe(200);
     const rows = await getDb().select().from(providerClicks);
     expect(rows.map((r) => r.sessionRef)).toEqual(["app-okt-2"]);
+  });
+
+  it("R7: samme tilbud klikket om og om igjen fra samme IP er ett klikk, og hver IP har et tak per minutt", async () => {
+    const kayakId = "kyk_replay.res1.0";
+    const others = Array.from({ length: CLICKS_PER_MINUTE + 5 }, (_, i) => external(`kyk_replay.res1.${i + 1}`, "500.00", "NOK"));
+    useProvider({ ...providerResult(), offers: [external(kayakId, "9999.00", "NOK", "Norwegian"), ...others] });
+    await mobile(mobileCtx()).flights.search(INPUT);
+
+    // 200 gjentakelser fra én IP – også med ny søkeøkt hver gang – gir én rad og samme referanse.
+    const refs = new Set<string | null>();
+    for (let i = 0; i < 200; i++) refs.add((await mobile(mobileCtx("10.77.0.1")).flights.trackProviderClick({ offerId: kayakId, sessionId: `okt-${i}` })).clickRef);
+    expect(refs.size).toBe(1);
+    expect([...refs][0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await getDb().select().from(providerClicks)).toHaveLength(1);
+    // Samme tilbud fra en annen IP er et nytt klikk (to kunder bak hver sin adresse).
+    expect((await web(makeCtx({ ip: "10.77.0.2" })).flights.trackProviderClick({ offerId: kayakId })).clickRef).not.toBe([...refs][0]);
+    expect(await getDb().select().from(providerClicks)).toHaveLength(2);
+
+    // Mange ulike tilbud fra én IP: høyst CLICKS_PER_MINUTE rader; over taket åpnes lenken likevel (clickRef null).
+    const results: Array<string | null> = [];
+    for (const o of others) results.push((await mobile(mobileCtx("10.77.0.3")).flights.trackProviderClick({ offerId: o.id })).clickRef);
+    expect(results.filter(Boolean)).toHaveLength(CLICKS_PER_MINUTE);
+    expect(results.slice(CLICKS_PER_MINUTE)).toEqual(Array(5).fill(null));
+    expect(await getDb().select().from(providerClicks)).toHaveLength(2 + CLICKS_PER_MINUTE);
+
+    // Gjentakelse fra mange adresser (som i gjennomgangens R7, der hvert kall fikk ny IP): taket per tilbud.
+    const spread: Array<string | null> = [];
+    for (let i = 0; i < CLICKS_PER_OFFER + 10; i++) spread.push((await mobile(mobileCtx()).flights.trackProviderClick({ offerId: kayakId })).clickRef);
+    expect(spread.filter(Boolean)).toHaveLength(CLICKS_PER_OFFER - 2); // de to over teller med
+    const kayakRows = (await getDb().select().from(providerClicks)).filter((r) => r.shownPriceMinor === 999900);
+    expect(kayakRows).toHaveLength(CLICKS_PER_OFFER);
   });
 });
