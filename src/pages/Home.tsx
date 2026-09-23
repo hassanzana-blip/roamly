@@ -221,7 +221,7 @@ function HowItWorks() {
   const steps = [1, 2, 3] as const;
   return (
     <section aria-labelledby="how" className="mt-16 sm:mt-20">
-      <h2 id="how" className="t-h2">{t("home.how.title")}</h2>
+      <h2 id="how" className="t-h2 scroll-mt-20">{t("home.how.title")}</h2>
       <div className="mt-6 grid gap-3 md:grid-cols-3 md:gap-4">
         {steps.map((n) => (
           <div key={n} className="card-soft h-full p-6">

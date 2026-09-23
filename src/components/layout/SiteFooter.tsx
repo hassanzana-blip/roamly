@@ -19,7 +19,7 @@ const SEARCH: FooterLink[] = [
 
 const COMPANY_LINKS: FooterLink[] = [
   { to: "/om-oss", label: "footer.about" },
-  { to: "/om-oss#slik", label: "footer.how" },
+  { to: "/#how", label: "footer.how" },
   { to: "/journal", label: "footer.journal" },
   { to: "/samfunn", label: "footer.community" },
   { to: "/reise", label: "footer.findbooking" },

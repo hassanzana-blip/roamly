@@ -73,7 +73,7 @@ test.describe("søk", () => {
     await page.goto("/sok");
     await expect(page.getByRole("main")).toBeVisible();
     await expect(page.getByText(/Noe gikk galt|Beklager, her gikk noe galt/i)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^Søk flyreiser$/ }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Finn reisen", exact: true })).toBeVisible();
   });
 
   test("søket overlever at kunden går tilbake fra resultatene", async ({ page }) => {

@@ -8,7 +8,7 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { Seller } from "@/lib/itineraryGroups";
 import { baggageStatus, dayShift, marketingCarriers, offerWarnings, operatingCarriers } from "./offerFacts";
-import { providerName, sliceLabel } from "./offerUtils";
+import { partyLabel, providerName, sliceLabel } from "./offerUtils";
 
 /**
  * Ett tilbud, én rad i sammenligningen (HelloSky 5.0).
@@ -159,7 +159,7 @@ export default function ResultCard({ offer, totalMinor, onDetails, onSelect, bad
       </div>
 
       {/* Pris og handling */}
-      <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-2 sm:gap-4 sm:px-5 lg:w-[250px] lg:shrink-0 lg:flex-col lg:items-stretch lg:justify-center lg:gap-3 lg:border-l lg:border-t-0 lg:py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 sm:gap-4 sm:px-5 lg:w-[250px] lg:shrink-0 lg:flex-col lg:items-stretch lg:justify-center lg:gap-3 lg:border-l lg:border-t-0 lg:py-4">
         <button
           type="button"
           onClick={() => onDetails(offer)}
@@ -194,6 +194,11 @@ export default function ResultCard({ offer, totalMinor, onDetails, onSelect, bad
             </Button>
           )}
         </div>
+        {offer.passengers.length > 0 && (
+          <p className="basis-full text-right text-[12px] leading-snug text-muted-foreground lg:order-1 lg:basis-auto lg:text-center">
+            {t("oc.total.party", { party: partyLabel(offer.passengers, t) })}
+          </p>
+        )}
       </div>
       </div>
 
