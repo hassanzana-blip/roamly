@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lt, ne, or } from "drizzle-orm";
 import { getDb } from "../queries/connection";
 import { customerAccounts, customerSessions } from "../../db/schema";
 import { randomToken, sha256Hex } from "./tokens";
@@ -168,6 +168,25 @@ export async function revokeAllCustomerSessions(customerId: number): Promise<voi
     .update(customerSessions)
     .set({ revokedAt: new Date() })
     .where(and(eq(customerSessions.customerId, customerId), isNull(customerSessions.revokedAt)));
+}
+
+/** Tilbakekall alle andre sesjoner (nett og app) enn den som gjør endringen. */
+export async function revokeOtherCustomerSessions(customerId: number, keepSessionId: number): Promise<void> {
+  await getDb()
+    .update(customerSessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(customerSessions.customerId, customerId), isNull(customerSessions.revokedAt), ne(customerSessions.id, keepSessionId)));
+}
+
+/**
+ * Hvor lenge en innlogging regnes som fersk. Brukes der en konto uten passord
+ * (Apple/Google) må bevise at det er eieren – ikke bare noen med et gammelt
+ * token – før et uopprettelig valg: kunden logger inn på nytt rett før.
+ */
+export const RECENT_AUTH_MS = 10 * 60_000;
+
+export function sessionIsFresh(sessionCreatedAt: Date, now = Date.now()): boolean {
+  return now - sessionCreatedAt.getTime() <= RECENT_AUTH_MS;
 }
 
 /** De siste N sesjonene (for innloggingsvarsel: bare varsle ved ny enhet/IP). */

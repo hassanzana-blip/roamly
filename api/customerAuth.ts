@@ -5,10 +5,8 @@ import { createRouter, customerProcedure, publicQuery, verifiedCustomerProcedure
 import { getDb } from "./queries/connection";
 import {
   auditLogs,
-  bookingHolds,
   bookings,
   communityComments,
-  communityLikes,
   communityPosts,
   consents,
   customerAccounts,
@@ -16,7 +14,6 @@ import {
   customerIdentities,
   customerOtpCodes,
   customerPasswordResets,
-  customerSessions,
   fraudFlags,
   priceAlerts,
   savedTravelers,
@@ -34,11 +31,13 @@ import {
   recentCustomerSessions,
   revokeAllCustomerSessions,
   revokeCustomerSession,
+  revokeOtherCustomerSessions,
+  sessionIsFresh,
   setCustomerCookie,
 } from "./lib/customerSessions";
-import { assertRateLimit, clientIp } from "./lib/ratelimit";
-import { sendLoginAlertEmail, sendPasswordResetEmail, sendVerifyEmail } from "./lib/mailer";
-import { sendSms } from "./lib/sms";
+import { assertRateLimit, checkRateLimit, clientIp } from "./lib/ratelimit";
+import { sendLoginAlertEmail, sendPasswordResetEmail, sendPhoneChangedEmail, sendVerifyEmail } from "./lib/mailer";
+import { maskPhone, sendSms } from "./lib/sms";
 import { AppError } from "./lib/errors";
 import { env, clerkConfig, configuredOAuthProviders } from "./lib/env";
 import { decideLink, hasPassword, NO_PASSWORD_HASH, verifySocialToken } from "./lib/socialLogin";
@@ -47,14 +46,18 @@ import { log } from "./lib/logger";
 import { normalizePhone } from "./lib/validation";
 import { recordReward, rewardRules } from "./lib/rewards";
 import { isStaffEmail } from "./lib/staffBoundary";
+import { deleteCustomerAccount } from "./lib/customerDeletion";
 
 const RESET_TTL_MS = 60 * 60_000; // 1 time
+/** Felles svartid for glemt passord (ms), pluss et tilfeldig tillegg på opptil RESET_RESPONSE_JITTER_MS. */
+export const RESET_RESPONSE_MS = 200;
+const RESET_RESPONSE_JITTER_MS = 100;
 const VERIFY_TTL_MS = 72 * 60 * 60_000; // 72 timer
 const OTP_TTL_MS = 10 * 60_000; // 10 minutter
 const REGISTRATION_VELOCITY_LIMIT = 5; // kontoer per IP per 24t før fraud-flagg
 const CONSENT_VERSION = "2026-09";
 
-const LOCALES = ["nb", "en", "sv", "da", "de"] as const;
+export const LOCALES = ["nb", "en", "sv", "da", "de"] as const;
 const CURRENCIES = ["NOK", "SEK", "DKK", "EUR"] as const;
 
 /** Kort, lesbar henvisningskode (unngår forvekslings-tegn). */
@@ -91,14 +94,38 @@ export function customerPasswordIssues(plain: string): string[] {
   return issues;
 }
 
-type Identifier = { kind: "email"; value: string } | { kind: "phone"; value: string };
+export type Identifier = { kind: "email"; value: string } | { kind: "phone"; value: string };
 
-/** Kunde kan logge inn/registrere seg med enten e-post eller telefonnummer (E.164). */
-export function parseIdentifier(raw: string): Identifier {
+/**
+ * Databasen sammenligner e-post uten hensyn til store/små bokstaver OG aksenter
+ * (utf8mb4_unicode_ci i test, MySQL 8s 0900_ai_ci i drift): et oppslag på
+ * «anna@exámple.com» finner kontoen til anna@example.com, og kontrolltegn som
+ * kollasjonen ignorerer gjør det samme. Et e-posttreff teller derfor bare når
+ * den lagrede adressen er nøyaktig den som ble oppgitt (bortsett fra store/små
+ * bokstaver, som vi alltid normaliserer bort).
+ */
+export function sameEmail(stored: string | null | undefined, input: string): boolean {
+  return stored != null && stored.trim().toLowerCase() === input.trim().toLowerCase();
+}
+
+/** Bare synlige ASCII-tegn (0x21–0x7E) – samme strenghet som z.string().email() på nettets egne e-postfelt. */
+const PRINTABLE_ASCII = /^[\x21-\x7e]+$/;
+
+/**
+ * Kunde kan logge inn/registrere seg med enten e-post eller telefonnummer (E.164).
+ *
+ * E-post må være ren ASCII: en adresse med aksent eller andre Unicode-tegn kan
+ * ellers treffe en annen kundes konto gjennom databasens kollasjon (se
+ * sameEmail). Unntaket er innlogging (`allowUnicodeEmail`), slik at en eldre
+ * konto med en slik adresse fortsatt kommer inn; innloggingen krever uansett
+ * passordet og sjekker at adressen er nøyaktig den lagrede.
+ */
+export function parseIdentifier(raw: string, opts: { allowUnicodeEmail?: boolean } = {}): Identifier {
   const trimmed = raw.trim();
   if (trimmed.includes("@")) {
+    const ascii = PRINTABLE_ASCII.test(trimmed);
     const email = trimmed.toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 255) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 255 || (!ascii && !opts.allowUnicodeEmail) || /\p{Cc}/u.test(email)) {
       throw new AppError("VALIDATION", { message: "Skriv inn en gyldig e-postadresse.", data: { field: "identifier" } });
     }
     return { kind: "email", value: email };
@@ -384,13 +411,16 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
 export async function passwordLogin(input: z.infer<typeof loginInput>, ctx: TrpcContext, issue: SessionIssuer) {
   const ip = clientIp(ctx.req);
   assertRateLimit("customer-login", ip, 8, 5 * 60_000);
-  const id = parseIdentifier(input.identifier);
+  const id = parseIdentifier(input.identifier, { allowUnicodeEmail: true });
   // Også per identitet — hindrer distribuert gjetting mot én konto
   assertRateLimit("customer-login-id", sha256Hex(id.value).slice(0, 32), 20, 15 * 60_000);
 
   const db = getDb();
   const rows = await db.select().from(customerAccounts).where(whereIdentifier(id)).limit(1);
-  const account = rows[0];
+  // En variant av adressen (aksent, kontrolltegn) treffer samme rad i databasen,
+  // men får aldri prøve passordet – ellers kunne hver variant brukt sin egen
+  // rategrense til å gjette passordet på den samme kontoen.
+  const account = rows[0] && (id.kind !== "email" || sameEmail(rows[0].email, id.value)) ? rows[0] : undefined;
   // Samme feilmelding enten kontoen mangler, er slettet eller passordet er feil.
   const ok = account && !account.deletedAt ? await verifyPassword(account.passwordHash, input.password) : false;
   if (!account || !ok) {
@@ -438,9 +468,22 @@ export async function socialLogin(input: z.infer<typeof socialTokenInput>, ctx: 
     .from(customerIdentities)
     .where(and(eq(customerIdentities.provider, "clerk"), eq(customerIdentities.subject, who.subject)))
     .limit(1);
-  const emailMatch = who.email
-    ? (await db.select({ id: customerAccounts.id }).from(customerAccounts).where(and(eq(customerAccounts.email, who.email), isNull(customerAccounts.deletedAt))).limit(1))[0]
+  const collationMatch = who.email
+    ? (await db.select({ id: customerAccounts.id, email: customerAccounts.email }).from(customerAccounts).where(and(eq(customerAccounts.email, who.email), isNull(customerAccounts.deletedAt))).limit(1))[0]
     : undefined;
+  // Bare nøyaktig samme adresse kobler. «anna@exámple.com» (verifisert hos
+  // leverandøren, på et domene angriperen eier) treffer anna@example.com i
+  // databasens kollasjon, men er ikke bevis på eierskap til den kontoen. Uten
+  // innlogget kunde eller kjent identitet kan den heller ikke få en ny konto –
+  // den unike indeksen på e-post ser de to adressene som like.
+  const emailMatch = collationMatch && sameEmail(collationMatch.email, who.email!) ? collationMatch : undefined;
+  if (collationMatch && !emailMatch && !identity && !ctx.customer) {
+    log.warn({ via: "social" }, "sosial innlogging avvist: e-posten ligner en annen kontos adresse");
+    throw new AppError("CONFLICT", {
+      message: "Denne e-postadressen kan ikke brukes til en ny konto. Logg inn på en annen måte, eller kontakt oss.",
+      data: { field: "social", reason: "email_lookalike" },
+    });
+  }
   const decision = decideLink({
     existingIdentityCustomerId: identity?.customerId ?? null,
     currentCustomerId: ctx.customer?.customerId ?? null,
@@ -586,6 +629,294 @@ export async function verifyLoginCodeLogin(input: z.infer<typeof loginCodeVerify
   return publicProfile(account);
 }
 
+// ─── Kontoens livsløp, delt mellom nett og app ──────────────────────────────
+
+/**
+ * Glemt passord: samme vei for nett (e-post) og app (e-post eller telefon).
+ * Samme rategrenser, samme tokentabell, samme e-post og samme lenke til
+ * nettets tilbakestillingsside – tilbakestillingen gjøres alltid der.
+ * Svaret er alltid { ok: true }, enten kontoen finnes, er slettet, tilhører
+ * en ansatt eller identifikatoren er et telefonnummer (lenken sendes bare på
+ * e-post, som før).
+ *
+ * Lenken går alltid til adressen som er lagret på kontoen – aldri til den som
+ * ble skrevet inn – og bare når de to er nøyaktig like (se sameEmail).
+ * Svartiden er den samme enten kontoen finnes eller ikke: alt arbeidet som bare
+ * gjøres for en ekte konto (oppslag, token, e-post, revisjon) får vente til et
+ * felles gulv (RESET_RESPONSE_MS + tilfeldig tillegg), og det som ikke er
+ * ferdig da (typisk en treg SMTP-server), fullføres etter svaret.
+ */
+export async function requestPasswordReset(id: Identifier, ctx: TrpcContext, opts: { locale?: string } = {}): Promise<{ ok: true }> {
+  const started = Date.now();
+  const ip = clientIp(ctx.req);
+  assertRateLimit("customer-reset-req", ip, 5, 10 * 60_000);
+  assertRateLimit("customer-reset-req-email", sha256Hex(id.value).slice(0, 32), 3, 60 * 60_000);
+  const work = id.kind === "email" ? sendResetLinkIfAccount(id.value, ip, opts.locale) : Promise.resolve();
+  await settleByFloor(work, started, RESET_RESPONSE_MS + randomInt(0, RESET_RESPONSE_JITTER_MS));
+  return { ok: true };
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, Math.max(0, ms)));
+
+/** Vent på `work` til senest `targetMs` etter `started`, og så til `targetMs` uansett. Feil i `work` er allerede logget. */
+async function settleByFloor(work: Promise<unknown>, started: number, targetMs: number): Promise<void> {
+  const remaining = () => targetMs - (Date.now() - started);
+  await Promise.race([work, sleep(remaining())]);
+  await sleep(remaining());
+}
+
+/** Arbeidet bak glemt passord for en e-postadresse. Kaster aldri: feil logges, svaret til kunden er det samme. */
+async function sendResetLinkIfAccount(email: string, ip: string, locale: string | undefined): Promise<void> {
+  try {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(customerAccounts)
+      .where(and(eq(customerAccounts.email, email), isNull(customerAccounts.deletedAt)))
+      .limit(1);
+    const account = rows[0];
+    // Kollasjonstreff på en variant av adressen (aksent, kontrolltegn) gir ingen lenke.
+    if (!account?.email || !sameEmail(account.email, email)) return;
+    // En ansatts e-post får ingen kundelenke – samme «ok» som når kontoen ikke finnes.
+    if (await isStaffEmail(account.email)) return;
+    // Tak per konto i tillegg til per skrevet adresse; stille, så taket ikke røper at kontoen finnes.
+    if (!checkRateLimit("customer-reset-req-account", String(account.id), 3, 60 * 60_000)) return;
+    const token = randomToken(32);
+    await db.insert(customerPasswordResets).values({
+      tokenHash: sha256Hex(token),
+      customerId: account.id,
+      expiresAt: new Date(Date.now() + RESET_TTL_MS),
+    });
+    await logAudit({ actorType: "customer", actorId: account.id, action: "customer.password_reset_requested", targetType: "customer_account", targetId: account.id, ip });
+    await sendPasswordResetEmail({
+      // Den lagrede adressen – aldri den som ble skrevet inn.
+      email: account.email,
+      firstName: account.firstName,
+      // Appen kan be om språket den vises på; nettet bruker kontoens eget.
+      locale: locale ?? account.locale,
+      url: `${env.baseUrl}/tilbakestill-passord?token=${encodeURIComponent(token)}`,
+    });
+  } catch (err) {
+    log.warn({ err: String(err) }, "glemt passord: lenken kunne ikke sendes");
+  }
+}
+
+/** Navn og telefon – samme regler på nett og i appen. */
+export const profileInput = z.object({
+  firstName: nameSchema,
+  lastName: nameSchema,
+  phone: z.string().trim().max(20).optional(),
+});
+
+/**
+ * Validerer en profilendring og gir raden som skal skrives. Tom telefon
+ * fjerner nummeret (bare når kontoen har e-post).
+ *
+ * Et nytt nummer er en ny innloggingsvei (SMS-kode), så det kan ikke bare
+ * skrives inn:
+ *  - `phoneChange: "verified"` (appen): et annet nummer enn dagens gir
+ *    VALIDATION (reason: phone_verification_required) – det nye nummeret går
+ *    gjennom requestPhoneChange/confirmPhoneChange (passord + SMS-kode).
+ *  - `phoneChange: "direct"` (nettets profilside, uendret flyt): nummeret
+ *    lagres direkte som før, men oppslaget «er nummeret i bruk?» er begrenset
+ *    per kunde og per IP, så det ikke kan brukes til å kartlegge numre.
+ */
+export async function profilePatch(
+  customer: { customerId: number; email: string | null; phone: string | null },
+  input: z.infer<typeof profileInput>,
+  opts: { ip: string; phoneChange: "direct" | "verified" },
+): Promise<Partial<typeof customerAccounts.$inferInsert>> {
+  const patch: Partial<typeof customerAccounts.$inferInsert> = {
+    firstName: input.firstName.trim(),
+    lastName: input.lastName.trim(),
+  };
+  if (input.phone !== undefined) {
+    if (input.phone.trim() === "") {
+      if (!customer.email) {
+        throw new AppError("VALIDATION", { message: "Kontoen må ha enten e-post eller telefonnummer.", data: { field: "phone" } });
+      }
+      patch.phone = null;
+    } else {
+      const phone = normalizePhone(input.phone);
+      if (!phone) throw new AppError("VALIDATION", { message: "Ugyldig telefonnummer. Bruk landskode, f.eks. +47 912 34 567.", data: { field: "phone" } });
+      const unchanged = customer.phone != null && phoneCandidates(phone).includes(customer.phone);
+      if (!unchanged) {
+        if (opts.phoneChange === "verified") {
+          throw new AppError("VALIDATION", {
+            message: "Et nytt telefonnummer må bekreftes med en SMS-kode.",
+            data: { field: "phone", reason: "phone_verification_required" },
+          });
+        }
+        assertRateLimit("customer-phone-lookup", String(customer.customerId), 10, 60 * 60_000);
+        assertRateLimit("customer-phone-lookup-ip", opts.ip, 30, 60 * 60_000);
+        if (await phoneTakenByOther(phone, customer.customerId)) {
+          throw new AppError("CONFLICT", { message: "Telefonnummeret er allerede i bruk på en annen konto.", data: { field: "phone" } });
+        }
+      }
+      patch.phone = phone;
+    }
+  }
+  return patch;
+}
+
+async function phoneTakenByOther(phone: string, customerId: number): Promise<boolean> {
+  const taken = await getDb()
+    .select({ id: customerAccounts.id })
+    .from(customerAccounts)
+    .where(and(inArray(customerAccounts.phone, phoneCandidates(phone)), sql`${customerAccounts.id} <> ${customerId}`))
+    .limit(1);
+  return taken.length > 0;
+}
+
+// ─── Nytt telefonnummer: bevis på kontoen OG på nummeret ────────────────────
+// Telefonnummeret er en innloggingsvei (SMS-kode). Et nummer som bare skrives
+// inn, lar den som har et stjålet token binde sitt eget nummer til kontoen og
+// komme inn igjen etter «logg ut alle enheter» og passordbytte – eller en
+// angriperkonto «reservere» et nummer som tilhører noen andre. Derfor:
+//  1. requestPhoneChange: kontoeieren bekrefter seg (passord; uten passord: en
+//     fersk innlogging), og en engangskode sendes til det NYE nummeret. Svaret
+//     er det samme om nummeret er ledig eller brukt av en annen konto (da får
+//     det nummeret en melding i stedet for en kode) – ingen nummer-oppslag.
+//  2. confirmPhoneChange: koden, som er bundet til kunden og nummeret, lagrer
+//     nummeret. Andre sesjoner logges ut, og kontoen varsles på e-post (og det
+//     gamle nummeret på SMS).
+// Koden ligger i customer_otp_codes med en hash over kunde, nummer og kode;
+// den kan ikke brukes til innlogging, og en innloggingskode kan ikke brukes her.
+
+const PHONE_CODE_TTL_MS = 10 * 60_000;
+
+export const phoneChangeRequestInput = z.object({
+  phone: z.string().trim().min(3).max(20),
+  /** Påkrevd for kontoer med passord. */
+  password: z.string().min(1).max(128).optional(),
+});
+export const phoneChangeConfirmInput = z.object({
+  phone: z.string().trim().min(3).max(20),
+  code: z.string().regex(/^\d{6}$/),
+});
+
+const phoneCodeHash = (customerId: number, phone: string, code: string) => sha256Hex(`${customerId}:phone-change:${phone}:${code}`);
+
+type SessionCustomer = { customerId: number; phone: string | null; sessionId: number; sessionCreatedAt: Date };
+
+/**
+ * Bekreft at det er kontoens eier, ikke bare noen som har tokenet. Konto med
+ * passord: passordet (feil gir UNAUTHORIZED med field: password – aldri et
+ * tegn på at sesjonen er død). Konto uten passord: en innlogging som er yngre
+ * enn RECENT_AUTH_MS; ellers FORBIDDEN med reason: reauth_required.
+ */
+export async function assertAccountOwner(customer: SessionCustomer, password: string | undefined): Promise<void> {
+  const [account] = await getDb()
+    .select({ passwordHash: customerAccounts.passwordHash })
+    .from(customerAccounts)
+    .where(and(eq(customerAccounts.id, customer.customerId), isNull(customerAccounts.deletedAt)))
+    .limit(1);
+  if (!account) throw new AppError("NOT_FOUND");
+  if (hasPassword(account.passwordHash)) {
+    assertRateLimit("customer-reauth", String(customer.customerId), 5, 10 * 60_000);
+    if (!password || !(await verifyPassword(account.passwordHash, password))) {
+      throw new AppError("UNAUTHORIZED", { message: "Passordet er feil.", data: { field: "password" } });
+    }
+    return;
+  }
+  if (!sessionIsFresh(customer.sessionCreatedAt)) {
+    throw new AppError("FORBIDDEN", { message: "Logg inn på nytt for å bekrefte at det er deg.", data: { reason: "reauth_required" } });
+  }
+}
+
+export async function requestPhoneChange(customer: SessionCustomer, input: z.infer<typeof phoneChangeRequestInput>, ctx: TrpcContext): Promise<{ ok: true }> {
+  const ip = clientIp(ctx.req);
+  assertRateLimit("customer-phone-change", String(customer.customerId), 5, 60 * 60_000);
+  assertRateLimit("customer-phone-change-ip", ip, 10, 10 * 60_000);
+  const phone = normalizePhone(input.phone);
+  if (!phone) throw new AppError("VALIDATION", { message: "Ugyldig telefonnummer. Bruk landskode, f.eks. +47 912 34 567.", data: { field: "phone" } });
+  if (customer.phone != null && phoneCandidates(phone).includes(customer.phone)) {
+    throw new AppError("VALIDATION", { message: "Dette er allerede nummeret ditt.", data: { field: "phone" } });
+  }
+  await assertAccountOwner(customer, input.password);
+  // Samme SMS-budsjett per nummer som innlogging med kode.
+  assertRateLimit("customer-otp-phone", phone, 3, 10 * 60_000);
+
+  const db = getDb();
+  if (await phoneTakenByOther(phone, customer.customerId)) {
+    // Ingen kode (nummeret kan ikke flyttes hit), men samme svar – og eieren av nummeret får vite det.
+    await sendSms(phone, "HelloSky: Noen prøvde å legge til dette nummeret på en annen konto. Nummeret er fortsatt koblet til kontoen din. Var det deg, logg inn med SMS-kode i stedet.");
+    await logAudit({ actorType: "customer", actorId: customer.customerId, action: "customer.phone_change_requested", targetType: "customer_account", targetId: customer.customerId, ip, metadata: { sent: false } });
+    return { ok: true };
+  }
+  const code = String(randomInt(100000, 1000000));
+  // Kun én aktiv kode om gangen (som innlogging med kode).
+  await db.update(customerOtpCodes).set({ usedAt: new Date() }).where(and(eq(customerOtpCodes.customerId, customer.customerId), isNull(customerOtpCodes.usedAt)));
+  await db.insert(customerOtpCodes).values({
+    customerId: customer.customerId,
+    codeHash: phoneCodeHash(customer.customerId, phone, code),
+    expiresAt: new Date(Date.now() + PHONE_CODE_TTL_MS),
+  });
+  await sendSms(phone, `HelloSky: koden for å legge til dette nummeret på kontoen din er ${code}. Gyldig i 10 minutter. Del den aldri med noen.`);
+  await logAudit({ actorType: "customer", actorId: customer.customerId, action: "customer.phone_change_requested", targetType: "customer_account", targetId: customer.customerId, ip, metadata: { sent: true } });
+  return { ok: true };
+}
+
+export async function confirmPhoneChange(customer: SessionCustomer, input: z.infer<typeof phoneChangeConfirmInput>, ctx: TrpcContext): Promise<void> {
+  const ip = clientIp(ctx.req);
+  // Maks 5 forsøk per kunde per 10 min – beskytter mot gjetting av den 6-sifrede koden.
+  assertRateLimit("customer-phone-confirm", String(customer.customerId), 5, 10 * 60_000);
+  const phone = normalizePhone(input.phone);
+  const wrong = () => new AppError("VALIDATION", { message: "Feil eller utløpt kode. Be om en ny kode.", data: { field: "code" } });
+  if (!phone) throw wrong();
+  const db = getDb();
+  const [otp] = await db
+    .select({ id: customerOtpCodes.id })
+    .from(customerOtpCodes)
+    .where(
+      and(
+        eq(customerOtpCodes.customerId, customer.customerId),
+        eq(customerOtpCodes.codeHash, phoneCodeHash(customer.customerId, phone, input.code)),
+        isNull(customerOtpCodes.usedAt),
+        gt(customerOtpCodes.expiresAt, new Date()),
+      ),
+    )
+    .limit(1);
+  if (!otp) {
+    await logAudit({ actorType: "customer", actorId: customer.customerId, action: "customer.phone_change_failed", targetType: "customer_account", targetId: customer.customerId, ip });
+    throw wrong();
+  }
+  // Engangsbruk: atomisk, så to parallelle kall ikke begge lykkes.
+  const used = await db.update(customerOtpCodes).set({ usedAt: new Date() }).where(and(eq(customerOtpCodes.id, otp.id), isNull(customerOtpCodes.usedAt)));
+  if (Number(used[0].affectedRows) === 0) throw wrong();
+  // Nummeret kan ha blitt tatt i mellomtiden. Kunden har nå bevist at nummeret er deres, så det kan sies rett ut.
+  if (await phoneTakenByOther(phone, customer.customerId)) {
+    throw new AppError("CONFLICT", { message: "Telefonnummeret er allerede i bruk på en annen konto.", data: { field: "phone" } });
+  }
+  const [before] = await db
+    .select({ email: customerAccounts.email, phone: customerAccounts.phone, firstName: customerAccounts.firstName, locale: customerAccounts.locale })
+    .from(customerAccounts)
+    .where(eq(customerAccounts.id, customer.customerId))
+    .limit(1);
+  if (!before) throw new AppError("NOT_FOUND");
+  await db.update(customerAccounts).set({ phone }).where(eq(customerAccounts.id, customer.customerId));
+  // Alle andre enheter (nett og app) må logge inn på nytt; denne beholdes.
+  await revokeOtherCustomerSessions(customer.customerId, customer.sessionId);
+  await logAudit({ actorType: "customer", actorId: customer.customerId, action: "customer.phone_changed", targetType: "customer_account", targetId: customer.customerId, ip });
+
+  // Varsle eieren på kanalene som fantes før endringen (best effort).
+  const at = new Date().toISOString();
+  if (before.email) {
+    await sendPhoneChangedEmail({ email: before.email, firstName: before.firstName, phone: maskPhone(phone), at, locale: before.locale }).catch((err) =>
+      log.warn({ err: String(err) }, "varsel om nytt telefonnummer (e-post) feilet"),
+    );
+  }
+  const oldPhone = before.phone ? normalizePhone(before.phone) : null;
+  if (oldPhone && oldPhone !== phone) {
+    await sendSms(oldPhone, "HelloSky: telefonnummeret på kontoen din er endret, og dette nummeret kan ikke lenger brukes til innlogging. Var det ikke deg? Kontakt oss.").catch((err) =>
+      log.warn({ err: String(err) }, "varsel om nytt telefonnummer (SMS) feilet"),
+    );
+  }
+}
+
+/** Bekreftelse for sletting: passord, eller SLETT for kontoer uten passord (se api/lib/customerDeletion.ts). */
+export const deleteAccountInput = z.object({ password: z.string().min(1).max(128).optional(), confirmation: z.string().max(16).optional() });
+
 export const customerAuthRouter = createRouter({
   register: publicQuery.input(registerInput).mutation(({ input, ctx }) => registerCustomer(input, ctx, cookieIssuer(ctx))),
 
@@ -667,36 +998,7 @@ export const customerAuthRouter = createRouter({
   /** Glemt passord — sender tilbakestillingslenke på e-post. Alltid ok (ikke røp om konto finnes). */
   requestPasswordReset: publicQuery
     .input(z.object({ email: z.string().email() }))
-    .mutation(async ({ input, ctx }) => {
-      const ip = clientIp(ctx.req);
-      assertRateLimit("customer-reset-req", ip, 5, 10 * 60_000);
-      const email = input.email.toLowerCase().trim();
-      assertRateLimit("customer-reset-req-email", sha256Hex(email).slice(0, 32), 3, 60 * 60_000);
-      const db = getDb();
-      const rows = await db
-        .select()
-        .from(customerAccounts)
-        .where(and(eq(customerAccounts.email, email), isNull(customerAccounts.deletedAt)))
-        .limit(1);
-      const account = rows[0];
-      // En ansatts e-post får ingen kundelenke – samme «ok» som når kontoen ikke finnes.
-      if (account && !(await isStaffEmail(account.email))) {
-        const token = randomToken(32);
-        await db.insert(customerPasswordResets).values({
-          tokenHash: sha256Hex(token),
-          customerId: account.id,
-          expiresAt: new Date(Date.now() + RESET_TTL_MS),
-        });
-        await sendPasswordResetEmail({
-          email,
-          firstName: account.firstName,
-          locale: account.locale,
-          url: `${env.baseUrl}/tilbakestill-passord?token=${encodeURIComponent(token)}`,
-        }).catch((err) => log.warn({ err: String(err) }, "reset-e-post feilet"));
-        await logAudit({ actorType: "customer", actorId: account.id, action: "customer.password_reset_requested", targetType: "customer_account", targetId: account.id, ip });
-      }
-      return { ok: true };
-    }),
+    .mutation(({ input, ctx }) => requestPasswordReset({ kind: "email", value: input.email.toLowerCase().trim() }, ctx)),
 
   /**
    * Kundens egne bestillinger (OTA-060). Krever verifisert e-post. Matcher på
@@ -812,41 +1114,12 @@ export const customerAuthRouter = createRouter({
   }),
 
   /** Rediger navn og telefon. */
-  updateProfile: customerProcedure
-    .input(
-      z.object({
-        firstName: nameSchema,
-        lastName: nameSchema,
-        phone: z.string().trim().max(20).optional(),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const db = getDb();
-      const patch: Partial<typeof customerAccounts.$inferInsert> = {
-        firstName: input.firstName.trim(),
-        lastName: input.lastName.trim(),
-      };
-      if (input.phone !== undefined) {
-        if (input.phone.trim() === "") {
-          if (!ctx.customer.email) {
-            throw new AppError("VALIDATION", { message: "Kontoen må ha enten e-post eller telefonnummer.", data: { field: "phone" } });
-          }
-          patch.phone = null;
-        } else {
-          const phone = normalizePhone(input.phone);
-          if (!phone) throw new AppError("VALIDATION", { message: "Ugyldig telefonnummer. Bruk landskode, f.eks. +47 912 34 567.", data: { field: "phone" } });
-          const taken = await db
-            .select({ id: customerAccounts.id })
-            .from(customerAccounts)
-            .where(and(inArray(customerAccounts.phone, phoneCandidates(phone)), sql`${customerAccounts.id} <> ${ctx.customer.customerId}`))
-            .limit(1);
-          if (taken.length) throw new AppError("CONFLICT", { message: "Telefonnummeret er allerede i bruk på en annen konto.", data: { field: "phone" } });
-          patch.phone = phone;
-        }
-      }
-      await db.update(customerAccounts).set(patch).where(eq(customerAccounts.id, ctx.customer.customerId));
-      return { ok: true };
-    }),
+  updateProfile: customerProcedure.input(profileInput).mutation(async ({ input, ctx }) => {
+    // Nettets profilside lagrer fortsatt nummeret direkte (egen flyt i src/); se profilePatch.
+    const patch = await profilePatch(ctx.customer, input, { ip: clientIp(ctx.req), phoneChange: "direct" });
+    await getDb().update(customerAccounts).set(patch).where(eq(customerAccounts.id, ctx.customer.customerId));
+    return { ok: true };
+  }),
 
   /** Språk, valuta og markedsføringssamtykke (OTA-136). */
   updatePreferences: customerProcedure
@@ -923,76 +1196,13 @@ export const customerAuthRouter = createRouter({
    * bilag (bokføringsloven § 13, 5 år) men kobles fra kontoen. Kontoen
    * anonymiseres i stedet for å slettes fysisk slik at FK-er og revisjon holder.
    */
-  deleteAccount: customerProcedure
-    .input(z.object({ password: z.string().min(1).max(128).optional(), confirmation: z.string().max(16).optional() }))
-    .mutation(async ({ input, ctx }) => {
-      const ip = clientIp(ctx.req);
-      assertRateLimit("customer-delete", String(ctx.customer.customerId), 5, 10 * 60_000);
-      const db = getDb();
-      const account = (
-        await db.select().from(customerAccounts).where(eq(customerAccounts.id, ctx.customer.customerId)).limit(1)
-      )[0];
-      if (!account) throw new AppError("NOT_FOUND");
-      // Konto med passord: passordet bekrefter. Konto uten passord (sosial
-      // innlogging): kunden skriver SLETT – sesjonen alene er ikke nok for et
-      // uopprettelig valg, og et passord finnes ikke å be om.
-      if (hasPassword(account.passwordHash)) {
-        if (!input.password || !(await verifyPassword(account.passwordHash, input.password))) {
-          throw new AppError("UNAUTHORIZED", { message: "Passordet er feil." });
-        }
-      } else if (input.confirmation?.trim().toUpperCase() !== "SLETT") {
-        throw new AppError("VALIDATION", { message: "Skriv SLETT for å bekrefte.", data: { field: "confirmation" } });
-      }
-      const id = account.id;
-      await db.transaction(async (tx) => {
-        // Sesjoner og engangs-tokens
-        await tx.update(customerSessions).set({ revokedAt: new Date() }).where(and(eq(customerSessions.customerId, id), isNull(customerSessions.revokedAt)));
-        await tx.delete(customerOtpCodes).where(eq(customerOtpCodes.customerId, id));
-        await tx.delete(customerEmailTokens).where(eq(customerEmailTokens.customerId, id));
-        await tx.delete(customerPasswordResets).where(eq(customerPasswordResets.customerId, id));
-        await tx.delete(customerIdentities).where(eq(customerIdentities.customerId, id));
-        // Personopplysninger knyttet til kontoen
-        await tx.delete(savedTravelers).where(eq(savedTravelers.customerId, id));
-        await tx.delete(bookingHolds).where(eq(bookingHolds.customerId, id));
-        await tx.update(priceAlerts).set({ active: false, email: "deleted" }).where(eq(priceAlerts.customerId, id));
-        // Samfunn: fjern likes (og juster tellere), kommentarer og innlegg
-        const likedPosts = await tx.select({ postId: communityLikes.postId }).from(communityLikes).where(eq(communityLikes.customerId, id));
-        if (likedPosts.length) {
-          await tx
-            .update(communityPosts)
-            .set({ likes: sql`greatest(0, ${communityPosts.likes} - 1)` })
-            .where(inArray(communityPosts.id, likedPosts.map((l) => l.postId)));
-        }
-        await tx.delete(communityLikes).where(eq(communityLikes.customerId, id));
-        await tx.delete(communityComments).where(eq(communityComments.customerId, id));
-        await tx.delete(communityPosts).where(eq(communityPosts.customerId, id)); // kommentarer/likes på egne innlegg kaskaderer
-        // Bestillinger beholdes (bokføring) men kobles fra kontoen
-        await tx.update(bookings).set({ customerAccountId: null }).where(eq(bookings.customerAccountId, id));
-        // Anonymiser kontoen
-        await tx
-          .update(customerAccounts)
-          .set({
-            email: `deleted-${id}@anonymized.invalid`,
-            phone: null,
-            firstName: "Slettet",
-            lastName: "Bruker",
-            passwordHash: "!deleted", // kan aldri verifiseres
-            emailVerified: false,
-            avatarUrl: null,
-            referralCode: null,
-            bonusKr: 0,
-            marketingConsentAt: null,
-            deletedAt: new Date(),
-          })
-          .where(eq(customerAccounts.id, id));
-      });
-      await logAudit({
-        actorType: "customer", actorId: id, action: "customer.account_deleted",
-        targetType: "customer_account", targetId: id, ip,
-      });
-      clearCustomerCookie(ctx.resHeaders);
-      return { ok: true };
-    }),
+  deleteAccount: customerProcedure.input(deleteAccountInput).mutation(async ({ input, ctx }) => {
+    // Samme tjeneste som appen (api/lib/customerDeletion.ts) og samme sletting
+    // som før (CUSTOMER_DATA_MATRIX); alle sesjoner – nett og app – tilbakekalles.
+    const res = await deleteCustomerAccount(ctx.customer.customerId, input, { ip: clientIp(ctx.req), via: "web" });
+    clearCustomerCookie(ctx.resHeaders);
+    return res;
+  }),
 
   /** Dataeksport (GDPR art. 20). Krever verifisert e-post — ellers kan en telefon-konto ikke bevise eierskap til e-postdata. */
   exportMyData: verifiedCustomerProcedure.query(async ({ ctx }) => {

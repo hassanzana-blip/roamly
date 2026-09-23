@@ -26,6 +26,7 @@ export type EmailKind =
   | "verify_email"
   | "password_reset"
   | "login_alert"
+  | "phone_changed"
   | "price_alert"
   | "quote_checkout"
   | "ops_alert"
@@ -72,6 +73,8 @@ export type EmailPayloads = {
   verify_email: { firstName: string; url: string };
   password_reset: { firstName: string; url: string };
   login_alert: { firstName: string; ip?: string; userAgent?: string; at?: string };
+  /** Sikkerhetsvarsel: telefonnummeret (en innloggingsvei via SMS-kode) er endret. `phone` er maskert. */
+  phone_changed: { firstName: string; phone: string; at?: string };
   price_alert: { route: string; price: number; targetPrice: number; currency?: string; url: string };
   quote_checkout: {
     customerName: string;
@@ -411,6 +414,21 @@ const loginAlert: Builder<"login_alert"> = (p, L) => {
   };
 };
 
+const phoneChanged: Builder<"phone_changed"> = (p, L) => {
+  const rows: Array<[string, string]> = [[L === "nb" ? "Nytt nummer" : "New number", p.phone]];
+  if (p.at) rows.push([L === "nb" ? "Tidspunkt" : "Time", fmtDateTime(p.at, L, "Europe/Oslo")]);
+  return {
+    subject: L === "nb" ? "Telefonnummeret på kontoen din er endret" : "The phone number on your account was changed",
+    heading: L === "nb" ? "Nytt telefonnummer" : "New phone number",
+    blocks: [
+      { t: "p", text: greeting(L, p.firstName) },
+      { t: "p", text: L === "nb" ? "Telefonnummeret på HelloSky-kontoen din er endret. Det nye nummeret kan brukes til å logge inn med SMS-kode." : "The phone number on your HelloSky account was changed. The new number can be used to sign in with a text-message code." },
+      { t: "kv", rows },
+      { t: "p", text: L === "nb" ? `Var det deg? Da trenger du ikke gjøre noe. Hvis ikke: logg ut alle enheter, bytt passord og kontakt oss på ${support().email}.` : `If this was you, no action is needed. If not: sign out of all devices, change your password and contact us at ${support().email}.` },
+    ],
+  };
+};
+
 const priceAlert: Builder<"price_alert"> = (p, L) => {
   const cur = p.currency ?? "NOK";
   return {
@@ -472,6 +490,7 @@ const BUILDERS: { [K in EmailKind]: Builder<K> } = {
   verify_email: verifyEmail,
   password_reset: passwordReset,
   login_alert: loginAlert,
+  phone_changed: phoneChanged,
   price_alert: priceAlert,
   quote_checkout: quoteCheckout,
   ops_alert: opsAlert,
