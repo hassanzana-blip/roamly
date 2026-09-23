@@ -66,6 +66,18 @@ Keep `.easignore` synchronized when either `.gitignore` changes: EAS prioritizes
 
 ## Remaining release gates
 
-The next visual correction pass is in progress. Its code and screenshots must receive their own review and CI; the checks above do not certify future changes. The current native archive predates Bokmål-default and layout work. Real provider data, physical-device behavior, complete photo provenance, final policy/retention review, production deployment approval and store submission approval remain separate gates.
+The seller correction is reviewed below. A separate exact-request and offer-expiry correction is in progress; the checks above do not certify future changes. The current native archive predates Bokmål-default and layout work. Real provider data, physical-device behavior, complete photo provenance, final policy/retention review, production deployment approval and store submission approval remain separate gates.
 
 Exact device build steps are in [README](../README.md) and [RELEASE](../RELEASE.md). Never substitute the simulator archive for an iPhone installation link.
+
+## Seller correction — independently reviewed 23 September, 23:38 UTC
+
+- Code `be41be4`; evidence `10535ae22566aea7cab5163e8677cf56637539dd`.
+- Independent local mobile suite: **PASSED**, 218 tests, 3 live tests skipped, 21 suites, 57.140 seconds. Typecheck and lint **PASSED**. Runtime is one observation, not a performance comparison.
+- [CI run 35933104597](https://github.com/hassanzana-blip/roamly/actions/runs/35933104597): **PASSED**, all four jobs (mobile, server, Docker, browser E2E), exact evidence SHA.
+- Independently reviewed both language before/after captures at 375 points with 135% browser text scaling, plus the short-name Bokmål comparison. Split seller words are gone and full-width price/baggage/terms remain legible. Normal short-name rows remain compact. These are labelled Chromium fixtures, not native screenshots.
+- Reviewed code keeps measurement decisions at screen level and remounts measured elements on fontScale changes. Actual Dynamic Type and VoiceOver remain **NOT RUN**.
+- Capture search dates now match fixture travel dates. No new provider capabilities or live-fare claims were introduced.
+- Editable Figma seller/baggage/banner components match the reviewed source; see FIGMA_SPECIFICATION.md.
+
+The public production search tested separately at `2a58d8c` returned KAYAK sandbox results, including TRF despite an OSL query. A mobile-only exact endpoint/date/leg boundary and live details-expiry guard are being implemented next. Production web and worker both auto-deploy main; merging PR 8 is therefore a production deployment and remains held. No production settings, data, deployments or credentials changed in this review.
