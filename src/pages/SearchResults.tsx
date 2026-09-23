@@ -721,7 +721,10 @@ export default function SearchResults() {
    * fra et tilbud som ligger i listen under – aldri en påstand om markedet.
    */
   const sortTabs = tabs.length > 0 && (
-    <div role="tablist" aria-label={t("sr.sort.title")} className={cn("grid border-b border-border", tabs.length === 4 ? "grid-cols-4" : "grid-cols-3")}>
+    // Bare på telefon og nettbrett. På desktop eier sidemenyen sorteringen,
+    // og den viser alle seks intensjonene med pris, reisetid og selskap –
+    // to kontroller for samme valg er én for mye.
+    <div role="tablist" aria-label={t("sr.sort.title")} className={cn("grid border-b border-border lg:hidden", tabs.length === 4 ? "grid-cols-4" : "grid-cols-3")}>
       {tabs.map((tab) => {
         const on = sort === tab.key;
         const price = tab.offer ? formatMinor(totalOf(tab.offer), tab.offer.totalCurrency) : null;
@@ -751,7 +754,9 @@ export default function SearchResults() {
   /** Filterknapp + de fire som faktisk brukes: stopp, bagasje, tider, selskap. */
   const quickFilterChip = "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-[14px] font-semibold text-foreground transition-colors hover:border-foreground/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
   const quickFilters = (
-    <div className="no-scrollbar flex items-center gap-2 overflow-x-auto py-2.5">
+    // Raden ruller. Den skal rulle fra kant til kant, ikke kuttes midt i et
+    // ord innenfor sidemargen – da ser den ødelagt ut i stedet for rullbar.
+    <div className="no-scrollbar -mx-5 flex items-center gap-2 overflow-x-auto px-5 py-2.5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
       <button type="button" onClick={() => setFiltersOpen(true)} className={cn(quickFilterChip, activeFilters > 0 && "border-primary text-azure-ink")}>
         <SlidersHorizontal className="size-4" aria-hidden="true" />
         {t("sr.filter")}
@@ -1060,7 +1065,11 @@ export default function SearchResults() {
               </button>
             </div>
           )}
-          {sortTabs}
+          {/* Fanene finnes først når det finnes treff å prise. Under lasting
+              holder vi av nøyaktig samme høyde, ellers dytter de hele listen
+              nedover i det de dukker opp – det var den største enkeltkilden
+              til layouthopp på resultatsiden. */}
+          {sortTabs || (search.isPending && <div className="h-[58px] border-b border-border lg:hidden" aria-hidden="true" />)}
           <div className="lg:hidden">{quickFilters}</div>
         </div>
       </div>

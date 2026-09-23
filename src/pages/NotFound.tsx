@@ -25,6 +25,30 @@ export default function NotFound() {
         >
           {t("notfound.cta")} <Icon icon={ArrowRight} size={16} />
         </Link>
+
+        {/* En 404 er et feilspor, ikke en blindvei. Lenkene under er de fire
+            stedene folk som lander her faktisk skulle. De er også det eneste
+            stedet en crawler kan gå videre fra en død lenke. */}
+        <nav aria-label={t("notfound.links")} className="mx-auto mt-10 max-w-md border-t border-border pt-6">
+          <p className="text-[14px] font-semibold">{t("notfound.links")}</p>
+          <ul className="mt-3 flex flex-wrap justify-center gap-2">
+            {[
+              { to: "/", label: t("notfound.link.search") },
+              { to: "/fly", label: t("notfound.link.routes") },
+              { to: "/reisemal", label: t("notfound.link.destinations") },
+              { to: "/journal", label: t("notfound.link.journal") },
+            ].map((l) => (
+              <li key={l.to}>
+                <Link
+                  to={l.to}
+                  className="press inline-flex min-h-11 items-center rounded-xl border border-border bg-card px-4 text-[15px] font-semibold text-azure-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </main>
   );

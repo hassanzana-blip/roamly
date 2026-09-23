@@ -219,6 +219,11 @@ const dict = {
   "notfound.sub": { nb: "Denne ruten finnes ikke", en: "This route does not exist", sv: "Den här rutten finns inte", da: "Denne rute findes ikke", de: "Diese Route gibt es nicht" },
   "notfound.body": { nb: "Siden du leter etter har fløyet sin egen vei. La oss finne en bedre destinasjon.", en: "The page you are looking for has flown off on its own. Let us find a better destination." },
   "notfound.cta": { nb: "Tilbake til søk", en: "Back to search", sv: "Tillbaka till sökningen", da: "Tilbage til søgning", de: "Zurück zur Suche" },
+  "notfound.links": { nb: "Prøv heller dette", en: "Try this instead", sv: "Prova det här i stället", da: "Prøv dette i stedet", de: "Versuchen Sie stattdessen dies" },
+  "notfound.link.search": { nb: "Søk fly", en: "Search flights", sv: "Sök flyg", da: "Søg fly", de: "Flüge suchen" },
+  "notfound.link.routes": { nb: "Flyruter", en: "Flight routes", sv: "Flygrutter", da: "Flyruter", de: "Flugrouten" },
+  "notfound.link.destinations": { nb: "Reisemål", en: "Destinations", sv: "Resmål", da: "Rejsemål", de: "Reiseziele" },
+  "notfound.link.journal": { nb: "Journal", en: "Journal", sv: "Journal", da: "Journal", de: "Journal" },
 
   // ── Feilgrense ─────────────────────────────────────────────────────────
   "error.title": { nb: "Noe gikk galt", en: "Something went wrong" },

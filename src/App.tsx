@@ -25,6 +25,8 @@ const MyTrip = lazy(() => import('./pages/MyTrip'))
 const FlightStatus = lazy(() => import('./pages/FlightStatus'))
 const Support = lazy(() => import('./pages/Support'))
 const Destinations = lazy(() => import('./pages/Destinations'))
+const RoutesPage = lazy(() => import('./pages/Routes'))
+const RoutePage = lazy(() => import('./pages/RoutePage'))
 const Quiz = lazy(() => import('./pages/Quiz'))
 const HotelCar = lazy(() => import('./pages/HotelCar'))
 const Hotels = lazy(() => import('./pages/Hotels'))
@@ -133,6 +135,8 @@ export default function App() {
             <Route path="/reise" element={<MyTrip />} />
             <Route path="/flystatus" element={<FlightStatus />} />
             <Route path="/hjelp" element={<Support />} />
+            <Route path="/fly" element={<RoutesPage />} />
+            <Route path="/fly/:slug" element={<RoutePage />} />
             <Route path="/reisemal" element={<Destinations />} />
             <Route path="/reisemal/:id" element={<DestinationPage />} />
             <Route path="/journal" element={<Journal />} />

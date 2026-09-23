@@ -6,8 +6,9 @@ import path from "path";
 
 import { createHash } from "node:crypto";
 
-import { isKnownRoute } from "../../contracts/seoRoutes";
+import { isKnownRoute, normalizePath } from "../../contracts/seoRoutes";
 import { withSeoHead } from "./seoHead";
+import { dynamicContentExists, prerenderBody } from "./prerender";
 import { sitemapXml } from "./sitemap";
 
 type App = Hono<{ Bindings: HttpBindings }>;
@@ -81,12 +82,23 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
     return c.body(sitemapXml());
   });
 
-  /** Appskallet med metadata for den faktiske stien. */
+  /**
+   * Appskallet med metadata for den faktiske stien – og for innholdssidene
+   * også selve innholdet som HTML.
+   *
+   * Søket og kontosidene rendres ikke på serveren: de er en app, de trenger
+   * data vi ikke har før brukeren spør, og de skal ikke indekseres. Men
+   * reisemål, ruter, journal og indekssider er tekst vi allerede har, og de
+   * sendes nå som HTML slik at en crawler uten JavaScript ser dem.
+   */
   const shell = (reqPath: string): string => {
     if (indexCache === null || process.env.NODE_ENV !== "production") {
       indexCache = fs.readFileSync(indexPath, "utf-8");
     }
-    return withSeoHead(indexCache, reqPath);
+    const html = withSeoHead(indexCache, reqPath);
+    const body = prerenderBody(normalizePath(reqPath));
+    if (!body) return html;
+    return html.replace('<div id="root"></div>', `<div id="root">${body}</div>`);
   };
 
   // Forsiden serveres av samme kode som alle andre ruter. Uten denne ruten ville
@@ -118,7 +130,11 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
       return c.json({ error: "Not Found" }, 404);
     }
     c.header("Cache-Control", "no-cache");
-    if (!isKnownRoute(reqPath)) {
+    // To spørsmål, ikke ett: har appen en rute for mønsteret, og finnes
+    // innholdet bak den? /reisemal/finnes-ikke besto den første og strøk på
+    // den andre, og svarte 200 med en tom side.
+    const known = isKnownRoute(reqPath) && dynamicContentExists(reqPath) !== false;
+    if (!known) {
       c.header("X-Robots-Tag", "noindex");
       return c.html(shell(reqPath), 404);
     }

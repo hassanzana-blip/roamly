@@ -1,7 +1,10 @@
 /** Loading placeholders that match the final layout's shape. */
 export function SkeletonFlightCard() {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card" aria-hidden="true">
+    // Høyden er ikke pyntet frem: den matcher det ferdige kortet på hver
+    // bredde (263 px stablet, 208 px når prisen står i egen kolonne), slik at
+    // byttet fra skjelett til kort ikke flytter noe.
+    <div className="min-h-[263px] overflow-hidden rounded-xl border border-border bg-card lg:min-h-[208px]" aria-hidden="true">
       <div className="flex items-center gap-2 border-b border-border px-5 py-3">
         <div className="shimmer size-7 rounded-md" />
         <div className="shimmer h-4 w-28 rounded-md" />

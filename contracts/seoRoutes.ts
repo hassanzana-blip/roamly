@@ -13,6 +13,8 @@
  * Ingen React, ingen import.meta.env: filen bundles inn i serveren.
  */
 
+import { routeBySlug } from "./routes";
+
 export const SITE_NAME = "HelloSky";
 export const SITE_ORIGIN = "https://hellosky.no";
 
@@ -51,6 +53,14 @@ export const STATIC_ROUTES: StaticRoute[] = [
     title: "Reisemål",
     description:
       "Reiseguider fra Norge til hele verden: når du bør reise, hvordan du kommer deg fra flyplassen, hvor du bør bo og hva som er verdt å vite før du bestiller.",
+    changefreq: "weekly",
+    priority: 0.8,
+  },
+  {
+    path: "/fly",
+    title: "Flyruter fra Norge",
+    description:
+      "Rutesider med flyplasser, vanlig reisetid og hvem som flyr direkte. Prisene henter vi når du søker – de står ikke på rutesiden.",
     changefreq: "weekly",
     priority: 0.8,
   },
@@ -237,6 +247,11 @@ export function normalizePath(path: string): string {
 export function isKnownRoute(path: string): boolean {
   const p = normalizePath(path);
   if (STATIC_PATHS.has(p)) return true;
+  // Rutesider finnes bare for slugene i registeret. /fly/tull er en ekte 404,
+  // ikke en tom side med 200 – ellers kan hvem som helst finne på uendelig
+  // mange «ruter» og la Google bruke crawl-budsjett på dem.
+  const route = /^\/fly\/([^/]+)$/.exec(p);
+  if (route) return routeBySlug(route[1]!) !== undefined;
   return DYNAMIC_ROUTE_PATTERNS.some((re) => re.test(p));
 }
 

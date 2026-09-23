@@ -15,6 +15,7 @@
 import { ARTICLES } from "../../src/content/journal/index";
 import { ALL_DESTINATIONS } from "../../src/content/discover";
 import { STATIC_ROUTES, absoluteUrl } from "../../contracts/seoRoutes";
+import { ROUTES } from "../../contracts/routes";
 
 type Entry = { loc: string; lastmod?: string; changefreq: string; priority: string };
 
@@ -55,7 +56,15 @@ export function sitemapEntries(): Entry[] {
     priority: "0.6",
   }));
 
-  return [...staticEntries, ...destinationEntries, ...articleEntries];
+  // Rutesidene finnes bare for slugene i registeret. Vi lister aldri en rute
+  // sitemapet ikke kan svare 200 på.
+  const routeEntries: Entry[] = ROUTES.map((r) => ({
+    loc: absoluteUrl(`/fly/${r.slug}`),
+    changefreq: "weekly",
+    priority: "0.7",
+  }));
+
+  return [...staticEntries, ...routeEntries, ...destinationEntries, ...articleEntries];
 }
 
 export function sitemapXml(): string {

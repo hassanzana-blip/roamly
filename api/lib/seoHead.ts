@@ -18,6 +18,7 @@
  */
 
 import { ARTICLES } from "../../src/content/journal/index";
+import { routeBySlug, routeDescription, routeTitle } from "../../contracts/routes";
 import { ALL_DESTINATIONS } from "../../src/content/discover";
 import {
   SITE_NAME,
@@ -91,6 +92,21 @@ export function headFor(rawPath: string): ResolvedHead {
         canonical,
         robots,
         image: d.image ? absoluteUrl(d.image) : FALLBACK.image,
+        type: "website",
+      };
+    }
+  }
+
+  const routeSlug = /^\/fly\/([^/]+)$/.exec(path)?.[1];
+  if (routeSlug) {
+    const r = routeBySlug(routeSlug);
+    if (r) {
+      return {
+        title: `${routeTitle(r)} | ${SITE_NAME}`,
+        description: routeDescription(r),
+        canonical,
+        robots,
+        image: FALLBACK.image,
         type: "website",
       };
     }
