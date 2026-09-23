@@ -7,6 +7,7 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { useApp } from "../lib/appState";
 import { fxNotice } from "../lib/price";
 import { addDays, formatClock, fromIsoDate, toIsoDate } from "../lib/format";
+import { ApiError } from "../lib/api";
 import { errorText } from "../lib/errorText";
 import { pricesStale, providerDisplayName, resultKind } from "../lib/resultStatus";
 import { useI18n } from "../i18n";
@@ -63,6 +64,12 @@ function OptionRow({ label, detail, selected, disabled, onPress, testID, multi }
   );
 }
 
+/** Kan et nytt forsøk hjelpe? Nett, tidsavbrudd, travelt og leverandørbrudd: ja. Ugyldig søk o.l.: nei. */
+const RETRY_CODES = new Set(["NETWORK", "TIMEOUT", "BAD_RESPONSE", "RATE_LIMITED", "INTERNAL", "SUPPLIER_UNAVAILABLE", "SUPPLIER_TIMEOUT"]);
+function canRetry(err: unknown): boolean {
+  return !(err instanceof ApiError) || err.retryable || RETRY_CODES.has(err.code);
+}
+
 export default function ResultsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -102,9 +109,11 @@ export default function ResultsScreen() {
   }, [announced]);
   const filters = activeFilterCount(view);
 
-  const title = form.origin && form.destination ? `${form.origin.city} → ${form.destination.city}` : r.fallbackTitle;
-  const dates = form.tripType === "roundtrip" ? `${f.shortDay(form.departDate)} – ${f.shortDay(form.returnDate)}` : f.shortDay(form.departDate);
-  const subtitle = `${dates} · ${passengerSummary(form, i18n)} · ${cabinLabel(form.cabinClass, i18n)}`;
+  // Overskriften beskriver søket som vises – ikke et skjema som er endret etterpå uten å søke.
+  const q = search.status === "idle" ? form : search.query;
+  const title = q.origin && q.destination ? `${q.origin.city} → ${q.destination.city}` : r.fallbackTitle;
+  const dates = q.tripType === "roundtrip" ? `${f.shortDay(q.departDate)} – ${f.shortDay(q.returnDate)}` : f.shortDay(q.departDate);
+  const subtitle = `${dates} · ${passengerSummary(q, i18n)} · ${cabinLabel(q.cabinClass, i18n)}`;
   const kind = search.status === "done" ? resultKind(search.result) : null;
   const demo = kind === "demo" || kind === "sandbox";
 
@@ -171,8 +180,15 @@ export default function ResultsScreen() {
         <Banner tone="error" dark>
           {errorText(search.error, i18n)}
         </Banner>
-        <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch()} testID="retry-search" />
-        <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+        {/* «Prøv igjen» bare når et nytt forsøk kan hjelpe; ellers er «Endre søk» hovedvalget. */}
+        {canRetry(search.error) ? (
+          <>
+            <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch()} testID="retry-search" />
+            <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+          </>
+        ) : (
+          <PrimaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+        )}
       </View>,
     );
   }
@@ -433,6 +449,7 @@ export default function ResultsScreen() {
             />
           ))}
           <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.noNokLast}</Text>
+          {all.some((o) => o.price.nok.kind === "converted") ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.approxRanking}</Text> : null}
         </View>
       </BottomSheet>
 

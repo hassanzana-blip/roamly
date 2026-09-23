@@ -24,13 +24,14 @@ type AuthState =
   /** profile er null når vi har en gyldig lagret sesjon, men ikke fikk hentet kontoen (f.eks. uten nett). */
   | { status: "signedIn"; profile: CustomerProfile | null };
 
+/** `query`: skjemaet søket faktisk ble kjørt med – overskriften viser dette, ikke et skjema som er endret etterpå. */
 type SearchState =
   | { status: "idle" }
-  | { status: "loading" }
+  | { status: "loading"; query: SearchForm }
   /** `at`: da svaret kom (telefonens klokke) – for «sjekket kl. …» og utdaterte priser. */
-  | { status: "done"; result: MobileSearchResult; at: number }
+  | { status: "done"; result: MobileSearchResult; at: number; query: SearchForm }
   /** Feilen selv (ikke tekst), så meldingen alltid vises på gjeldende språk. */
-  | { status: "error"; error: unknown };
+  | { status: "error"; error: unknown; query: SearchForm };
 
 type AppContextValue = {
   api: ApiClient;
@@ -134,6 +135,7 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
   const [search, setSearch] = useState<SearchState>({ status: "idle" });
   const searchSeq = useRef(0);
   const searchAbort = useRef<AbortController | null>(null);
+  const lastSearchKey = useRef<string | null>(null);
   const [view, setViewState] = useState<ResultsView>(DEFAULT_VIEW);
 
   useEffect(() => {
@@ -266,16 +268,19 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
     searchAbort.current?.abort();
     const abort = new AbortController();
     searchAbort.current = abort;
-    setSearch({ status: "loading" });
-    setViewState(DEFAULT_VIEW);
+    setSearch({ status: "loading", query: next });
+    // Samme søk på nytt (oppdater priser, prøv igjen): filtrene står. Et annet søk: nullstilt.
+    const key = recentKey(next);
+    if (key !== lastSearchKey.current) setViewState(DEFAULT_VIEW);
+    lastSearchKey.current = key;
     api
       .search(toSearchRequest(next, sessionId), abort.signal)
       .then((result) => {
-        if (seq === searchSeq.current) setSearch({ status: "done", result, at: Date.now() });
+        if (seq === searchSeq.current) setSearch({ status: "done", result, at: Date.now(), query: next });
       })
       .catch((err: unknown) => {
         if (seq !== searchSeq.current) return;
-        setSearch({ status: "error", error: err });
+        setSearch({ status: "error", error: err, query: next });
       });
     return null;
   }, [api, form, sessionId, recent, saveRecent]);

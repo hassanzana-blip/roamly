@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { Text } from "react-native";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
@@ -181,5 +182,91 @@ describe("fra kort til detaljer", () => {
     const firstId = cardIds()[0]!.replace(/^offer-/, "");
     await fireEvent.press(screen.getAllByTestId(/^offer-/)[0]!);
     expect(router.push).toHaveBeenLastCalledWith({ pathname: "/tilbud/[id]", params: { id: firstId } });
+  });
+});
+
+describe("resultatsiden følger søket som vises", () => {
+  function Controls() {
+    const { setForm, runSearch } = useApp();
+    return (
+      <>
+        <Text testID="set-lhr" onPress={() => setForm((f) => ({ ...f, destination: { iata: "LHR", name: "Heathrow", city: "London", country: "UK" } }))}>
+          lhr
+        </Text>
+        <Text testID="rerun" onPress={() => runSearch()}>
+          rerun
+        </Text>
+      </>
+    );
+  }
+
+  async function renderWithControls(result: MobileSearchResult) {
+    const server = fakeServer({ "flights.search": () => ({ data: result }) });
+    const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
+    await render(
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN, departDate: "2026-10-23", returnDate: "2026-10-30" }}>
+        <SearchOnMount>
+          <ResultsScreen />
+          <Controls />
+        </SearchOnMount>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
+    return server;
+  }
+
+  it("et skjema som endres uten nytt søk, endrer ikke overskriften", async () => {
+    await renderWithControls(withDirect());
+    await fireEvent.press(screen.getByTestId("set-lhr"));
+    expect(screen.getByText("Oslo → Barcelona")).toBeOnTheScreen();
+    expect(screen.queryByText("Oslo → London")).toBeNull();
+  });
+
+  it("filtrene står når samme søk kjøres på nytt, men nullstilles for et annet søk", async () => {
+    const server = await renderWithControls(withDirect());
+    await fireEvent.press(screen.getByTestId("chip-direct"));
+    expect(cardIds()).toEqual(["offer-direct_1"]);
+    await fireEvent.press(screen.getByTestId("rerun"));
+    await waitFor(() => expect(server.calls.filter((c) => c.path === "flights.search")).toHaveLength(2));
+    await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
+    expect(cardIds()).toEqual(["offer-direct_1"]);
+
+    await fireEvent.press(screen.getByTestId("set-lhr"));
+    await fireEvent.press(screen.getByTestId("rerun"));
+    await waitFor(() => expect(server.calls.filter((c) => c.path === "flights.search")).toHaveLength(3));
+    await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
+    expect(cardIds().length).toBeGreaterThan(1);
+  });
+
+  it("sorteringen forklarer hvordan «ca.»-priser rangeres", async () => {
+    await renderWithControls(withDirect());
+    await fireEvent.press(screen.getByTestId("open-sort"));
+    expect(screen.getByText("Priser merket «ca.» rangeres etter det omregnede kronebeløpet, som kan avvike fra det tilbyderen tar betalt.")).toBeOnTheScreen();
+  });
+});
+
+describe("feil i søket", () => {
+  async function renderError(error: { message: string; appCode: string }) {
+    const server = fakeServer({ "flights.search": () => ({ status: 400, error }) });
+    const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
+    await render(
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ destination: BCN }}>
+        <SearchOnMount>
+          <ResultsScreen />
+        </SearchOnMount>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("results-error")).toBeOnTheScreen());
+  }
+
+  it("et ugyldig søk tilbyr ikke «Prøv igjen», bare «Endre søk»", async () => {
+    await renderError({ message: "Ugyldig søk.", appCode: "VALIDATION" });
+    expect(screen.queryByTestId("retry-search")).toBeNull();
+    expect(screen.getByTestId("edit-search-state")).toBeOnTheScreen();
+  });
+
+  it("en leverandør som ikke svarte i tide: «Prøv igjen» er hovedvalget", async () => {
+    await renderError({ message: "Leverandøren svarte ikke i tide.", appCode: "SUPPLIER_TIMEOUT" });
+    expect(screen.getByTestId("retry-search")).toBeOnTheScreen();
   });
 });
