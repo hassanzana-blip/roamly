@@ -2,7 +2,7 @@
 import "@fontsource-variable/newsreader/opsz.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
-import { ChevronDown, ExternalLink, Keyboard, LogOut, Menu, Search, ShieldCheck, X } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Keyboard, LogOut, Menu, Search, ShieldCheck, X } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SkyMark from "@/components/brand/SkyMark";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { CommandPalette, type Command } from "@/components/admin/CommandPalette"
 import { ShortcutSheet } from "@/components/admin/ShortcutSheet";
 import { MfaGate } from "@/components/admin/MfaGate";
 import { LockGate } from "@/components/admin/LockGate";
+import { ProfileGate } from "@/components/admin/ProfileGate";
 import { useIdleLock } from "@/hooks/useIdleLock";
 import { AdminPrefsProvider } from "@/providers/adminPrefs";
 import { ROLE_LABEL, visibleItems, visibleSections } from "./nav";
@@ -206,6 +207,7 @@ function AdminShell() {
    * tiden er ute, og ikke først neste gang noen rører maskinen.
    */
   const lock = trpc.staffAuth.lockScreen.useMutation({ onSettled: () => void utils.staffAuth.me.invalidate() });
+  const setProfile = trpc.staffAuth.setProfile.useMutation({ onSettled: () => void utils.staffAuth.me.invalidate() });
   const locked = me.data?.authenticated === true && me.data.locked;
   const signedIn = me.data?.authenticated === true;
   useIdleLock(IDLE_LOCK_MS, () => lock.mutate(), signedIn && !locked);
@@ -231,8 +233,16 @@ function AdminShell() {
   if (me.data.locked) {
     return <LockGate name={me.data.name} onUnlocked={() => void utils.staffAuth.me.invalidate()} />;
   }
+  // Eierkontoen deles av to. Siste port før skallet er derfor «hvem av dere
+  // er dette?» – ikke for tilgangens skyld, men for revisjonsloggens.
+  // Kontoer uten profiler (alle andre roller) ser aldri denne skjermen.
+  if (me.data.profiles.length > 0 && !me.data.activeProfile) {
+    return <ProfileGate profiles={me.data.profiles} onChosen={() => void utils.staffAuth.me.invalidate()} />;
+  }
 
   const user = me.data;
+  // Profilnavnet der det finnes, kontonavnet ellers.
+  const activeName = user.profiles.find((p) => p.id === user.activeProfile)?.name ?? user.name;
   const isProduction = me.data.environment === "production";
   const current = items.find((i) => (i.end ? location.pathname === i.to : location.pathname.startsWith(i.to)));
 
@@ -289,9 +299,11 @@ function AdminShell() {
               aria-haspopup="menu"
               className="flex min-h-11 items-center gap-2.5 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-3 text-left shadow-sm transition-colors hover:border-foreground/40"
             >
-              <Avatar name={user.name} size={32} />
+              {/* Navnet her er profilen, ikke kontoen. Deler to personer én
+                  konto, er det profilen som svarer på «hvem er logget inn». */}
+              <Avatar name={activeName} size={32} />
               <span className="hidden sm:block">
-                <span className="block text-sm font-semibold leading-tight text-foreground">{user.name}</span>
+                <span className="block text-sm font-semibold leading-tight text-foreground">{activeName}</span>
                 <span className="block text-[11px] leading-tight text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role}</span>
               </span>
               <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -301,12 +313,40 @@ function AdminShell() {
                 <button type="button" aria-label="Lukk brukermeny" className="fixed inset-0 z-10 cursor-default" onClick={() => setUserMenuOpen(false)} />
                 <div role="menu" className="palette-panel absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
                   <div className="flex items-center gap-3 border-b border-border px-4 py-3.5">
-                    <Avatar name={user.name} size={40} />
+                    <Avatar name={activeName} size={40} />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
+                      <p className="truncate text-sm font-semibold text-foreground">{activeName}</p>
                       <p className="truncate text-[12px] text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
+                  {/* Bytt profil uten å logge ut: samme konto, annet navn i
+                      revisjonsloggen fra og med neste handling. */}
+                  {user.profiles.length > 0 && (
+                    <div className="border-b border-border p-2">
+                      <p className="px-3 pb-1 pt-1.5 eyebrow">Bytt profil</p>
+                      {user.profiles.map((p) => {
+                        const on = user.activeProfile === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={on}
+                            disabled={setProfile.isPending}
+                            onClick={() => {
+                              setUserMenuOpen(false);
+                              if (!on) setProfile.mutate({ profile: p.id });
+                            }}
+                            className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+                          >
+                            <Avatar name={p.name} size={24} />
+                            {p.name}
+                            {on && <Check className="ml-auto size-4 text-primary" aria-hidden="true" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div className="p-2">
                     <button
                       type="button"

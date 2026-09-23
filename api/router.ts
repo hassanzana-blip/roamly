@@ -10,6 +10,7 @@ import { partnersRouter } from "./partners";
 import { hotelsRouter } from "./hotels";
 import { carsRouter } from "./cars";
 import { adminRouter } from "./admin";
+import { adminOwnerRouter } from "./adminOwner";
 import { expensesRouter } from "./expenses";
 import { quotesPublicRouter } from "./quotesPublic";
 import { communityRouter } from "./community";
@@ -34,6 +35,7 @@ export const appRouter = createRouter({
   hotels: hotelsRouter,
   cars: carsRouter,
   admin: adminRouter,
+  adminOwner: adminOwnerRouter,
   expenses: expensesRouter,
   quotesPublic: quotesPublicRouter,
   community: communityRouter,

@@ -21,6 +21,7 @@ import { trpc } from "@/providers/trpc";
 import { Card, EmptyState, ErrorState, LoadingRows, PageHeader, Pill } from "./ui";
 import { formatDateTime, formatMoney } from "./helpers";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
+import OwnerOverview from "./sections/OwnerOverview";
 
 function StatCard({
   icon: Icon,
@@ -87,10 +88,27 @@ function AttentionItem({
 export function AdminOverview() {
   usePageMeta({ ...PAGE_META.admin, title: "Oversikt" });
   const dash = trpc.admin.dashboard.useQuery(undefined, { refetchInterval: 60_000, retry: false });
+  const me = trpc.staffAuth.me.useQuery(undefined, { staleTime: 60_000, retry: false });
+
+  /**
+   * Eiere ser forretningen først, driften under.
+   *
+   * Driftsoversikten er ikke fjernet – den er det verktøyet folk faktisk
+   * bruker til å rydde køen. Men en eier som åpner adminen spør et annet
+   * spørsmål først, og da skal svaret stå øverst.
+   */
+  const account = me.data?.authenticated === true ? me.data : null;
+  const ownerView =
+    account && account.profiles.length > 0 ? (
+      <div className="mb-10">
+        <OwnerOverview ownerName={account.profiles.find((p) => p.id === account.activeProfile)?.name ?? account.name} />
+      </div>
+    ) : null;
 
   if (dash.isLoading) {
     return (
       <div>
+        {ownerView}
         <PageHeader title="Oversikt" description="Status for HelloSky akkurat nå" />
         <LoadingRows rows={5} />
       </div>
@@ -99,6 +117,7 @@ export function AdminOverview() {
   if (dash.error || !dash.data) {
     return (
       <div>
+        {ownerView}
         <PageHeader title="Oversikt" />
         <ErrorState error={dash.error} onRetry={() => dash.refetch()} />
       </div>
@@ -116,9 +135,10 @@ export function AdminOverview() {
 
   return (
     <div>
+      {ownerView}
       <PageHeader
-        title="Oversikt"
-        description="Tallene under er hentet direkte fra databasen – ingen estimater."
+        title="Drift"
+        description="Køen akkurat nå. Tallene er hentet direkte fra databasen – ingen estimater."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
