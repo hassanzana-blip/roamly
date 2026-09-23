@@ -58,8 +58,10 @@ async function render(file, { bg, fg, scaleFrac, opaque = false }) {
       img.setPixelColor(Jimp.rgbaToInt(mix(br, fr), mix(bgG, fgG), mix(bb, fb), mix(ba, fa)), x, y);
     }
   }
-  // App Store avviser app-ikoner med alfakanal: ikonet skrives som RGB.
-  if (opaque) img.rgba(false);
+  // App Store krever RGB uten alfakanal, men Jimp-bitmapen er fortsatt RGBA.
+  // rgba(false) feilmerker inngangsdataene som RGB og forskyver pikselkanalene.
+  // Velg bare PNG-utgangsformatet, så konverterer koderen fire byte til tre.
+  if (opaque) img.colorType(2);
   await img.writeAsync(path.resolve(__dirname, "..", "assets", file));
 }
 

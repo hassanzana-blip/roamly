@@ -15,6 +15,31 @@ env:
   DATABASE_URL: mysql://root:root@127.0.0.1:3306/hellosky_it
 
 jobs:
+  mobile:
+    name: Mobile · types · lint · tests · iOS export
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/mobile
+    env:
+      EXPO_PUBLIC_API_BASE_URL: https://roamly-staging.up.railway.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test -- --runInBand
+      - name: Decode and verify icon assets
+        run: node scripts/check-assets.cjs
+      - run: npm run export:ios
+      - run: npm run check:bundle
+
   test:
     name: Typecheck · lint · unit · integration · build
     runs-on: ubuntu-latest
