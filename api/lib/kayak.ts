@@ -450,18 +450,27 @@ function carrierOf(code: string, airlines: KayakPollResponse["airlines"]): Carri
 
 type BookingOption = z.infer<typeof bookingOptionSchema>;
 
-/** «included»/«flexible» = 1 kolli inkludert; «fee»/«unavailable» = 0; mangler = ukjent (vi påstår ikke). */
+/**
+ * «included»/«flexible» = 1 kolli inkludert; «fee»/«unavailable» = 0 (ikke
+ * inkludert); manglende eller ukjent verdi = ukjent (vi påstår ikke).
+ */
+function bagCount(restriction: string | undefined): number | null {
+  if (restriction === "included" || restriction === "flexible") return 1;
+  if (restriction === "fee" || restriction === "unavailable") return 0;
+  return null;
+}
+
 function bagsFrom(fees: BookingOption["fees"], families: BookingOption["fareFamilies"], kind: "carryOn" | "checked"): { count: number; unknown: boolean; fee?: string } {
   const list = kind === "carryOn" ? fees?.carryOnBag : fees?.checkedBag;
   const first = list?.find((b) => b.bagNumber === "first") ?? list?.[0];
-  if (first?.restriction) {
-    const included = first.restriction === "included" || first.restriction === "flexible";
-    const fee = first.restriction === "fee" ? first.displayPrice?.displayPrice : undefined;
-    return { count: included ? 1 : 0, unknown: false, ...(fee ? { fee } : {}) };
+  const fromFees = bagCount(first?.restriction);
+  if (fromFees !== null) {
+    const fee = first?.restriction === "fee" ? first.displayPrice?.displayPrice : undefined;
+    return { count: fromFees, unknown: false, ...(fee ? { fee } : {}) };
   }
   const code = kind === "carryOn" ? "carryOnBag" : "checkedBag";
-  const amenity = families?.flatMap((f) => f.amenities ?? []).find((a) => a.code === code);
-  if (amenity) return { count: amenity.restriction === "included" || amenity.restriction === "flexible" ? 1 : 0, unknown: false };
+  const fromAmenity = bagCount(families?.flatMap((f) => f.amenities ?? []).find((a) => a.code === code)?.restriction);
+  if (fromAmenity !== null) return { count: fromAmenity, unknown: false };
   return { count: 0, unknown: true };
 }
 

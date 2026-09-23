@@ -257,6 +257,15 @@ describe("KAYAK: kartlegging", () => {
     expect(offer.changeable).toBe(false);
   });
 
+  it("bagasje: en ukjent begrensning er «ukjent», ikke «ikke inkludert»", () => {
+    const body = structuredClone(POLL_COMPLETE) as unknown as { results: { bookingOptions: { fees?: { checkedBag?: { restriction: string }[] }; fareFamilies: { amenities: { code: string; restriction: string }[] }[] }[] }[] };
+    const bo = body.results[0]!.bookingOptions[0]!;
+    for (const b of bo.fees?.checkedBag ?? []) b.restriction = "somethingNew";
+    bo.fareFamilies[0]!.amenities.find((a) => a.code === "checkedBag")!.restriction = "somethingNew";
+    const [offer] = mapPollResponse(parsePollResponse(body), input, ctx);
+    expect(offer.baggage).toEqual({ carryOnBags: 1, checkedBags: 0, checkedUnknown: true });
+  });
+
   it("refusjon/endring fra fasilitetene: inkludert = tillatt, «unavailable» = ikke tillatt", () => {
     const [offer] = mapPollResponse(parsePollResponse(POLL_COMPLETE), input, ctx);
     expect(offer.conditions).toEqual({ changeBeforeDeparture: { allowed: true }, refundBeforeDeparture: { allowed: false } });
