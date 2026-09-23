@@ -1,3 +1,5 @@
+import * as http from "node:http";
+import * as https from "node:https";
 import { createApiClient } from "../../lib/api";
 import { toSearchRequest, initialForm } from "../../lib/searchForm";
 import { addDays, toIsoDate } from "../../lib/format";
@@ -13,11 +15,37 @@ import { addDays, toIsoDate } from "../../lib/format";
  * koden (den kommer fra miljøet).
  */
 const BASE = process.env.HELLOSKY_LIVE_API_BASE;
+
+/**
+ * Nodes egen HTTP-klient som fetch. I Jest (jest-expo) er global `fetch`
+ * Expos polyfill for appen, som uten den native modulen svarer uten kropp –
+ * det ga «unexpected response» mot en server som virket. Appens klient
+ * (createApiClient) er den samme; bare transporten under er Nodes.
+ */
+const nodeFetch = ((url: string, init: RequestInit = {}) =>
+  new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const lib = u.protocol === "https:" ? https : http;
+    const req = lib.request(u, { method: init.method ?? "GET", headers: init.headers as Record<string, string> }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => chunks.push(c));
+      res.on("error", reject);
+      res.on("end", () => {
+        const status = res.statusCode ?? 0;
+        const text = Buffer.concat(chunks).toString("utf8");
+        resolve({ ok: status >= 200 && status < 300, status, text: async () => text });
+      });
+    });
+    req.on("error", reject);
+    init.signal?.addEventListener("abort", () => req.destroy(new Error("aborted")));
+    if (typeof init.body === "string") req.write(init.body);
+    req.end();
+  })) as unknown as typeof fetch;
 const live = BASE ? describe : describe.skip;
 
 live(`live API (${BASE ?? "ikke satt"})`, () => {
   jest.setTimeout(60_000);
-  const api = createApiClient({ baseUrl: BASE ?? "https://example.invalid", getToken: () => null, fetchImpl: fetch });
+  const api = createApiClient({ baseUrl: BASE ?? "https://example.invalid", getToken: () => null, fetchImpl: nodeFetch });
 
   it("flyplassøk: «osl» gir Oslo lufthavn (OSL)", async () => {
     const airports = await api.airports("osl", 5);
