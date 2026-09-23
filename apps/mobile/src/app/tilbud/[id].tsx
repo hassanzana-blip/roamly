@@ -5,18 +5,17 @@ import * as WebBrowser from "expo-web-browser";
 import type { OfferSlice, Segment } from "@contracts/types";
 import { useApp } from "../../lib/appState";
 import { bookingHandoff, handoffLabel, offerExpired } from "../../lib/booking";
-import { formatDay, formatDuration, formatForeign, formatNumericDate, formatStops, formatTime } from "../../lib/format";
-import { rateDescription } from "../../lib/price";
+import { formatDay, formatDuration, formatNok, formatStops, formatTime, minutesBetween } from "../../lib/format";
+import { CONVERTED_NOTICE, serviceFeeNokMinor } from "../../lib/price";
 import { cabinLabel } from "../../lib/searchForm";
 import { PriceTag } from "../../components/PriceTag";
 import { Banner, Body, Button, Card, SectionTitle } from "../../components/ui";
 import { colors, fonts, space } from "../../lib/theme";
 
-/** Minutter mellom to lokale tider på samme flyplass (bytte). */
-function layoverMinutes(arrive: string, depart: string): number {
-  const a = Date.parse(`${arrive.slice(0, 16)}:00Z`);
-  const d = Date.parse(`${depart.slice(0, 16)}:00Z`);
-  return Number.isFinite(a) && Number.isFinite(d) ? Math.round((d - a) / 60_000) : 0;
+/** «Bytte i København · 1 t 55 min» – uten varighet når tidspunktene ikke kan regnes trygt. */
+function layoverText(city: string, arrive: string, depart: string): string {
+  const minutes = minutesBetween(arrive, depart);
+  return minutes === null ? `Bytte i ${city}` : `Bytte i ${city} · ${formatDuration(minutes)}`;
 }
 
 function SegmentRow({ seg }: { seg: Segment }) {
@@ -48,7 +47,7 @@ function SliceBlock({ slice, title }: { slice: OfferSlice; title: string }) {
         return (
           <View key={seg.id || i} style={{ gap: space.sm }}>
             <SegmentRow seg={seg} />
-            {next ? <Text style={styles.layover}>{`Bytte i ${seg.destination.city} · ${formatDuration(layoverMinutes(seg.arrivingAt, next.departingAt))}`}</Text> : null}
+            {next ? <Text style={styles.layover}>{layoverText(seg.destination.city, seg.arrivingAt, next.departingAt)}</Text> : null}
           </View>
         );
       })}
@@ -79,6 +78,7 @@ export default function OfferScreen() {
   const expired = offerExpired(offer);
   const testData = result.sandbox === true || result.demoMode;
   const bag = offer.baggage;
+  const feeNok = serviceFeeNokMinor(price);
 
   const open = async (url: string) => {
     setOpenError(null);
@@ -99,12 +99,11 @@ export default function OfferScreen() {
       <Card>
         <Text style={styles.carrier}>{offer.owner.name}</Text>
         <PriceTag price={price} align="left" large testID="offer-price" />
-        {price.nok.kind === "converted" ? (
-          <View style={{ gap: 2 }} testID="fx-details">
-            <Body muted>{`Leverandørens pris: ${formatForeign(price.total.amount, price.total.currency)}`}</Body>
-            {price.serviceFee ? <Body muted>{`Herav HelloSkys servicegebyr: ${formatForeign(price.serviceFee.amount, price.serviceFee.currency)}`}</Body> : null}
-            <Body muted>{`Kurs: ${rateDescription(price.nok.rate)} (Norges Bank, ${formatNumericDate(price.nok.rate.rateDate)}, veiledende midtkurs)`}</Body>
-          </View>
+        {price.nok.kind === "converted" ? <Body muted testID="fx-details">{CONVERTED_NOTICE}</Body> : null}
+        {feeNok !== null ? (
+          <Body muted testID="service-fee">{`Herav HelloSkys servicegebyr: ${formatNok(feeNok)}`}</Body>
+        ) : price.serviceFee ? (
+          <Body muted testID="service-fee">Prisen inkluderer HelloSkys servicegebyr.</Body>
         ) : null}
         <Body muted>{`${cabinLabel(offer.cabinClass)} · ${offer.refundable ? "Kan refunderes" : "Kan ikke refunderes"} · ${offer.changeable ? "Kan endres" : "Kan ikke endres"}`}</Body>
       </Card>
@@ -124,7 +123,7 @@ export default function OfferScreen() {
         {handoff.kind === "external" ? (
           <View style={{ gap: space.md }} testID="handoff-external">
             <Body>{`Du bestiller og betaler hos ${handoff.providerName}, ikke hos HelloSky. Prisen kan endre seg når du kommer dit.`}</Body>
-            {price.nok.kind === "converted" ? <Body muted>{`${handoff.providerName} tar betalt i ${price.total.currency.toUpperCase()}.`}</Body> : null}
+            {price.nok.kind === "converted" ? <Body muted>{`${handoff.providerName} kan ta betalt i en annen valuta enn norske kroner.`}</Body> : null}
             {handoff.disclosure ? <Body muted>{handoff.disclosure}</Body> : null}
             {expired ? <Banner tone="warning">Tilbudet kan ha utløpt. Søk gjerne på nytt før du bestiller.</Banner> : null}
             {openError ? <Banner tone="error">{openError}</Banner> : null}

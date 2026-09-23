@@ -6,6 +6,7 @@ import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
 import { AUTH_RESULT, KAYAK_URL, PROFILE, SEARCH_RESULT, TOKEN } from "../test/fixtures";
+import { foreignNumbers } from "../test/foreignNumbers";
 import SearchScreen from "../app/index";
 import ResultsScreen from "../app/resultater";
 import OfferScreen from "../app/tilbud/[id]";
@@ -25,6 +26,47 @@ function setup(routes: Routes) {
   const server = fakeServer(routes);
   const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
   return { server, factory };
+}
+
+/**
+ * Hele det rendrede treet (tekst OG tilgjengelighetsetiketter) inneholder
+ * ingen av leverandørens tall, publiserte kurser eller valutakoder for
+ * tilbud i annen valuta.
+ */
+function renderedStrings(): string {
+  const out: string[] = [];
+  const walk = (node: unknown): void => {
+    if (node == null) return;
+    if (typeof node === "string" || typeof node === "number") {
+      out.push(String(node));
+      return;
+    }
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    const n = node as { props?: Record<string, unknown>; children?: unknown };
+    for (const v of Object.values(n.props ?? {})) if (typeof v === "string") out.push(v);
+    walk(n.children);
+  };
+  walk(screen.toJSON());
+  return out.join(" | ");
+}
+
+/** Tallet som et helt tall i teksten – ikke som en del av et større tall (f.eks. «100» i «2 100,50 kr»). */
+function containsNumber(text: string, n: string): boolean {
+  const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\d\u00A0.,])${escaped}(?![\\d]|[.,\u00A0]\\d)`).test(text);
+}
+
+function expectNoForeignAmounts() {
+  const tree = renderedStrings();
+  expect(tree.length).toBeGreaterThan(100);
+  const foreign = SEARCH_RESULT.offers.filter((o) => o.price.total.currency.toUpperCase() !== "NOK");
+  for (const o of foreign) {
+    for (const n of foreignNumbers(o)) expect({ found: n, in: containsNumber(tree, n) }).toEqual({ found: n, in: false });
+  }
+  for (const code of ["EUR", "SEK", "THB", "USD", "JPY"]) expect(tree).not.toMatch(new RegExp(`\\b${code}\\b`));
 }
 
 function SearchOnMount({ children }: { children: ReactNode }) {
@@ -98,16 +140,19 @@ describe("søk uten innlogging", () => {
 
     const sek = within(screen.getByTestId("price-sek_1"));
     expect(sek.getByText(/^ca\. 1\s442\skr$/)).toBeOnTheScreen();
-    expect(sek.getByText(/^Omregnet fra 1\s500,00\sSEK · Norges Bank 22\.09\.2026$/)).toBeOnTheScreen();
+    expect(sek.getByText("Omregnet med Norges Banks kurs 22.09.2026")).toBeOnTheScreen();
+    expect(screen.getByTestId("price-sek_1").props.accessibilityLabel).toBe("Omtrent 1\u00A0442 kroner, omregnet med Norges Banks kurs 22.09.2026");
     expect(within(screen.getByTestId("price-nok_1")).getByText(/^2\s100,50\skr$/)).toBeOnTheScreen();
 
-    // THB har ingen kronepris – og ingen tekst i kortet som ser ut som kroner.
+    // THB har ingen kronepris – bare grunnen, ingen tall.
     const thb = within(screen.getByTestId("price-thb_1"));
     expect(thb.getByText("Ingen pris i kroner")).toBeOnTheScreen();
-    expect(thb.queryByText(/\d\s?kr\b/)).toBeNull();
-    expect(thb.getByText(/3\s000,00\sTHB/)).toBeOnTheScreen();
+    expect(thb.getByText("Vi har ingen kurs for valutaen leverandøren priser i")).toBeOnTheScreen();
 
-    expect(screen.getByTestId("fx-notice")).toHaveTextContent(/Norges Banks midtkurs 22\.09\.2026.*Ett tilbud kunne ikke regnes om til kroner og står nederst\./);
+    expect(screen.getByTestId("fx-notice")).toHaveTextContent(
+      /Norges Banks midtkurs 22\.09\.2026\. Leverandøren kan ta betalt i en annen valuta, og endelig beløp kan avvike\. Ett tilbud kunne ikke regnes om til kroner og står nederst\./,
+    );
+    expectNoForeignAmounts();
   });
 
   it("serverfeil vises med serverens melding", async () => {
@@ -152,19 +197,67 @@ describe("tilbudsdetaljer og videresending", () => {
 
   it("eksternt tilbud åpner leverandørens lenke nøyaktig som den er", async () => {
     await openOffer("sek_1");
-    expect(screen.getByTestId("fx-details")).toHaveTextContent(/Kurs: 100 SEK = 96,10\skr \(Norges Bank, 22\.09\.2026, veiledende midtkurs\)/);
+    expect(screen.getByText(/^ca\. 1\s442\skr$/)).toBeOnTheScreen();
+    expect(screen.getByText("Omregnet med Norges Banks kurs 22.09.2026")).toBeOnTheScreen();
+    expect(screen.getByTestId("fx-details")).toHaveTextContent(/annen valuta enn norske kroner.*endelig beløp kan avvike/);
     expect(screen.getByText(/Du bestiller og betaler hos SAS, ikke hos HelloSky/)).toBeOnTheScreen();
-    expect(screen.getByText("SAS tar betalt i SEK.")).toBeOnTheScreen();
+    expect(screen.getByText("SAS kan ta betalt i en annen valuta enn norske kroner.")).toBeOnTheScreen();
+    expectNoForeignAmounts();
     await fireEvent.press(screen.getByTestId("handoff-button"));
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledTimes(1);
     expect(jest.mocked(WebBrowser.openBrowserAsync).mock.calls[0]![0]).toBe(KAYAK_URL);
   });
 
-  it("tilbud HelloSky selger: gebyret vises, men ingen bestillingsknapp", async () => {
+  it("tilbud HelloSky selger: gebyret nevnes uten beløp i annen valuta, og ingen bestillingsknapp", async () => {
     await openOffer("hs_eur");
-    expect(screen.getByText(/Herav HelloSkys servicegebyr: 31,00\sEUR/)).toBeOnTheScreen();
+    expect(screen.getByTestId("service-fee")).toHaveTextContent("Prisen inkluderer HelloSkys servicegebyr.");
+    expectNoForeignAmounts();
     expect(screen.getByTestId("handoff-not-in-app")).toBeOnTheScreen();
     expect(screen.queryByTestId("handoff-button")).toBeNull();
+  });
+
+  it("alle tilbudsdetaljer: ingen utenlandske beløp, kurser eller valutakoder", async () => {
+    for (const o of SEARCH_RESULT.offers) {
+      await openOffer(o.offer.id);
+      expectNoForeignAmounts();
+      await screen.unmount();
+    }
+  });
+
+  it("tilbud i kroner med servicegebyr i kroner: gebyret vises som kronebeløp", async () => {
+    const nokHs = { ...SEARCH_RESULT.offers[2]!, offer: { ...SEARCH_RESULT.offers[2]!.offer, id: "hs_nok", booking: undefined }, price: { ...SEARCH_RESULT.offers[2]!.price, serviceFee: { amount: "250.00", currency: "NOK" } } };
+    const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, offers: [nokHs] } }) });
+    setParams({ id: "hs_nok" });
+    await render(
+      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+        <SearchOnMount>
+          <OfferScreen />
+        </SearchOnMount>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("offer-screen")).toBeOnTheScreen());
+    expect(screen.getByTestId("service-fee")).toHaveTextContent(/^Herav HelloSkys servicegebyr: 250\skr$/);
+  });
+
+  it("byttetid over sommertidsskifte regnes med tidssone", async () => {
+    const base = SEARCH_RESULT.offers[0]!;
+    const slice0 = base.offer.slices[0]!;
+    const segs = [
+      { ...slice0.segments[0]!, arrivingAt: "2026-10-25T01:30:00+02:00" },
+      { ...slice0.segments[1]!, departingAt: "2026-10-25T02:15:00+01:00" },
+    ];
+    const dst = { ...base, offer: { ...base.offer, id: "dst_1", slices: [{ ...slice0, segments: segs }] } };
+    const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, offers: [dst] } }) });
+    setParams({ id: "dst_1" });
+    await render(
+      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+        <SearchOnMount>
+          <OfferScreen />
+        </SearchOnMount>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("offer-screen")).toBeOnTheScreen());
+    expect(screen.getByText("Bytte i København · 1 t 45 min")).toBeOnTheScreen();
   });
 
   it("en utrygg lenke åpnes aldri", async () => {
@@ -198,7 +291,7 @@ describe("kundekonto", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    const tree = JSON.stringify(screen.toJSON());
+    const tree = renderedStrings();
     for (const word of ["admin", "Admin", "ansatt", "staff", "Staff", "eier"]) expect(tree).not.toContain(word);
 
     await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
@@ -213,7 +306,7 @@ describe("kundekonto", () => {
       keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
     });
     // Tokenet vises ikke noe sted i grensesnittet.
-    expect(JSON.stringify(screen.toJSON())).not.toContain(TOKEN);
+    expect(renderedStrings()).not.toContain(TOKEN);
 
     await fireEvent.press(screen.getByTestId("logout-button"));
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());

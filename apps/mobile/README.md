@@ -7,12 +7,15 @@ Appen snakker bare med HelloSkys server på `/api/mobile/trpc` – aldri direkte
 
 - **Søk** (uten innlogging): fra/til med flyplassøk (`flights.airports`), én vei eller tur-retur, datoer, voksne/barn
   (2–11 år)/spedbarn med alder, reiseklasse og «bare direktefly».
-- **Resultater** (`flights.search`): i serverens rekkefølge – billigste i kroner først. Priser vises som
+- **Resultater** (`flights.search`): i serverens rekkefølge – billigste i kroner først. Appen viser **bare kronebeløp**:
   - `1 234 kr` – leverandørens egen kronepris,
-  - `ca. 1 234 kr` + «Omregnet fra 131,00 EUR · Norges Bank 22.09.2026» – omregnet på serveren,
-  - «Ingen pris i kroner» + leverandørens beløp med egen valutakode – når kurs mangler/er for gammel/valuta ikke støttes.
-  Et utenlandsk beløp vises aldri som kroner.
-- **Tilbud**: strekninger, bytter, bagasje, vilkår, kurs og gebyr. Tilbud leverandøren selger (KAYAK) åpnes hos
+  - `ca. 1 234 kr` + «Omregnet med Norges Banks kurs 22.09.2026» – omregnet på serveren, med merknad om at
+    leverandøren kan ta betalt i en annen valuta og at endelig beløp kan avvike,
+  - «Ingen pris i kroner» + grunnen – når kurs mangler, er for gammel eller valutaen ikke støttes.
+  Leverandørens beløp, valuta og publiserte kurs ligger urørt i serverkontrakten og bestillingslenken, men vises aldri
+  i appen (en kildekode-test sperrer bruk av de feltene utenfor tester).
+- **Tilbud**: strekninger, bytter (varighet regnet med tidssone), bagasje, vilkår og kronemerknad. Servicegebyret vises
+  som beløp bare når det er i kroner. Tilbud leverandøren selger (KAYAK) åpnes hos
   leverandøren med den urørte https-lenken i `SFSafariViewController`. Tilbud HelloSky selger kan ikke bestilles i appen ennå.
 - **Konto** (`mobileAuth`): vanlig kundeinnlogging med e-post og passord, ny konto og utlogging. Ingen andre roller.
 
@@ -42,4 +45,7 @@ mot den ekte Hono-appen.
 
 - Bekreft `ios.bundleIdentifier` (`no.hellosky.app` er en plassholder) og produksjonsadressen.
 - Ekte test på iPhone/simulator (EAS Build eller Xcode), og live-sjekk av Norges Bank-kursene i produksjon.
-- Apples krav: kontosletting i appen (ikke med ennå) og, hvis sosial innlogging legges til, «Logg inn med Apple».
+- Apples krav: kontosletting i appen og, hvis sosial innlogging legges til, «Logg inn med Apple».
+  Kontosletting er **ikke** lagt inn ennå: den eksisterende `customerAuth.deleteAccount` sletter ikke alle kundens data
+  (bl.a. opplastede reisedokumenter, reiseplaner, lagrede elementer, søkehistorikk, varsler, prisovervåking og
+  sosialt innhold). Den må utvides på serveren før appen kan tilby «Slett konto».

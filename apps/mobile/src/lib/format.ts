@@ -1,7 +1,7 @@
 /**
  * Norsk formatering uten flyttall og uten å stole på enhetens Intl-data.
- * Kroner vises alltid med «kr»; andre valutaer alltid med valutakoden – et
- * utenlandsk beløp kan aldri se ut som kroner.
+ * Appen formaterer bare kronebeløp – det finnes med vilje ingen formaterer for
+ * andre valutaer.
  */
 
 const NBSP = " ";
@@ -17,14 +17,6 @@ export function formatNok(amountMinor: number): string {
   const kroner = Math.floor(abs / 100);
   const ore = abs % 100;
   return `${negative ? "−" : ""}${group(String(kroner))}${ore ? `,${String(ore).padStart(2, "0")}` : ""}${NBSP}kr`;
-}
-
-/** Leverandørens desimalstreng i sin valuta: («131.00», «EUR») → «131,00 EUR». Aldri «kr». */
-export function formatForeign(amount: string, currency: string): string {
-  const m = /^(-)?(\d+)(?:\.(\d+))?$/.exec(amount.trim());
-  const code = currency.trim().toUpperCase();
-  if (!m) return `${amount.trim()}${NBSP}${code}`;
-  return `${m[1] ? "−" : ""}${group(m[2]!)}${m[3] ? `,${m[3]}` : ""}${NBSP}${code}`;
 }
 
 const WEEKDAYS = ["søn.", "man.", "tir.", "ons.", "tor.", "fre.", "lør."];
@@ -85,4 +77,23 @@ export function addDays(iso: string, days: number): string {
   const d = fromIsoDate(iso);
   d.setDate(d.getDate() + days);
   return toIsoDate(d);
+}
+
+const OFFSET = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+/**
+ * Minutter mellom to tidspunkter fra leverandøren. Med tidssone (Z/±hh:mm) på
+ * begge regnes det eksakt – også over sommertidsskifte. Uten tidssone på
+ * begge er det lokal tid på samme flyplass, og klokkeforskjellen brukes.
+ * Blandet eller ugyldig: null (vi viser heller ingen varighet enn en feil).
+ */
+export function minutesBetween(from: string, to: string): number | null {
+  const a = from.trim();
+  const b = to.trim();
+  const withOffset = OFFSET.test(a);
+  if (withOffset !== OFFSET.test(b)) return null;
+  const pa = Date.parse(withOffset ? a : `${a.slice(0, 19)}Z`);
+  const pb = Date.parse(withOffset ? b : `${b.slice(0, 19)}Z`);
+  if (!Number.isFinite(pa) || !Number.isFinite(pb) || pb < pa) return null;
+  return Math.round((pb - pa) / 60_000);
 }

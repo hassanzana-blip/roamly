@@ -1,6 +1,9 @@
-import { fxNotice, priceDisplay, rateDescription } from "../price";
-import { formatForeign, formatNok } from "../format";
+import fs from "node:fs";
+import path from "node:path";
+import { CONVERTED_NOTICE, fxNotice, priceDisplay, serviceFeeNokMinor } from "../price";
+import { formatNok, minutesBetween } from "../format";
 import { EUR_HS_OFFER, NOK_OFFER, SEARCH_RESULT, SEK_OFFER, THB_OFFER } from "../../test/fixtures";
+import { foreignNumbers } from "../../test/foreignNumbers";
 import type { MobileOfferPrice, NokUnavailableReason } from "@contracts/mobileSearch";
 
 const NBSP = " ";
@@ -13,10 +16,11 @@ describe("kroneformatering", () => {
     expect(formatNok(1_234_567_800)).toBe(`12${NBSP}345${NBSP}678${NBSP}kr`);
   });
 
-  it("utenlandske beløp får alltid valutakoden, aldri «kr»", () => {
-    expect(formatForeign("1500.00", "sek")).toBe(`1${NBSP}500,00${NBSP}SEK`);
-    expect(formatForeign("25000", "JPY")).toBe(`25${NBSP}000${NBSP}JPY`);
-    expect(formatForeign("131.00", "EUR")).not.toMatch(/kr/);
+  it("det finnes ingen formaterer for andre valutaer", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    expect(Object.keys(require("../format"))).not.toContain("formatForeign");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    expect(Object.keys(require("../price"))).not.toContain("rateDescription");
   });
 });
 
@@ -26,41 +30,48 @@ describe("prisvisning etter kontrakten", () => {
     expect(d).toMatchObject({ primary: `2${NBSP}100,50${NBSP}kr`, secondary: null, approx: false, available: true });
   });
 
-  it("omregnet: alltid «ca.», originalbeløp i sin valuta og Norges Banks dato", () => {
+  it("omregnet: «ca. X kr» og Norges Banks dato – verken utenlandsk beløp eller kurs", () => {
     const d = priceDisplay(EUR_HS_OFFER.price);
     expect(d.primary).toBe(`ca. 1${NBSP}525${NBSP}kr`);
-    expect(d.secondary).toBe(`Omregnet fra 131,00${NBSP}EUR · Norges Bank 22.09.2026`);
+    expect(d.secondary).toBe("Omregnet med Norges Banks kurs 22.09.2026");
     expect(d.approx).toBe(true);
-    expect(d.accessibilityLabel).toContain("Omtrent");
-  });
-
-  it("kurs per 100 enheter beskrives slik Norges Bank publiserer den", () => {
-    if (SEK_OFFER.price.nok.kind !== "converted") throw new Error("fixture");
-    expect(rateDescription(SEK_OFFER.price.nok.rate)).toBe(`100 SEK = 96,10${NBSP}kr`);
+    expect(d.accessibilityLabel).toBe("Omtrent 1\u00A0525 kroner, omregnet med Norges Banks kurs 22.09.2026");
+    // Kurs per 100 (SEK) påvirker bare kronebeløpet, som serveren har regnet ut.
     expect(priceDisplay(SEK_OFFER.price).primary).toBe(`ca. 1${NBSP}442${NBSP}kr`);
   });
 
-  it("uten kronepris: ingen «kr» i hovedlinjen, og leverandørbeløpet bare med valutakode", () => {
+  it("uten kronepris: «Ingen pris i kroner» + grunn, uten noe beløp", () => {
     const reasons: NokUnavailableReason[] = ["unsupported_currency", "rate_unavailable", "rate_stale", "invalid_amount"];
     for (const reason of reasons) {
       const price: MobileOfferPrice = { ...THB_OFFER.price, nok: { kind: "unavailable", reason } };
       const d = priceDisplay(price);
       expect(d.primary).toBe("Ingen pris i kroner");
       expect(d.available).toBe(false);
-      expect(d.secondary).not.toMatch(/\d\s?kr\b/);
-      if (reason !== "invalid_amount") expect(d.secondary).toContain(`3${NBSP}000,00${NBSP}THB`);
-      else expect(d.secondary).not.toContain("THB");
+      for (const text of [d.primary, d.secondary ?? "", d.accessibilityLabel]) expect(text).not.toMatch(/\d/);
     }
-    expect(priceDisplay(THB_OFFER.price).secondary).toContain("Vi har ingen kurs for THB");
   });
 
-  it("invariant: et utenlandsk beløp vises aldri som kroner uten «ca.»", () => {
+  it("invariant: ingen tekst for et utenlandsk tilbud inneholder leverandørens tall, kurs eller valutakode", () => {
     for (const o of SEARCH_RESULT.offers) {
+      if (o.price.total.currency.toUpperCase() === "NOK") continue;
       const d = priceDisplay(o.price);
-      const foreign = o.price.total.currency.toUpperCase() !== "NOK";
-      if (foreign && /kr$/.test(d.primary)) expect(d.primary.startsWith("ca. ")).toBe(true);
-      if (foreign) expect(d.primary).not.toContain(o.price.total.amount);
+      const all = [d.primary, d.secondary ?? "", d.accessibilityLabel].join(" | ");
+      expect(all).not.toContain(o.price.total.currency.toUpperCase());
+      for (const n of foreignNumbers(o)) expect(all).not.toContain(n);
+      if (d.available) expect(d.primary.startsWith("ca. ")).toBe(true);
     }
+  });
+
+  it("servicegebyr vises som beløp bare når det er i kroner", () => {
+    expect(serviceFeeNokMinor(EUR_HS_OFFER.price)).toBeNull();
+    expect(serviceFeeNokMinor({ ...NOK_OFFER.price, serviceFee: { amount: "250.00", currency: "NOK" } })).toBe(25000);
+    expect(serviceFeeNokMinor({ ...NOK_OFFER.price, serviceFee: null })).toBeNull();
+  });
+
+  it("merknaden ved omregnede priser sier at leverandøren kan ta betalt i annen valuta", () => {
+    expect(CONVERTED_NOTICE).toMatch(/annen valuta/);
+    expect(CONVERTED_NOTICE).toMatch(/endelig beløp kan avvike/);
+    expect(CONVERTED_NOTICE).not.toMatch(/\d/);
   });
 });
 
@@ -69,6 +80,7 @@ describe("melding om valuta over resultatlisten", () => {
     const n = fxNotice(SEARCH_RESULT);
     expect(n?.tone).toBe("warning");
     expect(n?.text).toContain("Norges Banks midtkurs 22.09.2026");
+    expect(n?.text).toContain("Leverandøren kan ta betalt i en annen valuta, og endelig beløp kan avvike.");
     expect(n?.text).toContain("Ett tilbud kunne ikke regnes om til kroner og står nederst.");
     expect(fxNotice({ fx: { ...SEARCH_RESULT.fx, unconvertedCount: 3 } })?.text).toContain("3 tilbud kunne ikke");
   });
@@ -78,5 +90,44 @@ describe("melding om valuta over resultatlisten", () => {
     expect(fxNotice({ fx: { ...SEARCH_RESULT.fx, status: "stale", rateDate: null } })?.text).toContain("for gamle");
     expect(fxNotice({ fx: { ...SEARCH_RESULT.fx, status: "unavailable", rateDate: null } })?.text).toContain("kunne ikke regnes om");
     expect(fxNotice({ fx: { ...SEARCH_RESULT.fx, status: "not_needed", unconvertedCount: 0, rateDate: null } })).toBeNull();
+  });
+});
+
+describe("byttetid mellom fly", () => {
+  it("regner eksakt med tidssone, også over sommertidsskifte", () => {
+    // Natt til 25. okt. 2026: klokken stilles fra 03:00 CEST til 02:00 CET.
+    // Å kutte bort tidssonene ville gitt 45 minutter; riktig svar er 105.
+    expect(minutesBetween("2026-10-25T01:30:00+02:00", "2026-10-25T02:15:00+01:00")).toBe(105);
+    expect(minutesBetween("2026-03-29T01:30:00+01:00", "2026-03-29T03:15:00+02:00")).toBe(45);
+    expect(minutesBetween("2026-10-23T08:15:00Z", "2026-10-23T09:10:00Z")).toBe(55);
+  });
+
+  it("uten tidssone på begge: lokal klokkeforskjell på samme flyplass", () => {
+    expect(minutesBetween("2026-10-23T08:15:00", "2026-10-23T10:10:00")).toBe(115);
+    expect(minutesBetween("2026-10-23T08:15", "2026-10-23T10:10")).toBe(115);
+  });
+
+  it("blandet, ugyldig eller baklengs: ingen varighet", () => {
+    expect(minutesBetween("2026-10-23T08:15:00+02:00", "2026-10-23T10:10:00")).toBeNull();
+    expect(minutesBetween("tull", "2026-10-23T10:10:00")).toBeNull();
+    expect(minutesBetween("2026-10-23T10:10:00Z", "2026-10-23T08:15:00Z")).toBeNull();
+  });
+});
+
+describe("kildekoden viser aldri leverandørens beløp", () => {
+  // Strukturell sperre: ingen appkode utenfor tester leser feltene med
+  // utenlandske beløp eller kurser. Da kan de heller ikke havne i grensesnittet.
+  const root = path.resolve(__dirname, "../..");
+  const files = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e: fs.Dirent) => {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) return e.name === "__tests__" || e.name === "test" ? [] : files(full);
+      return /\.(ts|tsx)$/.test(e.name) ? [full] : [];
+    });
+
+  it("ingen bruk av totalAmount, totalCurrency, price.total, price.original, publishedRate eller baseCurrency", () => {
+    const forbidden = /\b(totalAmount|totalCurrency|baseAmount|taxAmount|publishedRate|baseCurrency|quotedPerUnits|penaltyAmount|extraBagPrice|baggageFees)\b|price\.(total|original)\b/;
+    const offenders = files(root).filter((f) => forbidden.test(fs.readFileSync(f, "utf8")));
+    expect(offenders.map((f) => path.relative(root, f))).toEqual([]);
   });
 });
