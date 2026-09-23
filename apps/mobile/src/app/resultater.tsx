@@ -10,7 +10,7 @@ import { fxNotice } from "../lib/price";
 import { addDays, formatClock, fromIsoDate, toIsoDate } from "../lib/format";
 import { ApiError } from "../lib/api";
 import { errorText } from "../lib/errorText";
-import { pricesStale, providerDisplayName, resultKind } from "../lib/resultStatus";
+import { exclusionSummary, pricesStale, providerDisplayName, resultKind } from "../lib/resultStatus";
 import { useA11yLanguage, useI18n } from "../i18n";
 import { cabinLabel, passengerSummary } from "../lib/searchForm";
 import { activeFilterCount, airlineOptions, applyView, clearedFilters, countWith, legThresholds, priceThresholds, SORTS, STOPS, TIME_BANDS, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
@@ -200,6 +200,8 @@ export default function ResultsScreen() {
   const { result, at } = search;
   const all = result.offers;
   const notice = fxNotice(result, i18n);
+  // Tilbud som ikke gjaldt søket (annen flyplass eller dato, manglende retur): sagt rett ut, aldri erstattet.
+  const excluded = exclusionSummary(result, i18n);
   const checkedAt = formatClock(new Date(at));
   const stale = pricesStale(at, now);
   // Korte linjer, så første reise står høyt oppe; valutaforklaringen kan åpnes.
@@ -209,6 +211,7 @@ export default function ResultsScreen() {
     ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
     ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
     ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: r.status.partial, testID: "partial-banner" }] : []),
+    ...(excluded && all.length ? [{ key: "excluded", tone: "info" as const, text: r.status.excluded(excluded.count, excluded.why), testID: "excluded-notice" }] : []),
     // Alt omregnet (bare en opplysning): lukket bak «Om «ca.»-priser»; kortene har «ca.» og kilden.
     // Mangler kronepriser (en advarsel): alltid åpen.
     ...(notice
@@ -330,6 +333,10 @@ export default function ResultsScreen() {
           all.length ? (
             <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(all.length))}>
               <PrimaryButton label={r.clearFilters} testID="reset-filters" onPress={clearFilters} />
+            </StateView>
+          ) : excluded ? (
+            <StateView icon="plane" title={r.status.excludedEmptyTitle} body={r.status.excludedEmptyBody(excluded.count, excluded.why)} testID="results-excluded-empty">
+              <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
             </StateView>
           ) : (
             <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody}>

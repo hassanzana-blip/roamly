@@ -80,6 +80,13 @@ export type MobileFxStatus =
   /** Ingen utenlandske tilbud ble omregnet (kurser utilgjengelige, valuta uten kurs eller ugyldig beløp). */
   | "unavailable";
 
+/**
+ * Hvorfor et tilbud fra leverandøren ikke gjaldt søket og ble holdt utenfor:
+ * «slices» = feil antall strekninger (f.eks. manglende retur), «origin»/«destination» =
+ * reisen starter eller slutter på en annen flyplass enn den kunden valgte, «date» = en annen avreisedag.
+ */
+export type MobileExclusionReason = "slices" | "origin" | "destination" | "date";
+
 export interface MobileSearchResult {
   offerRequestId: string;
   provider?: FlightSource;
@@ -93,6 +100,11 @@ export interface MobileSearchResult {
   passengers: SearchPassengerInput[];
   /** Sammenlignbare tilbud først, stigende NOK-pris; deretter tilbud uten NOK-pris i leverandørens rekkefølge. */
   offers: MobileOffer[];
+  /**
+   * Tilbud leverandøren sendte som ikke gjelder søket (se MobileExclusionReason). De er ikke med i `offers`
+   * og blir aldri erstattet av andre priser. Antall per grunn (første grunn per tilbud). Mangler fra eldre servere.
+   */
+  excluded?: { count: number; reasons: Partial<Record<MobileExclusionReason, number>> };
   fx: {
     status: MobileFxStatus;
     /** Antall utenlandske tilbud uten NOK-pris. 0 når status er «ok» eller «not_needed». */

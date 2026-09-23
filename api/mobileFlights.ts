@@ -5,8 +5,9 @@ import { toTRPCError } from "./lib/errors";
 import { computeServiceFeeMinor, loadPricingOverrides, type PricingOverrides } from "./lib/pricing";
 import { fromMinor, toMinor } from "./lib/money";
 import { convertToNok, getNokRates, type FxTable } from "./lib/fxRates";
+import { requestMismatch } from "./lib/requestMatch";
 import type { Offer } from "../contracts/types";
-import { NORGES_BANK_SOURCE, type MobileFxStatus, type MobileOffer, type MobileOfferPrice, type MobileSearchResult } from "../contracts/mobileSearch";
+import { NORGES_BANK_SOURCE, type MobileExclusionReason, type MobileFxStatus, type MobileOffer, type MobileOfferPrice, type MobileSearchResult } from "../contracts/mobileSearch";
 
 // ─── Appens flysøk: NOK-sammenligning ────────────────────────────────────────
 // Samme søk som nettet (runFlightSearch: validering, rategrense, leverandørvalg,
@@ -74,11 +75,20 @@ export function sortByNok(offers: MobileOffer[]): MobileOffer[] {
 
 export async function mobileFlightSearch(input: (typeof mobileSearchSchema)["_output"], ctx: TrpcContext, now: Date = new Date()): Promise<MobileSearchResult> {
   const result = await runFlightSearch({ ...input, currency: "NOK" }, ctx);
-  const needsFx = result.offers.some((o) => o.totalCurrency.trim().toUpperCase() !== "NOK");
+  // Bare tilbud som gjelder søket: kundens flyplasser, datoer og alle strekninger. Resten telles, vises ikke,
+  // og erstattes ikke av noe annet. Tilbudene som slipper gjennom er urørt (id, pris, lenke og klikkmåling).
+  const reasons: Partial<Record<MobileExclusionReason, number>> = {};
+  const matching = result.offers.filter((offer) => {
+    const reason = requestMismatch(offer, input.slices);
+    if (reason) reasons[reason] = (reasons[reason] ?? 0) + 1;
+    return reason === null;
+  });
+  const excludedCount = result.offers.length - matching.length;
+  const needsFx = matching.some((o) => o.totalCurrency.trim().toUpperCase() !== "NOK");
   const [overrides, table] = await Promise.all([loadPricingOverrides(), needsFx ? getNokRates(now) : Promise.resolve(null)]);
 
   const offers = sortByNok(
-    result.offers.map((offer) => {
+    matching.map((offer) => {
       const price = offerPrice(offer, overrides, table, now);
       return { offer, price, comparable: price.nok.kind !== "unavailable" };
     }),
@@ -99,6 +109,7 @@ export async function mobileFlightSearch(input: (typeof mobileSearchSchema)["_ou
     slices: result.slices,
     passengers: result.passengers,
     offers,
+    excluded: { count: excludedCount, reasons },
     fx: { status, unconvertedCount, source: NORGES_BANK_SOURCE, rateDate: usedDates.length ? usedDates.sort().at(-1)! : null, indicative: true },
   };
 }

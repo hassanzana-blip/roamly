@@ -1,4 +1,5 @@
 import type { MobileSearchResult } from "@contracts/mobileSearch";
+import type { I18n } from "../i18n";
 
 /**
  * Hva slags resultater dette er, slik serveren faktisk oppgir det:
@@ -33,3 +34,20 @@ export const STALE_AFTER_MS = 15 * 60_000;
 export function pricesStale(at: number, now: number = Date.now()): boolean {
   return now - at > STALE_AFTER_MS;
 }
+
+/**
+ * Tilbud serveren holdt utenfor fordi de ikke gjaldt søket (se MobileSearchResult.excluded): antall og en kort,
+ * sann grunn på kundens språk. null når ingenting ble holdt utenfor (eller serveren er eldre og ikke sier det).
+ */
+export function exclusionSummary(r: Pick<MobileSearchResult, "excluded" | "slices">, { t }: Pick<I18n, "t">): { count: number; why: string } | null {
+  const ex = r.excluded;
+  if (!ex || ex.count <= 0) return null;
+  const w = t.results.screen.status.excludedWhy;
+  const why: string[] = [];
+  if (ex.reasons.origin || ex.reasons.destination) why.push(w.airport);
+  if (ex.reasons.date) why.push(w.date);
+  // Feil antall strekninger: ved tur-retur mangler hjemreisen; ved en vei har tilbudet en strekning for mye.
+  if (ex.reasons.slices) why.push(r.slices.length > 1 ? w.noReturn : w.extraLeg);
+  return { count: ex.count, why: why.join(", ") };
+}
+

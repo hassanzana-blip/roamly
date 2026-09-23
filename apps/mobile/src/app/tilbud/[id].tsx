@@ -15,6 +15,7 @@ import { dayOffset, formatTime, minutesBetween } from "../../lib/format";
 import { priceDisplay, serviceFeeNokMinor } from "../../lib/price";
 import { journeyWarnings, type JourneyWarning } from "../../lib/warnings";
 import { singleFlight } from "../../lib/singleFlight";
+import { useExpiryClock } from "../../lib/useExpiryClock";
 import { webSearchUrl } from "../../lib/webLinks";
 import { providerDisplayName, resultKind } from "../../lib/resultStatus";
 import { useA11yLanguage, useI18n, type I18n } from "../../i18n";
@@ -328,6 +329,10 @@ export default function OfferScreen() {
     if (!result || !id) return null;
     return journeyOf(applyView(result.offers, view), id) ?? journeyOf(result.offers, id);
   }, [result, view, id]);
+  const selectedItem = journey ? (journey.sellers.find((s) => s.item.offer.id === (chosen ?? id))?.item ?? journey.best) : null;
+  // Utløpet til den valgte selgerens tilbud vises i det øyeblikket det skjer, også om skjermen bare står åpen
+  // eller appen har vært i bakgrunnen.
+  const refreshExpiry = useExpiryClock(selectedItem?.offer.expiresAt);
 
   if (!result || !journey) {
     return (
@@ -345,7 +350,7 @@ export default function OfferScreen() {
     );
   }
 
-  const selected = journey.sellers.find((s) => s.item.offer.id === (chosen ?? id))?.item ?? journey.best;
+  const selected = selectedItem!;
   const { offer, price } = selected;
   const handoff = providerHandoff(offer);
   const expired = offerExpired(offer);
@@ -377,8 +382,15 @@ export default function OfferScreen() {
     Share.share({ message: dt.shareMessage(out.origin.city, out.destination.city, when, d.primary, basis.toLowerCase(), offer.owner.name, webSearchUrl(offer)) }).catch(() => undefined);
   };
 
-  const open = () => {
-    if (handoff.kind === "external") void openOnce(handoff.url, offer.id);
+  // «Gå til tilbud»: er tilbudet utløpt i det øyeblikket kunden trykker (skjermen rakk ikke å vise det), åpnes
+  // ingenting og ingenting måles – advarselen vises, og videre går bare via det uttrykkelige «Gå til … likevel».
+  const open = (continueExpired = false) => {
+    if (handoff.kind !== "external") return;
+    if (!continueExpired && offerExpired(offer)) {
+      refreshExpiry();
+      return;
+    }
+    void openOnce(handoff.url, offer.id);
   };
 
   // Utløpt pris: det ekte alternativet er et nytt søk (samme skjema) – ingen oppdiktet «oppdater pris».
@@ -551,7 +563,7 @@ export default function OfferScreen() {
               accessibilityLabel={handoffLabel(handoff, i18n)}
               icon="external"
               loading={opening}
-              onPress={open}
+              onPress={() => open()}
               accessibilityHint={dt.handoffHint}
               style={styles.barAction}
             />
@@ -567,7 +579,7 @@ export default function OfferScreen() {
           ) : null}
         </View>
         {expired && handoff.kind === "external" ? (
-          <LinkButton dark testID="handoff-button" label={dt.openAnyway(handoff.providerName)} accessibilityLabel={dt.openAnyway(handoff.providerName)} onPress={open} />
+          <LinkButton dark testID="handoff-button" label={dt.openAnyway(handoff.providerName)} accessibilityLabel={dt.openAnyway(handoff.providerName)} onPress={() => open(true)} />
         ) : null}
         <Text style={[type.caption, { color: colors.onDarkMuted }]} testID={handoff.kind === "external" ? "handoff-note" : handoff.kind === "invalid_link" ? "handoff-invalid" : "handoff-not-in-app"}>
           {handoff.kind === "external" ? <Text style={{ color: colors.onDark, fontWeight: "600" }} testID="bar-provider">{`${handoff.providerName} · `}</Text> : null}

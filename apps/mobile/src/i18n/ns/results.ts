@@ -78,6 +78,14 @@ const en = {
       checked: (time: string) => `Prices checked at ${time}`,
       stale: (time: string) => `Prices checked at ${time} may have changed.`,
       refresh: "Refresh prices",
+      /** Tilbud serveren holdt utenfor fordi de ikke gjaldt søket (annen flyplass, dato, manglende retur). */
+      excluded: (n: number, why: string) => (n === 1 ? `1 offer from the provider didn't match your search (${why}) and isn't shown.` : `${n} offers from the provider didn't match your search (${why}) and aren't shown.`),
+      excludedWhy: { airport: "different airport", date: "different date", noReturn: "no return flight", extraLeg: "an extra flight" },
+      excludedEmptyTitle: "No journeys matched your search",
+      excludedEmptyBody: (n: number, why: string) =>
+        n === 1
+          ? `The provider answered, but its only offer wasn't for your airports and dates (${why}). Try other dates or another airport.`
+          : `The provider answered, but none of its ${n} offers were for your airports and dates (${why}). Try other dates or another airport.`,
     },
   },
 };
@@ -159,6 +167,13 @@ const nb: typeof en = {
       checked: (time) => `Prisene sjekket kl. ${time}`,
       stale: (time) => `Prisene fra kl. ${time} kan ha endret seg.`,
       refresh: "Oppdater prisene",
+      excluded: (n, why) => `${n} tilbud fra tilbyderen gjaldt ikke søket ditt (${why}) og vises ikke.`,
+      excludedWhy: { airport: "annen flyplass", date: "annen dato", noReturn: "uten hjemreise", extraLeg: "en ekstra strekning" },
+      excludedEmptyTitle: "Ingen reiser passet søket",
+      excludedEmptyBody: (n, why) =>
+        n === 1
+          ? `Tilbyderen svarte, men det ene tilbudet gjaldt ikke flyplassene og datoene du valgte (${why}). Prøv andre datoer eller en annen flyplass.`
+          : `Tilbyderen svarte, men ingen av de ${n} tilbudene gjaldt flyplassene og datoene du valgte (${why}). Prøv andre datoer eller en annen flyplass.`,
     },
   },
 };

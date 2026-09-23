@@ -379,3 +379,150 @@ describe("mobil flights.trackProviderClick: nettets klikkmåling, urørt", () =>
     expect(kayakRows).toHaveLength(CLICKS_PER_OFFER);
   });
 });
+
+// ─── Bare tilbud som gjelder søket ──────────────────────────────────────────
+// Produksjon (23. sep): OSL→BCN 28.10 ga også kort fra TRF (Torp). KAYAK bes om
+// eksakte flyplasser og datoer; appen viser bare tilbud som faktisk gjelder dem.
+
+describe("mobil flights.search: bare tilbud som gjelder kundens flyplasser og datoer", () => {
+  const OUT = TOMORROW_PLUS(35);
+  const BACK = TOMORROW_PLUS(42);
+  const RT = { ...INPUT, slices: [{ origin: "OSL", destination: "BCN", departureDate: OUT }, { origin: "BCN", destination: "OSL", departureDate: BACK }] };
+  const shiftDay = (iso: string, days: number) => {
+    const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return `${d.toISOString().slice(0, 10)}${iso.slice(10)}`;
+  };
+  type Edit = (o: Offer) => void;
+  const roundTrip = (id: string, amount: string, edit?: Edit): Offer => {
+    const o = structuredClone(demoSearch(RT).offers[0]);
+    Object.assign(o, { id, totalAmount: amount, totalCurrency: "NOK", source: "kayak", booking: { kind: "external", url: `https://www.kayak.no/book/${id}`, provider: { code: "NO", name: "Norwegian" }, sellerKind: "airline" } });
+    edit?.(o);
+    return o;
+  };
+  const point = (iata: string) => ({ iata, name: `${iata} lufthavn`, city: iata, country: "X", lat: 0, lng: 0 });
+  /** Hele strekningen starter på en annen flyplass (både oppsummering og første flyvning). */
+  const startAt = (slice: number, iata: string): Edit => (o) => {
+    o.slices[slice].origin = point(iata);
+    o.slices[slice].segments[0].origin = point(iata);
+  };
+  const endAt = (slice: number, iata: string): Edit => (o) => {
+    o.slices[slice].destination = point(iata);
+    o.slices[slice].segments.at(-1)!.destination = point(iata);
+  };
+  const dayLater = (slice: number): Edit => (o) => {
+    for (const seg of o.slices[slice].segments) {
+      seg.departingAt = shiftDay(seg.departingAt, 1);
+      seg.arrivingAt = shiftDay(seg.arrivingAt, 1);
+    }
+    o.slices[slice].departingAt = shiftDay(o.slices[slice].departingAt, 1);
+    o.slices[slice].arrivingAt = shiftDay(o.slices[slice].arrivingAt, 1);
+  };
+  /** Ekte flyplassbytte underveis: lander LGW, flyr videre fra LHR. Endepunktene er kundens. */
+  const layoverChange: Edit = (o) => {
+    const s = o.slices[0];
+    const first = s.segments[0];
+    s.segments = [
+      { ...first, id: `${first.id}-a`, destination: point("LGW") },
+      { ...first, id: `${first.id}-b`, origin: point("LHR"), destination: s.destination, departingAt: first.departingAt.slice(0, 11) + "23:10:00" },
+    ];
+    s.stops = 1;
+  };
+
+  function mixedResult(): SearchResult {
+    return {
+      offerRequestId: "orq_mixed",
+      liveMode: false,
+      demoMode: false,
+      cabinClass: "economy",
+      slices: RT.slices,
+      passengers: RT.passengers,
+      provider: "kayak",
+      sandbox: true,
+      bookingMode: "external",
+      offers: [
+        roundTrip("kyk_s.trf_out", "900.00", startAt(0, "TRF")),
+        roundTrip("kyk_s.ok_1", "2100.00"),
+        roundTrip("kyk_s.gro_dest", "950.00", endAt(0, "GRO")),
+        roundTrip("kyk_s.trf_home", "990.00", endAt(1, "TRF")),
+        roundTrip("kyk_s.out_date", "1000.00", dayLater(0)),
+        roundTrip("kyk_s.back_date", "1010.00", dayLater(1)),
+        roundTrip("kyk_s.no_return", "700.00", (o) => void (o.slices = o.slices.slice(0, 1))),
+        // Oppsummeringen sier OSL, men første flyvning går fra TRF: gjelder ikke søket.
+        roundTrip("kyk_s.seg_trf", "880.00", (o) => void (o.slices[0].segments[0].origin = point("TRF"))),
+        roundTrip("kyk_s.layover", "1990.00", layoverChange),
+        roundTrip("kyk_s.ok_2", "2300.00"),
+      ],
+    };
+  }
+
+  beforeEach(async () => {
+    await truncateAll();
+    resetFxCache();
+    setFxFetcher(async () => norgesBankFixture(TEST_RATES, osloDate(new Date())));
+  });
+  afterAll(async () => {
+    setFxFetcher(null);
+    await closeDb();
+  });
+
+  it("tur-retur: feil flyplass (TRF), feil ankomst, feil dato ut eller hjem og manglende retur holdes utenfor; flyplassbytte underveis er med", async () => {
+    const providedResult = mixedResult();
+    useProvider(providedResult);
+    const res = await mobile(mobileCtx()).flights.search(RT);
+    expect(res.offers.map((o) => o.offer.id)).toEqual(["kyk_s.layover", "kyk_s.ok_1", "kyk_s.ok_2"]);
+    expect(res.excluded).toEqual({ count: 7, reasons: { origin: 2, destination: 2, date: 2, slices: 1 } });
+    // Det som vises er leverandørens tilbud, urørt: beløp, lenke og begge strekninger.
+    const ok1 = res.offers.find((o) => o.offer.id === "kyk_s.ok_1")!;
+    expect(ok1.offer).toEqual(providedResult.offers[1]);
+    expect(ok1.price.nok).toEqual({ kind: "exact", currency: "NOK", amountMinor: 210000, estimate: false });
+    expect(res.offers.find((o) => o.offer.id === "kyk_s.layover")!.offer.slices[0].segments.map((s) => [s.origin.iata, s.destination.iata])).toEqual([
+      ["OSL", "LGW"],
+      ["LHR", "BCN"],
+    ]);
+    // Ingen reservepriser: ingenting utenfor leverandørens svar.
+    const provided = new Set(providedResult.offers.map((o) => o.id));
+    expect(res.offers.every((o) => provided.has(o.offer.id))).toBe(true);
+    expect(res.fx.status).toBe("not_needed");
+  });
+
+  it("en vei: bare returens fravær er riktig; et tilbud med to strekninger gjelder ikke et envegssøk", async () => {
+    const oneWay = { ...INPUT, slices: [RT.slices[0]] };
+    useProvider({
+      ...mixedResult(),
+      slices: oneWay.slices,
+      offers: [roundTrip("kyk_s.rt", "2000.00"), roundTrip("kyk_s.ow", "1200.00", (o) => void (o.slices = o.slices.slice(0, 1))), roundTrip("kyk_s.ow_trf", "800.00", (o) => {
+        o.slices = o.slices.slice(0, 1);
+        startAt(0, "TRF")(o);
+      })],
+    });
+    const res = await mobile(mobileCtx()).flights.search(oneWay);
+    expect(res.offers.map((o) => o.offer.id)).toEqual(["kyk_s.ow"]);
+    expect(res.excluded).toEqual({ count: 2, reasons: { slices: 1, origin: 1 } });
+  });
+
+  it("alt holdes utenfor: tom liste med antall og grunner, ingen demopriser i stedet", async () => {
+    useProvider({ ...mixedResult(), offers: mixedResult().offers.filter((o) => !["kyk_s.ok_1", "kyk_s.ok_2", "kyk_s.layover"].includes(o.id)) });
+    const res = await mobile(mobileCtx()).flights.search(RT);
+    expect(res.offers).toEqual([]);
+    expect(res.excluded).toEqual({ count: 7, reasons: { origin: 2, destination: 2, date: 2, slices: 1 } });
+    expect(res).toMatchObject({ provider: "kayak", sandbox: true, demoMode: false });
+  });
+
+  it("klikkmålingen for et tilbud som vises er uendret", async () => {
+    useProvider(mixedResult());
+    await mobile(mobileCtx()).flights.search(RT);
+    const { clickRef } = await mobile(mobileCtx()).flights.trackProviderClick({ offerId: "kyk_s.ok_1", sessionId: "app-okt-match" });
+    expect(clickRef).toMatch(/^[0-9a-f-]{36}$/);
+    const [row] = await getDb().select().from(providerClicks);
+    expect(row).toMatchObject({ clickRef, provider: "kayak", sellerName: "Norwegian", originIata: "OSL", destinationIata: "BCN", departDate: OUT, shownPriceMinor: 210000, currency: "NOK" });
+  });
+
+  it("nettets søk er uendret: alle leverandørens tilbud, også TRF-kortet", async () => {
+    const provided = mixedResult();
+    useProvider(provided);
+    const res = await web(makeCtx()).flights.search(RT);
+    expect(res.offers.map((o) => o.id)).toEqual(provided.offers.map((o) => o.id));
+    expect(res).not.toHaveProperty("excluded");
+  });
+});
