@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { Text } from "react-native";
 import type { Airport } from "@contracts/airports";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
@@ -30,8 +30,11 @@ function controlledAirports() {
     await waitFor(() => expect(pending.has(query)).toBe(true));
     const p = pending.get(query)!;
     pending.delete(query);
-    if (result instanceof Error) p.reject(result);
-    else p.resolve(result);
+    // Svaret leveres inne i act(), så React fullfører oppdateringene før testen går videre.
+    await act(async () => {
+      if (result instanceof Error) p.reject(result);
+      else p.resolve(result);
+    });
   };
   return { factory, calls, answer, airports };
 }
@@ -86,7 +89,7 @@ describe("flyplassøk: bare treff for det som står i feltet nå", () => {
     await waitFor(() => expect(screen.getByTestId("airport-BCN")).toBeOnTheScreen());
 
     await api.answer("osl", [OSL]); // kommer etter det nye svaret
-    await new Promise((r) => setTimeout(r, 50));
+    await act(() => new Promise<void>((r) => setTimeout(r, 50)));
     expect(screen.queryByTestId("airport-OSL")).toBeNull();
     expect(screen.getByTestId("airport-BCN")).toBeOnTheScreen();
   });
@@ -117,7 +120,7 @@ describe("flyplassøk: bare treff for det som står i feltet nå", () => {
     await fireEvent.changeText(screen.getByTestId("airport-query"), "  bar ");
     expect(screen.getByTestId("airport-BCN")).toBeOnTheScreen();
     expect(screen.queryByTestId("airport-loading")).toBeNull();
-    await new Promise((r) => setTimeout(r, 400));
+    await act(() => new Promise<void>((r) => setTimeout(r, 400)));
     expect(api.calls).toEqual(["bar"]);
   });
 
@@ -125,7 +128,7 @@ describe("flyplassøk: bare treff for det som står i feltet nå", () => {
     const api = controlledAirports();
     await renderPicker(api.factory);
     await fireEvent.changeText(screen.getByTestId("airport-query"), "b");
-    await new Promise((r) => setTimeout(r, 400));
+    await act(() => new Promise<void>((r) => setTimeout(r, 400)));
     expect(api.calls).toEqual([]);
     expect(screen.queryByTestId("airport-loading")).toBeNull();
   });
