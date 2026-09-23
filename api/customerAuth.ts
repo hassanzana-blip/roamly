@@ -324,13 +324,14 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
   const firstName = input.firstName.trim();
   const lastName = input.lastName.trim();
   const locale = input.locale ?? "nb";
+  const referralCode = genReferralCode();
   const result = await db.insert(customerAccounts).values({
     email: id.kind === "email" ? id.value : null,
     phone: id.kind === "phone" ? id.value : null,
     passwordHash,
     firstName,
     lastName,
-    referralCode: genReferralCode(),
+    referralCode,
     referredById: referrerId,
     bonusKr: 0,
     locale,
@@ -373,6 +374,8 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
     lastName,
     emailVerified: false,
     bonusKr: 0,
+    // Samme profil som me gir etterpå – også henvisningskoden, som tidligere manglet i svaret.
+    referralCode,
     locale,
     marketingConsentAt: input.marketingConsent ? new Date() : null,
   });
