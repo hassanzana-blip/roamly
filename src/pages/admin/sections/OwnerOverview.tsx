@@ -159,7 +159,7 @@ const PHOTO_BY_IATA = new Map(ALL_DESTINATIONS.filter((d) => d.image).map((d) =>
 
 function RouteThumb({ iata }: { iata: string }) {
   const dest = PHOTO_BY_IATA.get(iata);
-  if (!dest) {
+  if (!dest?.image) {
     return (
       <span className="grid h-[30px] w-[38px] shrink-0 place-items-center rounded-lg bg-muted text-[10px] font-semibold tracking-wide text-subtle" aria-hidden="true">
         {iata}

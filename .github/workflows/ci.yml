@@ -47,6 +47,8 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm test
+      - name: Mobile deployment readiness checker tests
+        run: node --test scripts/mobile-readiness.test.mjs
       - name: Integration tests (MySQL)
         run: npm run test:it
         env:

@@ -153,10 +153,16 @@ describe("statiske filer: cache-headere (OTA-092)", () => {
     expect(root.status).toBe(200);
     expect(root.headers.get("cache-control")).toBe("no-cache");
 
-    const spa = await staticApp.request("/bestilling/abc", { headers: { accept: "text/html" } });
+    // /bestilling/:id is not an app route. Only real routes get the SPA shell
+    // with 200; unknown URLs must keep the deliberate SEO 404 behavior.
+    const spa = await staticApp.request("/tilbud/abc", { headers: { accept: "text/html" } });
     expect(spa.status).toBe(200);
     expect(spa.headers.get("cache-control")).toBe("no-cache");
     expect(await spa.text()).toContain("<title>it</title>");
+
+    const missing = await staticApp.request("/bestilling/abc", { headers: { accept: "text/html" } });
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get("x-robots-tag")).toBe("noindex");
 
     const redirect = await staticApp.request("/index.html");
     expect(redirect.status).toBe(301);
