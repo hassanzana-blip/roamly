@@ -224,3 +224,76 @@ caption bar).
 
 The "after" and density sets above were made while English was the default
 (`79c2730` to `3f3d884`). The "before" set predates English.
+
+## Core-flow corrections (dad15c4)
+
+Same method as the `d99568d` section: fixture, fresh browser profile per
+width, «Søk fly» label check, simulated safe area checked inside the app,
+and the traceable first-card flow (`dy_eve`, four times, bar price). It was
+captured from a clean worktree at `dad15c4`, the commit that contains all
+the code of this stage. Three additions:
+- **320 × 568**, Results only, in Bokmål (fresh install) and English (chosen
+  in Profile). The safe area is 20/0 pt, as on an iPhone SE with Display
+  Zoom.
+- **Grouped journey** at 393 pt: the details of `gtg_dy`, two sellers,
+  captured in a tall viewport so the whole comparison shows. The script
+  then switches seller and records the bar and the Baggage/Terms tabs.
+- **Enlarged text** at 393 pt: CSS `zoom: 1.35` on every text block, so
+  text grows and the layout reflows. This approximates larger text. It is
+  not iOS Dynamic Type.
+
+The script also scrolls each result list to the end and checks that the
+last card ends above the floating bar. It checks that no text is clipped,
+that nothing overflows sideways, and which controls are under 44 pt before
+`hitSlop`.
+
+| Check (pt, with the simulated safe area) | 375 × 812 | 393 × 852 | 430 × 932 | Result |
+|---|---|---|---|---|
+| Home: «Utforsk reisemål» above the tab bar; photo of the first card visible | 610–634 < 721; 77 | 619–643 < 761; 108 | 619–643 < 841; 132 | PASSED (≥ 40) |
+| Home: «Søk fly» (52) bottom / tab bar top | 562 / 721 | 571 / 761 | 571 / 841 | PASSED |
+| Home: route box / date and traveller tiles | 84 / 52 | 84 / 52 | 84 / 52 | – |
+| Home: empty destination «Velg» | dark text (#111214), 22 pt | same | same | PASSED |
+| Results: total and «Detaljer» pill bottom / floating bar top | 453, 469 / 712 | 462, 478 / 752 | 462, 478 / 832 | PASSED |
+| Results: second card visible | 90 % | 100 % | 100 % | PASSED (≥ 90 %) |
+| Results: «Om «ca.»-priser» row | 44 | 44 | 44 | PASSED |
+| Results: last card fully above the bar after scrolling | yes | yes | yes | PASSED |
+| Details: sticky bar height, including the 34 pt inset | 131 | 131 | 131 | PASSED (≤ 135) |
+| Details: price and «Gå til tilbud» on one row; provider named | yes; «Norwegian · Bestillingen fullføres hos tilbyderen.» | same | same | PASSED |
+| Clipped text / horizontal overflow | none / none | none / none | none / none | PASSED |
+
+| Other check | Measured | Result |
+|---|---|---|
+| 320 × 568 nb: total and pill bottom / bar top | 477, 493 / 502 | PASSED |
+| 320 × 568 en: total and pill bottom / bar top | 441, 457 / 502 | PASSED |
+| 135 % text at 393 × 852 | Home: heading above the tab bar, 52 pt of photo. Details bar grows to 192 pt; texts wrap, none is cut. | PASSED |
+| Grouped `gtg_dy`: seller comparison before «Reiseinformasjon»; each seller's baggage complete | Gotogate: «Håndbagasje inkludert · Innsjekket bagasje: ikke oppgitt», 2 390 kr. Norwegian: «Håndbagasje inkludert · Uten innsjekket bagasje», 2 490 kr. | PASSED |
+| Switching seller (Gotogate → Norwegian) | Bar 2 390 → 2 490 kr and «Gotogate ·» → «Norwegian ·». Action name «Gå til tilbud hos Gotogate» → «… hos Norwegian». Baggage tab: checked bag «Ikke inkludert». The Terms tab disappears, because Norwegian's offer states no conditions. | PASSED |
+
+Controls whose visible box is under 44 pt, and how they reach 44:
+- **Icon buttons (40 pt):** `hitSlop` 4, inside unclipped headers, so 48.
+- **Filter chips (36 pt):** `hitSlop` 4. The chip row now has 4 pt above and
+  6 pt below the chips, so the whole area is inside the scroll view, which
+  clips on iOS. That makes 44.
+- Nothing else in the first screen is under 44.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `nb-dad15c4-375-1-home.png` | `6ae88052621d879e…` | 750×1758 |
+| `nb-dad15c4-375-2-results.png` | `566d2fbfc8130e0a…` | 750×1758 |
+| `nb-dad15c4-375-3-details.png` | `eae133b4d332ba96…` | 750×1758 |
+| `nb-dad15c4-393-1-home.png` | `bc9899e439f27bf6…` | 786×1838 |
+| `nb-dad15c4-393-2-results.png` | `260a3fa330063275…` | 786×1838 |
+| `nb-dad15c4-393-3-details.png` | `7213fee5d52ad98f…` | 786×1838 |
+| `nb-dad15c4-393-4-grouped-sellers.png` | `44514ca72b7a687d…` | 786×3534 |
+| `nb-dad15c4-393-5-details-text135.png` | `0fa8cbde69c3192b…` | 786×1832 |
+| `nb-dad15c4-430-1-home.png` | `938b6d5f8d17ea94…` | 860×1969 |
+| `nb-dad15c4-430-2-results.png` | `3ea8a346db15b8bc…` | 860×1998 |
+| `nb-dad15c4-430-3-details.png` | `afd78adcd535f07c…` | 860×1998 |
+| `nb-dad15c4-320-2-results.png` | `ff069821a6d2621a…` | 640×1292 |
+| `en-dad15c4-320-2-results.png` | `1c94dce04f803d04…` | 640×1292 |
+
+Not checked here:
+- An iPhone or simulator: SF Pro, the real safe area, VoiceOver, and real
+  Dynamic Type sizes.
+- Offers with more travellers or long provider names. The fixture has one
+  adult and short names; the tests cover wrapping instead of clipping.

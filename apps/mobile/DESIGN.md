@@ -108,15 +108,18 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 
 1. **Hjem** (`src/app/(tabs)/index.tsx`): foto øverst (vinge over skylaget), hilsen med kundens fornavn når
    innlogget – ellers bare «God kveld» osv. – og hvitt søkeark: `Tur-retur | Én vei`, Fra/Til med bytt,
-   Avreise/Retur, Reisende/Reiseklasse, «Søk fly». Under: reisemål som søker direkte.
+   Avreise/Retur, Reisende/Reiseklasse, «Søk fly» og én linje om at man ikke må logge inn. Under: reisemål som søker
+   direkte, og til slutt en kort forklaring av hvordan HelloSky virker.
 2. **Resultater** (`src/app/resultater.tsx`): mørk grunn, rute og søk i toppen (+ «DEMO»), brikker (Alle, Direkte,
-   Maks 1 mellomlanding, Bagasje inkludert), korte meldinger, antall reiser/tilbud og sortering. Ett hvitt kort per
+   Maks 1 mellomlanding, Bagasje inkludert), korte meldinger (demo, «Om «ca.»-priser» som en rad på 44 pt), antall
+   reiser/tilbud og gjeldende sortering som tekst. Ett hvitt kort per
    reise; samme reise hos flere tilbydere vises én gang med billigste pris og «N tilbydere». Flytende verktøylinje:
    Filtrer / Sorter / Datoer.
 3. **Flydetaljer** (`src/app/tilbud/[id].tsx`): fotokort med selskap, utreisen i store tall og hjemreisen under;
-   faner Oversikt / Bagasje / Vilkår (bare når tilbyderen oppga vilkår) / Reiseplan; fast bunnlinje med pris,
-   prisgrunnlag og «Se tilbud hos [tilbyder]» → leverandørens egen lenke i Safari-visning, målt med nettets
-   `flights.trackProviderClick`.
+   faner Oversikt / Bagasje / Vilkår (bare når tilbyderen oppga vilkår) / Reiseplan. Flere selgere av samme reise:
+   sammenligningen står først i Oversikt. Fast bunnlinje: pris og grunnlag til venstre, «Gå til tilbud» til høyre,
+   og under «[tilbyder] · Bestillingen fullføres hos tilbyderen.». Handlingen åpner leverandørens egen lenke i
+   Safari-visning, målt med nettets `flights.trackProviderClick`. VoiceOver hører «Gå til tilbud hos [tilbyder]».
 
 I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`) og Profil
 (`(tabs)/profil.tsx`, innlogging og fotokreditering).
@@ -170,36 +173,34 @@ sporingspolicy), bagasje som søkevalg (søket tar ikke imot bagasje; vi filtrer
 resultatene). Multi-city er en ny funksjon og hører ikke til denne runden.
 
 **Målt slik:** fiksturen (demo, Oslo → Barcelona, 5 tilbud) med vanlig tekststørrelse, ved 375 × 812, 393 × 852
-og 430 × 932.
+og 430 × 932, pluss Resultater ved 320 × 568.
 - Ny installasjon: ingen lagret språk.
 - react-native-web i Chromium, med Inter i stedet for SF Pro.
-- Simulert safe area øverst/nederst: 50/34 pt ved 375, 59/34 pt ved 393 og 430.
+- Simulert safe area øverst/nederst: 50/34 pt ved 375, 59/34 ved 393 og 430, 20/0 ved 320.
 - Tall i punkter fra toppen av skjermen.
-- Commit `d99568d`. Bildene ligger i `docs/evidence` (`nb-d99568d-*`), metoden står i `MANIFEST.md`.
+- Commit `dad15c4`. Bildene er `nb-dad15c4-*` og `en-dad15c4-*` i `docs/evidence`; metoden står i `MANIFEST.md`.
 - Ikke målt på iPhone ennå.
-
-Målene er forslag til Codex og eieren. ✗ betyr at vi ikke når målet i dag.
 
 | # | Krav | Mål | Målt 375 / 393 / 430 |
 |---|---|---|---|
 | H1 | Ny installasjon er på norsk | «Søk fly», ingen lagret språk | ja / ja / ja |
-| H2 | Fotohodet er kompakt | ≤ 230 pt pluss safe area øverst | 226 + innfelling (276 / 285 / 285) |
-| H3 | «Søk fly» er ett blått hovedvalg og synlig uten rulling | 52 pt, bunn over fanemenyen | 628 < 721 / 637 < 761 / 637 < 841 |
-| H4 | Reisemålene synes i første bilde | ≥ 40 pt av første kort over menyen (referansen på en 852 pt skjerm: ~47) | ✗ 0 / ✗ 0 / 50 |
-| H5 | Reisemålskort uten oppdiktet pris | «Se flyreiser» | ja |
+| H2 | Fotohodet er kompakt | ≤ 230 pt pluss safe area øverst | 202 + innfelling (252 / 261 / 261) |
+| H3 | «Søk fly» er ett blått hovedvalg og synlig uten rulling | 52 pt, bunn over fanemenyen | 562 < 721 / 571 < 761 / 571 < 841 |
+| H4 | «Utforsk reisemål» og foto i første bilde | overskriften og ≥ 40 pt av første kort over menyen | 77 / 108 / 132 pt |
+| H5 | Reisemålskort uten oppdiktet pris; tomt reisemål i vanlig mørk tekst | «Se flyreiser»; «Velg» ikke blå | ja |
 | R1 | Første reise viser begge etapper | «UT · dato» og «HJEM · dato» med tider, rute og stopp | ja / ja / ja |
-| R2 | Totalpris med grunnlag nede til venstre, «Detaljer» nede til høyre | «Totalt for 1 voksen · Tur-retur»; pillen ≥ 44 pt | ja; pillen 113 × 44 |
-| R3 | Totalpris og «Detaljer» over den flytende linjen | bunn ≤ linjens topp | 495 < 712 / 504 < 752 / 504 < 832 |
-| R4 | Neste reise er synlig før rulling | ≥ 90 % | ✗ 68 % / ✗ 79 % / 100 % |
-| R5 | Grupperte reiser, tilbud per selger | «N reiser · M tilbud» | «4 reiser · 5 tilbud» |
-| R6 | Flytende linje: Filtrer / Sorter / Datoer | hver ≥ 44 pt, ingen «Kart» | 44 / 44 / 44 |
+| R2 | Totalpris med grunnlag nede til venstre, «Detaljer» nede til høyre | «Totalt for 1 voksen · Tur-retur»; pillen ≥ 44 pt | ja; pillen 44 pt høy |
+| R3 | Totalpris og «Detaljer» over den flytende linjen, også ved 320 | bunn ≤ linjens topp | 469 < 712 / 478 < 752 / 478 < 832; 320 nb 493 < 502, en 457 < 502 |
+| R4 | Neste reise er synlig før rulling | ≥ 90 % | 90 % / 100 % / 100 % |
+| R5 | Grupperte reiser, tilbud per selger | «N reiser · M tilbud»; selgerne først i detaljene | «4 reiser · 5 tilbud»; ja |
+| R6 | Flytende linje: Filtrer / Sorter / Datoer; siste kort kan rulles fram over den | hver ≥ 44 pt, ingen «Kart» | ja |
 | R7 | Demo-varselet er alltid synlig | ikke skjult eller forkortet | ja |
 | D1 | Detaljene gjelder kortet man trykket på | `/tilbud/<id>`, samme tider og pris | `dy_eve`, 18:40 22:00 06:55 10:15, 1 990 kr |
 | D2 | Fotoppsummering med begge etapper | utreise stort, hjemreise under | ja |
-| D3 | Faner og «Reiseinformasjon» i første bilde | faner 44 pt; overskriften over bunnlinjen | 533 < 643 / 542 < 683 / 542 < 763 |
-| D4 | Fast bunnlinje | pris, grunnlag, «Se tilbud hos [tilbyder]» og «Bestillingen fullføres hos tilbyderen.»; ≤ 120 pt med safe area (referansen ~88) | ✗ 169 / ✗ 169 / ✗ 169 |
-| F1 | Ingen vannrett rulling | – | ingen på noen skjerm |
-| F2 | Trykkflater ≥ 44 pt (med `hitSlop`) | alle synlige i første bilde (knapp, fane, bryter, lenke) | ✗ «Om «ca.»-priser» er 18 + 2 × 8 = 34 pt |
+| D3 | Faner og «Reiseinformasjon» i første bilde | faner 44 pt; overskriften over bunnlinjen | 533 < 681 / 542 < 721 / 542 < 801 |
+| D4 | Kompakt bunnlinje | pris og grunnlag til venstre, «Gå til tilbud» til høyre, valgt tilbyder og «Bestillingen fullføres hos tilbyderen.» ved handlingen; ≤ 135 pt med safe area; brytes i stedet for å kuttes | 131 / 131 / 131 |
+| F1 | Ingen vannrett rulling og ingen kuttet tekst | – | ingen |
+| F2 | Trykkflater ≥ 44 pt, uten `hitSlop` over naboer eller utenfor et klippende felt | alle synlige i første bilde | ja |
 
 **Bevisste avvik fra referansen** (produktkrav går foran bildet):
 - «Tur-retur / Én vei» i stedet for Fly/Hotell/Leiebil.
@@ -209,45 +210,34 @@ Målene er forslag til Codex og eieren. ✗ betyr at vi ikke når målet i dag.
 - Ingen «Kart», bjelle, hjerte, «Mine reiser», «Endre» bagasje, «Fleksible datoer», sete eller distanse, og ingen
   «Fra … kr» på reisemål. Det finnes ingen fungerende funksjon eller verifisert data bak dem.
 - Flyselskapets kode i en sirkel til verifiserte logoer finnes; ingen halegrafikk.
-- Knappen er «Se tilbud hos [tilbyder]», ikke «Velg denne flyreisen».
+- Knappen er «Gå til tilbud» med valgt tilbyder rett under, ikke «Velg denne flyreisen».
 
-**Gap å vurdere i neste runde**, viktigst først (ikke endret nå):
-1. *Hjem – reisemålene er under folden (H4).* Fra «Søk fly» til «Utforsk reisemål» er det 138 pt ved 393, mot ~30 i
-   referansen.
-   - Det meste er to sentrerte tekster: «Du trenger ikke logge inn …» (18 pt) og «HelloSky sammenligner …» (54 pt,
-     tre linjer).
-   - Feltene er høyere enn i referansen: dato og reisende 60 pt (54), ruteboksen 92 pt (85), 8 pt mellom radene (~5).
-   - Mulig grep: flytt forklaringen under reisemålene eller til Profil (–~70 pt). Samle feltparene i én ramme med
-     skillelinje, 52 pt høye (–~25 pt). Samme grep som Momondo-prinsipp 2.
-2. *Flydetaljer – selgerne i en gruppert reise.* Sammenligningen «Tilbydere» ligger under folden (909–1185 ved 393
-   uten safe area). Bagasjeforskjellen mellom selgerne kuttes av «…» (`numberOfLines={2}`). Selgerens egen bagasje
-   skal synes (eierens krav). Mulig grep: vis «Tilbydere» først når det er flere, med bagasjen på egen linje.
-3. *Resultater – neste reise synes for lite (R4).*
-   - Varselboksen (demo + «Om «ca.»-priser») tar ~85 pt før listen.
-   - Bagasjeraden bryter på to linjer ved ≤ 393 og gjør kortet 20 pt høyere (KLM: 282 mot 262 pt).
-   - Mulig grep: la «ca.»-linjen på kortet åpne forklaringen (fjerner raden på 34 pt og løser F2). Kortere
-     bagasjetekst, med full tekst for VoiceOver. Demolinjen blir stående.
-4. *Flydetaljer – bunnlinjen er 169 pt (20 % av skjermen) med safe area (D4).* Referansen har pris og knapp på én
-   rad (~88 pt). «Bestillingen fullføres hos tilbyderen.» er et eierkrav og må stå nær knappen. Én rad er risikabel
-   med lange tilbydernavn og stor tekst. Krever et valg.
-5. *Trykkflater.*
-   - «Om «ca.»-priser» er 34 pt. Større `hitSlop` (18 over, 8 under) gir 44 pt uten å flytte noe.
-   - Ved 320 × 568 på norsk ender «Detaljer»-pillen på 507, 5 pt under den flytende linjen (502). Totalprisen er
-     fri. `3f3d884` ble feilaktig oppgitt som fri; MANIFEST er rettet.
-6. *Hjem – tre blå flater på en ny installasjon:* «Tur-retur», «Velg» (26 pt, blå) og «Søk fly». Referansen har blått
-   bare for valgt fane og handlingen. Mulig grep: «Velg» i tekstfarge.
-7. *Flydetaljer – varselet mellom oppsummering og faner, 64 pt (D3).* Det står der også for testmiljø og for «ikke
+**Lukket i `dad15c4`:**
+- Reisemålene står i første bilde (H4).
+- Neste reise er ≥ 90 % synlig (R4).
+- Bunnlinjen er 131 pt (D4).
+- «Om «ca.»-priser» er en rad på 44 pt.
+- «Detaljer» er fri ved 320 pt.
+- Selgerne kommer først, med hele bagasjen.
+- «Velg» er mørk tekst.
+
+**Igjen å vurdere:**
+1. *Flydetaljer:* varselet mellom oppsummering og faner (64 pt). Det står der også for testmiljø og for «ikke
    bekreftet ekte pris», og forsvinner bare når serveren oppgir en kjent tilbyder og `sandbox: false`.
-8. *Resultater:*
+2. *Resultater:*
    - Ingen ekte flyselskapslogoer, bare koden.
    - Ingen lagring av reiser (hjerte). Serveren har lagrede reiser for nettet, men de er ikke tilgjengelige i
      mobilfasaden ennå (BACKLOG 37).
-9. *Typografi (valgfritt):* flyplasskodene i Flydetaljer er 32 pt, referansen ~28. Ellers er størrelsene nær
-   referansen (anslått).
+3. *Typografi (valgfritt):* flyplasskodene i Flydetaljer er 32 pt, referansen ~28.
+4. *Neste runde, ikke glemt:*
+   - En innstillingsfil med ukjent versjon skal beholdes, ikke overskrives (BACKLOG 8).
+   - Eksplisitt `accessibilityLanguage` (nb-NO/en-GB), så VoiceOver bruker riktig stemme uansett telefonens språk.
+5. *Ikke målt:* flere reisende og lange tilbydernavn i bunnlinjen og på kortene. Testene sikrer at tekst brytes i
+   stedet for å kuttes, men det finnes ikke skjermbilder av det ennå.
 
 ## Forhåndsvisninger
 
 Skjermbildene i overleveringen (`docs/evidence`, se `MANIFEST.md`) er laget med react-native-web i Chromium, 375, 393
-og 430 pt brede, med Inter i stedet for SF Pro. De nyeste (`nb-d99568d-*`) har simulert safe area; de eldre har ingen.
+og 430 pt brede, med Inter i stedet for SF Pro. De nyeste (`nb-dad15c4-*`, og `nb-d99568d-*` før dem) har simulert safe area; de eldre har ingen.
 De er ikke fra en iOS-simulator. En ekte iPhone eller simulator viser SF Pro, iOS-kalenderen, statuslinjen og den
 ekte safe area.

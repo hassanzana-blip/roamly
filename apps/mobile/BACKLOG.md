@@ -145,10 +145,10 @@ the web, with a Bearer token instead of a cookie.
 | 38 | Native share with a safe web fallback | verified | `d8c3e68`: the share text says the price may have changed and carries the same search on hellosky.no (no token, session or provider link; tested). |
 | 39 | Price alerts only if real | blocked | The server has `watch.*` (web only). The worker, live Duffel and SMTP can't be checked from here, so no switch is shown. |
 | 40 | Explore: search and context | partial | Static list of 24 destinations; no search or filter. |
-| 41 | Compact hierarchy | partial | `dbb5bb2`: result cards 359 → 243 pt at 393 pt; the next journey 35% → 100% visible (measured, `docs/evidence`). Gap: at 320 pt the header and the notices fill the top half; the demo warning is kept visible on purpose. |
-| 42 | Small and large phones, keyboard, long strings | partial | Safe areas on every screen. Gaps: no keyboard handling in the airport picker; fixed widths and one-line labels can clip long English strings; nothing checked on a device (web captures only). |
-| 43 | VoiceOver order, roles, announcements | partial | `b4ff05b`: modal sheets with the escape gesture; the backdrop hidden from VoiceOver; an adjustable stepper with a value and actions; results announced; the wordmark no longer a heading (`a11y.test.tsx`). Not yet checked with VoiceOver on a device. |
-| 44 | Dynamic Type, contrast, touch targets, reduced motion | partial | Theme contrast ≥ 4.5:1 (disabled text 4.37, exempt). `b4ff05b`: 44pt minimum on secondary buttons, segments and tabs; Reduce Motion makes sheets fade and photos appear without a transition. Gap: Dynamic Type never tested at large sizes. |
+| 41 | Compact hierarchy | verified (web, simulated safe area) | `dbb5bb2`: result cards 359 → 243 pt. `dad15c4` (measured, `docs/evidence`): at 375/393/430 the Home destinations show 77/108/132 pt of photo above the tab bar, the next journey is 90/100/100 % visible, and the Details bar is 131 pt. The demo warning stays visible. Not yet checked on a device. |
+| 42 | Small and large phones, keyboard, long strings | partial | Safe areas on every screen. Gaps: no keyboard handling in the airport picker; fixed widths and one-line labels can clip long English strings; nothing checked on a device (web captures only). `dad15c4`: the offer bar and primary buttons wrap instead of clipping; at 135 % text nothing is cut and nothing overflows sideways (web approximation, not Dynamic Type). |
+| 43 | VoiceOver order, roles, announcements | partial | `b4ff05b`: modal sheets with the escape gesture; the backdrop hidden from VoiceOver; an adjustable stepper with a value and actions; results announced; the wordmark no longer a heading (`a11y.test.tsx`). Not yet checked with VoiceOver on a device. Next stage: explicit `accessibilityLanguage` (nb-NO/en-GB), so VoiceOver uses the app's language whatever the phone is set to. |
+| 44 | Dynamic Type, contrast, touch targets, reduced motion | partial | Theme contrast ≥ 4.5:1 (disabled text 4.37, exempt). `b4ff05b`: 44pt minimum on secondary buttons, segments and tabs; Reduce Motion makes sheets fade and photos appear without a transition. Gap: Dynamic Type never tested at large sizes. `dad15c4`: «Om «ca.»-priser» is a real 44 pt row; filter chips reach 44 pt inside their scroll view. |
 | 45 | Loading and tap feedback | partial | No skeletons. |
 | 46 | Performance measured | partial | Nothing measured yet. |
 | 47 | Settings layout: credits below help | verified | `3285865`: account, language, help and legal, log out, delete account; photo credits collapsed at the bottom. |
@@ -167,6 +167,11 @@ the web, with a Bearer token instead of a cookie.
 | 60 | Final handover | partial | This file plus `docs/evidence`; handover with the top 10 at the end. |
 
 ## Known risks
+
+- Recorded for the next stage (Codex, 23 Sep):
+  - A prefs file with an unknown version must be kept, not overwritten
+    (item 8).
+  - Explicit `accessibilityLanguage` (item 43).
 
 - Staging answers with demo data. The first real-provider run of the app is
   still to come.
