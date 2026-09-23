@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
+import { Pressable, Switch, Text } from "../components/a11y";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Airport } from "@contracts/airports";

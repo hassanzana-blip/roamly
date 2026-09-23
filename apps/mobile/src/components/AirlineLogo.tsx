@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./a11y";
 import { Image } from "expo-image";
 import type { Carrier } from "@contracts/types";
 import { colors } from "../lib/theme";

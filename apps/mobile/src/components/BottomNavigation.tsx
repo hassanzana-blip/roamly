@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Pressable, Text } from "./a11y";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./Icon";
 import { colors, space } from "../lib/theme";
-import { useI18n } from "../i18n";
+import { useA11yLanguage, useI18n } from "../i18n";
 
 type TabRoute = { key: string; name: string };
 type TabBarProps = {
@@ -19,10 +20,11 @@ const TABS: Record<string, { key: "home" | "explore" | "profile"; icon: IconName
 
 /** Mørk fanelinje med blått aktivt valg, som i referansen. */
 export function BottomNavigation({ state, navigation }: TabBarProps) {
+  const lang = useA11yLanguage();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]} accessibilityRole="tablist">
+    <View accessibilityLanguage={lang} style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]} accessibilityRole="tablist">
       {state.routes.map((route, i) => {
         const tab = TABS[route.name];
         if (!tab) return null;

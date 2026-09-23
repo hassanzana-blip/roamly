@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "../../components/a11y";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -10,7 +11,7 @@ import { errorText } from "../../lib/errorText";
 import { ALL_PHOTOS } from "../../lib/destinations";
 import { WEB_PAGES } from "../../lib/config";
 import { Banner, BottomSheet, Field, InfoRow, InformationCard, LinkButton, NavRow, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
-import { useI18n } from "../../i18n";
+import { a11yLanguage, useI18n } from "../../i18n";
 import { LOCALES, LOCALE_NAMES, type Locale } from "../../i18n/types";
 import { colors, space, type } from "../../lib/theme";
 
@@ -29,7 +30,8 @@ function LanguageCard() {
   const { t, locale, setLocale } = useI18n();
   return (
     <InformationCard title={t.account.language} testID="language-card">
-      <Segmented<Locale> label={t.account.language} value={locale} options={LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l] }))} onChange={setLocale} />
+      {/* Hvert språk står på sitt eget språk, og VoiceOver leser det med den stemmen. */}
+      <Segmented<Locale> label={t.account.language} value={locale} options={LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l], lang: a11yLanguage(l) }))} onChange={setLocale} />
       <Text style={[type.footnote, { color: colors.textSecondary }]}>{t.account.languageHint}</Text>
     </InformationCard>
   );

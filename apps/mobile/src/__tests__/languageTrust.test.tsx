@@ -194,6 +194,29 @@ describe("språkvalget leses fra filen på telefonen", () => {
     expect(await coldStart(JSON.stringify({ v: 1, locale: value }))).toBe("Søk fly");
   });
 
+  it("en fil fra en nyere appversjon: engelsk gjelder, autolagringen rører ikke filen, og et bevisst valg endrer bare språket", async () => {
+    const files = (FileSystem as unknown as { __files: Map<string, string> }).__files;
+    const future = '{"v":2,"locale":"en","draft":{"shape":"v2"},"wallet":[1,2,3]}';
+    files.set(PREFS, future);
+    __resetLocalStoreForTests();
+    const { factory } = setup({ "mobileAuth.me": () => ({ data: null }) });
+    await render(
+      <AppProvider apiFactory={factory}>
+        <SearchScreen />
+        <AccountScreen />
+      </AppProvider>,
+    );
+    expect(screen.getByTestId("search-button").props.accessibilityLabel).toBe("Search flights");
+    // Utkastet lagres automatisk etter 400 ms – filen skal være byte for byte den samme.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 700));
+    });
+    expect(files.get(PREFS)).toBe(future);
+    await fireEvent.press(screen.getByTestId("segment-nb"));
+    expect(JSON.parse(files.get(PREFS)!)).toEqual({ v: 2, locale: "nb", draft: { shape: "v2" }, wallet: [1, 2, 3] });
+    expect(screen.getByTestId("search-button").props.accessibilityLabel).toBe("Søk fly");
+  });
+
   it("en ødelagt fil gir bokmål, ikke krasj", async () => {
     expect(await coldStart("{ikke json")).toBe("Søk fly");
   });

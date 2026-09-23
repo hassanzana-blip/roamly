@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, Switch, Text } from "./a11y";
 import { useRouter } from "expo-router";
 import { useApp } from "../lib/appState";
 import { addDays, toIsoDate } from "../lib/format";
@@ -29,9 +30,8 @@ function AirportField({ label, value, onPress, testID, align }: { label: string;
       <Text style={value ? [type.code, { color: colors.text }] : [type.title, styles.empty]} numberOfLines={1}>
         {value ? value.iata : t.home.choose}
       </Text>
-      <Text style={[type.footnote, { color: colors.textSecondary, textAlign: align }]} numberOfLines={1}>
-        {value ? value.city : t.home.cityOrAirport}
-      </Text>
+      {/* Lange bynavn og stor tekst bryter linjen. */}
+      <Text style={[type.footnote, { color: colors.textSecondary, textAlign: align }]}>{value ? value.city : t.home.cityOrAirport}</Text>
     </Pressable>
   );
 }
@@ -112,7 +112,8 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
           )}
         </View>
         <View style={styles.gridRow}>
-          <FormTile testID="travellers" icon="user" label={h.travellers} value={passengerSummary(form, i18n)} onPress={() => setTravellersOpen(true)} accessibilityHint={h.travellersHint} />
+          {/* Tallet og ordet holdes sammen når linjen brytes: «1 barn», aldri «1» og «barn» på hver sin linje. */}
+          <FormTile testID="travellers" icon="user" label={h.travellers} value={passengerSummary(form, i18n).replace(/(\d) /g, "$1\u00A0")} onPress={() => setTravellersOpen(true)} accessibilityHint={h.travellersHint} />
           <FormTile testID="cabin" icon="seat" label={h.cabin} value={cabinLabel(form.cabinClass, i18n)} onPress={() => setTravellersOpen(true)} accessibilityHint={h.travellersHint} />
         </View>
       </View>

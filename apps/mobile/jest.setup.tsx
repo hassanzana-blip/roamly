@@ -61,7 +61,9 @@ jest.mock("expo-web-browser", () => ({
 // Bilder: en View med samme tilgjengelighetsetikett.
 jest.mock("expo-image", () => {
   const { View } = require("react-native");
-  const Image = (props: { testID?: string; accessibilityLabel?: string }) => <View testID={props.testID} accessibilityLabel={props.accessibilityLabel} />;
+  const Image = (props: { testID?: string; accessibilityLabel?: string; accessible?: boolean; accessibilityLanguage?: string }) => (
+    <View testID={props.testID} accessible={props.accessible} accessibilityLabel={props.accessibilityLabel} accessibilityLanguage={props.accessibilityLanguage} />
+  );
   return { __esModule: true, Image };
 });
 

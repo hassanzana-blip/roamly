@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { Pressable, Text } from "./a11y";
 import type { OfferSlice } from "@contracts/types";
 import type { Journey } from "../lib/journeys";
 import { PriceTag } from "./PriceTag";

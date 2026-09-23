@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
@@ -143,6 +143,23 @@ describe("Flydetaljer: kompakt bunnlinje", () => {
     expect(screen.getByTestId("handoff-note")).toHaveTextContent("SAS · Bestillingen fullføres hos tilbyderen.");
     // Stor tekst og lange navn skal bryte linjen, ikke kuttes.
     for (const el of bar.getAllByText(/./)) expect(el.props.numberOfLines).toBeUndefined();
+  });
+
+  it("brytes selve beløpet (stor tekst), får prisen hele raden og knappen legger seg under – beløpet deles aldri midt i et ord", async () => {
+    await renderOffer("sek_1");
+    const priceBasis = () => StyleSheet.flatten(screen.getByTestId("bar-price").props.style).flexBasis;
+    // Linjehøyden (30 pt) følger tekststørrelsen på telefonen.
+    const line = 30 * Dimensions.get("window").fontScale;
+    // Én linje: pris og knapp deler raden.
+    await fireEvent(screen.getByTestId("bar-amount"), "layout", layout(line));
+    expect(priceBasis()).toBe(120);
+    // To linjer: prisen tar hele raden; raden brytes, og knappen (flexGrow) får hele linjen under.
+    await fireEvent(screen.getByTestId("bar-amount"), "layout", layout(2 * line));
+    expect(priceBasis()).toBe("100%");
+    expect(StyleSheet.flatten(screen.getByTestId("bar-price").parent!.props.style).flexWrap).toBe("wrap");
+    // Med samme tekststørrelse blir den stående (ingen hopping fram og tilbake når beløpet nå får plass).
+    await fireEvent(screen.getByTestId("bar-amount"), "layout", layout(line));
+    expect(priceBasis()).toBe("100%");
   });
 
   it("det siste kortet kan rulles helt fram over bunnlinjen, også når den blir høy", async () => {

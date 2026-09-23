@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text } from "../components/a11y";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { AppProvider } from "../lib/appState";
 import { API_BASE } from "../lib/config";

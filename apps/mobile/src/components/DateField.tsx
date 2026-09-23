@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
+import { Pressable, Text } from "./a11y";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { BottomSheet } from "./ui";
 import { Icon, type IconName } from "./Icon";
@@ -40,9 +41,8 @@ export function FormTile({
       <Icon name={icon} size={20} color={colors.text} strokeWidth={1.75} />
       <View style={{ flex: 1 }}>
         <Text style={[type.caption, { color: colors.textSecondary }]}>{label}</Text>
-        <Text style={[type.calloutStrong, { color: action ? colors.blue : colors.text }]} numberOfLines={1}>
-          {value}
-        </Text>
+        {/* Ingen linjegrense: «2 voksne, 1 barn, 1 spedbarn» og stor tekst bryter linjen i stedet for å kuttes. */}
+        <Text style={[type.calloutStrong, { color: action ? colors.blue : colors.text }]}>{value}</Text>
       </View>
     </Pressable>
   );

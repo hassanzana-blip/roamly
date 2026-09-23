@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { ScrollView, Share, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Pressable, Text } from "../../components/a11y";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,7 +17,7 @@ import { journeyWarnings, type JourneyWarning } from "../../lib/warnings";
 import { singleFlight } from "../../lib/singleFlight";
 import { webSearchUrl } from "../../lib/webLinks";
 import { providerDisplayName, resultKind } from "../../lib/resultStatus";
-import { useI18n, type I18n } from "../../i18n";
+import { useA11yLanguage, useI18n, type I18n } from "../../i18n";
 import { cabinLabel } from "../../lib/searchForm";
 import { photoForAirport } from "../../lib/destinations";
 import { PriceTag } from "../../components/PriceTag";
@@ -69,6 +70,7 @@ function Endpoint({ code, place, time, date, align, plus }: { code: string; plac
 
 /** Øverst: bybildet, flyselskapet og utreisen i store tall; hjemreisen kort under. */
 function JourneySummary({ item }: { item: MobileOffer }) {
+  const lang = useA11yLanguage();
   const { offer } = item;
   const i18n = useI18n();
   const { t, f } = i18n;
@@ -82,19 +84,18 @@ function JourneySummary({ item }: { item: MobileOffer }) {
       <View style={styles.summaryTop}>
         <AirlineLogo carrier={offer.owner} size={40} />
         <View style={{ flex: 1 }}>
-          <Text style={[type.calloutStrong, { color: colors.onDark }]} numberOfLines={1}>
-            {offer.owner.name}
-          </Text>
+          {/* Hele navnet, også når det er langt: det er selskapet som flyr deg. */}
+          <Text style={[type.calloutStrong, { color: colors.onDark }]}>{offer.owner.name}</Text>
           <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>{`${flights} · ${cabinLabel(offer.cabinClass, i18n)}`}</Text>
         </View>
       </View>
-      <View style={styles.summaryRoute} accessible accessibilityLabel={t.details.sliceSpoken(offer.slices.length > 1 ? t.details.outbound : t.details.journey, f.day(out.departingAt), out.origin.city, formatTime(out.departingAt), out.destination.city, formatTime(out.arrivingAt), f.spokenDuration(out.durationMinutes), f.stops(out.stops).toLowerCase())}>
+      <View accessibilityLanguage={lang} style={styles.summaryRoute} accessible accessibilityLabel={t.details.sliceSpoken(offer.slices.length > 1 ? t.details.outbound : t.details.journey, f.day(out.departingAt), out.origin.city, formatTime(out.departingAt), out.destination.city, formatTime(out.arrivingAt), f.spokenDuration(out.durationMinutes), f.stops(out.stops).toLowerCase())}>
         <Endpoint code={out.origin.iata} place={out.origin.name || out.origin.city} time={formatTime(out.departingAt)} date={f.day(out.departingAt)} align="left" />
         <RouteLine dark top={f.duration(out.durationMinutes)} bottom={f.stops(out.stops)} />
         <Endpoint code={out.destination.iata} place={out.destination.name || out.destination.city} time={formatTime(out.arrivingAt)} date={f.day(out.arrivingAt)} align="right" plus={dayOffset(out.departingAt, out.arrivingAt)} />
       </View>
       {back ? (
-        <View style={styles.returnRow} accessible accessibilityLabel={t.details.sliceSpoken(t.details.inbound, f.day(back.departingAt), back.origin.city, formatTime(back.departingAt), back.destination.city, formatTime(back.arrivingAt), f.spokenDuration(back.durationMinutes), f.stops(back.stops).toLowerCase())}>
+        <View accessibilityLanguage={lang} style={styles.returnRow} accessible accessibilityLabel={t.details.sliceSpoken(t.details.inbound, f.day(back.departingAt), back.origin.city, formatTime(back.departingAt), back.destination.city, formatTime(back.arrivingAt), f.spokenDuration(back.durationMinutes), f.stops(back.stops).toLowerCase())}>
           <Text style={[type.caption, styles.returnLabel]}>{t.details.returnRow(f.day(back.departingAt), f.stops(back.stops))}</Text>
           <Text style={[type.footnoteStrong, type.tabular, { color: colors.onDark }]}>
             {`${back.origin.iata} ${formatTime(back.departingAt)} → ${back.destination.iata} ${formatTime(back.arrivingAt)}`}
@@ -150,15 +151,17 @@ function SegmentBlock({ seg, first, last, sliceStart }: { seg: Segment; first: b
     <View>
       <Stop time={formatTime(seg.departingAt)} plus={dayOffset(sliceStart, seg.departingAt)} city={seg.origin.city} iata={seg.origin.iata} airport={seg.origin.name} terminal={seg.origin.terminal} first={first} />
       <Between>
-        <View style={styles.flightBar}>
-          <AirlineLogo carrier={seg.carrier} size={28} />
-          <View style={{ flex: 1 }}>
-            <Text style={[type.footnoteStrong, { color: colors.text }]} numberOfLines={1}>
-              {seg.carrier.name}
-            </Text>
-            {seg.flightNumber || operated || seg.aircraft ? (
-              <Text style={[type.caption, type.tabular, { color: colors.textSecondary }]}>{[seg.flightNumber ? `${seg.carrier.iata}${seg.flightNumber}` : null, operated, seg.aircraft].filter(Boolean).join(" · ")}</Text>
-            ) : null}
+        {/* Kort navn: logo, navn og varighet på én linje. Får ikke navnet plass på én linje, legger varigheten seg
+            under, så navnet får hele bredden og ikke deles midt i et ord. */}
+        <View style={styles.flightBar} testID={`flight-${seg.id}`}>
+          <View style={styles.flightWho}>
+            <AirlineLogo carrier={seg.carrier} size={28} />
+            <View style={{ flexShrink: 1 }}>
+              <Text style={[type.footnoteStrong, { color: colors.text }]}>{seg.carrier.name}</Text>
+              {seg.flightNumber || operated || seg.aircraft ? (
+                <Text style={[type.caption, type.tabular, { color: colors.textSecondary }]}>{[seg.flightNumber ? `${seg.carrier.iata}${seg.flightNumber}` : null, operated, seg.aircraft].filter(Boolean).join(" · ")}</Text>
+              ) : null}
+            </View>
           </View>
           {f.duration(seg.durationMinutes) ? (
             <View style={styles.durationPill}>
@@ -243,6 +246,7 @@ function SellerOfferRow({ item, selected, onPress }: { item: MobileOffer; select
 }
 
 export default function OfferScreen() {
+  const lang = useA11yLanguage();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -256,6 +260,12 @@ export default function OfferScreen() {
   const [openError, setOpenError] = useState(false);
   // Bunnlinjens faktiske høyde (stor tekst, lange navn), så det siste kortet kan rulles helt fram.
   const [barHeight, setBarHeight] = useState(0);
+  // Brytes selve beløpet over flere linjer (stor tekst og et femsifret beløp ved siden av knappen), får prisen
+  // hele raden og knappen legger seg under – ellers deles «18 450 kr» midt i et ord. Gjelder for tekststørrelsen
+  // det ble målt med; endres den, måles det på nytt.
+  const { fontScale } = useWindowDimensions();
+  const [priceWrappedAt, setPriceWrappedAt] = useState<number | null>(null);
+  const priceAlone = priceWrappedAt === fontScale;
   // Ett bevisst trykk = én måling og én nettleser, også ved raske dobbelttrykk.
   // Lenken og tilbudet sendes med hvert trykk (valgt tilbyder kan endres).
   const openOnce = useMemo(
@@ -364,7 +374,7 @@ export default function OfferScreen() {
         <View style={styles.body}>
           {statusNotice ? <Notices items={[{ key: "demo", tone: "warning", text: statusNotice, testID: "demo-banner" }]} /> : null}
           {warnings.length ? (
-            <View style={styles.warnings} testID="journey-warnings" accessibilityRole="summary">
+            <View accessibilityLanguage={lang} style={styles.warnings} testID="journey-warnings" accessibilityRole="summary">
               <Text style={[type.footnoteStrong, { color: colors.warningOnDark }]}>{dt.warningsTitle}</Text>
               {warnings.map((w, i) => (
                 <View key={i} style={styles.row6}>
@@ -384,7 +394,7 @@ export default function OfferScreen() {
               {journey.sellers.length > 1 ? (
                 <InformationCard title={dt.sellersTitle} testID="sellers">
                   <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.sellersIntro(journey.sellers.length)}</Text>
-                  <View style={{ gap: space.sm }} accessibilityRole="radiogroup">
+                  <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup">
                     {journey.sellers.map((s) => (
                       <SellerOfferRow key={s.item.offer.id} item={s.item} selected={s.item.offer.id === offer.id} onPress={() => setChosen(s.item.offer.id)} />
                     ))}
@@ -475,8 +485,16 @@ export default function OfferScreen() {
           </Banner>
         ) : null}
         <View style={styles.barRow}>
-          <View style={styles.barPrice} accessible accessibilityLabel={`${d.accessibilityLabel}. ${basis}`} testID="bar-price">
-            <Text style={[type.price, { color: d.available ? colors.onDark : colors.onDarkMuted }]}>{d.primary}</Text>
+          <View accessibilityLanguage={lang} style={[styles.barPrice, priceAlone && styles.barPriceAlone]} accessible accessibilityLabel={`${d.accessibilityLabel}. ${basis}`} testID="bar-price">
+            <Text
+              style={[type.price, { color: d.available ? colors.onDark : colors.onDarkMuted }]}
+              testID="bar-amount"
+              onLayout={(e) => {
+                if (!priceAlone && e.nativeEvent.layout.height > type.price.lineHeight * fontScale * 1.5) setPriceWrappedAt(fontScale);
+              }}
+            >
+              {d.primary}
+            </Text>
             <Text style={[type.caption, { color: colors.onDarkMuted }]}>{basis}</Text>
           </View>
           {expired ? (
@@ -539,8 +557,10 @@ const styles = StyleSheet.create({
   railLine: { position: "absolute", top: 0, bottom: 0, width: 1.5, backgroundColor: colors.lightBorder },
   dot: { marginTop: 6, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.white },
   tlBody: { flex: 1, paddingLeft: space.sm, paddingBottom: space.sm },
-  flightBar: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.inset, borderRadius: radius.input, paddingHorizontal: space.md, paddingVertical: space.sm },
-  durationPill: { borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
+  flightBar: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.sm, backgroundColor: colors.inset, borderRadius: radius.input, paddingHorizontal: space.md, paddingVertical: space.sm },
+  // Logo og navn: så bredt som navnet trenger (høyst hele linjen); varigheten brytes ned når de ikke får plass sammen.
+  flightWho: { flexDirection: "row", alignItems: "center", gap: space.sm, flexGrow: 1, flexShrink: 1, flexBasis: "auto" },
+  durationPill: { marginLeft: "auto", borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
   seller: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 60, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.input, borderWidth: 1, borderColor: colors.lightBorder },
   sellerOn: { borderColor: colors.blue, backgroundColor: colors.blueSoft },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
@@ -550,5 +570,7 @@ const styles = StyleSheet.create({
   barRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.md, rowGap: space.sm },
   // Samme linje: prisen tar nesten all ledig plass og knappen beholder sin bredde. Alene på en linje tar knappen hele.
   barPrice: { flexGrow: 100, flexShrink: 1, flexBasis: 120, gap: 2 },
+  // Beløpet fikk ikke plass på én linje: prisen alene på raden, knappen under i full bredde.
+  barPriceAlone: { flexBasis: "100%" },
   barAction: { flexGrow: 1 },
 });

@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from "react";
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Text } from "./a11y";
 import { Image } from "expo-image";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { Photo as PhotoData } from "../lib/destinations";
 import { colors } from "../lib/theme";
-import { useI18n } from "../i18n";
+import { useA11yLanguage, useI18n } from "../i18n";
 import { useReducedMotion } from "../lib/motion";
 
 /**
@@ -28,6 +29,7 @@ export function PhotoBackdrop({
   testID?: string;
 }) {
   const { t, locale } = useI18n();
+  const lang = useA11yLanguage();
   const [failed, setFailed] = useState(false);
   const reduced = useReducedMotion();
   const show = photo && !failed;
@@ -41,6 +43,7 @@ export function PhotoBackdrop({
           transition={reduced ? 0 : 150}
           onError={() => setFailed(true)}
           accessible
+          accessibilityLanguage={lang}
           accessibilityLabel={photo.credit.caption[locale]}
         />
       ) : null}

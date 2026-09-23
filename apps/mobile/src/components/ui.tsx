@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from "react";
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
+import { ActivityIndicator, Modal, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
+import { Pressable, Text } from "./a11y";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./Icon";
 import { colors, radius, SKY_MARK_PATH, space, TOUCH, type } from "../lib/theme";
-import { useI18n } from "../i18n";
+import { useA11yLanguage, useI18n } from "../i18n";
 import { useReducedMotion } from "../lib/motion";
 
 // ─── Merke ──────────────────────────────────────────────────────────────────
@@ -20,8 +21,9 @@ export function SkyMark({ size = 24, color = colors.blue }: { size?: number; col
 
 /** Det godkjente merket: blå «H» og ordmerket. Likt på alle skjermer. */
 export function Wordmark({ size = 22, dark = true }: { size?: number; dark?: boolean }) {
+  const lang = useA11yLanguage();
   return (
-    <View style={styles.wordmark} accessible accessibilityRole="image" accessibilityLabel="HelloSky">
+    <View accessibilityLanguage={lang} style={styles.wordmark} accessible accessibilityRole="image" accessibilityLabel="HelloSky">
       <SkyMark size={size + 2} />
       <Text style={[styles.wordmarkText, { fontSize: size, color: dark ? colors.onDark : colors.text }]}>hellosky</Text>
     </View>
@@ -183,8 +185,9 @@ export function Chip({ label, selected, onPress, dark = true, disabled, testID, 
 
 /** Enkeltvalg som brikker (alder, reiseklasse) på lys flate. */
 export function ChoiceChips<T extends string | number>({ value, options, onChange, label, format, testIDPrefix }: { value: T; options: readonly T[]; onChange: (v: T) => void; label: string; format: (v: T) => string; testIDPrefix?: string }) {
+  const lang = useA11yLanguage();
   return (
-    <View style={styles.wrap8} accessibilityRole="radiogroup" accessibilityLabel={label}>
+    <View accessibilityLanguage={lang} style={styles.wrap8} accessibilityRole="radiogroup" accessibilityLabel={label}>
       {options.map((o) => {
         const selected = o === value;
         return (
@@ -207,9 +210,11 @@ export function ChoiceChips<T extends string | number>({ value, options, onChang
 }
 
 /** Lyst spor med blå valgt pille – reisetype (Tur-retur / Én vei). */
-export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string; icon?: IconName }[]; onChange: (v: T) => void; label: string }) {
+/** `lang` på et valg: valget står på sitt eget språk (f.eks. «Norsk (bokmål)» i språkvelgeren) og leses med den stemmen. */
+export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string; icon?: IconName; lang?: string }[]; onChange: (v: T) => void; label: string }) {
+  const lang = useA11yLanguage();
   return (
-    <View style={styles.segmented} accessibilityRole="radiogroup" accessibilityLabel={label}>
+    <View accessibilityLanguage={lang} style={styles.segmented} accessibilityRole="radiogroup" accessibilityLabel={label}>
       {options.map((o) => {
         const selected = o.value === value;
         return (
@@ -220,10 +225,11 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
             accessibilityRole="radio"
             accessibilityState={{ selected }}
             accessibilityLabel={o.label}
+            accessibilityLanguage={o.lang ?? lang}
             style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && !selected && { opacity: 0.6 }]}
           >
             {o.icon ? <Icon name={o.icon} size={16} color={selected ? colors.white : colors.textSecondary} /> : null}
-            <Text style={[type.calloutStrong, { color: selected ? colors.white : colors.text }]} numberOfLines={1}>
+            <Text style={[type.calloutStrong, { color: selected ? colors.white : colors.text }]} numberOfLines={1} accessibilityLanguage={o.lang ?? lang}>
               {o.label}
             </Text>
           </Pressable>
@@ -235,8 +241,9 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
 
 /** Faner på mørk flate (Oversikt / Bagasje / Vilkår / Reiseplan). */
 export function DarkTabs<T extends string>({ value, tabs, onChange }: { value: T; tabs: { value: T; label: string }[]; onChange: (v: T) => void }) {
+  const lang = useA11yLanguage();
   return (
-    <View style={styles.tabs} accessibilityRole="tablist">
+    <View accessibilityLanguage={lang} style={styles.tabs} accessibilityRole="tablist">
       {tabs.map((t) => {
         const selected = t.value === value;
         return (
@@ -249,9 +256,7 @@ export function DarkTabs<T extends string>({ value, tabs, onChange }: { value: T
             accessibilityLabel={t.label}
             style={({ pressed }) => [styles.tab, selected && styles.tabSelected, pressed && !selected && { opacity: 0.7 }]}
           >
-            <Text style={[type.footnoteStrong, { color: selected ? colors.text : colors.onDark }]} numberOfLines={1}>
-              {t.label}
-            </Text>
+            <Text style={[type.footnoteStrong, { color: selected ? colors.text : colors.onDark, textAlign: "center" }]}>{t.label}</Text>
           </Pressable>
         );
       })}
@@ -323,11 +328,12 @@ export function NavRow({ icon, title, subtitle, onPress, external, danger, testI
 }
 
 export function Banner({ tone, children, testID, dark }: { tone: "info" | "warning" | "error"; children: ReactNode; testID?: string; dark?: boolean }) {
+  const lang = useA11yLanguage();
   const light = { info: [colors.blueSoft, colors.blue], warning: [colors.warningSoft, colors.warning], error: [colors.dangerSoft, colors.danger] } as const;
   const onDark = { info: colors.onDarkMuted, warning: colors.warningOnDark, error: "#FFB4AB" } as const;
   const [bg, fg] = dark ? [colors.raised, onDark[tone]] : light[tone];
   return (
-    <View testID={testID} style={[styles.banner, { backgroundColor: bg }, dark && { borderWidth: 1, borderColor: colors.darkBorder }]} accessibilityRole={tone === "info" ? "summary" : "alert"}>
+    <View accessibilityLanguage={lang} testID={testID} style={[styles.banner, { backgroundColor: bg }, dark && { borderWidth: 1, borderColor: colors.darkBorder }]} accessibilityRole={tone === "info" ? "summary" : "alert"}>
       <Icon name={tone === "info" ? "info" : "alert"} size={16} color={fg} />
       <Text style={[type.footnote, { color: fg, flex: 1 }]}>{children}</Text>
     </View>
@@ -360,6 +366,7 @@ export function Notices({ items }: { items: NoticeItem[] }) {
 }
 
 function NoticeLine({ tone, text, detail, label, testID }: Omit<NoticeItem, "key">) {
+  const lang = useA11yLanguage();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const fg = tone === "warning" ? colors.warningOnDark : colors.onDarkMuted;
@@ -380,7 +387,7 @@ function NoticeLine({ tone, text, detail, label, testID }: Omit<NoticeItem, "key
   );
   if (!expandable) {
     return (
-      <View testID={testID} style={styles.noticeLine} accessibilityRole={tone === "warning" ? "alert" : "summary"}>
+      <View accessibilityLanguage={lang} testID={testID} style={styles.noticeLine} accessibilityRole={tone === "warning" ? "alert" : "summary"}>
         {body}
       </View>
     );
@@ -401,15 +408,17 @@ function NoticeLine({ tone, text, detail, label, testID }: Omit<NoticeItem, "key
 
 /** «Demo»-merke: testdata skal aldri kunne forveksles med ekte priser. */
 export function DemoBadge({ testID }: { testID?: string }) {
+  const lang = useA11yLanguage();
   const { t } = useI18n();
   return (
-    <View style={styles.demo} testID={testID} accessible accessibilityLabel={t.common.demoBadgeLabel}>
+    <View accessibilityLanguage={lang} style={styles.demo} testID={testID} accessible accessibilityLabel={t.common.demoBadgeLabel}>
       <Text style={styles.demoText}>{t.common.demoBadge}</Text>
     </View>
   );
 }
 
 export function Field({ label, error, icon, ...props }: TextInputProps & { label: string; error?: string | null; icon?: IconName }) {
+  const lang = useA11yLanguage();
   const [focused, setFocused] = useState(false);
   return (
     <View style={{ gap: space.xs }}>
@@ -417,6 +426,7 @@ export function Field({ label, error, icon, ...props }: TextInputProps & { label
       <View style={[styles.inputWrap, focused && { borderColor: colors.blue }, error ? { borderColor: colors.danger } : null]}>
         {icon ? <Icon name={icon} size={18} color={focused ? colors.blue : colors.textSecondary} /> : null}
         <TextInput
+          accessibilityLanguage={lang}
           accessibilityLabel={label}
           placeholderTextColor={colors.textSecondary}
           style={styles.input}
@@ -438,6 +448,7 @@ export function Field({ label, error, icon, ...props }: TextInputProps & { label
 
 export function Stepper({ label, hint, value, min, max, onChange }: { label: string; hint?: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
   const { t } = useI18n();
+  const lang = useA11yLanguage();
   return (
     <View style={styles.stepperRow}>
       <View style={{ flex: 1 }}>
@@ -448,6 +459,7 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
       <View
         style={styles.row12}
         accessible
+        accessibilityLanguage={lang}
         accessibilityRole="adjustable"
         accessibilityLabel={label}
         accessibilityHint={hint}
@@ -473,15 +485,16 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
 
 /** Ark fra bunnen (hvitt) med tittel og «Ferdig». */
 export function BottomSheet({ visible, title, onClose, children, testID, footer }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; testID?: string; footer?: ReactNode }) {
+  const lang = useA11yLanguage();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   return (
     <Modal visible={visible} transparent animationType={reduced ? "fade" : "slide"} onRequestClose={onClose}>
-      <View style={styles.sheetRoot}>
+      <View style={styles.sheetRoot} accessibilityLanguage={lang}>
         {/* Bakgrunnen lukker ved trykk; for VoiceOver er «Ferdig» og tofingers-Z (escape) veien ut. */}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]} testID={testID} accessibilityViewIsModal onAccessibilityEscape={onClose}>
+        <View accessibilityLanguage={lang} style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]} testID={testID} accessibilityViewIsModal onAccessibilityEscape={onClose}>
           <View style={styles.grabber} />
           <View style={styles.sheetHead}>
             <Text style={[type.title, { color: colors.text }]} accessibilityRole="header">
@@ -543,8 +556,9 @@ const styles = StyleSheet.create({
   segment: { flex: 1, minHeight: TOUCH, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", borderRadius: radius.pill, paddingHorizontal: space.md },
   segmentSelected: { backgroundColor: colors.blue },
 
-  tabs: { flexDirection: "row", gap: space.sm },
-  tab: { flex: 1, minHeight: TOUCH, borderRadius: radius.input, alignItems: "center", justifyContent: "center", paddingHorizontal: space.sm, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
+  // Fanene deler raden; får etikettene ikke plass (stor tekst), brytes raden i stedet for at ordene kuttes.
+  tabs: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  tab: { flexGrow: 1, flexShrink: 0, flexBasis: "auto", minHeight: TOUCH, borderRadius: radius.input, alignItems: "center", justifyContent: "center", paddingHorizontal: space.sm, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
   tabSelected: { backgroundColor: colors.white, borderColor: colors.white },
 
   card: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.xl, gap: space.lg },

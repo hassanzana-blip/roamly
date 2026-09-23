@@ -98,10 +98,22 @@ export function I18nProvider({ children, initialLocale }: { children: ReactNode;
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
     setChosen(true);
-    writePref(PREF_KEY, l);
+    // Et bevisst valg: det eneste som får skrive inn i en innstillingsfil fra en annen appversjon.
+    writePref(PREF_KEY, l, { userChoice: true });
   }, []);
   const value = useMemo(() => ({ ...i18nFor(locale), setLocale, chosen }), [locale, setLocale, chosen]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+/** VoiceOver-språket (iOS `accessibilityLanguage`, BCP 47) for appens språk. */
+export function a11yLanguage(locale: Locale): string {
+  return locale === "nb" ? "nb-NO" : "en-GB";
+}
+
+/** Som over, for elementer som kan stå utenfor I18nProvider (da: ingen verdi). */
+export function useA11yLanguage(): string | undefined {
+  const v = useContext(I18nContext);
+  return v ? a11yLanguage(v.locale) : undefined;
 }
 
 export function useI18n(): I18nContextValue {

@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "./a11y";
 import type { MobileOfferPrice } from "@contracts/mobileSearch";
 import { priceDisplay } from "../lib/price";
-import { useI18n } from "../i18n";
+import { useA11yLanguage, useI18n } from "../i18n";
 import { colors, type } from "../lib/theme";
 
 /**
@@ -13,13 +14,14 @@ import { colors, type } from "../lib/theme";
  * kroneprisen, står grunnen alltid.
  */
 export function PriceTag({ price, align = "left", size = "card", dark, compact, testID }: { price: MobileOfferPrice; align?: "left" | "right"; size?: "card" | "large"; dark?: boolean; compact?: boolean; testID?: string }) {
+  const lang = useA11yLanguage();
   const i18n = useI18n();
   const d = priceDisplay(price, i18n);
   const fg = dark ? colors.onDark : colors.text;
   const sub = dark ? colors.onDarkMuted : colors.textSecondary;
   const secondary = compact ? d.secondaryShort : d.secondary;
   return (
-    <View style={{ alignItems: align === "right" ? "flex-end" : "flex-start", flexShrink: 1 }} accessible accessibilityLabel={d.accessibilityLabel} testID={testID}>
+    <View accessibilityLanguage={lang} style={{ alignItems: align === "right" ? "flex-end" : "flex-start", flexShrink: 1 }} accessible accessibilityLabel={d.accessibilityLabel} testID={testID}>
       {compact && d.approx && d.amount ? (
         <Text style={[type.price, { color: fg }]}>
           <Text style={[styles.approx, { color: sub }]}>{`${i18n.t.price.approxLabel} `}</Text>

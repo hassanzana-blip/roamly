@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, Text } from "./a11y";
 import type { Destination } from "../lib/destinations";
 import { BottomFade, PhotoBackdrop } from "./Photo";
 import { colors, radius, space, type } from "../lib/theme";

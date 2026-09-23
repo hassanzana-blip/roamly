@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { AccessibilityInfo, FlatList, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { AccessibilityInfo, FlatList, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,7 +11,7 @@ import { addDays, formatClock, fromIsoDate, toIsoDate } from "../lib/format";
 import { ApiError } from "../lib/api";
 import { errorText } from "../lib/errorText";
 import { pricesStale, providerDisplayName, resultKind } from "../lib/resultStatus";
-import { useI18n } from "../i18n";
+import { useA11yLanguage, useI18n } from "../i18n";
 import { cabinLabel, passengerSummary } from "../lib/searchForm";
 import { activeFilterCount, airlineOptions, applyView, clearedFilters, countWith, legThresholds, priceThresholds, SORTS, STOPS, TIME_BANDS, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
 import { groupJourneys } from "../lib/journeys";
@@ -71,6 +72,7 @@ function canRetry(err: unknown): boolean {
 }
 
 export default function ResultsScreen() {
+  const lang = useA11yLanguage();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { search, runSearch, cancelSearch, form, setForm, view, setView } = useApp();
@@ -368,7 +370,7 @@ export default function ResultsScreen() {
         }
       >
         <ScrollView contentContainerStyle={{ gap: space.lg }} testID="filter-screen">
-          <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.stopsTitle}>
+          <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.stopsTitle}>
             <Text style={[type.bodyStrong, { color: colors.text }]}>{r.stopsTitle}</Text>
             {STOPS.map((value) => {
               const n = shownFor({ stops: value });
@@ -415,7 +417,7 @@ export default function ResultsScreen() {
             </View>
           ) : null}
           {prices.length ? (
-            <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.priceTitle}>
+            <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.priceTitle}>
               <Text style={[type.bodyStrong, { color: colors.text }]}>{r.priceTitle}</Text>
               <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.priceHint}</Text>
               <OptionRow testID="price-any" label={r.anyPrice} detail={reiser(shownFor({ maxPriceMinor: null }))} selected={view.maxPriceMinor === null} onPress={() => setView((v) => ({ ...v, maxPriceMinor: null }))} />
@@ -427,7 +429,7 @@ export default function ResultsScreen() {
             </View>
           ) : null}
           {legs.length ? (
-            <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.legTitle}>
+            <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.legTitle}>
               <Text style={[type.bodyStrong, { color: colors.text }]}>{r.legTitle}</Text>
               <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.legHint}</Text>
               <OptionRow testID="leg-any" label={r.anyLength} detail={reiser(shownFor({ maxLegMinutes: null }))} selected={view.maxLegMinutes === null} onPress={() => setView((v) => ({ ...v, maxLegMinutes: null }))} />
@@ -442,7 +444,7 @@ export default function ResultsScreen() {
       </BottomSheet>
 
       <BottomSheet visible={sheet === "sort"} title={r.sort} onClose={() => setSheet(null)} testID="sort-sheet">
-        <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.sortingLabel}>
+        <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.sortingLabel}>
           {SORTS.map((value) => (
             <OptionRow
               key={value}
