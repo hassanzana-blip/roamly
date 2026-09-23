@@ -484,3 +484,45 @@ Not checked here:
 - The bar's price basis can still break between «1» and «spedbarn».
   That is ordinary wrapping.
 
+
+## Requested flights and expiry (ad92afc)
+
+Only the new states, captured from a clean worktree at `ad92afc` at 375 × 812 pt (safe area 50/34 pt), in Bokmål and English.
+
+**Test data.** The standard demo test data, with `excluded: { count: 7, reasons: { origin: 2, destination: 2, date: 2, slices: 1 } }`, shaped as the mobile API returns it after exclusion. The filtering itself is proven by the server integration tests, not by these images. The form dates are set to the fixture's flight dates (7–14 Oct). For the expiry capture, `expiresAt` was set 40 s after the test data was written. The script opened Details, confirmed it still offered «Gå til tilbud» with no warning (expiry about 34 s ahead), then only waited.
+
+| Check | nb | en | Result |
+|---|---|---|---|
+| Some held back: info line, remaining cards shown | «7 tilbud fra tilbyderen gjaldt ikke søket ditt (annen flyplass, annen dato, uten hjemreise) og vises ikke.»; 4 cards | «7 offers from the provider didn't match your search (different airport, different date, no return flight) and aren't shown.»; 4 cards | PASSED |
+| All held back: truthful empty state, no cards | «Ingen reiser passet søket» + reasons + «Endre søk»; 0 cards | «No journeys matched your search» + reasons + «Edit search»; 0 cards | PASSED |
+| Expired while open, with no interaction: warning, «Søk på nytt» primary, explicit continue link | before: «Gå til tilbud hos Norwegian», no warning; after: warning, «Søk på nytt», «Gå til Norwegian likevel» | before: «Go to offer at Norwegian»; after: warning, «Search again», «Continue to Norwegian anyway» | PASSED |
+
+Covered by tests only, not by these images:
+- **Server integration (`mobileFlights.it.ts`, with the real `runFlightSearch`).** The following are excluded and counted:
+  - TRF instead of OSL, on the outbound or the return;
+  - another destination;
+  - another outbound or return date;
+  - a missing return, or an extra leg on a one-way search;
+  - a first segment from TRF while the slice summary says OSL.
+
+  Kept: a layover airport change (LGW→LHR), exact kept offers, and click attribution. The web search is unchanged. The 3 exclusion tests fail on the old code.
+- **App (`offerExpiry.test.tsx`).** It covers:
+  - expiry while the screen is open, driven by a timer and no other re-render;
+  - a tap after the clock passed expiry but before any redraw: nothing opens and nothing is tracked, and the warning shows;
+  - background, then resume;
+  - two sellers with different expiries;
+  - «continue anyway» plus a double tap: exactly one browser and one tracking call;
+  - on unmount, no timers remain and the AppState listener is removed.
+
+  5 of the 6 fail on the old code.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `state-en-ad92afc-375-1-excluded-some.png` | `a9f7faeba0189c27…` | 750×1780 |
+| `state-en-ad92afc-375-2-excluded-all.png` | `e0377133a49f03c4…` | 750×1780 |
+| `state-en-ad92afc-375-3-expired-while-open.png` | `924a9d4ad4fc375a…` | 750×3185 |
+| `state-nb-ad92afc-375-1-excluded-some.png` | `72b8069281d08f7a…` | 750×1780 |
+| `state-nb-ad92afc-375-2-excluded-all.png` | `9971b465ecb7db7b…` | 750×1780 |
+| `state-nb-ad92afc-375-3-expired-while-open.png` | `e619ff8560d36820…` | 750×3185 |
+
+Not checked here: a device or simulator, real iOS backgrounding, VoiceOver, and real KAYAK data (staging answers with demo data). The response's `priceMode` metadata is still not checked (documented follow-up).
