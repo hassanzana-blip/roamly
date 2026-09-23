@@ -31,7 +31,7 @@ function share(value: number, max: number): string {
 function Panel({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <Card>
-      <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
+      <h3 className="font-display text-[15px] font-semibold text-foreground">{title}</h3>
       {hint && <p className="mt-0.5 text-[13px] text-muted-foreground">{hint}</p>}
       <div className="mt-4">{children}</div>
     </Card>
@@ -65,7 +65,7 @@ function Trend({ data, currency, days }: { data: NonNullable<ReturnType<typeof u
   return (
     <Panel title="Salg mot forrige periode" hint={`Bekreftet salg i ${currency}.`}>
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="font-display text-3xl font-semibold text-foreground">{formatMoney(now.total, currency)}</span>
+        <span className="font-display text-[26px] font-semibold admin-num text-foreground">{formatMoney(now.total, currency)}</span>
         {delta === null ? (
           <span className="text-sm text-muted-foreground">ingen salg forrige periode å måle mot</span>
         ) : (

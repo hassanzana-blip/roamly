@@ -244,48 +244,85 @@
      Sidebakgrunnen er løftet fra ren hvit til en svak kjølig tone, så hvite
      kort faktisk leser som kort og ikke som hull i siden. */
   :root[data-theme="admin"] {
-    --background: 210 40% 98%;
-    --foreground: 240 5% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 5% 10%;
+    /* Eierpanel 2.0. Tokenene speiler Figma-samlingen «Farge» 1:1, så en
+       endring der og en endring her er samme endring.
+
+       Systemet er lyst og kjølig. Bakgrunnen er ikke hvit – kortene er. Det
+       er den forskjellen som gjør at et kort leser som et kort og ikke som et
+       hull i siden. Blått er eneste aksent. Ingen svarte flater: de kom fra
+       et tidligere referansebilde og er ikke lenger riktige. */
+    --background: 216 33% 97%;      /* #F5F7FA  siden */
+    --foreground: 211 53% 11%;      /* #0D1B2A  dyp marine, ikke svart */
+    --card: 0 0% 100%;              /* #FFFFFF  kort og paneler */
+    --card-foreground: 211 53% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 5% 10%;
-    --primary: 217 86% 49%;
+    --popover-foreground: 211 53% 11%;
+    --primary: 217 86% 49%;         /* #1265EA  HelloSky-blå */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 86% 42%;
-    --primary-soft: 214 100% 96%;
-    --night: 240 6% 9%;
-    --sand: 210 25% 95%;
-    --secondary: 210 25% 95%;
-    --secondary-foreground: 240 6% 12%;
-    --muted: 210 30% 96.5%;
-    --muted-foreground: 215 14% 40%;
-    --accent: 214 100% 96%;
-    --accent-foreground: 217 86% 30%;
-    --border: 214 20% 90%;
-    --input: 214 18% 82%;
-    --ring: 217 86% 45%;
-    --destructive: 4 72% 46%;
+    --primary-hover: 217 86% 42%;   /* #0F55C8 */
+    --primary-soft: 216 91% 96%;    /* #EAF2FE  aktiv meny, ikonflis */
+    --night: 211 53% 11%;           /* var nesten svart; nå samme marine som tekst */
+    --sand: 213 39% 95%;            /* #EFF3F8 */
+    --secondary: 213 39% 95%;
+    --secondary-foreground: 210 22% 25%;
+    --muted: 213 39% 95%;           /* #EFF3F8  inputfelt, hover */
+    --muted-foreground: 213 12% 42%;/* #5A6A7D */
+    --subtle: 214 14% 59%;          /* #8794A5  dempet tekst, tredje nivå */
+    --accent: 216 91% 96%;
+    --accent-foreground: 217 86% 43%;
+    --border: 212 32% 92%;          /* #E4EAF1  kant/svak */
+    --border-strong: 213 28% 87%;   /* #D6DEE8  kant/vanlig – kontroller */
+    --input: 213 28% 87%;
+    --ring: 217 86% 49%;
+    --destructive: 4 63% 46%;       /* #C0362C */
     --destructive-foreground: 0 0% 100%;
-    --success: 145 63% 30%;
+    --destructive-soft: 7 74% 95%;  /* #FCEDEB */
+    --success: 148 62% 31%;         /* #1E7F4B */
     --success-foreground: 0 0% 100%;
-    --warning: 32 92% 30%;
+    --success-soft: 146 41% 93%;    /* #E7F5ED */
+    --warning: 35 79% 34%;          /* #9A6212 */
     --warning-foreground: 0 0% 100%;
+    --warning-soft: 38 87% 94%;     /* #FDF3E2 */
+    --neutral-soft: 213 36% 95%;    /* #EEF2F7 */
     --gold: 217 86% 49%;
-    --skyline: 217 80% 26%;
+    --skyline: 217 86% 43%;
     --cream: 0 0% 100%;
-    --coral: 4 72% 46%;
+    --coral: 4 63% 46%;
     --like: 348 82% 52%;
+    /* Rader og tabellhoder: så vidt av hvitt, ellers forsvinner de. */
+    --row-hover: 216 45% 98%;       /* #F7F9FC */
+    --thead: 220 43% 99%;           /* #FAFBFD */
+    /* Datavisualisering: to blåtoner, og ikke flere. */
+    --chart-1: 217 86% 49%;         /* #1265EA  søk */
+    --chart-2: 212 87% 76%;         /* #8FC0F7  bestillinger */
+    --chart-grid: 213 33% 95%;      /* #EDF1F6 */
+    --chart-fill: 214 89% 93%;      /* #DCEAFD */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5% 10%;
+    --sidebar-foreground: 210 22% 25%;
     --sidebar-primary: 217 86% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 100% 96%;
-    --sidebar-accent-foreground: 217 86% 30%;
-    --sidebar-border: 214 20% 90%;
-    --sidebar-ring: 217 86% 45%;
+    --sidebar-accent: 216 91% 96%;
+    --sidebar-accent-foreground: 211 53% 11%;
+    --sidebar-border: 212 32% 92%;
+    --sidebar-ring: 217 86% 49%;
+    /* Mål. Sidemenyen var 256; referansen er smalere og gir innholdet plass. */
+    --admin-sidebar: 232px;
+    --admin-header: 60px;
+    --admin-content-max: 1320px;
   }
   :root[data-theme="admin"].dark {
+    --subtle: 213 12% 58%;
+    --border-strong: 240 5% 26%;
+    --destructive-soft: 4 40% 18%;
+    --success-soft: 148 35% 16%;
+    --warning-soft: 35 45% 17%;
+    --neutral-soft: 240 5% 16%;
+    --row-hover: 240 5% 13%;
+    --thead: 240 6% 12%;
+    --chart-1: 214 90% 62%;
+    --chart-2: 212 60% 40%;
+    --chart-grid: 240 5% 18%;
+    --chart-fill: 217 45% 20%;
     --background: 240 7% 7%;
     --foreground: 0 0% 96%;
     --card: 240 6% 11%;
@@ -1203,6 +1240,151 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    med en lys overkant der lyset treffer. Faller tilbake til en solid flate
    der backdrop-filter ikke finnes, og der brukeren har bedt om mindre
    gjennomsiktighet. */
+/* ── Eierpanel 2.0: typografi ────────────────────────────────────────────
+   Adminen arvet den redaksjonelle serifen fra kundesiden. Den er riktig for
+   et reisemagasin og feil for et verktøy noen står i hele dagen: den leste
+   som «nettsted», ikke som «program». Her er systemstacken – på en Mac blir
+   det SF Pro, uten at vi pakker eller distribuerer en eneste fontfil. */
+:root[data-theme="admin"] {
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+}
+:root[data-theme="admin"] body,
+:root[data-theme="admin"] input,
+:root[data-theme="admin"] select,
+:root[data-theme="admin"] textarea,
+:root[data-theme="admin"] button {
+  font-family: var(--font-system);
+}
+:root[data-theme="admin"] .font-display,
+:root[data-theme="admin"] .t-display,
+:root[data-theme="admin"] .t-h1,
+:root[data-theme="admin"] .t-h2 {
+  font-family: var(--font-system);
+  font-weight: 600;
+  letter-spacing: -0.021em;
+  line-height: 1.15;
+  font-feature-settings: "kern";
+  font-style: normal;
+  text-wrap: balance;
+}
+/* Kundesidens display-grader er 34–80 px. Det er riktig for en forside og
+   feil for et verktøy: en overskrift på 52 px over en tabell gjør at tabellen
+   ser ut som en fotnote. Adminen har sin egen, rolige skala. */
+:root[data-theme="admin"] .t-display {
+  font-size: 30px;
+  line-height: 1.12;
+  letter-spacing: -0.024em;
+}
+:root[data-theme="admin"] .t-h1 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.018em;
+}
+:root[data-theme="admin"] .t-h2 {
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+}
+/* Tall i tabeller og nøkkeltall står i kolonne. */
+:root[data-theme="admin"] .tabular,
+:root[data-theme="admin"] .admin-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+/* Etiketten over et tall. Setningsform – etiketter informerer, de roper ikke. */
+:root[data-theme="admin"] .eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  color: hsl(var(--subtle));
+}
+
+/* ── Eierpanel 2.0: flater ───────────────────────────────────────────────
+   Dybden kommer fra kant og flate. Skyggen er nesten usynlig med vilje:
+   fire kort ved siden av hverandre med ekte slagskygge ser ut som en
+   nettbutikk, ikke som et verktøy. */
+.admin-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px hsl(var(--foreground) / 0.04),
+    0 1px 1px hsl(var(--foreground) / 0.03);
+}
+.admin-raise {
+  box-shadow:
+    0 2px 6px hsl(var(--foreground) / 0.06),
+    0 1px 2px hsl(var(--foreground) / 0.04);
+}
+.admin-menu {
+  box-shadow:
+    0 8px 24px hsl(var(--foreground) / 0.12),
+    0 2px 6px hsl(var(--foreground) / 0.06);
+}
+/* ── Eierpanel 2.0: tabeller ─────────────────────────────────────────────
+   En profesjonell tabell er tett, rolig og lett å lese på tvers. Hodet er så
+   vidt av hvitt så det skiller seg fra radene uten å bli en stripe. Skillet
+   mellom rader er én hårlinje, ikke annenhver farget rad. */
+/* Alle adminens tabeller, ikke bare de som bruker <TableCard>.
+   27 sider har hver sin håndskrevne <table>; i stedet for å redigere dem én
+   etter én settes tettheten og hodet her. Sidene bestemmer fortsatt kolonner
+   og innhold – dette bestemmer bare hvordan en tabell ser ut. */
+:root[data-theme="admin"] table thead th {
+  padding-top: 9px;
+  padding-bottom: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  color: hsl(var(--subtle));
+  background: hsl(var(--thead));
+  border-bottom: 1px solid hsl(var(--border));
+  white-space: nowrap;
+}
+:root[data-theme="admin"] table tbody td {
+  padding-top: 11px;
+  padding-bottom: 11px;
+  font-size: 14px;
+}
+:root[data-theme="admin"] table tbody tr:hover > td {
+  background: hsl(var(--row-hover));
+}
+:root[data-theme="admin"][data-density="compact"] table thead th {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+:root[data-theme="admin"][data-density="compact"] table tbody td {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.admin-table thead th {
+  background: hsl(var(--thead));
+  border-bottom: 1px solid hsl(var(--border));
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.admin-table tbody tr + tr > td {
+  border-top: 1px solid hsl(var(--chart-grid));
+}
+/* Tall står i kolonne og høyrejusteres der de sammenlignes. */
+.admin-table td.num,
+.admin-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kontrollhøyden i hele panelet. Knapp, nedtrekk og søkefelt står på linje
+   fordi de er nøyaktig like høye – ikke omtrent like høye. */
+.admin-control {
+  height: 36px;
+  border-radius: 10px;
+}
+
 .admin-material {
   background: hsl(var(--card) / 0.72);
   backdrop-filter: blur(20px) saturate(180%);

@@ -2,8 +2,9 @@ import { z } from "zod";
 import { and, count, desc, eq, gte, inArray, lt, sql, type AnyColumn } from "drizzle-orm";
 import { createRouter, permittedProcedure } from "./middleware";
 import { getDb } from "./queries/connection";
-import { affiliateConversions, bookings, customerAccounts, priceAlerts, providerClicks, searchEvents } from "../db/schema";
+import { affiliateConversions, bookings, checkoutSessions, customerAccounts, priceAlerts, providerClicks, searchEvents } from "../db/schema";
 import { flightProvidersStatus } from "./lib/flightProviders";
+import { airportCity } from "./lib/airportMeta";
 
 /**
  * Tallene en eier faktisk spør om.
@@ -84,6 +85,10 @@ export const adminOwnerRouter = createRouter({
         newCustomers,
         activeAlerts,
         directSales,
+        bookingsNow,
+        bookingsPrev,
+        serviceFees,
+        bookingCustomers,
       ] = await Promise.all([
         db.select({ n: count() }).from(searchEvents).where(inWindow(searchEvents.createdAt)),
         db.select({ n: count() }).from(searchEvents).where(inPrev(searchEvents.createdAt)),
@@ -137,6 +142,20 @@ export const adminOwnerRouter = createRouter({
           .from(bookings)
           .where(and(gte(bookings.createdAt, from), lt(bookings.createdAt, to), inArray(bookings.state, ["CONFIRMED", "TRAVELLED", "CHANGE_REQUESTED", "PARTIALLY_REFUNDED"])))
           .groupBy(bookings.totalCurrency),
+        db.select({ n: count() }).from(bookings).where(inWindow(bookings.createdAt)),
+        db.select({ n: count() }).from(bookings).where(inPrev(bookings.createdAt)),
+        // Servicegebyret er HelloSkys egne penger, i motsetning til reisens pris.
+        db
+          .select({ currency: checkoutSessions.currency, total: sql<string>`COALESCE(SUM(${checkoutSessions.serviceFeeAmountMinor}), 0)` })
+          .from(checkoutSessions)
+          .where(and(inWindow(checkoutSessions.createdAt), eq(checkoutSessions.status, "confirmed")))
+          .groupBy(checkoutSessions.currency),
+        // «Aktive kunder» i mockupen er udefinert. Dette er definert: kunder
+        // med minst én bestilling i perioden.
+        db
+          .select({ n: sql<string>`COUNT(DISTINCT ${bookings.customerId})` })
+          .from(bookings)
+          .where(and(inWindow(bookings.createdAt), inArray(bookings.state, ["CONFIRMED", "TRAVELLED", "CHANGE_REQUESTED", "PARTIALLY_REFUNDED"]))),
       ]);
 
       const searches = num(searchNow[0]?.n);
@@ -151,6 +170,30 @@ export const adminOwnerRouter = createRouter({
       const trackingSince = firstSearch[0]?.at ? new Date(firstSearch[0].at as string) : null;
       const clicksSince = firstClick[0]?.at ? new Date(firstClick[0].at as string) : null;
       const partialPeriod = trackingSince !== null && trackingSince > from;
+
+      /**
+       * HelloSkys inntekt.
+       *
+       * To kilder, begge våre: servicegebyret på egen kasse, og provisjonen
+       * en leverandør faktisk har utbetalt. De summeres – begge er penger vi
+       * beholder. Bruttoverdien på reisen er det ikke, og den er aldri med.
+       * Estimert og bekreftet provisjon er heller ikke med: de er ikke penger
+       * før de er utbetalt.
+       */
+      const feeByCurrency = new Map<string, number>();
+      for (const r of serviceFees) feeByCurrency.set(String(r.currency ?? "NOK"), num(r.total));
+      const paidByCurrency = new Map<string, number>();
+      for (const r of commissionRows) {
+        if (String(r.status) !== "paid") continue;
+        const cur = String(r.currency ?? "NOK");
+        paidByCurrency.set(cur, (paidByCurrency.get(cur) ?? 0) + num(r.total));
+      }
+      const revenue = [...new Set([...feeByCurrency.keys(), ...paidByCurrency.keys()])].map((currency) => ({
+        currency,
+        serviceFeeMinor: feeByCurrency.get(currency) ?? 0,
+        paidCommissionMinor: paidByCurrency.get(currency) ?? 0,
+        totalMinor: (feeByCurrency.get(currency) ?? 0) + (paidByCurrency.get(currency) ?? 0),
+      }));
 
       const commission = commissionRows.map((r) => ({
         status: String(r.status),
@@ -174,6 +217,7 @@ export const adminOwnerRouter = createRouter({
           noResults,
           /** Andel søk som ble til et klikk ut. Null når det ikke er søk å dele på. */
           clickThrough: searches > 0 ? clicks / searches : null,
+          bookings: { value: num(bookingsNow[0]?.n), previous: num(bookingsPrev[0]?.n) },
         },
         money: {
           /** Bruttoverdi på reisene folk klikket videre med. Ikke HelloSkys penger. */
@@ -182,6 +226,8 @@ export const adminOwnerRouter = createRouter({
           commission,
           /** Direktesalg gjennom HelloSkys egen kasse (Duffel-modellen). */
           directSales: directSales.map((r) => ({ currency: String(r.currency), amountMajor: num(r.total), count: num(r.n) })),
+          /** HelloSkys egne penger: gebyr + utbetalt provisjon. Se kommentaren over. */
+          revenue,
         },
         /**
          * Trakten. `measured: false` betyr at vi ikke måler steget ennå –
@@ -194,8 +240,24 @@ export const adminOwnerRouter = createRouter({
           { stage: "conversions", count: num(conversionCount[0]?.n), measured: num(conversionCount[0]?.n) > 0 },
           { stage: "commission", count: commission.filter((c) => c.status === "paid").length, measured: commission.some((c) => c.status === "paid") },
         ],
-        topRoutes: topRouteRows.map((r) => ({ origin: String(r.origin), destination: String(r.destination), searches: num(r.n) })),
-        noResultRoutes: noResultRouteRows.map((r) => ({ origin: String(r.origin), destination: String(r.destination), searches: num(r.n) })),
+        /**
+         * Bynavnene løses her, ikke i nettleseren: flyplasstabellen er stor,
+         * og den har ingenting å gjøre i kundens – eller eierens – JS-bunt.
+         */
+        topRoutes: topRouteRows.map((r) => ({
+          origin: String(r.origin),
+          destination: String(r.destination),
+          originCity: airportCity(String(r.origin)),
+          destinationCity: airportCity(String(r.destination)),
+          searches: num(r.n),
+        })),
+        noResultRoutes: noResultRouteRows.map((r) => ({
+          origin: String(r.origin),
+          destination: String(r.destination),
+          originCity: airportCity(String(r.origin)),
+          destinationCity: airportCity(String(r.destination)),
+          searches: num(r.n),
+        })),
         providerUsage: providerRows
           .filter((r) => r.provider)
           .map((r) => ({
@@ -205,7 +267,12 @@ export const adminOwnerRouter = createRouter({
             emptyResults: num(r.empty),
             avgMs: num(r.avgMs),
           })),
-        audience: { newCustomers: num(newCustomers[0]?.n), activePriceAlerts: num(activeAlerts[0]?.n) },
+        audience: {
+          newCustomers: num(newCustomers[0]?.n),
+          activePriceAlerts: num(activeAlerts[0]?.n),
+          /** Kunder med minst én bestilling i perioden. Definert, i motsetning til «aktive». */
+          bookingCustomers: num(bookingCustomers[0]?.n),
+        },
         /**
          * Live leverandørstatus – spurt nå, ikke lagret. «sandbox: null»
          * betyr at vi ikke vet for den leverandøren, ikke at den er ekte.
@@ -219,5 +286,55 @@ export const adminOwnerRouter = createRouter({
           }));
         })(),
       };
+    }),
+
+  /**
+   * Én linje per dag: søk og bestillinger.
+   *
+   * Grafen er den eneste flaten i panelet som viser utvikling over tid, og da
+   * må dagene være komplette. Databasen returnerer bare dager som har rader,
+   * så hullene fylles her – en dag uten søk er 0, ikke et brudd i kurven.
+   */
+  series: permittedProcedure("company:read")
+    .input(z.object({ period: z.enum(PERIODS).default("30d") }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const { from, to, days } = windowFor(input.period);
+
+      const [searchRows, bookingRows] = await Promise.all([
+        db
+          .select({ day: sql<string>`DATE(${searchEvents.createdAt})`, n: count() })
+          .from(searchEvents)
+          .where(and(gte(searchEvents.createdAt, from), lt(searchEvents.createdAt, to)))
+          .groupBy(sql`DATE(${searchEvents.createdAt})`),
+        db
+          .select({ day: sql<string>`DATE(${bookings.createdAt})`, n: count() })
+          .from(bookings)
+          .where(and(gte(bookings.createdAt, from), lt(bookings.createdAt, to)))
+          .groupBy(sql`DATE(${bookings.createdAt})`),
+      ]);
+
+      const key = (d: Date) => d.toISOString().slice(0, 10);
+      const searchBy = new Map(searchRows.map((r) => [String(r.day).slice(0, 10), num(r.n)]));
+      const bookingBy = new Map(bookingRows.map((r) => [String(r.day).slice(0, 10), num(r.n)]));
+
+      // Maks 90 punkter. Et år på dagnivå er 365 piksler bred støy; da
+      // grupperes det i uker i stedet.
+      const step = days > 120 ? 7 : 1;
+      const points: { day: string; searches: number; bookings: number }[] = [];
+      const start = new Date(from);
+      start.setHours(0, 0, 0, 0);
+      for (let t = start.getTime(); t < to.getTime(); t += step * DAY_MS) {
+        let searches = 0;
+        let bookingCount = 0;
+        for (let i = 0; i < step; i++) {
+          const d = key(new Date(t + i * DAY_MS));
+          searches += searchBy.get(d) ?? 0;
+          bookingCount += bookingBy.get(d) ?? 0;
+        }
+        points.push({ day: key(new Date(t)), searches, bookings: bookingCount });
+      }
+
+      return { period: { key: input.period, days, step }, points };
     }),
 });

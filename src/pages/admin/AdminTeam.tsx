@@ -216,7 +216,7 @@ export function AdminNotes() {
               )}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
-                <h3 className="font-display text-xl font-semibold leading-snug text-foreground">{n.title}</h3>
+                <h3 className="font-display text-[15px] font-semibold leading-snug text-foreground">{n.title}</h3>
                 {n.pinned && <Pin className="h-4 w-4 shrink-0 rotate-45 text-muted-foreground" />}
               </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{n.body}</p>

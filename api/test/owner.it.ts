@@ -144,7 +144,7 @@ describe("tallene", () => {
     const s = await owner().adminOwner.summary({ period: "30d" });
     expect(s.demand.searches.value).toBe(2);
     expect(s.demand.noResults).toBe(1);
-    expect(s.noResultRoutes).toEqual([{ origin: "OSL", destination: "EVE", searches: 1 }]);
+    expect(s.noResultRoutes).toEqual([{ origin: "OSL", destination: "EVE", originCity: "Oslo", destinationCity: "Evenes", searches: 1 }]);
   });
 
   it("regner klikkandel av søk, og svarer null når det ikke er noe å dele på", async () => {
@@ -199,7 +199,44 @@ describe("tallene", () => {
     await search({ destinationIata: "BCN" });
 
     const s = await owner().adminOwner.summary({ period: "30d" });
-    expect(s.topRoutes[0]).toEqual({ origin: "OSL", destination: "LHR", searches: 2 });
+    // Bynavnene løses på serveren, så klienten slipper flyplasstabellen.
+    expect(s.topRoutes[0]).toEqual({ origin: "OSL", destination: "LHR", originCity: "Oslo", destinationCity: "London", searches: 2 });
+  });
+
+  /**
+   * Grafen.
+   *
+   * Databasen returnerer bare dager som har rader. Fylles ikke hullene, hopper
+   * kurven over en stille tirsdag som om den ikke fantes – og en uke med to
+   * søk ser ut som en uke med jevn trafikk.
+   */
+  it("gir ett punkt per dag, også for dagene uten aktivitet", async () => {
+    await search();
+    const s = await owner().adminOwner.series({ period: "7d" });
+    // Sju døgn som starter midt på dagen berører åtte kalenderdager. Begge
+    // endepunktene skal være med – ellers mangler kurven dagen i dag.
+    expect(s.points.length).toBeGreaterThanOrEqual(7);
+    expect(s.points.length).toBeLessThanOrEqual(8);
+    expect(s.points.every((p) => typeof p.searches === "number" && typeof p.bookings === "number")).toBe(true);
+    expect(s.points.filter((p) => p.searches === 0).length).toBeGreaterThan(0);
+  });
+
+  it("legger sammen til uker når perioden er et år, så kurven ikke blir 365 piksler støy", async () => {
+    const s = await owner().adminOwner.series({ period: "year" });
+    expect(s.period.step).toBe(7);
+    expect(s.points.length).toBeLessThanOrEqual(53);
+  });
+
+  it("teller søk og bestillinger i hvert sitt felt", async () => {
+    await search();
+    await search();
+    const s = await owner().adminOwner.series({ period: "7d" });
+    expect(s.points.reduce((a, p) => a + p.searches, 0)).toBe(2);
+    expect(s.points.reduce((a, p) => a + p.bookings, 0)).toBe(0);
+  });
+
+  it("er stengt for alle andre enn eieren", async () => {
+    await expectAppCode(caller({ staff: fakeStaff({ role: "ADMIN" }) }).adminOwner.series({ period: "7d" }), "FORBIDDEN");
   });
 
   it("teller nye kunder i perioden", async () => {

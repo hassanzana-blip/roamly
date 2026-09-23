@@ -53,7 +53,7 @@ export function AdminReceipt() {
           <div className="flex items-center gap-3">
             <SkyMark className="h-9 w-9 text-[#5b8cff]" />
             <div>
-              <p className="font-display text-2xl font-semibold leading-none">hellosky</p>
+              <p className="font-display text-[22px] font-semibold leading-none">hellosky</p>
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">Kvittering</p>
             </div>
           </div>
@@ -82,7 +82,7 @@ export function AdminReceipt() {
             <p className="eyebrow">
               {TRIP_LABEL[p.tripType] ?? "Reise"}
             </p>
-            <p className="mt-1 font-display text-xl font-semibold text-foreground">{p.title}</p>
+            <p className="mt-1 font-display text-[15px] font-semibold text-foreground">{p.title}</p>
             {p.travelDate && (
               <p className="mt-0.5 text-sm text-foreground/70">Reisedato: {formatDate(p.travelDate)}</p>
             )}
@@ -102,7 +102,7 @@ export function AdminReceipt() {
             </div>
             <div className="flex justify-between border-t border-night/15 pt-3">
               <dt className="text-base font-semibold text-foreground">Totalt betalt</dt>
-              <dd className="font-display text-2xl font-semibold text-foreground">{formatMoney(p.totalAmount, currency)}</dd>
+              <dd className="font-display text-[22px] font-semibold text-foreground">{formatMoney(p.totalAmount, currency)}</dd>
             </div>
             <div className="flex justify-between text-foreground/70">
               <dt>Betalingsmåte</dt>

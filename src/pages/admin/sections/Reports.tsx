@@ -73,24 +73,24 @@ export function AdminReports() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <p className="eyebrow">Bekreftede bookinger</p>
-          <p className="mt-1 font-display text-3xl font-semibold text-foreground">{totalBookings}</p>
+          <p className="mt-1 font-display text-[26px] font-semibold admin-num text-foreground">{totalBookings}</p>
         </Card>
         {data.totals.map((t) => (
           <Card key={t.currency}>
             <p className="eyebrow">Bekreftet salg ({t.currency})</p>
-            <p className="mt-1 font-display text-3xl font-semibold text-foreground">{formatMoney(t.total, t.currency)}</p>
+            <p className="mt-1 font-display text-[26px] font-semibold admin-num text-foreground">{formatMoney(t.total, t.currency)}</p>
             <p className="mt-1 text-xs text-muted-foreground">{t.bookings} bookinger · servicegebyr {formatMinor(feeFor(t.currency), t.currency)}</p>
           </Card>
         ))}
         <Card className="border-primary/30 bg-primary/[0.04]">
           <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-primary">Gebyr fra tilbud og manuelle salg</p>
-          <p className="mt-1 font-display text-3xl font-semibold text-primary">{formatMoney(Number(data.quoteFees) + Number(data.manualFees))}</p>
+          <p className="mt-1 font-display text-[26px] font-semibold admin-num text-primary">{formatMoney(Number(data.quoteFees) + Number(data.manualFees))}</p>
           <p className="mt-1 text-xs text-muted-foreground">Tilbud {formatMoney(data.quoteFees)} · manuelt {formatMoney(data.manualFees)}</p>
         </Card>
       </div>
 
       <Card className="mt-6">
-        <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Salg per dag ({activeCurrency})</h2>
+        <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Salg per dag ({activeCurrency})</h2>
         {chartData.length === 0 ? (
           <p className="text-sm text-muted-foreground">Ingen bekreftede salg i perioden.</p>
         ) : (
@@ -128,7 +128,7 @@ export function AdminReports() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
         <Card className="overflow-x-auto p-0">
-          <h2 className="px-5 pt-5 font-display text-xl font-semibold text-foreground">Per valuta</h2>
+          <h2 className="px-5 pt-5 font-display text-[15px] font-semibold text-foreground">Per valuta</h2>
           <table className="mt-3 w-full min-w-[420px] text-left text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -156,7 +156,7 @@ export function AdminReports() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Bestillinger per status</h2>
+          <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Bestillinger per status</h2>
           {data.byState.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ingen bestillinger i perioden.</p>
           ) : (

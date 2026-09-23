@@ -51,6 +51,23 @@ module.exports = {
         "sunny-warm": "hsl(var(--sunny-warm))",
         "lav-soft": "hsl(var(--lav-soft))",
         page: "hsl(var(--page))",
+        /* Eierpanel 2.0 — se :root[data-theme="admin"] i src/index.css.
+           Navnene finnes bare i admin; kundesiden definerer dem ikke og
+           bruker dem ikke. */
+        subtle: "hsl(var(--subtle))",
+        "border-strong": "hsl(var(--border-strong))",
+        "row-hover": "hsl(var(--row-hover))",
+        thead: "hsl(var(--thead))",
+        "success-soft": "hsl(var(--success-soft))",
+        "warning-soft": "hsl(var(--warning-soft))",
+        "destructive-soft": "hsl(var(--destructive-soft))",
+        "neutral-soft": "hsl(var(--neutral-soft))",
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          grid: "hsl(var(--chart-grid))",
+          fill: "hsl(var(--chart-fill))",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -129,6 +146,13 @@ module.exports = {
       spacing: {
         18: "4.5rem",
         "safe-b": "env(safe-area-inset-bottom)",
+        /* Eierpanelets skall. Én kilde for bredde og høyde, så sidemenyen og
+           innholdets venstremarg ikke kan komme i utakt. */
+        sidebar: "var(--admin-sidebar, 232px)",
+        header: "var(--admin-header, 60px)",
+      },
+      maxWidth: {
+        content: "var(--admin-content-max, 1320px)",
       },
       transitionTimingFunction: {
         out: "cubic-bezier(0.23, 1, 0.32, 1)",

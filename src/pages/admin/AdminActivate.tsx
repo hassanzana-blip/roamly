@@ -31,7 +31,7 @@ export default function AdminActivate() {
     return (
       <main id="main" className="grid min-h-screen place-items-center bg-night px-4 text-center">
         <div className="max-w-md rounded-xl bg-card p-8">
-          <h1 className="font-display text-2xl">Ugyldig lenke</h1>
+          <h1 className="font-display text-[22px] font-semibold">Ugyldig lenke</h1>
           <p className="mt-3 text-sm text-muted-foreground">Aktiveringslenken mangler eller er feil. Be om en ny invitasjon.</p>
         </div>
       </main>
@@ -56,7 +56,7 @@ export default function AdminActivate() {
             <div>
               <div className="text-center">
                 <CheckCircle2 className="mx-auto h-12 w-12 text-success" aria-hidden="true" />
-                <h1 className="mt-4 font-display text-2xl">Kontoen er klar!</h1>
+                <h1 className="mt-4 font-display text-[22px] font-semibold">Kontoen er klar!</h1>
                 <p className="mt-2 text-sm text-muted-foreground">Logg inn med e-posten din og passordet du nettopp valgte.</p>
               </div>
               <Link to="/admin/logg-inn" className="mt-6 block w-full rounded-xl bg-primary px-4 py-3.5 text-center font-semibold text-primary-foreground transition-all hover:opacity-90">
@@ -65,7 +65,7 @@ export default function AdminActivate() {
             </div>
           ) : (
             <>
-              <h1 className="flex items-center gap-2.5 font-display text-2xl">
+              <h1 className="flex items-center gap-2.5 font-display text-[22px] font-semibold">
                 <KeyRound className="h-5 w-5 text-primary" aria-hidden="true" /> Velg passord
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">Minst 12 tegn med store og små bokstaver og tall.</p>
