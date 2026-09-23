@@ -141,12 +141,12 @@ services.
 | 45 | Loading and tap feedback | partial | No skeletons. |
 | 46 | Performance measured | partial | Nothing measured yet. |
 | 47 | Settings layout: credits below help | partial (local) | Batch D: help and legal group; credits collapsed at the bottom. |
-| 48 | Icon, splash, logo | partial | Icon repaired by Codex (`677da1e`). There are three brand blues; the splash clashes. |
+| 48 | Icon, splash, logo | partial | Icon repaired (`677da1e`); splash via the SDK 57 `expo-splash-screen` plugin (`60b052a`), both by Codex. Gap: three brand blues; the white splash against the dark app. |
 | 49 | End-to-end tests | partial | 123 app Jest tests on the pushed head (screens with a mocked router); env-gated live suite. No device end-to-end. |
-| 50 | Private preview (EN + NB, fixtures labelled) | partial | PNG evidence committed (`96f6c9f`). The interactive preview will be republished from the latest commit. |
-| 51 | EAS configuration | blocked | Codex (app.json, eas.json). |
-| 52 | Signed build and real-device smoke test | blocked | Needs an EAS login and Apple access (Codex coordinating). |
-| 53 | CI green | partial | Codex added a mobile job (`677da1e`) and reports full E2E not green yet. |
+| 50 | Private preview (EN + NB, fixtures labelled) | partial | PNG evidence in `docs/evidence`, re-captured at `79c2730` as one traceable first-card → details flow (offer `dy_eve`, checked automatically). Interactive preview being republished from `79c2730`. |
+| 51 | EAS configuration | partial (Codex) | `60b052a`: SDK 57 config and dependencies aligned; Expo Doctor 21/21; native config introspection passes. Not verifiable here: that owner, bundle ID and ASC app ID match the registered accounts. |
+| 52 | Signed build and real-device smoke test | in progress (Codex) | A simulator build within the free quota, to catch native compile errors. A signed device build and TestFlight need Ali's approval; nothing is submitted. |
+| 53 | CI green | verified (Codex) | `8325293`: full CI green, including 40/40 E2E. `60b052a`: mobile CI job (types, lint, tests, assets, iOS export, bundle scan, Doctor) green. |
 | 54 | Safe analytics | partial | search_events and provider_clicks on the server. No filter analytics. |
 | 55 | Crash reporting | partial | Server Sentry is optional. The app has none; no paid service without approval. |
 | 56 | Web crawlability (Codex) | partial | Codex's assessment. |
