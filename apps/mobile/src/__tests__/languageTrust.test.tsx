@@ -147,6 +147,14 @@ describe("ærlige merker på resultatene", () => {
     expect(screen.getByTestId("price-status")).toHaveTextContent(/^Live prices · checked at \d\d:\d\d$/);
   });
 
+  it("uten uttrykkelig bevis (leverandør + sandbox: false) kalles prisene aldri ekte", async () => {
+    // Eldre server uten leverandørfelt: demoMode/liveMode alene beviser ingenting.
+    await renderResults({ ...SEARCH_RESULT, provider: undefined, sandbox: undefined, demoMode: false, liveMode: true });
+    expect(screen.getByTestId("unverified-banner")).toHaveTextContent("We couldn't confirm that these are live prices. Check the price with the provider before you book.");
+    expect(screen.getByTestId("price-status")).toHaveTextContent(/^Prices checked at \d\d:\d\d$/);
+    expect(screen.queryByText(/Live prices/)).toBeNull();
+  });
+
   it("leverandørens testmiljø sies med navn; HelloSkys demomotor sies som demo", async () => {
     await renderResults({ ...SEARCH_RESULT, provider: "kayak", sandbox: true });
     expect(screen.getByTestId("sandbox-banner")).toHaveTextContent("Test data from KAYAK's test environment: prices are not real.");

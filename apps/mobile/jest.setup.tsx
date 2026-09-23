@@ -104,3 +104,10 @@ beforeEach(() => {
   mockRouter.replace.mockClear();
   mockParams = {};
 });
+
+// Første skjermtest i en kald kjøring (tom Babel-cache, treg disk, Windows)
+// bruker flere sekunder bare på å laste React Native. Jests standard på 5 s
+// feiler da testen, og den halvferdige renderingen river med seg neste test.
+// Rause grenser her; en test som faktisk henger, feiler fortsatt.
+jest.setTimeout(30_000);
+require("@testing-library/react-native").configure({ asyncUtilTimeout: 4_000 });

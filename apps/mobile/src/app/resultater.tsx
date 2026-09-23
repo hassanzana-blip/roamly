@@ -178,6 +178,7 @@ export default function ResultsScreen() {
   const notices: NoticeItem[] = [
     ...(kind === "demo" ? [{ key: "demo", tone: "warning" as const, text: r.status.demo, testID: "sandbox-banner" }] : []),
     ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
+    ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
     ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: r.status.partial, testID: "partial-banner" }] : []),
     ...(notice ? [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }] : []),
   ];
@@ -209,7 +210,7 @@ export default function ResultsScreen() {
           <Notices items={notices} />
         </View>
       ) : null}
-      {kind === "live" ? (
+      {kind === "live" || kind === "unverified" ? (
         <View style={styles.statusRow} testID="price-status">
           {stale ? (
             <>
@@ -221,8 +222,8 @@ export default function ResultsScreen() {
             </>
           ) : (
             <>
-              <View style={styles.liveDot} />
-              <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.live(checkedAt)}</Text>
+              {kind === "live" ? <View style={styles.liveDot} /> : null}
+              <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{kind === "live" ? r.status.live(checkedAt) : r.status.checked(checkedAt)}</Text>
             </>
           )}
         </View>

@@ -91,6 +91,43 @@ describe("API-klienten mot /api/mobile/trpc", () => {
     await expect(slow.airports("osl")).rejects.toMatchObject({ code: "TIMEOUT" });
   });
 
+  it("tidsfristen gjelder også mens svaret leses (headerne kom, kroppen stoppet opp)", async () => {
+    const stalledBody = (async () => ({ ok: true, status: 200, text: () => new Promise<string>(() => undefined) })) as unknown as typeof fetch;
+    const api = createApiClient({ baseUrl: BASE, getToken: () => null, fetchImpl: stalledBody, timeoutMs: 20 });
+    await expect(api.airports("osl")).rejects.toMatchObject({ code: "TIMEOUT" });
+  });
+
+  it("fetch som ikke reagerer på signalet stoppes likevel av tidsfristen", async () => {
+    const deaf = (() => new Promise(() => undefined)) as unknown as typeof fetch;
+    const api = createApiClient({ baseUrl: BASE, getToken: () => null, fetchImpl: deaf, timeoutMs: 20 });
+    await expect(api.airports("osl")).rejects.toMatchObject({ code: "TIMEOUT" });
+  });
+
+  it("brukerens avbrudd gjelder også mens svaret leses", async () => {
+    let bodyStarted!: () => void;
+    const started = new Promise<void>((r) => (bodyStarted = r));
+    const stalledBody = (async () => ({
+      ok: true,
+      status: 200,
+      text: () => {
+        bodyStarted();
+        return new Promise<string>(() => undefined);
+      },
+    })) as unknown as typeof fetch;
+    const api = createApiClient({ baseUrl: BASE, getToken: () => null, fetchImpl: stalledBody, timeoutMs: 60_000 });
+    const abort = new AbortController();
+    const pending = api.search({ slices: [{ origin: "OSL", destination: "BCN", departureDate: "2026-10-23" }], passengers: [{ type: "adult" }], cabinClass: "economy" }, abort.signal);
+    await started;
+    abort.abort();
+    await expect(pending).rejects.toMatchObject({ code: "CANCELLED" });
+  });
+
+  it("brudd mens svaret leses er en nettverksfeil, ikke et ugyldig svar", async () => {
+    const broken = (async () => ({ ok: true, status: 200, text: () => Promise.reject(new TypeError("connection reset")) })) as unknown as typeof fetch;
+    const api = createApiClient({ baseUrl: BASE, getToken: () => null, fetchImpl: broken });
+    await expect(api.airports("osl")).rejects.toMatchObject({ code: "NETWORK", retryable: true });
+  });
+
   it("superjson-typer (Date) kommer riktig tilbake", async () => {
     const when = new Date("2026-09-22T10:00:00Z");
     const server = fakeServer({ "mobileAuth.me": () => ({ data: { ...PROFILE, createdAt: when } }) });

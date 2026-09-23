@@ -340,7 +340,7 @@ export default function OfferScreen() {
 
   const barNote = handoff.kind === "external" ? dt.handoffNote : handoff.kind === "invalid_link" ? dt.invalidLink : dt.notInApp;
   const statusNotice =
-    kind === "demo" ? dt.demo : kind === "sandbox" ? dt.sandbox(providerDisplayName(result.provider)) : null;
+    kind === "demo" ? dt.demo : kind === "sandbox" ? dt.sandbox(providerDisplayName(result.provider)) : kind === "unverified" ? dt.unverified : null;
 
   return (
     <View style={styles.screen}>

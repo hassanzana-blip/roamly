@@ -64,6 +64,9 @@ export default function HomeScreen() {
         <View style={styles.sheet}>
           <SearchPanel />
           <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]} testID="how-it-works-home">
+            {t.home.howItWorks}
+          </Text>
 
           <View style={styles.sectionHead}>
             <Text style={[type.section, { color: colors.text }]} accessibilityRole="header">
@@ -83,7 +86,7 @@ export default function HomeScreen() {
             <DestinationCard key={d.id} destination={d} onPress={() => searchTo(d)} testID={`destination-${d.id}`} />
           ))}
         </ScrollView>
-        <Text style={[type.caption, styles.credit]}>Foto: Unsplash. Se Profil for kreditering.</Text>
+        <Text style={[type.caption, styles.credit]}>{t.home.photoCredit}</Text>
       </ScrollView>
     </View>
   );

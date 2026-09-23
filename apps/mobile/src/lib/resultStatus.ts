@@ -2,19 +2,23 @@ import type { MobileSearchResult } from "@contracts/mobileSearch";
 
 /**
  * Hva slags resultater dette er, slik serveren faktisk oppgir det:
- *  - demo: HelloSkys demomotor (ingen leverandør) – ikke ekte fly.
+ *  - demo: HelloSkys demomotor – ikke ekte fly.
  *  - sandbox: en ekte leverandørs testmiljø (KAYAK sandbox, Duffel test …).
- *  - live: ekte priser fra leverandøren.
- * `demoMode` fra serveren betyr bare at Duffel ikke er satt opp, og brukes
- * derfor bare når serveren ikke oppgir leverandør og sandkasse.
+ *  - live: bare når serveren sier begge deler uttrykkelig – en kjent, ekte
+ *    leverandør og `sandbox: false`.
+ *  - unverified: alt annet (manglende eller ukjent leverandør, manglende
+ *    sandbox-flagg). `demoMode`/`liveMode` beviser ingenting her: de gjelder
+ *    Duffel-oppsettet, ikke leverandøren som svarte.
  */
-export type ResultKind = "demo" | "sandbox" | "live";
+export type ResultKind = "demo" | "sandbox" | "live" | "unverified";
 
-export function resultKind(r: Pick<MobileSearchResult, "provider" | "sandbox" | "demoMode">): ResultKind {
+const LIVE_PROVIDERS = new Set(["kayak", "duffel", "travelport"]);
+
+export function resultKind(r: Pick<MobileSearchResult, "provider" | "sandbox">): ResultKind {
   if (r.provider === "demo") return "demo";
   if (r.sandbox === true) return "sandbox";
-  if (r.sandbox === false) return "live";
-  return r.demoMode ? "demo" : "live";
+  if (r.sandbox === false && r.provider && LIVE_PROVIDERS.has(r.provider)) return "live";
+  return "unverified";
 }
 
 const PROVIDER_NAMES: Record<string, string> = { kayak: "KAYAK", duffel: "Duffel", travelport: "Travelport" };

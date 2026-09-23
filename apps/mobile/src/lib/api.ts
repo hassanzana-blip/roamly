@@ -108,6 +108,8 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
       init.body = serialized ? JSON.stringify(serialized) : "{}";
     }
 
+    // Tidsfristen og brukerens avbrudd gjelder hele kallet – også mens svaret
+    // leses. Et svar som stopper opp etter headerne skal ikke henge i evig tid.
     const controller = new AbortController();
     let cancelled = false;
     const onCancel = () => {
@@ -117,13 +119,21 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     if (opts.signal?.aborted) throw new ApiError("cancelled", "CANCELLED", 0, true);
     opts.signal?.addEventListener("abort", onCancel);
     const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? timeoutMs);
-    let res: Response;
+    // Avvises når kallet avbrytes, selv om fetch eller body-lesingen ikke selv reagerer på signalet.
+    const abortRace = new Promise<never>((_, reject) => {
+      controller.signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    });
+    abortRace.catch(() => undefined);
+    let res: Response | null = null;
+    let text: string;
     try {
-      res = await fetchImpl(url, { ...init, signal: controller.signal });
+      res = await Promise.race([fetchImpl(url, { ...init, signal: controller.signal }), abortRace]);
+      text = await Promise.race([res.text(), abortRace]);
     } catch {
       if (cancelled) throw new ApiError("cancelled", "CANCELLED", 0, true);
       if (controller.signal.aborted) throw new ApiError(TIMEOUT_MESSAGE, "TIMEOUT", 0, true);
-      throw new ApiError(NETWORK_MESSAGE, "NETWORK", 0, true);
+      // Ingen svar, eller forbindelsen brøt mens svaret ble lest.
+      throw new ApiError(NETWORK_MESSAGE, "NETWORK", res?.status ?? 0, true);
     } finally {
       clearTimeout(timer);
       opts.signal?.removeEventListener("abort", onCancel);
@@ -133,7 +143,7 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     // appens eget JS-miljø, som superjson forutsetter.
     let body: unknown = null;
     try {
-      body = JSON.parse(await res.text());
+      body = JSON.parse(text);
     } catch {
       body = null;
     }
