@@ -16,6 +16,10 @@ export type PriceDisplay = {
   secondary: string | null;
   approx: boolean;
   available: boolean;
+  /** Bare kronebeløpet («1 234 kr»), når det finnes – til kompakt visning med «ca.» for seg. */
+  amount: string | null;
+  /** Kort kildelinje til kompakt visning (kurs og dato), eller samme som secondary. */
+  secondaryShort: string | null;
   /** Setning for skjermleser. */
   accessibilityLabel: string;
 };
@@ -23,20 +27,22 @@ export type PriceDisplay = {
 export function priceDisplay(price: MobileOfferPrice, { t, f }: Pick<I18n, "t" | "f">): PriceDisplay {
   const nok = price.nok;
   if (nok.kind === "exact") {
-    return { primary: f.nok(nok.amountMinor), secondary: null, approx: false, available: true, accessibilityLabel: t.price.spokenExact(f.spokenNok(nok.amountMinor)) };
+    return { primary: f.nok(nok.amountMinor), secondary: null, secondaryShort: null, approx: false, available: true, amount: f.nok(nok.amountMinor), accessibilityLabel: t.price.spokenExact(f.spokenNok(nok.amountMinor)) };
   }
   if (nok.kind === "converted") {
     const date = f.numericDate(nok.rate.rateDate);
     return {
       primary: t.price.approx(f.nok(nok.amountMinor)),
       secondary: t.price.convertedWith(date),
+      secondaryShort: t.price.convertedShort(date),
       approx: true,
       available: true,
+      amount: f.nok(nok.amountMinor),
       accessibilityLabel: t.price.spokenApprox(f.spokenNok(nok.amountMinor), date),
     };
   }
   const reason = t.price.reasons[nok.reason];
-  return { primary: t.price.noNok, secondary: reason, approx: false, available: false, accessibilityLabel: `${t.price.noNok}. ${reason}` };
+  return { primary: t.price.noNok, secondary: reason, secondaryShort: reason, approx: false, available: false, amount: null, accessibilityLabel: `${t.price.noNok}. ${reason}` };
 }
 
 /**

@@ -149,7 +149,8 @@ describe("søk uten innlogging", () => {
 
     const sek = within(screen.getByTestId("price-sek_1"));
     expect(sek.getByText(/^ca\. 1\s442\skr$/)).toBeOnTheScreen();
-    expect(sek.getByText("Omregnet med Norges Banks kurs 22.09.2026")).toBeOnTheScreen();
+    // Kortet: kilden kort; detaljsiden og skjermleseren har hele setningen.
+    expect(sek.getByText("Norges Banks kurs 22.09.2026")).toBeOnTheScreen();
     expect(screen.getByTestId("price-sek_1").props.accessibilityLabel).toBe("Omtrent 1\u00A0442 kroner, omregnet med Norges Banks kurs 22.09.2026");
     expect(within(screen.getByTestId("price-nok_1")).getByText(/^2\s100,50\skr$/)).toBeOnTheScreen();
 

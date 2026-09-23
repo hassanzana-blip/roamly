@@ -3,7 +3,9 @@ import type { NokUnavailableReason } from "@contracts/mobileSearch";
 /** Hvordan priser og omregning forklares. Beløpet er alltid i kroner (NOK). */
 const en = {
   approx: (amount: string) => `approx. ${amount}`,
+  approxLabel: "approx.",
   convertedWith: (date: string) => `Converted at Norges Bank's rate of ${date}`,
+  convertedShort: (date: string) => `Norges Bank rate ${date}`,
   spokenExact: (amount: string) => `Price ${amount}`,
   spokenApprox: (amount: string, date: string) => `Approximately ${amount}, converted at Norges Bank's rate of ${date}`,
   noNok: "No price in NOK",
@@ -29,7 +31,9 @@ const en = {
 
 const nb: typeof en = {
   approx: (amount) => `ca. ${amount}`,
+  approxLabel: "ca.",
   convertedWith: (date) => `Omregnet med Norges Banks kurs ${date}`,
+  convertedShort: (date) => `Norges Banks kurs ${date}`,
   spokenExact: (amount) => `Pris ${amount}`,
   spokenApprox: (amount, date) => `Omtrent ${amount}, omregnet med Norges Banks kurs ${date}`,
   noNok: "Ingen pris i kroner",
