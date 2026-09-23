@@ -68,7 +68,7 @@ export function AdminManualBooking() {
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
           <CheckCircle2 className="h-8 w-8 text-success" />
         </span>
-        <h1 className="mt-5 font-display text-3xl font-semibold text-foreground">Bestilling registrert</h1>
+        <h1 className="mt-5 font-display text-[22px] font-semibold text-foreground">Bestilling registrert</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Referanse <span className="font-mono font-semibold text-foreground">{done.reference}</span> · totalt{" "}
           <span className="font-semibold text-foreground">{formatMoney(done.total)}</span>
@@ -97,7 +97,7 @@ export function AdminManualBooking() {
 
       <div className="grid gap-5">
         <Card>
-          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Kunde</h2>
+          <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Kunde</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls}>Navn *</label>
@@ -115,7 +115,7 @@ export function AdminManualBooking() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Reisen</h2>
+          <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Reisen</h2>
           <div className="mb-4 flex flex-wrap gap-2">
             {TRIP_TYPES.map((t) => (
               <button
@@ -149,7 +149,7 @@ export function AdminManualBooking() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Pris og betaling</h2>
+          <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Pris og betaling</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls}>Grunnpris (NOK) *</label>
@@ -186,7 +186,7 @@ export function AdminManualBooking() {
               </div>
               <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                 <dt>Kunden betaler</dt>
-                <dd className="font-display text-xl text-primary">{formatMoney(calc.total)}</dd>
+                <dd className="font-display text-[15px] font-semibold text-primary">{formatMoney(calc.total)}</dd>
               </div>
             </dl>
           )}

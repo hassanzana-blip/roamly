@@ -1,8 +1,6 @@
-// Newsreader brukes bare av admin-typografien; kundesidene er Manrope alene. Fonten lastes derfor med admin-chunken, ikke i main.tsx.
-import "@fontsource-variable/newsreader/opsz.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
-import { Check, ChevronDown, ExternalLink, Keyboard, LogOut, Menu, Search, ShieldCheck, X } from "lucide-react";
+import { Bell, Check, ChevronsUpDown, ExternalLink, Keyboard, LogOut, Menu, Search, Settings, ShieldCheck, X } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import SkyMark from "@/components/brand/SkyMark";
 import { cn } from "@/lib/utils";
@@ -25,15 +23,169 @@ const IDLE_LOCK_MS = 14 * 60_000;
 //
 // Dette er verktøyet Zyar og Zana står i hele dagen, ikke en side kunder
 // besøker én gang. Da gjelder andre regler: tastaturet er hovedveien, ⌘K er
-// inngangen til alt, flatene er materialer som ligger over innholdet i stedet
-// for bokser ved siden av det, og ingenting beveger seg mer enn nødvendig.
+// inngangen til alt, og ingenting beveger seg mer enn nødvendig.
+//
+// Skallet følger én regel: flatene skal være rolige nok til at tallene er det
+// eneste som roper. Sidemenyen er hvit og solid, ikke gjennomsiktig. Den
+// aktive lenken er en myk blå flate med blått ikon, ikke en fylt mørk boks.
+// Eieren står nederst i sidemenyen slik kontobytte gjør i macOS, ikke som et
+// kort oppe i hjørnet.
+
+type Owner = {
+  name: string;
+  email: string;
+  role: string;
+  profiles: { id: string; name: string; title: string }[];
+  activeProfile: string | null;
+};
 
 function useStaffPermissions(): Set<string> {
   const { data } = trpc.staffAuth.myPermissions.useQuery(undefined, { staleTime: 60_000, retry: false });
   return useMemo(() => new Set<string>(data?.permissions ?? []), [data]);
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+/**
+ * «Hvem av oss?», nederst i sidemenyen.
+ *
+ * Menyen åpner oppover fordi knappen står nederst. Profilbyttet er ikke en
+ * tilgang – rollen på kontoen avgjør fortsatt alt – det avgjør hvilket navn
+ * revisjonsloggen skriver fra og med neste handling.
+ */
+function OwnerMenu({
+  owner,
+  activeName,
+  variant,
+  onSetProfile,
+  onShortcuts,
+  onLogout,
+  loggingOut,
+}: {
+  owner: Owner;
+  activeName: string;
+  variant: "sidemeny" | "topplinje";
+  onSetProfile: (id: string) => void;
+  onShortcuts: () => void;
+  onLogout: () => void;
+  loggingOut: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const inSidebar = variant === "sidemeny";
+
+  return (
+    <div className={cn("relative", inSidebar && "px-3 pb-3 pt-2")}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={inSidebar ? undefined : "Konto og profil"}
+        className={cn(
+          "flex items-center gap-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+          inSidebar ? "w-full rounded-[10px] px-2 py-2 hover:bg-muted" : "rounded-full p-0.5 hover:bg-muted",
+        )}
+      >
+        {/* Navnet her er profilen, ikke kontoen. Deler to personer én konto,
+            er det profilen som svarer på «hvem er logget inn». */}
+        <Avatar name={activeName} size={inSidebar ? 32 : 28} />
+        {inSidebar && (
+          <>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold leading-tight text-foreground">{activeName}</span>
+              <span className="block truncate text-[11px] leading-tight text-subtle">{ROLE_LABEL[owner.role] ?? owner.role}</span>
+            </span>
+            <ChevronsUpDown className="size-4 shrink-0 text-subtle" aria-hidden="true" />
+          </>
+        )}
+      </button>
+
+      {open && (
+        <>
+          <button type="button" aria-label="Lukk brukermeny" className="fixed inset-0 z-10 cursor-default" onClick={() => setOpen(false)} />
+          <div
+            role="menu"
+            className={cn(
+              "palette-panel admin-menu absolute z-20 w-[232px] overflow-hidden rounded-[14px] border border-border bg-card",
+              inSidebar ? "bottom-full left-3 mb-1" : "right-0 top-full mt-2",
+            )}
+          >
+            <div className="px-3.5 pb-2.5 pt-3">
+              <p className="eyebrow">Innlogget</p>
+              <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{owner.email}</p>
+            </div>
+
+            {/* Bytt profil uten å logge ut: samme konto, annet navn i
+                revisjonsloggen fra og med neste handling. */}
+            {owner.profiles.length > 0 && (
+              <div className="border-t border-border p-1.5">
+                {owner.profiles.map((p) => {
+                  const on = owner.activeProfile === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={on}
+                      onClick={() => {
+                        setOpen(false);
+                        if (!on) onSetProfile(p.id);
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+                    >
+                      <Avatar name={p.name} size={24} />
+                      <span className="min-w-0 flex-1 truncate text-left">{p.name}</span>
+                      {on && <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="border-t border-border p-1.5">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  onShortcuts();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                <Keyboard className="size-4 text-muted-foreground" aria-hidden="true" />
+                <span className="flex-1 text-left">Hurtigtaster</span>
+                <kbd className="admin-kbd">?</kbd>
+              </button>
+              <NavLink
+                to="/admin/innstillinger"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                <Settings className="size-4 text-muted-foreground" aria-hidden="true" />
+                Innstillinger
+              </NavLink>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={onLogout}
+                disabled={loggingOut}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                <LogOut className="size-4 text-muted-foreground" aria-hidden="true" />
+                {loggingOut ? "Logger ut …" : "Logg ut"}
+              </button>
+            </div>
+
+            <p className="flex items-center gap-1.5 border-t border-border px-3.5 py-2 text-[11px] text-subtle">
+              <ShieldCheck className="size-3.5 text-success" aria-hidden="true" /> All aktivitet logges
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SidebarContent({ onNavigate, footer }: { onNavigate?: () => void; footer?: React.ReactNode }) {
   const perms = useStaffPermissions();
   const sections = visibleSections(perms);
   // Nummereringen følger den flate rekkefølgen ⌘1–⌘9 bruker. Den regnes ut
@@ -43,18 +195,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2.5 px-5 pb-5 pt-6">
-        <SkyMark className="h-8 w-8 text-primary" />
-        <div>
-          <p className="font-display text-xl font-semibold leading-none text-foreground">HelloSky</p>
-          <p className="mt-1 eyebrow">Internportal</p>
+      <div className="flex items-center gap-2.5 px-4 pb-4 pt-[18px]">
+        <SkyMark className="h-7 w-7 text-primary" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold leading-tight text-foreground">HelloSky</p>
+          <p className="truncate text-[11px] leading-tight text-subtle">Eierpanel</p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-6" aria-label="Adminmeny">
+      <nav className="flex-1 space-y-3.5 overflow-y-auto px-3 pb-4" aria-label="Adminmeny">
         {sections.map((section) => (
           <div key={section.label}>
-            <p className="px-3 pb-1.5 eyebrow">{section.label}</p>
+            <p className="px-2.5 pb-1 eyebrow">{section.label}</p>
             <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const shortcut = numberOf.get(item.to) ?? null;
@@ -66,22 +218,24 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                       onClick={onNavigate}
                       className={({ isActive }) =>
                         cn(
-                          "group flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-primary",
-                          isActive ? "bg-night text-white shadow-sm" : "text-foreground/80 hover:bg-muted hover:text-foreground",
+                          // 34 px er tett nok til at alle sidene får plass uten
+                          // rulling, og romslig nok til å treffe med musa.
+                          "group flex h-[34px] items-center gap-2.5 rounded-[10px] px-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                          isActive ? "bg-primary-soft text-foreground" : "text-secondary-foreground hover:bg-muted hover:text-foreground",
                         )
                       }
                     >
                       {({ isActive }) => (
                         <>
-                          <item.icon className="size-[18px] shrink-0" aria-hidden="true" />
+                          <item.icon className={cn("size-[18px] shrink-0", isActive ? "text-primary" : "text-subtle")} aria-hidden="true" />
                           <span className="min-w-0 flex-1 truncate">{item.label}</span>
                           {/* Tallet står der dempet og dukker opp ved hover. Slik
                               lærer man snarveien av å bruke menyen. */}
                           {shortcut && (
                             <span
                               className={cn(
-                                "shrink-0 text-[11px] tabular-nums transition-opacity",
-                                isActive ? "text-white/50 opacity-100" : "text-muted-foreground opacity-0 group-hover:opacity-100",
+                                "shrink-0 text-[11px] tabular-nums text-subtle transition-opacity",
+                                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100",
                               )}
                               aria-hidden="true"
                             >
@@ -98,11 +252,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
+
+      {footer && <div className="border-t border-border">{footer}</div>}
     </div>
   );
 }
 
-function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+function MobileDrawer({ open, onClose, footer }: { open: boolean; onClose: () => void; footer?: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useFocusTrap(ref, open);
   useEffect(() => {
@@ -119,12 +275,12 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <button type="button" aria-label="Lukk meny" className="palette-scrim absolute inset-0 bg-night/50" onClick={onClose} />
-      <aside ref={ref} role="dialog" aria-modal="true" aria-label="Adminmeny" className="absolute inset-y-0 left-0 w-[min(18rem,88vw)] bg-card shadow-2xl">
-        <button type="button" aria-label="Lukk meny" onClick={onClose} className="absolute right-2 top-3 grid size-11 place-items-center rounded-full text-foreground/70 hover:bg-muted">
+      <button type="button" aria-label="Lukk meny" className="palette-scrim absolute inset-0 bg-foreground/40" onClick={onClose} />
+      <aside ref={ref} role="dialog" aria-modal="true" aria-label="Adminmeny" className="admin-menu absolute inset-y-0 left-0 w-[min(17rem,86vw)] bg-card">
+        <button type="button" aria-label="Lukk meny" onClick={onClose} className="absolute right-2 top-2.5 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted">
           <X className="size-5" aria-hidden="true" />
         </button>
-        <SidebarContent onNavigate={onClose} />
+        <SidebarContent onNavigate={onClose} footer={footer} />
       </aside>
     </div>
   );
@@ -135,7 +291,6 @@ function AdminShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const me = trpc.staffAuth.me.useQuery(undefined, { retry: false, staleTime: 30_000 });
@@ -243,42 +398,56 @@ function AdminShell() {
   const user = me.data;
   // Profilnavnet der det finnes, kontonavnet ellers.
   const activeName = user.profiles.find((p) => p.id === user.activeProfile)?.name ?? user.name;
-  const isProduction = me.data.environment === "production";
-  const current = items.find((i) => (i.end ? location.pathname === i.to : location.pathname.startsWith(i.to)));
+  const isProduction = user.environment === "production";
+  const owner: Owner = { name: user.name, email: user.email, role: user.role, profiles: user.profiles, activeProfile: user.activeProfile };
+  const ownerMenu = (variant: "sidemeny" | "topplinje") => (
+    <OwnerMenu
+      owner={owner}
+      activeName={activeName}
+      variant={variant}
+      onSetProfile={(id) => setProfile.mutate({ profile: id })}
+      onShortcuts={() => setShortcutsOpen(true)}
+      onLogout={() => logout.mutate()}
+      loggingOut={logout.isPending}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-background">
-      <a href="#admin-main" className="sr-only z-[100] rounded-lg bg-night px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
+      <a href="#admin-main" className="sr-only z-[100] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
         Hopp til innhold
       </a>
 
-      <aside className="admin-material fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border lg:block">
-        <SidebarContent />
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-sidebar border-r border-border bg-card lg:block">
+        <SidebarContent footer={ownerMenu("sidemeny")} />
       </aside>
 
-      <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} footer={ownerMenu("sidemeny")} />
 
-      <div className="lg:pl-64">
-        <header className="admin-material sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-6">
-          <button type="button" aria-label="Åpne meny" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="grid size-11 place-items-center rounded-full text-foreground hover:bg-muted lg:hidden">
+      <div className="lg:pl-sidebar">
+        <header className="sticky top-0 z-20 flex h-header items-center gap-2 border-b border-border bg-card px-3 sm:gap-3 sm:px-5">
+          <button type="button" aria-label="Åpne meny" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="grid size-9 shrink-0 place-items-center rounded-[10px] text-foreground hover:bg-muted lg:hidden">
             <Menu className="size-5" aria-hidden="true" />
           </button>
 
-          {/* Paletten har en synlig dør. En snarvei ingen vet om, finnes ikke. */}
-          <button
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            className="flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-border bg-background/60 px-3 text-left text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground sm:max-w-xs"
-          >
-            <Search className="size-4 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate">{current ? `Søk · ${current.label}` : "Søk eller hopp til …"}</span>
-            <kbd className="admin-kbd hidden shrink-0 sm:inline-grid">⌘K</kbd>
-          </button>
+          {/* Søket står i midten fordi det er inngangen til alt. Paletten har
+              en synlig dør: en snarvei ingen vet om, finnes ikke. */}
+          <div className="flex min-w-0 flex-1 justify-center">
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="admin-control flex w-full min-w-0 max-w-[480px] items-center gap-2.5 border border-border bg-muted px-3 text-left text-sm text-subtle transition-colors hover:border-border-strong hover:text-muted-foreground"
+            >
+              <Search className="size-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">Søk i bestillinger, kunder, ruter …</span>
+              <kbd className="admin-kbd hidden shrink-0 sm:inline-grid">⌘K</kbd>
+            </button>
+          </div>
 
           <span
             className={cn(
-              "ml-auto hidden items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] sm:inline-flex",
-              isProduction ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning",
+              "hidden shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] md:inline-flex",
+              isProduction ? "bg-destructive-soft text-destructive" : "bg-warning-soft text-warning",
             )}
           >
             <span className={cn("size-1.5 rounded-full", isProduction ? "bg-destructive" : "bg-warning")} aria-hidden="true" />
@@ -286,101 +455,24 @@ function AdminShell() {
           </span>
 
           {!user.sessionFresh && (
-            <span className="hidden text-[11px] text-muted-foreground md:inline" title="Sensitive handlinger krever ny innlogging">
+            <span className="hidden shrink-0 text-[11px] text-subtle xl:inline" title="Sensitive handlinger krever ny innlogging">
               Sesjon &gt; 15 min
             </span>
           )}
 
-          <div className="relative ml-auto sm:ml-0">
-            <button
-              type="button"
-              onClick={() => setUserMenuOpen((v) => !v)}
-              aria-expanded={userMenuOpen}
-              aria-haspopup="menu"
-              className="flex min-h-11 items-center gap-2.5 rounded-full border border-border bg-card py-1.5 pl-1.5 pr-3 text-left shadow-sm transition-colors hover:border-foreground/40"
-            >
-              {/* Navnet her er profilen, ikke kontoen. Deler to personer én
-                  konto, er det profilen som svarer på «hvem er logget inn». */}
-              <Avatar name={activeName} size={32} />
-              <span className="hidden sm:block">
-                <span className="block text-sm font-semibold leading-tight text-foreground">{activeName}</span>
-                <span className="block text-[11px] leading-tight text-muted-foreground">{ROLE_LABEL[user.role] ?? user.role}</span>
-              </span>
-              <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
-            </button>
-            {userMenuOpen && (
-              <>
-                <button type="button" aria-label="Lukk brukermeny" className="fixed inset-0 z-10 cursor-default" onClick={() => setUserMenuOpen(false)} />
-                <div role="menu" className="palette-panel absolute right-0 z-20 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-                  <div className="flex items-center gap-3 border-b border-border px-4 py-3.5">
-                    <Avatar name={activeName} size={40} />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">{activeName}</p>
-                      <p className="truncate text-[12px] text-muted-foreground">{user.email}</p>
-                    </div>
-                  </div>
-                  {/* Bytt profil uten å logge ut: samme konto, annet navn i
-                      revisjonsloggen fra og med neste handling. */}
-                  {user.profiles.length > 0 && (
-                    <div className="border-b border-border p-2">
-                      <p className="px-3 pb-1 pt-1.5 eyebrow">Bytt profil</p>
-                      {user.profiles.map((p) => {
-                        const on = user.activeProfile === p.id;
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            role="menuitemradio"
-                            aria-checked={on}
-                            disabled={setProfile.isPending}
-                            onClick={() => {
-                              setUserMenuOpen(false);
-                              if (!on) setProfile.mutate({ profile: p.id });
-                            }}
-                            className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50"
-                          >
-                            <Avatar name={p.name} size={24} />
-                            {p.name}
-                            {on && <Check className="ml-auto size-4 text-primary" aria-hidden="true" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div className="p-2">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        setShortcutsOpen(true);
-                      }}
-                      className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-sm font-semibold text-foreground hover:bg-muted"
-                    >
-                      <Keyboard className="size-4" aria-hidden="true" /> Hurtigtaster
-                      <kbd className="admin-kbd ml-auto">?</kbd>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => logout.mutate()}
-                      disabled={logout.isPending}
-                      className="flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50"
-                    >
-                      <LogOut className="size-4" aria-hidden="true" />
-                      {logout.isPending ? "Logger ut …" : "Logg ut"}
-                    </button>
-                  </div>
-                  <p className="flex items-center gap-1.5 border-t border-border px-4 py-2.5 text-[11px] text-muted-foreground">
-                    <ShieldCheck className="size-3.5 text-success" aria-hidden="true" /> All aktivitet logges
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
+          <NavLink
+            to="/admin/problemer"
+            aria-label="Varsler"
+            className="grid size-9 shrink-0 place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Bell className="size-[18px]" aria-hidden="true" />
+          </NavLink>
+
+          {/* På telefon finnes ingen sidemeny, så eieren må nås herfra. */}
+          <div className="shrink-0 lg:hidden">{ownerMenu("topplinje")}</div>
         </header>
 
-        <main id="admin-main" tabIndex={-1} className="min-w-0 px-3 py-5 outline-none sm:px-6 sm:py-6 lg:px-8">
+        <main id="admin-main" tabIndex={-1} className="mx-auto min-w-0 max-w-content px-4 py-5 outline-none sm:px-6 sm:py-6 lg:px-7">
           <Outlet />
         </main>
       </div>
@@ -392,7 +484,7 @@ function AdminShell() {
 }
 
 /**
- * Utseendevalgene må ligge utenfor skallet, ikke inni.
+ * Temaprovideren ligger utenfor skallet med vilje.
  *
  * Låseskjermen og totrinnsporten rendres i stedet for skallet, og de skal
  * være mørke eller lyse på samme måte som resten. Ligger provideren inni,

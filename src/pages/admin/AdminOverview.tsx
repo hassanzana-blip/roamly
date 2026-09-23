@@ -42,7 +42,7 @@ function StatCard({
         </span>
         <div>
           <p className="eyebrow">{label}</p>
-          <p className="font-display text-2xl font-semibold leading-tight text-foreground">{value}</p>
+          <p className="font-display text-[22px] font-semibold leading-tight text-foreground">{value}</p>
         </div>
       </div>
       {sub && <p className="mt-2 text-xs text-muted-foreground">{sub}</p>}
@@ -190,7 +190,7 @@ export function AdminOverview() {
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section aria-labelledby="attention-heading">
           <div className="mb-3 flex items-center justify-between">
-            <h2 id="attention-heading" className="font-display text-xl font-semibold text-foreground">
+            <h2 id="attention-heading" className="font-display text-[15px] font-semibold text-foreground">
               Krever oppfølging
             </h2>
             {attentionCount === 0 ? (
@@ -224,7 +224,7 @@ export function AdminOverview() {
         </section>
 
         <section aria-labelledby="activity-heading">
-          <h2 id="activity-heading" className="mb-3 font-display text-xl font-semibold text-foreground">
+          <h2 id="activity-heading" className="mb-3 font-display text-[15px] font-semibold text-foreground">
             Siste hendelser
           </h2>
           {d.recentActivity.length === 0 ? (

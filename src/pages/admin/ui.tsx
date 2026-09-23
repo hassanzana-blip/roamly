@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { LockKeyhole, RefreshCw } from "lucide-react";
+import { Inbox, LockKeyhole, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EmptyTableSpot } from "@/components/graphics";
 import { trpc } from "@/providers/trpc";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -87,10 +86,10 @@ export function AttemptStatePill({ state }: { state: string }) {
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
       <div className="min-w-0">
-        <h1 className="font-display text-[26px] text-foreground sm:text-3xl">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        <h1 className="font-display text-[22px] font-semibold text-foreground">{title}</h1>
+        {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -98,16 +97,26 @@ export function PageHeader({ title, description, actions }: { title: string; des
 }
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-xl border border-border bg-card p-5 shadow-xs", className)}>{children}</div>;
+  return <div className={cn("admin-card p-5", className)}>{children}</div>;
 }
 
+/**
+ * Tomt, sagt kort.
+ *
+ * Den forrige versjonen var en stor stiplet ramme med en illustrasjon inni,
+ * og den spiste en halv skjermhøyde for å si «ingenting her». En tom liste er
+ * ikke en hendelse: et lite ikon, én linje om hvorfor, og veien videre der
+ * det finnes en.
+ */
 export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card/60 px-6 py-12 text-center">
-      <EmptyTableSpot className="mx-auto mb-3 h-16 w-24" />
-      <p className="font-semibold text-foreground">{title}</p>
-      {hint && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
-      {action && <div className="mt-4 flex justify-center">{action}</div>}
+    <div className="flex flex-col items-center px-6 py-10 text-center">
+      <span className="grid size-9 place-items-center rounded-[10px] bg-muted text-subtle" aria-hidden="true">
+        <Inbox className="size-[18px]" />
+      </span>
+      <p className="mt-3 text-sm font-semibold text-foreground">{title}</p>
+      {hint && <p className="mt-1 max-w-[46ch] text-[13px] leading-relaxed text-muted-foreground">{hint}</p>}
+      {action && <div className="mt-3.5 flex justify-center">{action}</div>}
     </div>
   );
 }
@@ -115,10 +124,10 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 export function ErrorState({ message, error, onRetry }: { message?: string; error?: TrpcErrorLike; onRetry?: () => void }) {
   const text = message ?? (error ? errorMessage(error, "Kunne ikke laste data. Prøv å laste siden på nytt.") : "Kunne ikke laste data. Prøv å laste siden på nytt.");
   return (
-    <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-8 text-center">
-      <p className="font-semibold text-destructive">Noe gikk galt</p>
-      <p className="mt-1 text-sm text-destructive">{text}</p>
-      {error?.data?.appCode && <p className="mt-1 font-mono text-[11px] text-destructive">{error.data.appCode}</p>}
+    <div role="alert" className="rounded-[14px] border border-destructive/25 bg-destructive-soft px-6 py-7 text-center">
+      <p className="text-sm font-semibold text-destructive">Noe gikk galt</p>
+      <p className="mt-1 text-[13px] text-destructive">{text}</p>
+      {error?.data?.appCode && <p className="mt-1 font-mono text-[11px] text-destructive/80">{error.data.appCode}</p>}
       {onRetry && (
         <Btn tone="ghost" className="mt-4" onClick={onRetry}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" /> Prøv igjen
@@ -132,7 +141,7 @@ export function LoadingRows({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-3" role="status" aria-label="Laster" aria-busy="true">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
+        <div key={i} className="h-11 animate-pulse rounded-[10px] bg-muted" />
       ))}
     </div>
   );
@@ -142,7 +151,7 @@ export function LoadingRows({ rows = 4 }: { rows?: number }) {
 export function TableCard({ children, minWidth = 720, caption }: { children: ReactNode; minWidth?: number; caption?: string }) {
   return (
     <Card className="overflow-x-auto p-0">
-      <table className="w-full text-left text-sm" style={{ minWidth }}>
+      <table className="admin-table w-full text-left text-sm" style={{ minWidth }}>
         {caption && <caption className="sr-only">{caption}</caption>}
         {children}
       </table>
@@ -171,8 +180,8 @@ export function ClickableRow({ onClick, children, className, selected }: { onCli
         }
       }}
       className={cn(
-        "cursor-pointer transition-colors hover:bg-primary/[0.04] focus-visible:bg-primary/[0.06] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary",
-        selected && "bg-primary/[0.06]",
+        "cursor-pointer transition-colors hover:bg-row-hover focus-visible:bg-primary-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary",
+        selected && "bg-primary-soft",
         className,
       )}
     >
@@ -206,7 +215,7 @@ export function Btn({ tone = "primary", className, type = "button", ...props }: 
     <button
       type={type}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex h-9 max-sm:h-11 items-center justify-center gap-2 rounded-[10px] px-3.5 text-sm font-semibold transition-colors active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
         BTN_CLASSES[tone],
         className,
       )}

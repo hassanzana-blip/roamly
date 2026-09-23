@@ -243,29 +243,35 @@ export function AdminQuotes() {
     <div>
       <PageHeader
         title="Tilbud"
-        description="Assistert booking: opprett et tilbud fra et flytilbud og send betalingslenke til kunden."
+        description="Administrer flytilbud, kampanjer og prioriteringer."
         actions={
           canWrite && (
-            <Btn tone="night" onClick={() => setCreateOpen(true)}>
+            <Btn tone="primary" onClick={() => setCreateOpen(true)}>
               <PlusCircle className="h-4 w-4" aria-hidden="true" /> Nytt tilbud
             </Btn>
           )
         }
       />
-      <Card className="mb-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filtrer på status" className={selectCls}>
           <option value="">Alle statuser</option>
           {Object.entries(QUOTE_STATUS_LABELS).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
         </select>
-      </Card>
+      </div>
       {list.isLoading ? (
         <LoadingRows rows={5} />
       ) : list.error || !list.data ? (
         <ErrorState error={list.error} onRetry={() => list.refetch()} />
       ) : list.data.items.length === 0 ? (
-        <EmptyState title="Ingen tilbud ennå" hint="Opprett tilbud fra et flysøk for kunder som vil ha hjelp til bookingen." />
+        <Card className="p-0">
+          <EmptyState
+            title="Ingen tilbud ennå"
+            hint="Opprett et tilbud for å sende en valgt reise og betalingslenke til kunden."
+            action={canWrite ? <Btn tone="primary" onClick={() => setCreateOpen(true)}>Opprett tilbud</Btn> : undefined}
+          />
+        </Card>
       ) : (
         <TableCard minWidth={760} caption="Tilbud">
           <thead>

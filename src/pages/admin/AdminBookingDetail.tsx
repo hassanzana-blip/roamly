@@ -217,15 +217,19 @@ export function AdminBookingDetail() {
         <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Alle bestillinger
       </Link>
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">{booking.bookingReference || booking.orderId}</h1>
-        <BookingStatePill state={booking.state} />
-        {!booking.liveMode && <Pill tone="neutral"><FlaskConical className="h-3 w-3" aria-hidden="true" /> Testmodus</Pill>}
-        {fraudFlags.some((f) => f.status === "open") && <Pill tone="danger">Åpent svindelflagg</Pill>}
-        <span className="text-sm text-muted-foreground">
+      <div className="mb-5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h1 className="font-display text-[22px] font-semibold text-foreground">
+            Bestilling {booking.bookingReference || booking.orderId}
+          </h1>
+          <BookingStatePill state={booking.state} />
+          {!booking.liveMode && <Pill tone="neutral"><FlaskConical className="h-3 w-3" aria-hidden="true" /> Testmodus</Pill>}
+          {fraudFlags.some((f) => f.status === "open") && <Pill tone="danger">Åpent svindelflagg</Pill>}
+        </div>
+        <p className="mt-1 text-[13px] text-muted-foreground">
           Opprettet {formatDateTime(booking.createdAt)} · {booking.source === "quote" ? "Fra tilbud" : booking.source === "manual" ? "Manuell" : "Direkte fra nettsiden"}
           {booking.supplier ? ` · ${booking.supplier}` : ""}
-        </span>
+        </p>
       </div>
 
       {fb.banner}
@@ -233,7 +237,7 @@ export function AdminBookingDetail() {
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
-            <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Reise og passasjerer</h2>
+            <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Reise og passasjerer</h2>
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <dt className="eyebrow">Kontakt</dt>
@@ -242,7 +246,7 @@ export function AdminBookingDetail() {
               </div>
               <div>
                 <dt className="eyebrow">Beløp</dt>
-                <dd className="mt-1 font-display text-xl font-semibold text-foreground">{formatMoney(booking.totalAmount, currency)}</dd>
+                <dd className="mt-1 font-display text-[15px] font-semibold text-foreground">{formatMoney(booking.totalAmount, currency)}</dd>
               </div>
               <div className="sm:col-span-2">
                 <dt className="eyebrow">Passasjerer</dt>
@@ -278,7 +282,7 @@ export function AdminBookingDetail() {
           </Card>
 
           <Card className="overflow-x-auto p-0">
-            <h2 className="px-5 pt-5 font-display text-xl font-semibold text-foreground">Flysegmenter</h2>
+            <h2 className="px-5 pt-5 font-display text-[15px] font-semibold text-foreground">Flysegmenter</h2>
             {segments.length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted-foreground">Ingen segmenter registrert.</p>
             ) : (
@@ -452,14 +456,14 @@ export function AdminBookingDetail() {
           </Card>
 
           <Card>
-            <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Hendelseslogg</h2>
+            <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Hendelseslogg</h2>
             <Timeline items={events.map((e) => ({ id: e.id, title: <>{e.fromState ? <>{e.fromState} → </> : null}<span className="font-semibold">{e.toState}</span><span className="text-muted-foreground"> · {e.actorType}</span></>, sub: e.reason, at: e.createdAt }))} />
           </Card>
         </div>
 
         <div className="space-y-6">
           <Card>
-            <h2 className="mb-4 font-display text-xl font-semibold text-foreground">Handlinger</h2>
+            <h2 className="mb-4 font-display text-[15px] font-semibold text-foreground">Handlinger</h2>
             <div className="space-y-2.5">
               {can("bookings:write") && (
                 <Btn tone="ghost" className="w-full justify-start" onClick={() => resend.mutate({ bookingId })} disabled={busy}>
@@ -516,7 +520,7 @@ export function AdminBookingDetail() {
           </Card>
 
           <Card>
-            <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-semibold text-foreground">
+            <h2 className="mb-4 flex items-center gap-2 font-display text-[15px] font-semibold text-foreground">
               <MessageSquarePlus className="h-5 w-5 text-primary" aria-hidden="true" /> Interne notater
             </h2>
             {can("bookings:write") && (

@@ -76,7 +76,7 @@ export default function AdminLogin() {
         <main id="main" className="rounded-xl bg-card p-6 shadow-2xl sm:p-8">
           {setupStatus.data?.needsSetup ? (
             <>
-              <h1 className="flex items-center gap-2.5 font-display text-2xl text-foreground">
+              <h1 className="flex items-center gap-2.5 font-display text-[22px] font-semibold text-foreground">
                 <Rocket className="h-5 w-5 text-primary" aria-hidden="true" /> Førstegangsoppsett
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -98,7 +98,7 @@ export default function AdminLogin() {
             </>
           ) : (
             <>
-              <h1 className="flex items-center gap-2.5 font-display text-2xl text-foreground">
+              <h1 className="flex items-center gap-2.5 font-display text-[22px] font-semibold text-foreground">
                 <LockKeyhole className="h-5 w-5 text-primary" aria-hidden="true" />
                 Logg inn
               </h1>

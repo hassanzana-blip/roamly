@@ -75,13 +75,13 @@ export function AdminPayroll() {
                 <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
                   <div>
                     <p className="eyebrow">Utbetalt</p>
-                    <p className="mt-0.5 font-display text-xl font-semibold text-success">
+                    <p className="mt-0.5 font-display text-[15px] font-semibold text-success">
                       {formatMoney(t?.paid ?? "0")}
                     </p>
                   </div>
                   <div>
                     <p className="eyebrow">Planlagt</p>
-                    <p className="mt-0.5 font-display text-xl font-semibold text-warning">
+                    <p className="mt-0.5 font-display text-[15px] font-semibold text-warning">
                       {formatMoney(t?.planned ?? "0")}
                     </p>
                   </div>
@@ -95,7 +95,7 @@ export function AdminPayroll() {
       {/* Skjema */}
       {open && canManage && (
         <Card className="mb-8 border-primary/30">
-          <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-semibold text-foreground">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-[15px] font-semibold text-foreground">
             <Banknote className="h-5 w-5 text-primary" /> Ny lønnspost
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -169,7 +169,7 @@ export function AdminPayroll() {
                   {e.note ? ` · ${e.note}` : ""}
                 </p>
               </div>
-              <p className="font-display text-xl font-semibold text-foreground">{formatMoney(e.amount, e.currency)}</p>
+              <p className="font-display text-[15px] font-semibold text-foreground">{formatMoney(e.amount, e.currency)}</p>
               {e.status === "paid" ? (
                 <Pill tone="success"><Check className="h-3 w-3" /> Utbetalt {e.paidAt ? formatDateTime(e.paidAt) : ""}</Pill>
               ) : (

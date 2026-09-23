@@ -201,11 +201,11 @@ export const ATTEMPT_TONES: Record<string, PillTone> = {
 };
 
 export const TONE_CLASSES: Record<PillTone, string> = {
-  neutral: "bg-muted text-foreground/80",
+  neutral: "bg-neutral-soft text-muted-foreground",
   info: "bg-primary-soft text-accent-foreground",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-  danger: "bg-destructive/10 text-destructive",
+  success: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  danger: "bg-destructive-soft text-destructive",
 };
 
 /* ── Tabell ─────────────────────────────────────────────────────────────── */
@@ -226,20 +226,28 @@ export const tdCls = "px-4 py-[var(--admin-row-y)] align-middle sm:px-5";
 export type BtnTone = "primary" | "night" | "ghost" | "danger" | "success";
 
 export const BTN_CLASSES: Record<BtnTone, string> = {
-  primary: "bg-primary text-primary-foreground shadow-xs hover:bg-[hsl(var(--primary)/0.9)]",
-  night: "bg-night text-white shadow-xs hover:bg-night/90",
-  ghost: "border border-input bg-card text-foreground hover:border-foreground/40 hover:bg-muted/60",
+  primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
+  night: "bg-foreground text-background hover:bg-foreground/90",
+  ghost: "border border-border-strong bg-card text-foreground hover:bg-muted",
   danger: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
   success: "bg-success text-success-foreground hover:bg-success/90",
 };
 
+/*
+ * Kontrollhøyden i eierpanelet er 36 px, ikke 44.
+ *
+ * 44 er riktig for en tommel og feil for en mus: verktøylinja over en tabell
+ * ble høyere enn radene den filtrerer, og hele siden leste som en mobilapp
+ * strukket ut på en skjerm. På telefon settes høyden tilbake til 44 der
+ * fingeren faktisk skal treffe.
+ */
 export const inputCls =
-  "w-full min-h-11 rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:opacity-60";
+  "w-full h-9 max-sm:h-11 rounded-[10px] border border-border-strong bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-subtle hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60";
 
 export const selectCls =
-  "min-h-11 rounded-lg border border-input bg-card px-3 py-2.5 text-sm font-medium text-foreground outline-none hover:border-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/25";
+  "h-9 max-sm:h-11 rounded-[10px] border border-border-strong bg-card px-2.5 text-sm font-medium text-foreground outline-none hover:border-foreground/30 focus:border-primary focus:ring-2 focus:ring-primary/20";
 
-export const labelCls = "mb-1.5 block text-sm font-medium text-foreground";
+export const labelCls = "mb-1.5 block text-[13px] font-medium text-muted-foreground";
 
 
 /* ── Kundeservice ───────────────────────────────────────────────────────── */

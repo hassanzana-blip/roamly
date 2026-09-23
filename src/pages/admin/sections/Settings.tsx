@@ -42,7 +42,7 @@ function SystemStatusCard() {
   const status = trpc.admin.systemStatus.useQuery(undefined, { retry: false });
   return (
     <Card>
-      <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Systemstatus</h2>
+      <h2 className="mb-3 font-display text-[15px] font-semibold text-foreground">Systemstatus</h2>
       {status.isLoading ? (
         <p className="text-sm text-muted-foreground">Laster …</p>
       ) : status.error || !status.data ? (
@@ -112,7 +112,7 @@ function RewardsForm({ rules, isDefault }: { rules: { bookingEarnFraction: numbe
 
   return (
     <Card>
-      <h2 className="mb-1 font-display text-xl font-semibold text-foreground">Bonus og henvisning</h2>
+      <h2 className="mb-1 font-display text-[15px] font-semibold text-foreground">Bonus og henvisning</h2>
       <p className="mb-4 text-sm text-muted-foreground">
         Det kunden ser under «Bonus» og «Inviter venner» kommer herfra. {isDefault ? "Standardsatsene gjelder – ingenting er endret ennå." : "Egendefinerte satser er aktive."} Nivåer uten fordeler er bare et navn; skriv bare inn fordeler dere faktisk gir.
       </p>
@@ -188,7 +188,7 @@ function SettingsFormInner({ rows }: { rows: SettingRow[] }) {
 
   return (
     <Card>
-      <h2 className="mb-1 font-display text-xl font-semibold text-foreground">Forretningsregler</h2>
+      <h2 className="mb-1 font-display text-[15px] font-semibold text-foreground">Forretningsregler</h2>
       <p className="mb-4 text-sm text-muted-foreground">Endringer gjelder umiddelbart og logges i aktivitetsloggen.</p>
       {fb.banner}
       <div className="space-y-6">
@@ -288,7 +288,7 @@ function StaffCard() {
 
   return (
     <Card>
-      <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Ansatte</h2>
+      <h2 className="mb-3 font-display text-[15px] font-semibold text-foreground">Ansatte</h2>
       {fb.banner}
       {staff.isLoading ? (
         <p className="text-sm text-muted-foreground">Laster …</p>
@@ -412,7 +412,7 @@ function JobsCard() {
   return (
     <Card>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-xl font-semibold text-foreground">Jobbkø</h2>
+        <h2 className="font-display text-[15px] font-semibold text-foreground">Jobbkø</h2>
         <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} aria-label="Jobbstatus" className={selectCls}>
           {Object.entries(JOB_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
@@ -453,7 +453,7 @@ function WebhooksCard() {
   const webhooks = trpc.admin.webhookEventsList.useQuery(undefined, { retry: false, refetchInterval: 60_000 });
   return (
     <Card>
-      <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Siste webhooks (Duffel og Stripe)</h2>
+      <h2 className="mb-3 font-display text-[15px] font-semibold text-foreground">Siste webhooks (Duffel og Stripe)</h2>
       {webhooks.isLoading ? (
         <p className="text-sm text-muted-foreground">Laster …</p>
       ) : webhooks.error || !webhooks.data ? (

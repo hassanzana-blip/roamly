@@ -172,7 +172,7 @@ export default function AdminExpenses() {
         ) : rows.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-10 text-center">
             <Receipt className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
-            <p className="mt-3 font-display text-xl">Ingen bilag i {periodLabel(period)}</p>
+            <p className="mt-3 font-display text-[15px] font-semibold">Ingen bilag i {periodLabel(period)}</p>
             <p className="mt-1 text-sm text-muted-foreground">Ta bilde av kvitteringen mens du har den i hånden.</p>
           </div>
         ) : (
