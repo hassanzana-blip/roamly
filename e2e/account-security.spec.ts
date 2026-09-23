@@ -1,6 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 import superjson from "superjson";
 
+// Let mixed-batch fallback handlers finish before the fixture closes its page.
+test.afterEach(async ({ page }) => {
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 /** Isolated UI fixtures: no real customer, SMS, credentials or deletion. Server enforcement has MySQL integration tests. */
 async function accountFixture(page: Page, passwordless = false) {
   let loggedIn = true;
@@ -12,7 +17,7 @@ async function accountFixture(page: Page, passwordless = false) {
     const request = route.request();
     const url = new URL(request.url());
     const paths = decodeURIComponent(url.pathname.split("/api/trpc/")[1]).split(",");
-    const handled = new Set(["customerAuth.me", "customerAuth.updateProfile", "customerAuth.requestPhoneChange", "customerAuth.confirmPhoneChange", "customerAuth.deleteAccount", "customerAuth.logout"]);
+    const handled = new Set(["customerAuth.me", "customerAuth.authProviders", "customerAuth.updateProfile", "customerAuth.requestPhoneChange", "customerAuth.confirmPhoneChange", "customerAuth.deleteAccount", "customerAuth.logout"]);
     if (!paths.some((path) => handled.has(path))) return route.continue();
     const batch = url.searchParams.get("batch") === "1";
     const raw = request.method() === "POST" ? request.postDataJSON() : JSON.parse(url.searchParams.get("input") ?? "{}");
@@ -25,6 +30,8 @@ async function accountFixture(page: Page, passwordless = false) {
       if (request.method() === "POST") calls.push({ procedure, input });
       switch (procedure) {
         case "customerAuth.me": return ok(loggedIn ? customer : null);
+        // Reauthentication stays isolated from whichever OAuth providers the server configures.
+        case "customerAuth.authProviders": return ok({ oauth: [], clerk: null, passkeys: false });
         case "customerAuth.updateProfile": Object.assign(customer, input); return ok({ ok: true });
         case "customerAuth.requestPhoneChange": return passwordless ? fail("Reauthentication required", "FORBIDDEN", { reason: "reauth_required" }) : ok({ ok: true });
         case "customerAuth.confirmPhoneChange":

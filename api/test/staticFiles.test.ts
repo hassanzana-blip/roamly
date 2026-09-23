@@ -13,6 +13,7 @@ writeFileSync(
   '<!doctype html><html><head><!--seo:start--><!--seo:end--></head><body><div id="root"></div></body></html>'
 );
 writeFileSync(path.join(fixture, "assets", "app-hash.js"), "export {};");
+writeFileSync(path.join(fixture, "robots.txt"), "User-agent: *\nAllow: /\nSitemap: https://hellosky.no/sitemap.xml\n");
 const app = new Hono<{ Bindings: HttpBindings }>();
 serveStaticFiles(app, fixture);
 afterAll(() => rmSync(fixture, { recursive: true, force: true }));
@@ -46,5 +47,39 @@ describe("served route status, robots metadata and cache policy", () => {
     expect(response.headers.get("cache-control")).toBe(
       "public, max-age=31536000, immutable"
     );
+  });
+
+  it.each(["/", "/reisemal", "/assets/app-hash.js"])(
+    "prevents indexing %s on staging even with a public forwarded host",
+    async url => {
+      const response = await app.request(`https://roamly-staging.up.railway.app${url}`, {
+        headers: { "x-forwarded-host": "hellosky.no" },
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-robots-tag")).toBe("noindex");
+    },
+  );
+
+  it("allows preview crawling to discover noindex without advertising a sitemap", async () => {
+    const robots = await app.request("https://roamly-staging.up.railway.app/robots.txt");
+    expect(robots.status).toBe(200);
+    expect(await robots.text()).toBe("User-agent: *\nAllow: /\n");
+    expect(robots.headers.get("x-robots-tag")).toBe("noindex");
+    const sitemap = await app.request("https://roamly-staging.up.railway.app/sitemap.xml");
+    expect(sitemap.status).toBe(404);
+    expect(sitemap.headers.get("x-robots-tag")).toBe("noindex");
+  });
+
+  it.each(["hellosky.no", "www.hellosky.no"])("preserves public SEO on %s", async host => {
+    const root = await app.request(`https://${host}/`);
+    expect(root.status).toBe(200);
+    expect(root.headers.get("x-robots-tag")).toBeNull();
+    expect(await root.text()).toContain('name="robots" content="index,follow"');
+    const sitemap = await app.request(`https://${host}/sitemap.xml`);
+    expect(sitemap.status).toBe(200);
+    expect(sitemap.headers.get("x-robots-tag")).toBeNull();
+    expect(await sitemap.text()).toContain("https://hellosky.no/");
+    const robots = await app.request(`https://${host}/robots.txt`);
+    expect(await robots.text()).toContain("Sitemap: https://hellosky.no/sitemap.xml");
   });
 });
