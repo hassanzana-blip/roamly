@@ -3,8 +3,10 @@ import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
 import type { HttpBindings } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import type { TRPCError } from "@trpc/server";
 import { appRouter } from "./router";
-import { createContext } from "./context";
+import { mobileAppRouter } from "./mobileRouter";
+import { createContext, createMobileContext } from "./context";
 import { assertProductionSafety, env, clerkFrontendApiOrigin } from "./lib/env";
 import { log, newRequestId, withContext } from "./lib/logger";
 import { stripeWebhookApp } from "./webhooks/stripe";
@@ -86,6 +88,7 @@ app.use(
 // ─── Kroppsgrenser: 1 MB API, 512 KB webhooks ───────────────────────────────
 app.use("/api/webhooks/*", bodyLimit({ maxSize: 512 * 1024, onError: (c) => c.json({ error: "Payload for stor" }, 413) }));
 app.use("/api/trpc/*", bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "Payload for stor" }, 413) }));
+app.use("/api/mobile/trpc/*", bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "Payload for stor" }, 413) }));
 
 // ─── Health checks (ingen tredjeparts-kall — må være billige) ──────────────
 app.get("/healthz", (c) => c.json({ ok: true, ts: Date.now() }));
@@ -120,19 +123,33 @@ app.route("/api/documents", documentsApp);
 // 403-svar herfra er ikke en tRPC-konvolutt, og klientens superjson-transformer
 // klarer ikke å tolke det («Unable to transform response from server»).
 
+function onTrpcError({ error, path }: { error: TRPCError; path?: string }) {
+  inc("trpc_errors_total", { code: error.code });
+  if (error.code === "INTERNAL_SERVER_ERROR") {
+    log.error({ err: error.cause ?? error, path }, "tRPC intern feil");
+    captureException(error.cause ?? error, { tags: { source: "trpc", path: path ?? "unknown" } });
+  }
+}
+
 app.use("/api/trpc/*", async (c) => {
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     req: c.req.raw,
     router: appRouter,
     createContext,
-    onError({ error, path }) {
-      inc("trpc_errors_total", { code: error.code });
-      if (error.code === "INTERNAL_SERVER_ERROR") {
-        log.error({ err: error.cause ?? error, path }, "tRPC intern feil");
-        captureException(error.cause ?? error, { tags: { source: "trpc", path: path ?? "unknown" } });
-      }
-    },
+    onError: onTrpcError,
+  });
+});
+
+// ─── Appens API: bare kunderuter, kundesesjon via Bearer, aldri staff ────────
+// Se api/mobileRouter.ts. Nettets /api/trpc over er uendret.
+app.use("/api/mobile/trpc/*", async (c) => {
+  return fetchRequestHandler({
+    endpoint: "/api/mobile/trpc",
+    req: c.req.raw,
+    router: mobileAppRouter,
+    createContext: createMobileContext,
+    onError: onTrpcError,
   });
 });
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));

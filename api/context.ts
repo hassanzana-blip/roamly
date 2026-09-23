@@ -14,6 +14,7 @@ export type TrpcContext = {
 
 export async function createContext(
   opts: FetchCreateContextFnOptions,
+  { resolveStaff = true }: { resolveStaff?: boolean } = {},
 ): Promise<TrpcContext> {
   // boot.ts kjører handleren inne i withContext({ requestId }), så AsyncLocalStorage
   // har den allerede; header-fallback dekker direkte kall (tester, CLI).
@@ -22,7 +23,7 @@ export async function createContext(
 
   let staff: StaffIdentity | null = null;
   try {
-    staff = await resolveSession(opts.req);
+    staff = resolveStaff ? await resolveSession(opts.req) : null;
   } catch (err) {
     log.warn({ err: String(err) }, "staff-sesjon kunne ikke løses opp (behandles som utlogget)");
     staff = null; // DB utilgjengelig → behandle som utlogget, ikke 500
@@ -35,4 +36,13 @@ export async function createContext(
     customer = null;
   }
   return { req: opts.req, resHeaders: opts.resHeaders, requestId, staff, customer };
+}
+
+/**
+ * Kontekst for appens endepunkt (/api/mobile/trpc): kun kundesesjon. En
+ * staff-cookie leses aldri her, så ingenting som går gjennom appens API kan
+ * bære ansattrettigheter – selv om en slik cookie skulle følge med.
+ */
+export function createMobileContext(opts: FetchCreateContextFnOptions): Promise<TrpcContext> {
+  return createContext(opts, { resolveStaff: false });
 }

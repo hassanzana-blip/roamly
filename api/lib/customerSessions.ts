@@ -4,6 +4,8 @@ import { customerAccounts, customerSessions } from "../../db/schema";
 import { randomToken, sha256Hex } from "./tokens";
 import { clientIp } from "./ratelimit";
 import { env } from "./env";
+import { AppError } from "./errors";
+import { isStaffEmail } from "./staffBoundary";
 
 // Kundesesjoner er langlivede (30 dager) — dette er en kundesone, ikke admin.
 const ABSOLUTE_MS = 30 * 24 * 60 * 60_000;
@@ -53,7 +55,27 @@ export function clearCustomerCookie(resHeaders: Headers): void {
   resHeaders.append("Set-Cookie", cookieAttributes(0));
 }
 
+/**
+ * Appens sesjon: samme opake token som i cookien, sendt som
+ * `Authorization: Bearer <token>`. Nettleseren sender aldri denne headeren av
+ * seg selv, så den åpner ingen CSRF-vei. Formen er randomToken(32) (base64url).
+ */
+const BEARER_RE = /^Bearer[ ]+([A-Za-z0-9_-]{20,128})$/i;
+
+export function readBearerToken(req: Request): string | null {
+  const header = req.headers.get("authorization");
+  if (!header) return null;
+  return BEARER_RE.exec(header.trim())?.[1] ?? null;
+}
+
+/**
+ * Kundesesjonens token: Bearer (app) når Authorization-headeren bruker
+ * Bearer-skjemaet, ellers cookien (nett). Et Bearer-token med feil form gir
+ * ingen sesjon – det faller ikke stille tilbake til cookien. Andre skjemaer
+ * (f.eks. Basic foran et passordbeskyttet testmiljø) rører ikke cookie-veien.
+ */
 export function readCustomerToken(req: Request): string | null {
+  if (/^\s*bearer\b/i.test(req.headers.get("authorization") ?? "")) return readBearerToken(req);
   const header = req.headers.get("cookie") ?? "";
   for (const part of header.split(";")) {
     const [name, ...rest] = part.trim().split("=");
@@ -62,16 +84,31 @@ export function readCustomerToken(req: Request): string | null {
   return null;
 }
 
-export async function createCustomerSession(customerId: number, req: Request): Promise<string> {
+/**
+ * Opprett en kundesesjon og gi tilbake råtokenet (kun hashen lagres) og
+ * utløpstidspunktet. Siste vern for skillet mellom ansatte og kunder: en konto
+ * med en ansatts e-post får aldri en sesjon, uansett hvilken vei den kom inn.
+ */
+export async function issueCustomerSession(customerId: number, req: Request): Promise<{ token: string; expiresAt: Date }> {
+  const db = getDb();
+  const [account] = await db.select({ email: customerAccounts.email }).from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
+  if (await isStaffEmail(account?.email)) {
+    throw new AppError("FORBIDDEN", { message: "Denne kontoen kan ikke brukes til kundeinnlogging." });
+  }
   const token = randomToken(32);
-  await getDb().insert(customerSessions).values({
+  const expiresAt = new Date(Date.now() + ABSOLUTE_MS);
+  await db.insert(customerSessions).values({
     tokenHash: sha256Hex(token),
     customerId,
     ip: clientIp(req),
     userAgent: req.headers.get("user-agent")?.slice(0, 255) ?? null,
-    expiresAt: new Date(Date.now() + ABSOLUTE_MS),
+    expiresAt,
   });
-  return token;
+  return { token, expiresAt };
+}
+
+export async function createCustomerSession(customerId: number, req: Request): Promise<string> {
+  return (await issueCustomerSession(customerId, req)).token;
 }
 
 export async function resolveCustomerSession(req: Request): Promise<CustomerIdentity | null> {
@@ -93,6 +130,9 @@ export async function resolveCustomerSession(req: Request): Promise<CustomerIden
     .limit(1);
   const row = rows[0];
   if (!row) return null;
+  // En ansatts e-post bærer aldri en kundesesjon – heller ikke en som ble
+  // opprettet før adressen ble lagt inn som ansatt.
+  if (await isStaffEmail(row.account.email)) return null;
 
   // Forny lastSeen maks én gang per minutt (best effort, ikke i kritisk sti)
   if (Date.now() - row.session.lastSeenAt.getTime() > 60_000) {

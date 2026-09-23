@@ -24,6 +24,7 @@ import {
   supportMessages,
 } from "../db/schema";
 import type { Order } from "../contracts/types";
+import type { TrpcContext } from "./context";
 import { hashPassword, verifyPassword } from "./lib/passwords";
 import { randomToken, sha256Hex } from "./lib/tokens";
 import {
@@ -44,6 +45,7 @@ import { logAudit } from "./lib/audit";
 import { log } from "./lib/logger";
 import { normalizePhone } from "./lib/validation";
 import { recordReward, rewardRules } from "./lib/rewards";
+import { isStaffEmail } from "./lib/staffBoundary";
 
 const RESET_TTL_MS = 60 * 60_000; // 1 time
 const VERIFY_TTL_MS = 72 * 60 * 60_000; // 72 timer
@@ -125,7 +127,7 @@ function whereIdentifier(id: Identifier) {
 
 type AccountRow = typeof customerAccounts.$inferSelect;
 
-function publicProfile(a: Partial<AccountRow> & { id: number; firstName: string; lastName: string }) {
+export function publicProfile(a: Partial<AccountRow> & { id: number; firstName: string; lastName: string }) {
   return {
     id: a.id,
     email: a.email ?? null,
@@ -244,150 +246,343 @@ async function flagRegistrationVelocity(customerId: number, ip: string): Promise
   }
 }
 
-export const customerAuthRouter = createRouter({
-  register: publicQuery
-    .input(
-      z.object({
-        identifier: identifierSchema,
-        password: z.string().min(1).max(128),
-        firstName: nameSchema,
-        lastName: nameSchema,
-        referralCode: z.string().trim().max(16).optional(),
-        locale: z.enum(LOCALES).optional(),
-        marketingConsent: z.boolean().optional(),
-      }),
+// ─── Innloggingsveiene, delt mellom nett (cookie) og app (Bearer) ───────────
+// Samme regler, rategrenser, revisjonslogg og staff-sperre gjelder begge. Det
+// eneste som skiller dem, er hvordan den nye sesjonen leveres: nettet får den
+// som HttpOnly-cookie (uendret), appen får tokenet i svaret (api/mobileAuth.ts).
+
+/** Samme svar uansett vei inn – det skal ikke kunne brukes til å kartlegge ansattes adresser. */
+const STAFF_EMAIL_MESSAGE = "Denne e-postadressen kan ikke brukes til en kundekonto. Kontakt oss hvis du mener dette er feil.";
+
+/** Leverer en ny kundesesjon for kunden. */
+export type SessionIssuer = (customerId: number) => Promise<void>;
+
+/** Nettets vei: HttpOnly-cookie, slik den alltid har vært. */
+export function cookieIssuer(ctx: TrpcContext): SessionIssuer {
+  return async (customerId) => {
+    const token = await createCustomerSession(customerId, ctx.req);
+    setCustomerCookie(ctx.resHeaders, token);
+  };
+}
+
+export const registerInput = z.object({
+  identifier: identifierSchema,
+  password: z.string().min(1).max(128),
+  firstName: nameSchema,
+  lastName: nameSchema,
+  referralCode: z.string().trim().max(16).optional(),
+  locale: z.enum(LOCALES).optional(),
+  marketingConsent: z.boolean().optional(),
+});
+export const loginInput = z.object({ identifier: identifierSchema, password: z.string().min(1).max(128) });
+export const socialTokenInput = z.object({ token: z.string().min(20).max(4096), locale: z.enum(LOCALES).optional(), referralCode: z.string().trim().max(16).optional() });
+export const loginCodeRequestInput = z.object({ phone: z.string().min(8).max(20) });
+export const loginCodeVerifyInput = z.object({ phone: z.string().min(8).max(20), code: z.string().regex(/^\d{6}$/) });
+
+export async function registerCustomer(input: z.infer<typeof registerInput>, ctx: TrpcContext, issue: SessionIssuer) {
+  const ip = clientIp(ctx.req);
+  assertRateLimit("customer-register", ip, 6, 10 * 60_000);
+  const id = parseIdentifier(input.identifier);
+  if (id.kind === "email" && (await isStaffEmail(id.value))) {
+    log.warn({ via: "register" }, "kundeinnlogging avvist: ansatts e-post");
+    throw new AppError("FORBIDDEN", { message: STAFF_EMAIL_MESSAGE, data: { field: "identifier" } });
+  }
+
+  const issues = customerPasswordIssues(input.password);
+  if (issues.length) {
+    throw new AppError("VALIDATION", { message: issues.join(" "), data: { field: "password" } });
+  }
+
+  const db = getDb();
+  const existing = await db.select({ id: customerAccounts.id }).from(customerAccounts).where(whereIdentifier(id)).limit(1);
+  if (existing[0]) {
+    throw new AppError("CONFLICT", {
+      message:
+        id.kind === "email"
+          ? "Det finnes allerede en konto med denne e-postadressen. Prøv å logge inn."
+          : "Det finnes allerede en konto med dette telefonnummeret. Prøv å logge inn.",
+      data: { field: "identifier" },
+    });
+  }
+
+  // Henvisning: kun relasjonen lagres nå — bonus krediteres når første reise er gjennomført (OTA-073)
+  let referrerId: number | null = null;
+  if (input.referralCode) {
+    const rows = await db
+      .select({ id: customerAccounts.id })
+      .from(customerAccounts)
+      .where(and(eq(customerAccounts.referralCode, input.referralCode.toUpperCase()), isNull(customerAccounts.deletedAt)))
+      .limit(1);
+    referrerId = rows[0]?.id ?? null;
+  }
+
+  const passwordHash = await hashPassword(input.password);
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  const locale = input.locale ?? "nb";
+  const result = await db.insert(customerAccounts).values({
+    email: id.kind === "email" ? id.value : null,
+    phone: id.kind === "phone" ? id.value : null,
+    passwordHash,
+    firstName,
+    lastName,
+    referralCode: genReferralCode(),
+    referredById: referrerId,
+    bonusKr: 0,
+    locale,
+    marketingConsentAt: input.marketingConsent ? new Date() : null,
+  });
+  const customerId = Number(result[0].insertId);
+
+  if (input.marketingConsent !== undefined && id.kind === "email") {
+    await db.insert(consents).values({
+      customerAccountId: customerId,
+      email: id.value,
+      type: "marketing",
+      version: CONSENT_VERSION,
+      granted: input.marketingConsent,
+      source: "register",
+      ip,
+    });
+  }
+
+  await logAudit({
+    actorType: "customer", actorId: customerId, actorLabel: firstName, action: "customer.registered",
+    targetType: "customer_account", targetId: customerId, ip,
+    metadata: { via: id.kind, referred: referrerId != null },
+  });
+  await flagRegistrationVelocity(customerId, ip).catch(() => {});
+
+  // Bekreftelses-e-post (verifisering) — blokkerer ikke innlogging.
+  // Telefon-kontoer er lovlige, men forblir uverifiserte for reiser/saker på e-post.
+  if (id.kind === "email") {
+    await issueVerificationEmail(customerId, id.value, firstName, locale);
+  }
+
+  await issue(customerId);
+
+  return publicProfile({
+    id: customerId,
+    email: id.kind === "email" ? id.value : null,
+    phone: id.kind === "phone" ? id.value : null,
+    firstName,
+    lastName,
+    emailVerified: false,
+    bonusKr: 0,
+    locale,
+    marketingConsentAt: input.marketingConsent ? new Date() : null,
+  });
+}
+
+export async function passwordLogin(input: z.infer<typeof loginInput>, ctx: TrpcContext, issue: SessionIssuer) {
+  const ip = clientIp(ctx.req);
+  assertRateLimit("customer-login", ip, 8, 5 * 60_000);
+  const id = parseIdentifier(input.identifier);
+  // Også per identitet — hindrer distribuert gjetting mot én konto
+  assertRateLimit("customer-login-id", sha256Hex(id.value).slice(0, 32), 20, 15 * 60_000);
+
+  const db = getDb();
+  const rows = await db.select().from(customerAccounts).where(whereIdentifier(id)).limit(1);
+  const account = rows[0];
+  // Samme feilmelding enten kontoen mangler, er slettet eller passordet er feil.
+  const ok = account && !account.deletedAt ? await verifyPassword(account.passwordHash, input.password) : false;
+  if (!account || !ok) {
+    await logAudit({
+      actorType: "customer", actorId: account?.id ?? null, action: "customer.login_failed",
+      targetType: "customer_account", targetId: account?.id ?? null, ip,
+    });
+    throw new AppError("UNAUTHORIZED", { message: "Feil e-post/telefon eller passord." });
+  }
+  // En ansatts e-post logger aldri inn som kunde – samme svar som feil passord.
+  if (await isStaffEmail(account.email)) {
+    await logAudit({ actorType: "customer", actorId: account.id, action: "customer.login_blocked_staff", targetType: "customer_account", targetId: account.id, ip });
+    throw new AppError("UNAUTHORIZED", { message: "Feil e-post/telefon eller passord." });
+  }
+
+  // Innloggingsvarsel kun ved ny enhet/IP (OTA-078): sammenlign med siste 3 sesjoner FØR ny opprettes
+  const ua = ctx.req.headers.get("user-agent")?.slice(0, 255) ?? null;
+  const recent = await recentCustomerSessions(account.id, 3).catch(() => []);
+  const known = recent.some((s) => s.ip === ip && s.userAgent === ua);
+
+  await issue(account.id);
+  await logAudit({
+    actorType: "customer", actorId: account.id, actorLabel: account.firstName, action: "customer.login",
+    targetType: "customer_account", targetId: account.id, ip, metadata: { newDevice: !known },
+  });
+  if (!known && account.email && account.emailVerified) {
+    sendLoginAlertEmail({ email: account.email, firstName: account.firstName, ip, userAgent: ua ?? undefined, locale: account.locale })
+      .catch((err) => log.warn({ err: String(err) }, "innloggingsvarsel feilet"));
+  }
+  return publicProfile(account);
+}
+
+export async function socialLogin(input: z.infer<typeof socialTokenInput>, ctx: TrpcContext, issue: SessionIssuer) {
+  const ip = clientIp(ctx.req);
+  assertRateLimit("customer-social", ip, 10, 5 * 60_000);
+  const who = await verifySocialToken(input.token);
+  if (await isStaffEmail(who.email)) {
+    log.warn({ via: "social" }, "kundeinnlogging avvist: ansatts e-post");
+    throw new AppError("FORBIDDEN", { message: STAFF_EMAIL_MESSAGE, data: { field: "social" } });
+  }
+  const db = getDb();
+
+  const [identity] = await db
+    .select({ id: customerIdentities.id, customerId: customerIdentities.customerId })
+    .from(customerIdentities)
+    .where(and(eq(customerIdentities.provider, "clerk"), eq(customerIdentities.subject, who.subject)))
+    .limit(1);
+  const emailMatch = who.email
+    ? (await db.select({ id: customerAccounts.id }).from(customerAccounts).where(and(eq(customerAccounts.email, who.email), isNull(customerAccounts.deletedAt))).limit(1))[0]
+    : undefined;
+  const decision = decideLink({
+    existingIdentityCustomerId: identity?.customerId ?? null,
+    currentCustomerId: ctx.customer?.customerId ?? null,
+    emailMatchCustomerId: emailMatch?.id ?? null,
+    emailVerified: who.emailVerified,
+  });
+
+  if (decision.action === "conflict") {
+    throw new AppError("CONFLICT", {
+      message:
+        decision.reason === "other_account"
+          ? "Denne innloggingen er allerede koblet til en annen HelloSky-konto. Logg ut først, eller koble den fra i Sikkerhet på den andre kontoen."
+          : "Det finnes allerede en konto med denne e-postadressen. Logg inn med passord først, så kan du koble til innloggingen under Sikkerhet.",
+      data: { field: "social", reason: decision.reason },
+    });
+  }
+
+  let customerId: number;
+  let created = false;
+  if (decision.action === "create") {
+    let referrerId: number | null = null;
+    if (input.referralCode) {
+      const rows = await db.select({ id: customerAccounts.id }).from(customerAccounts).where(and(eq(customerAccounts.referralCode, input.referralCode.toUpperCase()), isNull(customerAccounts.deletedAt))).limit(1);
+      referrerId = rows[0]?.id ?? null;
+    }
+    const result = await db.insert(customerAccounts).values({
+      email: who.email,
+      phone: null,
+      passwordHash: NO_PASSWORD_HASH,
+      firstName: (who.firstName ?? "").trim().slice(0, 60) || "Reisende",
+      lastName: (who.lastName ?? "").trim().slice(0, 60) || "",
+      emailVerified: Boolean(who.email && who.emailVerified),
+      referralCode: genReferralCode(),
+      referredById: referrerId,
+      locale: input.locale ?? "nb",
+    });
+    customerId = Number(result[0].insertId);
+    created = true;
+    await db.insert(customerIdentities).values({ customerId, provider: "clerk", subject: who.subject, social: who.social, email: who.email, lastLoginAt: new Date() });
+  } else {
+    customerId = decision.customerId;
+    const [acc] = await db.select({ id: customerAccounts.id, deletedAt: customerAccounts.deletedAt, emailVerified: customerAccounts.emailVerified, email: customerAccounts.email }).from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
+    if (!acc || acc.deletedAt) throw new AppError("UNAUTHORIZED", { message: "Kontoen finnes ikke lenger." });
+    if (decision.action === "link") {
+      await db.insert(customerIdentities).values({ customerId, provider: "clerk", subject: who.subject, social: who.social, email: who.email, lastLoginAt: new Date() });
+      // En verifisert e-post fra leverandøren bekrefter også vår e-post når den er den samme.
+      if (who.email && who.emailVerified && acc.email === who.email && !acc.emailVerified) {
+        await db.update(customerAccounts).set({ emailVerified: true }).where(eq(customerAccounts.id, customerId));
+      }
+    } else if (identity) {
+      await db.update(customerIdentities).set({ lastLoginAt: new Date(), email: who.email }).where(eq(customerIdentities.id, identity.id));
+    }
+  }
+
+  await issue(customerId);
+  await logAudit({
+    actorType: "customer", actorId: customerId, action: created ? "customer.social_register" : decision.action === "link" ? "customer.social_link" : "customer.social_login",
+    targetType: "customer_account", targetId: customerId, ip, metadata: { social: who.social },
+  });
+  const [account] = await db.select().from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
+  if (!account) throw new AppError("NOT_FOUND");
+  return { created, linked: decision.action === "link", profile: publicProfile(account) };
+}
+
+export async function sendLoginCode(input: z.infer<typeof loginCodeRequestInput>, ctx: TrpcContext) {
+  assertRateLimit("customer-otp", clientIp(ctx.req), 5, 10 * 60_000);
+  const phone = normalizePhone(input.phone);
+  if (!phone) {
+    throw new AppError("VALIDATION", { message: "Skriv inn et gyldig telefonnummer med landskode.", data: { field: "phone" } });
+  }
+  assertRateLimit("customer-otp-phone", phone, 3, 10 * 60_000);
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(customerAccounts)
+    .where(and(inArray(customerAccounts.phone, phoneCandidates(phone)), isNull(customerAccounts.deletedAt)))
+    .limit(1);
+  const account = rows[0];
+  if (account && !(await isStaffEmail(account.email))) {
+    const code = String(randomInt(100000, 1000000)); // 6 siffer, kryptografisk RNG
+    // Kun én aktiv kode om gangen
+    await db
+      .update(customerOtpCodes)
+      .set({ usedAt: new Date() })
+      .where(and(eq(customerOtpCodes.customerId, account.id), isNull(customerOtpCodes.usedAt)));
+    await db.insert(customerOtpCodes).values({
+      customerId: account.id,
+      codeHash: sha256Hex(`${account.id}:${code}`),
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    });
+    await sendSms(phone, `HelloSky: innloggingskoden din er ${code}. Gyldig i 10 minutter. Del den aldri med noen.`);
+  } else {
+    // Samme responstid uansett — ikke røp om nummeret finnes
+    await new Promise((r) => setTimeout(r, 150 + randomInt(0, 150)));
+  }
+  return { ok: true };
+}
+
+export async function verifyLoginCodeLogin(input: z.infer<typeof loginCodeVerifyInput>, ctx: TrpcContext, issue: SessionIssuer) {
+  const ip = clientIp(ctx.req);
+  assertRateLimit("customer-otp-verify", ip, 10, 10 * 60_000);
+  const phone = normalizePhone(input.phone);
+  if (!phone) throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
+  // Maks 5 forsøk per nummer per 10 min — beskytter mot gjetting av 6-sifret kode
+  assertRateLimit(`otp-verify:${phone}`, "phone", 5, 10 * 60_000);
+
+  const db = getDb();
+  const account = (
+    await db
+      .select()
+      .from(customerAccounts)
+      .where(and(inArray(customerAccounts.phone, phoneCandidates(phone)), isNull(customerAccounts.deletedAt)))
+      .limit(1)
+  )[0];
+  if (!account || (await isStaffEmail(account.email))) throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
+
+  const rows = await db
+    .select()
+    .from(customerOtpCodes)
+    .where(
+      and(
+        eq(customerOtpCodes.customerId, account.id),
+        eq(customerOtpCodes.codeHash, sha256Hex(`${account.id}:${input.code}`)),
+        isNull(customerOtpCodes.usedAt),
+        gt(customerOtpCodes.expiresAt, new Date()),
+      ),
     )
-    .mutation(async ({ input, ctx }) => {
-      const ip = clientIp(ctx.req);
-      assertRateLimit("customer-register", ip, 6, 10 * 60_000);
-      const id = parseIdentifier(input.identifier);
+    .limit(1);
+  const otp = rows[0];
+  if (!otp) {
+    await logAudit({ actorType: "customer", actorId: account.id, action: "customer.otp_failed", targetType: "customer_account", targetId: account.id, ip });
+    throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
+  }
+  // Engangsbruk: atomisk oppdatering slik at to parallelle kall ikke begge lykkes
+  const upd = await db
+    .update(customerOtpCodes)
+    .set({ usedAt: new Date() })
+    .where(and(eq(customerOtpCodes.id, otp.id), isNull(customerOtpCodes.usedAt)));
+  if (Number(upd[0].affectedRows) === 0) throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
 
-      const issues = customerPasswordIssues(input.password);
-      if (issues.length) {
-        throw new AppError("VALIDATION", { message: issues.join(" "), data: { field: "password" } });
-      }
+  await issue(account.id);
+  await logAudit({ actorType: "customer", actorId: account.id, actorLabel: account.firstName, action: "customer.login", targetType: "customer_account", targetId: account.id, ip, metadata: { via: "otp" } });
+  return publicProfile(account);
+}
 
-      const db = getDb();
-      const existing = await db.select({ id: customerAccounts.id }).from(customerAccounts).where(whereIdentifier(id)).limit(1);
-      if (existing[0]) {
-        throw new AppError("CONFLICT", {
-          message:
-            id.kind === "email"
-              ? "Det finnes allerede en konto med denne e-postadressen. Prøv å logge inn."
-              : "Det finnes allerede en konto med dette telefonnummeret. Prøv å logge inn.",
-          data: { field: "identifier" },
-        });
-      }
+export const customerAuthRouter = createRouter({
+  register: publicQuery.input(registerInput).mutation(({ input, ctx }) => registerCustomer(input, ctx, cookieIssuer(ctx))),
 
-      // Henvisning: kun relasjonen lagres nå — bonus krediteres når første reise er gjennomført (OTA-073)
-      let referrerId: number | null = null;
-      if (input.referralCode) {
-        const rows = await db
-          .select({ id: customerAccounts.id })
-          .from(customerAccounts)
-          .where(and(eq(customerAccounts.referralCode, input.referralCode.toUpperCase()), isNull(customerAccounts.deletedAt)))
-          .limit(1);
-        referrerId = rows[0]?.id ?? null;
-      }
-
-      const passwordHash = await hashPassword(input.password);
-      const firstName = input.firstName.trim();
-      const lastName = input.lastName.trim();
-      const locale = input.locale ?? "nb";
-      const result = await db.insert(customerAccounts).values({
-        email: id.kind === "email" ? id.value : null,
-        phone: id.kind === "phone" ? id.value : null,
-        passwordHash,
-        firstName,
-        lastName,
-        referralCode: genReferralCode(),
-        referredById: referrerId,
-        bonusKr: 0,
-        locale,
-        marketingConsentAt: input.marketingConsent ? new Date() : null,
-      });
-      const customerId = Number(result[0].insertId);
-
-      if (input.marketingConsent !== undefined && id.kind === "email") {
-        await db.insert(consents).values({
-          customerAccountId: customerId,
-          email: id.value,
-          type: "marketing",
-          version: CONSENT_VERSION,
-          granted: input.marketingConsent,
-          source: "register",
-          ip,
-        });
-      }
-
-      await logAudit({
-        actorType: "customer", actorId: customerId, actorLabel: firstName, action: "customer.registered",
-        targetType: "customer_account", targetId: customerId, ip,
-        metadata: { via: id.kind, referred: referrerId != null },
-      });
-      await flagRegistrationVelocity(customerId, ip).catch(() => {});
-
-      // Bekreftelses-e-post (verifisering) — blokkerer ikke innlogging.
-      // Telefon-kontoer er lovlige, men forblir uverifiserte for reiser/saker på e-post.
-      if (id.kind === "email") {
-        await issueVerificationEmail(customerId, id.value, firstName, locale);
-      }
-
-      const token = await createCustomerSession(customerId, ctx.req);
-      setCustomerCookie(ctx.resHeaders, token);
-
-      return publicProfile({
-        id: customerId,
-        email: id.kind === "email" ? id.value : null,
-        phone: id.kind === "phone" ? id.value : null,
-        firstName,
-        lastName,
-        emailVerified: false,
-        bonusKr: 0,
-        locale,
-        marketingConsentAt: input.marketingConsent ? new Date() : null,
-      });
-    }),
-
-  login: publicQuery
-    .input(z.object({ identifier: identifierSchema, password: z.string().min(1).max(128) }))
-    .mutation(async ({ input, ctx }) => {
-      const ip = clientIp(ctx.req);
-      assertRateLimit("customer-login", ip, 8, 5 * 60_000);
-      const id = parseIdentifier(input.identifier);
-      // Også per identitet — hindrer distribuert gjetting mot én konto
-      assertRateLimit("customer-login-id", sha256Hex(id.value).slice(0, 32), 20, 15 * 60_000);
-
-      const db = getDb();
-      const rows = await db.select().from(customerAccounts).where(whereIdentifier(id)).limit(1);
-      const account = rows[0];
-      // Samme feilmelding enten kontoen mangler, er slettet eller passordet er feil.
-      const ok = account && !account.deletedAt ? await verifyPassword(account.passwordHash, input.password) : false;
-      if (!account || !ok) {
-        await logAudit({
-          actorType: "customer", actorId: account?.id ?? null, action: "customer.login_failed",
-          targetType: "customer_account", targetId: account?.id ?? null, ip,
-        });
-        throw new AppError("UNAUTHORIZED", { message: "Feil e-post/telefon eller passord." });
-      }
-
-      // Innloggingsvarsel kun ved ny enhet/IP (OTA-078): sammenlign med siste 3 sesjoner FØR ny opprettes
-      const ua = ctx.req.headers.get("user-agent")?.slice(0, 255) ?? null;
-      const recent = await recentCustomerSessions(account.id, 3).catch(() => []);
-      const known = recent.some((s) => s.ip === ip && s.userAgent === ua);
-
-      const token = await createCustomerSession(account.id, ctx.req);
-      setCustomerCookie(ctx.resHeaders, token);
-      await logAudit({
-        actorType: "customer", actorId: account.id, actorLabel: account.firstName, action: "customer.login",
-        targetType: "customer_account", targetId: account.id, ip, metadata: { newDevice: !known },
-      });
-      if (!known && account.email && account.emailVerified) {
-        sendLoginAlertEmail({ email: account.email, firstName: account.firstName, ip, userAgent: ua ?? undefined, locale: account.locale })
-          .catch((err) => log.warn({ err: String(err) }, "innloggingsvarsel feilet"));
-      }
-      return publicProfile(account);
-    }),
+  login: publicQuery.input(loginInput).mutation(({ input, ctx }) => passwordLogin(input, ctx, cookieIssuer(ctx))),
 
   logout: publicQuery.mutation(async ({ ctx }) => {
     if (ctx.customer) {
@@ -423,86 +618,7 @@ export const customerAuthRouter = createRouter({
    * Vi kobler aldri på en uverifisert e-post alene, og flytter aldri en
    * identitet fra én konto til en annen.
    */
-  exchangeSocialToken: publicQuery
-    .input(z.object({ token: z.string().min(20).max(4096), locale: z.enum(LOCALES).optional(), referralCode: z.string().trim().max(16).optional() }))
-    .mutation(async ({ input, ctx }) => {
-      const ip = clientIp(ctx.req);
-      assertRateLimit("customer-social", ip, 10, 5 * 60_000);
-      const who = await verifySocialToken(input.token);
-      const db = getDb();
-
-      const [identity] = await db
-        .select({ id: customerIdentities.id, customerId: customerIdentities.customerId })
-        .from(customerIdentities)
-        .where(and(eq(customerIdentities.provider, "clerk"), eq(customerIdentities.subject, who.subject)))
-        .limit(1);
-      const emailMatch = who.email
-        ? (await db.select({ id: customerAccounts.id }).from(customerAccounts).where(and(eq(customerAccounts.email, who.email), isNull(customerAccounts.deletedAt))).limit(1))[0]
-        : undefined;
-      const decision = decideLink({
-        existingIdentityCustomerId: identity?.customerId ?? null,
-        currentCustomerId: ctx.customer?.customerId ?? null,
-        emailMatchCustomerId: emailMatch?.id ?? null,
-        emailVerified: who.emailVerified,
-      });
-
-      if (decision.action === "conflict") {
-        throw new AppError("CONFLICT", {
-          message:
-            decision.reason === "other_account"
-              ? "Denne innloggingen er allerede koblet til en annen HelloSky-konto. Logg ut først, eller koble den fra i Sikkerhet på den andre kontoen."
-              : "Det finnes allerede en konto med denne e-postadressen. Logg inn med passord først, så kan du koble til innloggingen under Sikkerhet.",
-          data: { field: "social", reason: decision.reason },
-        });
-      }
-
-      let customerId: number;
-      let created = false;
-      if (decision.action === "create") {
-        let referrerId: number | null = null;
-        if (input.referralCode) {
-          const rows = await db.select({ id: customerAccounts.id }).from(customerAccounts).where(and(eq(customerAccounts.referralCode, input.referralCode.toUpperCase()), isNull(customerAccounts.deletedAt))).limit(1);
-          referrerId = rows[0]?.id ?? null;
-        }
-        const result = await db.insert(customerAccounts).values({
-          email: who.email,
-          phone: null,
-          passwordHash: NO_PASSWORD_HASH,
-          firstName: (who.firstName ?? "").trim().slice(0, 60) || "Reisende",
-          lastName: (who.lastName ?? "").trim().slice(0, 60) || "",
-          emailVerified: Boolean(who.email && who.emailVerified),
-          referralCode: genReferralCode(),
-          referredById: referrerId,
-          locale: input.locale ?? "nb",
-        });
-        customerId = Number(result[0].insertId);
-        created = true;
-        await db.insert(customerIdentities).values({ customerId, provider: "clerk", subject: who.subject, social: who.social, email: who.email, lastLoginAt: new Date() });
-      } else {
-        customerId = decision.customerId;
-        const [acc] = await db.select({ id: customerAccounts.id, deletedAt: customerAccounts.deletedAt, emailVerified: customerAccounts.emailVerified, email: customerAccounts.email }).from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
-        if (!acc || acc.deletedAt) throw new AppError("UNAUTHORIZED", { message: "Kontoen finnes ikke lenger." });
-        if (decision.action === "link") {
-          await db.insert(customerIdentities).values({ customerId, provider: "clerk", subject: who.subject, social: who.social, email: who.email, lastLoginAt: new Date() });
-          // En verifisert e-post fra leverandøren bekrefter også vår e-post når den er den samme.
-          if (who.email && who.emailVerified && acc.email === who.email && !acc.emailVerified) {
-            await db.update(customerAccounts).set({ emailVerified: true }).where(eq(customerAccounts.id, customerId));
-          }
-        } else if (identity) {
-          await db.update(customerIdentities).set({ lastLoginAt: new Date(), email: who.email }).where(eq(customerIdentities.id, identity.id));
-        }
-      }
-
-      const token = await createCustomerSession(customerId, ctx.req);
-      setCustomerCookie(ctx.resHeaders, token);
-      await logAudit({
-        actorType: "customer", actorId: customerId, action: created ? "customer.social_register" : decision.action === "link" ? "customer.social_link" : "customer.social_login",
-        targetType: "customer_account", targetId: customerId, ip, metadata: { social: who.social },
-      });
-      const [account] = await db.select().from(customerAccounts).where(eq(customerAccounts.id, customerId)).limit(1);
-      if (!account) throw new AppError("NOT_FOUND");
-      return { created, linked: decision.action === "link", profile: publicProfile(account) };
-    }),
+  exchangeSocialToken: publicQuery.input(socialTokenInput).mutation(({ input, ctx }) => socialLogin(input, ctx, cookieIssuer(ctx))),
 
   /** Sosiale innlogginger koblet til kontoen – til Sikkerhet-siden. */
   identities: customerProcedure.query(async ({ ctx }) => {
@@ -556,7 +672,8 @@ export const customerAuthRouter = createRouter({
         .where(and(eq(customerAccounts.email, email), isNull(customerAccounts.deletedAt)))
         .limit(1);
       const account = rows[0];
-      if (account) {
+      // En ansatts e-post får ingen kundelenke – samme «ok» som når kontoen ikke finnes.
+      if (account && !(await isStaffEmail(account.email))) {
         const token = randomToken(32);
         await db.insert(customerPasswordResets).values({
           tokenHash: sha256Hex(token),
@@ -675,91 +792,9 @@ export const customerAuthRouter = createRouter({
   }),
 
   /** Innlogging med engangskode på SMS (OTA-071). Koden logges aldri. */
-  requestLoginCode: publicQuery
-    .input(z.object({ phone: z.string().min(8).max(20) }))
-    .mutation(async ({ input, ctx }) => {
-      assertRateLimit("customer-otp", clientIp(ctx.req), 5, 10 * 60_000);
-      const phone = normalizePhone(input.phone);
-      if (!phone) {
-        throw new AppError("VALIDATION", { message: "Skriv inn et gyldig telefonnummer med landskode.", data: { field: "phone" } });
-      }
-      assertRateLimit("customer-otp-phone", phone, 3, 10 * 60_000);
-      const db = getDb();
-      const rows = await db
-        .select()
-        .from(customerAccounts)
-        .where(and(inArray(customerAccounts.phone, phoneCandidates(phone)), isNull(customerAccounts.deletedAt)))
-        .limit(1);
-      const account = rows[0];
-      if (account) {
-        const code = String(randomInt(100000, 1000000)); // 6 siffer, kryptografisk RNG
-        // Kun én aktiv kode om gangen
-        await db
-          .update(customerOtpCodes)
-          .set({ usedAt: new Date() })
-          .where(and(eq(customerOtpCodes.customerId, account.id), isNull(customerOtpCodes.usedAt)));
-        await db.insert(customerOtpCodes).values({
-          customerId: account.id,
-          codeHash: sha256Hex(`${account.id}:${code}`),
-          expiresAt: new Date(Date.now() + OTP_TTL_MS),
-        });
-        await sendSms(phone, `HelloSky: innloggingskoden din er ${code}. Gyldig i 10 minutter. Del den aldri med noen.`);
-      } else {
-        // Samme responstid uansett — ikke røp om nummeret finnes
-        await new Promise((r) => setTimeout(r, 150 + randomInt(0, 150)));
-      }
-      return { ok: true };
-    }),
+  requestLoginCode: publicQuery.input(loginCodeRequestInput).mutation(({ input, ctx }) => sendLoginCode(input, ctx)),
 
-  verifyLoginCode: publicQuery
-    .input(z.object({ phone: z.string().min(8).max(20), code: z.string().regex(/^\d{6}$/) }))
-    .mutation(async ({ input, ctx }) => {
-      const ip = clientIp(ctx.req);
-      assertRateLimit("customer-otp-verify", ip, 10, 10 * 60_000);
-      const phone = normalizePhone(input.phone);
-      if (!phone) throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
-      // Maks 5 forsøk per nummer per 10 min — beskytter mot gjetting av 6-sifret kode
-      assertRateLimit(`otp-verify:${phone}`, "phone", 5, 10 * 60_000);
-
-      const db = getDb();
-      const account = (
-        await db
-          .select()
-          .from(customerAccounts)
-          .where(and(inArray(customerAccounts.phone, phoneCandidates(phone)), isNull(customerAccounts.deletedAt)))
-          .limit(1)
-      )[0];
-      if (!account) throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
-
-      const rows = await db
-        .select()
-        .from(customerOtpCodes)
-        .where(
-          and(
-            eq(customerOtpCodes.customerId, account.id),
-            eq(customerOtpCodes.codeHash, sha256Hex(`${account.id}:${input.code}`)),
-            isNull(customerOtpCodes.usedAt),
-            gt(customerOtpCodes.expiresAt, new Date()),
-          ),
-        )
-        .limit(1);
-      const otp = rows[0];
-      if (!otp) {
-        await logAudit({ actorType: "customer", actorId: account.id, action: "customer.otp_failed", targetType: "customer_account", targetId: account.id, ip });
-        throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
-      }
-      // Engangsbruk: atomisk oppdatering slik at to parallelle kall ikke begge lykkes
-      const upd = await db
-        .update(customerOtpCodes)
-        .set({ usedAt: new Date() })
-        .where(and(eq(customerOtpCodes.id, otp.id), isNull(customerOtpCodes.usedAt)));
-      if (Number(upd[0].affectedRows) === 0) throw new AppError("UNAUTHORIZED", { message: "Feil kode eller telefonnummer." });
-
-      const token = await createCustomerSession(account.id, ctx.req);
-      setCustomerCookie(ctx.resHeaders, token);
-      await logAudit({ actorType: "customer", actorId: account.id, actorLabel: account.firstName, action: "customer.login", targetType: "customer_account", targetId: account.id, ip, metadata: { via: "otp" } });
-      return publicProfile(account);
-    }),
+  verifyLoginCode: publicQuery.input(loginCodeVerifyInput).mutation(({ input, ctx }) => verifyLoginCodeLogin(input, ctx, cookieIssuer(ctx))),
 
   /** Logg ut alle enheter (sikkerhet). */
   logoutAll: customerProcedure.mutation(async ({ ctx }) => {
@@ -1027,6 +1062,11 @@ export const customerAuthRouter = createRouter({
         .limit(1);
       const reset = rows[0];
       if (!reset) {
+        throw new AppError("VALIDATION", { message: "Lenken er utløpt eller ugyldig. Be om en ny tilbakestillingslenke." });
+      }
+      // Sjekkes før lenken brukes opp: en ansatts e-post får verken nytt kundepassord eller kundesesjon.
+      const [target] = await db.select({ email: customerAccounts.email }).from(customerAccounts).where(eq(customerAccounts.id, reset.customerId)).limit(1);
+      if (await isStaffEmail(target?.email)) {
         throw new AppError("VALIDATION", { message: "Lenken er utløpt eller ugyldig. Be om en ny tilbakestillingslenke." });
       }
       // Engangsbruk — atomisk
