@@ -1555,6 +1555,9 @@ const dict = {
   "sw.err.same": { nb: "Avreise og destinasjon kan ikke være samme flyplass.", en: "Origin and destination cannot be the same airport." },
   "sw.err.dates.round": { nb: "Velg både utreise og hjemreise.", en: "Choose both departure and return dates." },
   "sw.err.dates.one": { nb: "Velg en utreisedato.", en: "Choose a departure date." },
+  "sw.err.dates.invalid": { nb: "En av datoene er ugyldig. Velg datoene på nytt.", en: "One of the dates is invalid. Please select the dates again." },
+  "sw.err.dates.past": { nb: "En av reisedatoene har passert. Velg nye datoer.", en: "One of your travel dates has passed. Please choose new dates." },
+  "sw.err.dates.order": { nb: "Reisedatoene må være i rekkefølge. Hjemreisen kan ikke være før utreisen.", en: "Travel dates must be in order. Your return cannot be before departure." },
   "sw.err.where": { nb: "Velg hvor du reiser fra og hvor du skal.", en: "Choose where you travel from and where you are going." },
   // ── Resultater: familie, filtre ─────────────────────────────────────────
   "sr.perperson": { nb: "ca. {price} per person", en: "approx. {price} per person" },

@@ -15,6 +15,7 @@ import { buildSearchQuery, defaultState, todayPlus, type SearchParamsState, type
 export type { SearchParamsState, TripLeg, TripType } from "./searchQuery";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { searchDateIssue } from "./searchDates";
 
 interface Props {
   initial?: Partial<SearchParamsState>;
@@ -102,23 +103,32 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
 
   const isMulti = state.tripType === "multicity";
   const isRound = state.tripType === "roundtrip";
+  const dates = isMulti ? state.legs.map((leg) => leg.date) : isRound ? [state.depart, state.ret] : [state.depart];
+  const dateProblem = searchDateIssue(dates);
 
   const problems = useMemo(() => {
     const p: { from?: boolean; to?: boolean; dates?: boolean; legs?: boolean } = {};
     if (isMulti) {
       p.legs = !(state.legs.length >= 2 && state.legs.every((l) => l.from && l.to && l.date && l.from.iata !== l.to.iata));
+      p.dates = !!dateProblem;
     } else {
       p.from = !state.from;
       p.to = !state.to || (!!state.from && state.from.iata === state.to.iata);
-      p.dates = !state.depart || (isRound && !state.ret);
+      p.dates = !!dateProblem;
     }
     return p;
-  }, [state, isMulti, isRound]);
+  }, [state, isMulti, dateProblem]);
 
   const canSubmit = !Object.values(problems).some(Boolean);
 
   const submit = () => {
     setTouched(true);
+    // Recheck at submission too: a tab can stay open across local midnight.
+    const latestDateProblem = searchDateIssue(dates);
+    if (latestDateProblem && latestDateProblem !== "missing") {
+      setError(t(`sw.err.dates.${latestDateProblem}`));
+      return;
+    }
     if (!canSubmit) {
       setError(
         isMulti
@@ -201,7 +211,7 @@ export default function SearchWidget({ initial, variant = "hero", onSubmitted, l
                 <div className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
                   <AirportField label={t("search.from")} direction="from" value={leg.from} exclude={leg.to?.iata} onChange={(a) => setLeg(i, { from: a })} />
                   <AirportField label={t("search.to")} direction="to" value={leg.to} exclude={leg.from?.iata} origin={leg.from} onChange={(a) => setLeg(i, { to: a })} />
-                  <DateField value={leg.date} min={i === 0 ? minDate : state.legs[i - 1]?.date || minDate} onChange={(iso) => setLeg(i, { date: iso })} />
+                  <DateField value={leg.date} min={i === 0 ? minDate : [minDate, state.legs[i - 1]?.date || minDate].sort().at(-1)} error={touched && problems.dates} onChange={(iso) => setLeg(i, { date: iso })} />
                   {state.legs.length > 2 ? (
                     <Button type="button" variant="ghost" size="icon" className="self-center" onClick={() => setState((s) => ({ ...s, legs: s.legs.filter((_, li) => li !== i) }))} aria-label={t("sw.removeleg", { n: i + 1 })}>
                       <X />
