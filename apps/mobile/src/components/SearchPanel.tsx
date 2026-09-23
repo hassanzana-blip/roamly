@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useApp } from "../lib/appState";
@@ -25,7 +25,8 @@ function AirportField({ label, value, onPress, testID, align }: { label: string;
       style={({ pressed }) => [styles.airport, { alignItems }, pressed && { opacity: 0.6 }]}
     >
       <Text style={[type.caption, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[type.code, { color: value ? colors.text : colors.blue }]} numberOfLines={1}>
+      {/* Tomt felt: vanlig mørk tekst, ikke en blå flate som konkurrerer med «Søk fly». */}
+      <Text style={value ? [type.code, { color: colors.text }] : [type.title, styles.empty]} numberOfLines={1}>
         {value ? value.iata : t.home.choose}
       </Text>
       <Text style={[type.footnote, { color: colors.textSecondary, textAlign: align }]} numberOfLines={1}>
@@ -39,7 +40,7 @@ function AirportField({ label, value, onPress, testID, align }: { label: string;
  * Søkeskjemaet på forsiden: reisetype, rute med bytteknapp, datoer, reisende og
  * reiseklasse, og én blå knapp. Alt leses fra og skrives til appens søkeskjema.
  */
-export function SearchPanel() {
+export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
   const router = useRouter();
   const { form, setForm, runSearch } = useApp();
   const i18n = useI18n();
@@ -58,7 +59,7 @@ export function SearchPanel() {
   };
 
   return (
-    <View style={{ gap: space.md }}>
+    <View style={{ gap: space.sm }}>
       <Segmented
         label={h.tripType}
         value={form.tripType}
@@ -122,6 +123,7 @@ export function SearchPanel() {
         </Banner>
       ) : null}
       <PrimaryButton testID="search-button" label={h.searchButton} icon="arrowRight" onPress={submit} />
+      {footer}
 
       <BottomSheet visible={travellersOpen} title={h.travellersSheet} onClose={() => setTravellersOpen(false)} testID="travellers-sheet">
         <ScrollView contentContainerStyle={{ gap: space.xs, paddingBottom: space.md }}>
@@ -184,11 +186,13 @@ export function SearchPanel() {
 }
 
 const styles = StyleSheet.create({
-  route: { flexDirection: "row", alignItems: "center", borderRadius: radius.card - 4, borderWidth: 1, borderColor: colors.lightBorder, paddingHorizontal: space.lg, paddingVertical: space.md, minHeight: 88 },
+  route: { flexDirection: "row", alignItems: "center", borderRadius: radius.card - 4, borderWidth: 1, borderColor: colors.lightBorder, paddingHorizontal: space.lg, paddingVertical: space.sm, minHeight: 80 },
+  // Samme linjehøyde som flyplasskoden, så ruteboksen ikke hopper når et felt fylles ut.
+  empty: { color: colors.text, lineHeight: 30 },
   airport: { flex: 1, gap: 1, minHeight: TOUCH, justifyContent: "center" },
   swap: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, alignItems: "center", justifyContent: "center", marginHorizontal: space.sm },
-  grid: { gap: space.sm },
-  gridRow: { flexDirection: "row", gap: space.sm },
+  grid: { gap: 6 },
+  gridRow: { flexDirection: "row", gap: 6 },
   ageRow: { gap: space.sm, paddingBottom: space.sm },
   sheetDivider: { height: 1, backgroundColor: colors.lightBorder, marginVertical: space.sm },
   switchRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 56 },

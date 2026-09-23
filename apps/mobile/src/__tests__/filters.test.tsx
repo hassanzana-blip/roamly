@@ -52,7 +52,7 @@ describe("sortering", () => {
     expect(cardIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-thb_1", "offer-direct_1"]);
     expect(screen.getByText("Laveste pris først")).toBeOnTheScreen();
 
-    await fireEvent.press(screen.getByTestId("open-sort"));
+    await fireEvent.press(screen.getByTestId("open-sort-toolbar"));
     await fireEvent.press(screen.getByTestId("sort-duration"));
     expect(cardIds()[0]).toBe("offer-direct_1");
     expect(cardIds().at(-1)).toBe("offer-thb_1");
@@ -123,8 +123,11 @@ describe("resultatkortet", () => {
     expect(card.getByText("Ut · 23. okt.")).toBeOnTheScreen();
     expect(card.getByText("Hjem · 30. okt.")).toBeOnTheScreen();
     expect(card.getByText("Totalt for 1 voksen · Tur-retur")).toBeOnTheScreen();
-    expect(card.getByText("Håndbagasje inkludert")).toBeOnTheScreen();
+    // Kortet viser en kort form; «Uten …» og «ikke oppgitt» skrives helt ut. VoiceOver får alt i sin helhet.
+    expect(card.getByText("Håndbagasje inkl.")).toBeOnTheScreen();
     expect(card.getByText("Innsjekket bagasje: ikke oppgitt")).toBeOnTheScreen();
+    const spoken = screen.getByTestId("offer-sek_1").props.accessibilityLabel as string;
+    expect(spoken).toContain("Håndbagasje inkludert. Innsjekket bagasje: ikke oppgitt.");
   });
 });
 
@@ -240,7 +243,7 @@ describe("resultatsiden følger søket som vises", () => {
 
   it("sorteringen forklarer hvordan «ca.»-priser rangeres", async () => {
     await renderWithControls(withDirect());
-    await fireEvent.press(screen.getByTestId("open-sort"));
+    await fireEvent.press(screen.getByTestId("open-sort-toolbar"));
     expect(screen.getByText("Priser merket «ca.» rangeres etter det omregnede kronebeløpet, som kan avvike fra det tilbyderen tar betalt.")).toBeOnTheScreen();
   });
 });

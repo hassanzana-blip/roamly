@@ -13,6 +13,8 @@ const en = {
     shortIncluded: (label: string) => `${label} included`,
     shortNotIncluded: (label: string) => `No ${label.toLowerCase()}`,
     shortUnknown: (label: string) => `${label}: not stated`,
+    /** Kortversjonen på resultatkortet (samme mening; VoiceOver får hele teksten). */
+    cardIncluded: (label: string) => `${label} included`,
   },
   conditions: {
     refund: "Refund before departure",
@@ -27,7 +29,10 @@ const en = {
   infants: (n: number) => `${n} ${n === 1 ? "infant" : "infants"}`,
   priceBasis: (travellers: string, trip: string) => `Total for ${travellers} · ${trip}`,
   sellerKinds: { airline: "Airline", agency: "Travel agency", unknown: "Provider" } satisfies Record<SellerKind, string>,
-  handoff: (provider: string) => `View offer at ${provider}`,
+  /** Knappens fulle navn (VoiceOver): handlingen og hvilken tilbyder den går til. */
+  handoff: (provider: string) => `Go to offer at ${provider}`,
+  /** Synlig knappetekst; tilbyderen står ved siden av (bunnlinjen). */
+  handoffShort: "Go to offer",
   soldByHelloSky: "HelloSky",
 };
 
@@ -42,6 +47,7 @@ const nb: typeof en = {
     shortIncluded: (label) => `${label} inkludert`,
     shortNotIncluded: (label) => `Uten ${label.toLowerCase()}`,
     shortUnknown: (label) => `${label}: ikke oppgitt`,
+    cardIncluded: (label) => `${label} inkl.`,
   },
   conditions: {
     refund: "Refusjon før avreise",
@@ -56,7 +62,8 @@ const nb: typeof en = {
   infants: (n) => `${n} spedbarn`,
   priceBasis: (travellers, trip) => `Totalt for ${travellers} · ${trip}`,
   sellerKinds: { airline: "Flyselskap", agency: "Reisebyrå", unknown: "Tilbyder" },
-  handoff: (provider) => `Se tilbud hos ${provider}`,
+  handoff: (provider) => `Gå til tilbud hos ${provider}`,
+  handoffShort: "Gå til tilbud",
   soldByHelloSky: "HelloSky",
 };
 

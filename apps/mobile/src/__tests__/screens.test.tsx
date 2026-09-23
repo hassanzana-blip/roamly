@@ -228,12 +228,14 @@ describe("tilbudsdetaljer og videresending", () => {
     expect(within(screen.getByTestId("offer-bar")).getByText("Totalt for 1 voksen · Tur-retur")).toBeOnTheScreen();
     expect(screen.getByTestId("fx-details")).toHaveTextContent(/annen valuta enn norske kroner.*endelig beløp kan avvike/);
     expect(screen.getByTestId("seller")).toHaveTextContent(/Selges av SAS/);
-    expect(screen.getByTestId("handoff-note")).toHaveTextContent("Bestillingen fullføres hos tilbyderen.");
+    // Kort, tydelig handling; valgt tilbyder står rett ved den, og i knappens fulle navn.
+    expect(screen.getByTestId("handoff-note")).toHaveTextContent("SAS · Bestillingen fullføres hos tilbyderen.");
+    expect(within(screen.getByTestId("handoff-button")).getByText("Gå til tilbud")).toBeOnTheScreen();
     expectNoForeignAmounts();
     expectNoRawLinks();
 
     await fireEvent.press(screen.getByTestId("handoff-button"));
-    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Se tilbud hos SAS");
+    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Gå til tilbud hos SAS");
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledTimes(1);
     expect(jest.mocked(WebBrowser.openBrowserAsync).mock.calls[0]![0]).toBe(KAYAK_URL);
     // Nettets klikkmåling: bare tilbuds-id og den anonyme søkeøkten – aldri token.
@@ -300,10 +302,24 @@ describe("tilbudsdetaljer og videresending", () => {
     // Billigst først i sammenligningen.
     const rows = within(screen.getByTestId("sellers")).getAllByTestId(/^seller-/).map((el) => el.props.testID as string);
     expect(rows).toEqual(["seller-gtg_1", "seller-sek_1"]);
-    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Se tilbud hos SAS");
+    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Gå til tilbud hos SAS");
+    expect(screen.getByTestId("bar-provider")).toHaveTextContent("SAS ·");
+    // Sammenligningen står først i Oversikt, før den felles reiseinformasjonen.
+    const overview = screen.getByTestId("offer-screen");
+    const order = within(overview).getAllByText(/^(Tilbydere|Reiseinformasjon)$/).map((el) => el.props.children as string);
+    expect(order).toEqual(["Tilbydere", "Reiseinformasjon"]);
+    // Hver selgers bagasje står i sin helhet – ingen linjegrense som kan kutte forskjellen.
+    for (const id of ["gtg_1", "sek_1"]) {
+      const bags = screen.getByTestId(`sellerbags-${id}`);
+      expect(bags.props.numberOfLines).toBeUndefined();
+      expect(bags).toHaveTextContent(/^Håndbagasje .+ · Innsjekket bagasje/);
+    }
 
     await fireEvent.press(screen.getByTestId("seller-gtg_1"));
-    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Se tilbud hos Gotogate");
+    // Pris, bagasje, vilkår og handlingen følger valget – samtidig.
+    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Gå til tilbud hos Gotogate");
+    expect(screen.getByTestId("bar-provider")).toHaveTextContent("Gotogate ·");
+    expect(within(screen.getByTestId("bar-price")).getByText(/^1\s390\skr$/)).toBeOnTheScreen();
     expect(within(screen.getByTestId("offer-price")).getByText(/^1\s390\skr$/)).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId("tab-baggage"));
     expect(screen.getByTestId("bag-checked")).toHaveTextContent(/Innsjekket bagasje.*Inkludert/);

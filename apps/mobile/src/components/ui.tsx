@@ -38,6 +38,7 @@ export function PrimaryButton({
   disabled,
   loading,
   accessibilityHint,
+  accessibilityLabel,
   testID,
   style,
 }: {
@@ -47,6 +48,8 @@ export function PrimaryButton({
   disabled?: boolean;
   loading?: boolean;
   accessibilityHint?: string;
+  /** Fullt navn når den synlige teksten er kort (f.eks. «Gå til tilbud» → «… hos Norwegian»). */
+  accessibilityLabel?: string;
   testID?: string;
   style?: StyleProp<ViewStyle>;
 }) {
@@ -57,7 +60,7 @@ export function PrimaryButton({
       onPress={onPress}
       disabled={inactive}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       style={({ pressed }) => [styles.primary, pressed && { backgroundColor: colors.bluePressed }, inactive && styles.primaryInactive, style]}
@@ -66,7 +69,8 @@ export function PrimaryButton({
         <ActivityIndicator color={colors.white} />
       ) : (
         <View style={styles.row8}>
-          <Text style={[styles.primaryText, disabled && { color: colors.onDarkDim }]} numberOfLines={1}>
+          {/* Ingen linjegrense: med stor tekst brytes etiketten og knappen blir høyere, i stedet for «…». */}
+          <Text style={[styles.primaryText, { textAlign: "center", flexShrink: 1 }, disabled && { color: colors.onDarkDim }]}>
             {label}
           </Text>
           {icon ? <Icon name={icon} size={20} color={disabled ? colors.onDarkDim : colors.white} /> : null}
@@ -343,8 +347,11 @@ export type NoticeItem = { key: string; tone: "info" | "warning"; text: string; 
  */
 export function Notices({ items }: { items: NoticeItem[] }) {
   if (!items.length) return null;
+  // En åpnebar linje er en ekte trykkflate på 44 pt; står den sist, er den sin egen luft i bunnen.
+  const last = items[items.length - 1]!;
+  const endsWithButton = Boolean(last.detail || last.label);
   return (
-    <View style={styles.notices}>
+    <View style={[styles.notices, endsWithButton && { paddingBottom: 0 }]}>
       {items.map(({ key, ...n }) => (
         <NoticeLine key={key} {...n} />
       ))}
@@ -382,11 +389,10 @@ function NoticeLine({ tone, text, detail, label, testID }: Omit<NoticeItem, "key
     <Pressable
       testID={testID}
       onPress={() => setOpen((o) => !o)}
-      hitSlop={8}
       accessibilityRole="button"
       accessibilityState={{ expanded: open }}
       accessibilityHint={open ? t.common.showShort : t.common.showFull}
-      style={({ pressed }) => [styles.noticeLine, pressed && { opacity: 0.7 }]}
+      style={({ pressed }) => [styles.noticeLine, styles.noticeButton, pressed && { opacity: 0.7 }]}
     >
       {body}
     </Pressable>
@@ -548,9 +554,11 @@ const styles = StyleSheet.create({
 
   banner: { flexDirection: "row", gap: space.sm, alignItems: "flex-start", borderRadius: radius.input, paddingHorizontal: space.md, paddingVertical: 10 },
   navRow: { minHeight: TOUCH + 8, borderRadius: radius.sm, marginHorizontal: -space.sm, paddingHorizontal: space.sm },
-  notices: { backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.md, paddingVertical: space.sm, gap: 6 },
+  notices: { backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.md, paddingVertical: space.sm, gap: space.xs },
   noticeLine: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
   noticeIcon: { paddingTop: 2 },
+  // Hele raden er trykkflaten: minst 44 pt høy, uten hitSlop over naboene.
+  noticeButton: { minHeight: TOUCH, alignItems: "center" },
   demo: { alignSelf: "flex-start", backgroundColor: colors.warningSoft, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   demoText: { fontSize: 11, lineHeight: 14, fontWeight: "700", letterSpacing: 0.6, color: colors.warning },
 

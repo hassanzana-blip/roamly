@@ -299,8 +299,9 @@ describe("videre til tilbyderen", () => {
 
   it("ett trykk: én klikkmåling og leverandørens egen lenke, på engelsk", async () => {
     const { server } = await openOffer(SEARCH_RESULT, "sek_1");
-    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("View offer at SAS");
-    expect(screen.getByTestId("handoff-note")).toHaveTextContent("You complete the booking with the provider.");
+    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Go to offer at SAS");
+    expect(within(screen.getByTestId("handoff-button")).getByText("Go to offer")).toBeOnTheScreen();
+    expect(screen.getByTestId("handoff-note")).toHaveTextContent("SAS · You complete the booking with the provider.");
     await fireEvent.press(screen.getByTestId("handoff-button"));
     await waitFor(() => expect(server.calls.filter((c) => c.path === "flights.trackProviderClick")).toHaveLength(1));
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledTimes(1);

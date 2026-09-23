@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { OfferSlice } from "@contracts/types";
 import type { Journey } from "../lib/journeys";
 import { PriceTag } from "./PriceTag";
@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 import { dayOffset, formatTime } from "../lib/format";
 import { useI18n } from "../i18n";
 import { priceDisplay } from "../lib/price";
-import { baggageFacts, baggageShort, priceBasis, type BagFact } from "../lib/offer";
+import { baggageCard, baggageFacts, baggageShort, priceBasis, type BagFact } from "../lib/offer";
 import { cabinLabel } from "../lib/searchForm";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
 
@@ -38,7 +38,7 @@ export function BaggageSummary({ facts }: { facts: BagFact[] }) {
       {facts.map((f) => (
         <View key={f.key} style={styles.bag}>
           <Icon name={f.key === "carryOn" ? "bag" : "luggage"} size={13} color={colors.textSecondary} strokeWidth={1.75} />
-          <Text style={[type.caption, { color: f.state === "included" ? colors.text : colors.textSecondary }]}>{baggageShort(f, i18n)}</Text>
+          <Text style={[type.caption, { color: f.state === "included" ? colors.text : colors.textSecondary }]}>{baggageCard(f, i18n)}</Text>
         </View>
       ))}
     </View>
@@ -85,6 +85,8 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
   const d = priceDisplay(price, i18n);
   const facts = baggageFacts(offer, i18n);
   const sellers = journey.sellers.length;
+  // Smale skjermer (f.eks. 320 pt): «Detaljer» uten pil og med mindre luft, så prisgrunnlaget får plass på én linje.
+  const narrow = useWindowDimensions().width < 360;
   const roundTrip = offer.slices.length > 1;
   const legs = offer.slices
     .map((s) => t.results.card.leg(s.origin.city || s.origin.iata, s.destination.city || s.destination.iata, formatTime(s.departingAt), formatTime(s.arrivingAt), f.spokenDuration(s.durationMinutes), f.stops(s.stops).toLowerCase()))
@@ -93,7 +95,7 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${offer.owner.name}. ${legs}. ${d.accessibilityLabel}, ${priceBasis(offer, i18n).toLowerCase()}.${sellers > 1 ? t.results.card.providersSpoken(sellers) : ""}`}
+      accessibilityLabel={`${offer.owner.name}. ${legs}. ${facts.map((b) => baggageShort(b, i18n)).join(". ")}. ${d.accessibilityLabel}, ${priceBasis(offer, i18n).toLowerCase()}.${sellers > 1 ? t.results.card.providersSpoken(sellers) : ""}`}
       accessibilityHint={t.results.card.detailsHint}
       style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
       testID={`offer-${offer.id}`}
@@ -119,14 +121,14 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
 
       <BaggageSummary facts={facts} />
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, narrow && { gap: space.sm }]}>
         <View style={{ flex: 1, gap: 2 }}>
           <PriceTag price={price} compact testID={`price-${offer.id}`} />
           <Text style={[type.caption, { color: colors.textSecondary }]}>{priceBasis(offer, i18n)}</Text>
         </View>
-        <View style={styles.details} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={[styles.details, narrow && styles.detailsNarrow]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Text style={[type.calloutStrong, { color: colors.text }]}>{t.results.card.details}</Text>
-          <Icon name="arrowRight" size={16} color={colors.text} />
+          {narrow ? null : <Icon name="arrowRight" size={16} color={colors.text} />}
         </View>
       </View>
     </Pressable>
@@ -134,7 +136,7 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.input, paddingHorizontal: space.lg, paddingVertical: space.md, gap: space.md },
+  card: { backgroundColor: colors.white, borderRadius: radius.input, paddingHorizontal: space.lg, paddingVertical: 10, gap: space.sm },
   top: { flexDirection: "row", alignItems: "center", gap: space.sm },
   sellers: { backgroundColor: colors.inset, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
   legRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space.md, rowGap: 2 },
@@ -150,4 +152,5 @@ const styles = StyleSheet.create({
   bag: { flexDirection: "row", alignItems: "center", gap: 4 },
   footer: { flexDirection: "row", alignItems: "center", gap: space.md, paddingTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lightBorder },
   details: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH, paddingHorizontal: space.lg, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white },
+  detailsNarrow: { paddingHorizontal: space.sm },
 });

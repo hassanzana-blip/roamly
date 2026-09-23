@@ -123,6 +123,14 @@ export function baggageShort(f: BagFact, { t }: Pick<I18n, "t">): string {
   return t.offer.bags.shortNotIncluded(f.label);
 }
 
+/**
+ * Samme opplysning, kortere, på resultatkortet: bare «inkludert» forkortes
+ * («inkl.»). «Uten …» og «ikke oppgitt» skrives alltid helt ut.
+ */
+export function baggageCard(f: BagFact, i18n: Pick<I18n, "t">): string {
+  return f.state === "included" ? i18n.t.offer.bags.cardIncluded(f.label) : baggageShort(f, i18n);
+}
+
 /** Innsjekket bagasje er med i prisen ifølge tilbyderen (til filteret). */
 export function checkedBagIncluded(offer: Offer): boolean {
   return !offer.baggage.checkedUnknown && offer.baggage.checkedBags > 0;

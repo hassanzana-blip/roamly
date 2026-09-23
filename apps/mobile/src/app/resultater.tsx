@@ -87,6 +87,8 @@ export default function ResultsScreen() {
     return () => clearInterval(id);
   }, []);
   const [sheet, setSheet] = useState<null | "filter" | "sort" | "dates">(null);
+  // Den flytende linjens faktiske høyde (stor tekst gjør den høyere), så det siste kortet kan rulles helt over den.
+  const [toolbarHeight, setToolbarHeight] = useState(0);
   // En treg leverandør: si fra etter en stund, i stedet for å bare vise en
   // spinner. Tidtakeren merker akkurat dette søket; et nytt søk starter på nytt.
   const [slowSearch, setSlowSearch] = useState<object | null>(null);
@@ -228,7 +230,7 @@ export default function ResultsScreen() {
     <View>
       {header}
       {all.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} testID="results-chips">
           {chips
             .filter((c) => c.key === "all" || c.selected || c.count > 0)
             .map((c) => (
@@ -265,10 +267,10 @@ export default function ResultsScreen() {
             {`${reiser(journeys.length)} · ${t.results.offers(shown.length)}`}
             {all.length - shown.length > 0 ? ` · ${t.results.hiddenByFilters(all.length - shown.length)}` : ""}
           </Text>
-          <Pressable onPress={() => setSheet("sort")} accessibilityRole="button" accessibilityLabel={r.sortSpoken(sortLabel)} hitSlop={10} style={styles.sortLink} testID="open-sort">
-            <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{sortLabel}</Text>
-            <Icon name="swap" size={14} color={colors.onDark} />
-          </Pressable>
+          {/* Gjeldende sortering som tekst; den endres med «Sorter» i den flytende linjen (én kontroll, 44 pt). */}
+          <Text style={[type.footnote, { color: colors.onDarkMuted, textAlign: "right", flexShrink: 1 }]} testID="sort-summary">
+            {sortLabel}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -318,7 +320,7 @@ export default function ResultsScreen() {
       <FlatList
         testID="results-list"
         style={styles.screen}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + space.sm + (toolbarHeight || 60) + space.lg }}
         data={journeys}
         keyExtractor={(j) => j.key}
         ListHeaderComponent={listHeader}
@@ -333,7 +335,7 @@ export default function ResultsScreen() {
             </StateView>
           )
         }
-        ItemSeparatorComponent={() => <View style={{ height: space.md }} />}
+        ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item }) => (
           <View style={styles.item}>
             <OfferCard journey={item} onPress={() => router.push({ pathname: "/tilbud/[id]", params: { id: item.best.offer.id } })} />
@@ -343,7 +345,7 @@ export default function ResultsScreen() {
 
       {all.length ? (
         <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
-          <View style={styles.toolbar}>
+          <View style={styles.toolbar} onLayout={(e) => setToolbarHeight(e.nativeEvent.layout.height)} testID="results-toolbar">
             <ToolButton icon="filter" label={r.filter} primary badge={filters} onPress={() => setSheet("filter")} testID="open-filters" />
             <View style={styles.toolDivider} />
             <ToolButton icon="swap" label={r.sort} onPress={() => setSheet("sort")} testID="open-sort-toolbar" />
@@ -514,14 +516,15 @@ export default function ResultsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.sm },
+  header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md },
   headerText: { flex: 1, alignItems: "center", gap: 2 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: space.sm, maxWidth: "100%" },
-  chips: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
-  notices: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
+  // Luft over og under brikkene inne i rullefeltet, så hitSlop (4 pt) når 44 pt – en ScrollView klipper det som stikker utenfor.
+  chips: { paddingHorizontal: space.lg, gap: space.sm, paddingTop: space.xs, paddingBottom: 6 },
+  notices: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.xs },
   statusRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.xs, minHeight: 28 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#3DDC84" },
-  countRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingBottom: space.xs, minHeight: TOUCH },
+  countRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: 6 },
   sortLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH },
   item: { paddingHorizontal: space.lg },
   errorBox: { padding: space.lg, gap: space.md },

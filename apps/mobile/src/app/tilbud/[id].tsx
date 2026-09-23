@@ -229,12 +229,12 @@ function SellerOfferRow({ item, selected, onPress }: { item: MobileOffer; select
       style={({ pressed }) => [styles.seller, selected && styles.sellerOn, pressed && !selected && { opacity: 0.7 }]}
     >
       <View style={[styles.radio, selected && styles.radioOn]}>{selected ? <Icon name="check" size={13} color={colors.white} strokeWidth={3} /> : null}</View>
+      {/* Ingen linjegrense: det som skiller selgerne (bagasje, vilkår) skal aldri kuttes. */}
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[type.calloutStrong, { color: colors.text }]} numberOfLines={1}>
-          {sellerLabel(item.offer)}
-        </Text>
-        <Text style={[type.caption, { color: colors.textSecondary }]} numberOfLines={2}>
-          {i18n.t.details.sellerDetail([kind, ...bags.map(short), ...conds.map((c) => `${c.label}: ${c.value.toLowerCase()}`)])}
+        <Text style={[type.calloutStrong, { color: colors.text }]}>{sellerLabel(item.offer)}</Text>
+        <Text style={[type.caption, { color: colors.textSecondary }]}>{i18n.t.details.sellerDetail([kind, ...conds.map((c) => `${c.label}: ${c.value.toLowerCase()}`)])}</Text>
+        <Text style={[type.caption, { color: colors.text }]} testID={`sellerbags-${item.offer.id}`}>
+          {i18n.t.details.sellerDetail(bags.map(short))}
         </Text>
       </View>
       <Text style={[type.calloutStrong, type.tabular, { color: d.available ? colors.text : colors.textSecondary }]}>{d.primary}</Text>
@@ -254,6 +254,8 @@ export default function OfferScreen() {
   const [chosen, setChosen] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
   const [openError, setOpenError] = useState(false);
+  // Bunnlinjens faktiske høyde (stor tekst, lange navn), så det siste kortet kan rulles helt fram.
+  const [barHeight, setBarHeight] = useState(0);
   // Ett bevisst trykk = én måling og én nettleser, også ved raske dobbelttrykk.
   // Lenken og tilbudet sendes med hvert trykk (valgt tilbyder kan endres).
   const openOnce = useMemo(
@@ -348,7 +350,7 @@ export default function OfferScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 220 }} testID="offer-screen">
+      <ScrollView contentContainerStyle={{ paddingBottom: (barHeight || insets.bottom + 160) + space.lg }} testID="offer-screen">
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
           <IconButton icon="chevronLeft" label={dt.back} onPress={() => router.back()} testID="header-back" />
           <Text style={[type.headline, styles.topTitle]} accessibilityRole="header">
@@ -378,6 +380,17 @@ export default function OfferScreen() {
 
           {tab === "overview" ? (
             <>
+              {/* Flere selgere av samme reise: sammenligningen først – pris, bagasje og vilkår per selger. */}
+              {journey.sellers.length > 1 ? (
+                <InformationCard title={dt.sellersTitle} testID="sellers">
+                  <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.sellersIntro(journey.sellers.length)}</Text>
+                  <View style={{ gap: space.sm }} accessibilityRole="radiogroup">
+                    {journey.sellers.map((s) => (
+                      <SellerOfferRow key={s.item.offer.id} item={s.item} selected={s.item.offer.id === offer.id} onPress={() => setChosen(s.item.offer.id)} />
+                    ))}
+                  </View>
+                </InformationCard>
+              ) : null}
               <InformationCard title={dt.infoTitle}>
                 <InfoRow icon="plane" title={offer.owner.name} subtitle={[flightNumbers, operators.length ? dt.operatedBy(operators.join(", ")) : ""].filter(Boolean).join(" · ")} />
                 <InfoRow icon="seat" title={cabinLabel(offer.cabinClass, i18n)} subtitle={dt.cabinSubtitle} />
@@ -415,16 +428,6 @@ export default function OfferScreen() {
                 ) : null}
               </InformationCard>
 
-              {journey.sellers.length > 1 ? (
-                <InformationCard title={dt.sellersTitle} testID="sellers">
-                  <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.sellersIntro(journey.sellers.length)}</Text>
-                  <View style={{ gap: space.sm }} accessibilityRole="radiogroup">
-                    {journey.sellers.map((s) => (
-                      <SellerOfferRow key={s.item.offer.id} item={s.item} selected={s.item.offer.id === offer.id} onPress={() => setChosen(s.item.offer.id)} />
-                    ))}
-                  </View>
-                </InformationCard>
-              ) : null}
             </>
           ) : null}
 
@@ -460,33 +463,51 @@ export default function OfferScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.bar, { paddingBottom: insets.bottom + space.sm }]} testID="offer-bar">
+      {/*
+        Én rad: pris og grunnlag til venstre, handlingen til høyre. Blir teksten stor
+        eller knappen bred, brytes raden – knappen legger seg under i full bredde i
+        stedet for å kuttes. Valgt tilbyder står rett under, ved handlingen.
+      */}
+      <View style={[styles.bar, { paddingBottom: insets.bottom + space.sm }]} testID="offer-bar" onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}>
         {openError ? (
           <Banner tone="error" dark>
             {dt.openError}
           </Banner>
         ) : null}
-        <View style={styles.barRow} accessible accessibilityLabel={`${d.accessibilityLabel}. ${basis}`}>
-          <Text style={[type.price, { color: d.available ? colors.onDark : colors.onDarkMuted }]} numberOfLines={1}>
-            {d.primary}
-          </Text>
-          <Text style={[type.caption, { color: colors.onDarkMuted, flex: 1, textAlign: "right" }]} numberOfLines={2}>
-            {basis}
-          </Text>
+        <View style={styles.barRow}>
+          <View style={styles.barPrice} accessible accessibilityLabel={`${d.accessibilityLabel}. ${basis}`} testID="bar-price">
+            <Text style={[type.price, { color: d.available ? colors.onDark : colors.onDarkMuted }]}>{d.primary}</Text>
+            <Text style={[type.caption, { color: colors.onDarkMuted }]}>{basis}</Text>
+          </View>
+          {expired ? (
+            <PrimaryButton testID="search-again" label={dt.searchAgain} icon="refresh" onPress={searchAgain} style={styles.barAction} />
+          ) : handoff.kind === "external" ? (
+            <PrimaryButton
+              testID="handoff-button"
+              label={t.offer.handoffShort}
+              accessibilityLabel={handoffLabel(handoff, i18n)}
+              icon="external"
+              loading={opening}
+              onPress={open}
+              accessibilityHint={dt.handoffHint}
+              style={styles.barAction}
+            />
+          ) : handoff.kind === "not_in_app" && webUrl ? (
+            <PrimaryButton
+              testID="web-handoff"
+              label={dt.webButton}
+              icon="external"
+              accessibilityHint={dt.webHint}
+              style={styles.barAction}
+              onPress={() => void WebBrowser.openBrowserAsync(webUrl, { controlsColor: colors.blue, dismissButtonStyle: "close" }).catch(() => undefined)}
+            />
+          ) : null}
         </View>
-        {expired ? (
-          <>
-            <PrimaryButton testID="search-again" label={dt.searchAgain} icon="refresh" onPress={searchAgain} />
-            {handoff.kind === "external" ? (
-              <LinkButton dark testID="handoff-button" label={dt.openAnyway(handoff.providerName)} accessibilityLabel={dt.openAnyway(handoff.providerName)} onPress={open} />
-            ) : null}
-          </>
-        ) : handoff.kind === "external" ? (
-          <PrimaryButton testID="handoff-button" label={handoffLabel(handoff, i18n)} icon="external" loading={opening} onPress={open} accessibilityHint={dt.handoffHint} />
-        ) : handoff.kind === "not_in_app" && webUrl ? (
-          <PrimaryButton testID="web-handoff" label={dt.webButton} icon="external" accessibilityHint={dt.webHint} onPress={() => void WebBrowser.openBrowserAsync(webUrl, { controlsColor: colors.blue, dismissButtonStyle: "close" }).catch(() => undefined)} />
+        {expired && handoff.kind === "external" ? (
+          <LinkButton dark testID="handoff-button" label={dt.openAnyway(handoff.providerName)} accessibilityLabel={dt.openAnyway(handoff.providerName)} onPress={open} />
         ) : null}
-        <Text style={[type.caption, { color: colors.onDarkMuted, textAlign: "center" }]} testID={handoff.kind === "external" ? "handoff-note" : handoff.kind === "invalid_link" ? "handoff-invalid" : "handoff-not-in-app"}>
+        <Text style={[type.caption, { color: colors.onDarkMuted }]} testID={handoff.kind === "external" ? "handoff-note" : handoff.kind === "invalid_link" ? "handoff-invalid" : "handoff-not-in-app"}>
+          {handoff.kind === "external" ? <Text style={{ color: colors.onDark, fontWeight: "600" }} testID="bar-provider">{`${handoff.providerName} · `}</Text> : null}
           {barNote}
         </Text>
       </View>
@@ -525,5 +546,9 @@ const styles = StyleSheet.create({
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
   radioOn: { backgroundColor: colors.blue, borderColor: colors.blue },
   bar: { position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: colors.bg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.darkBorder, paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm },
-  barRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  // Brytes når pris (minst 120 pt) og knapp ikke får plass på én linje; da får begge full bredde.
+  barRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.md, rowGap: space.sm },
+  // Samme linje: prisen tar nesten all ledig plass og knappen beholder sin bredde. Alene på en linje tar knappen hele.
+  barPrice: { flexGrow: 100, flexShrink: 1, flexBasis: 120, gap: 2 },
+  barAction: { flexGrow: 1 },
 });

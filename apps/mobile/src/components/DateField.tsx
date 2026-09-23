@@ -82,5 +82,6 @@ export function DateField({ label, value, minimum, onChange, testID, open, onOpe
 }
 
 const styles = StyleSheet.create({
-  tile: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 60, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.input, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white },
+  // minHeight, ikke høyde: stor tekst gjør cellen høyere i stedet for å kutte den.
+  tile: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 52, paddingHorizontal: space.md, paddingVertical: space.xs + 2, borderRadius: radius.input, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white },
 });

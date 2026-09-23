@@ -94,7 +94,7 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <StatusBar style="light" />
       <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: space.xxxl }} keyboardShouldPersistTaps="handled">
-        <PhotoBackdrop photo={HEADER_PHOTO} scrim="medium" style={[styles.hero, { paddingTop: insets.top + space.md }]} testID="home-hero">
+        <PhotoBackdrop photo={HEADER_PHOTO} scrim="medium" style={[styles.hero, { paddingTop: insets.top + space.sm }]} testID="home-hero">
           <View style={styles.heroTop}>
             <Wordmark />
             {auth.status === "signedIn" ? (
@@ -114,11 +114,7 @@ export default function HomeScreen() {
         </PhotoBackdrop>
 
         <View style={styles.sheet}>
-          <SearchPanel />
-          <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
-          <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]} testID="how-it-works-home">
-            {t.home.howItWorks}
-          </Text>
+          <SearchPanel footer={<Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>} />
 
           <RecentSearches onSearch={searchAgain} />
 
@@ -140,6 +136,10 @@ export default function HomeScreen() {
             <DestinationCard key={d.id} destination={d} onPress={() => searchTo(d)} testID={`destination-${d.id}`} />
           ))}
         </ScrollView>
+        {/* Hvordan HelloSky virker: under reisemålene, så søket og reisemålene står i første bilde. */}
+        <Text style={[type.footnote, styles.howItWorks]} testID="how-it-works-home">
+          {t.home.howItWorks}
+        </Text>
         <Text style={[type.caption, styles.credit]}>{t.home.photoCredit}</Text>
       </ScrollView>
     </View>
@@ -148,16 +148,17 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  hero: { paddingHorizontal: space.xl, paddingBottom: 56, gap: space.xxl },
+  hero: { paddingHorizontal: space.xl, paddingBottom: 44, gap: space.lg },
   heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
   heroText: { gap: space.xs },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.85)" },
   avatarText: { fontSize: 15, fontWeight: "700", color: colors.white },
-  sheet: { marginTop: -28, backgroundColor: colors.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingTop: space.xl, gap: space.lg },
+  sheet: { marginTop: -28, backgroundColor: colors.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.md },
   recentRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
   recentMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingVertical: space.xs },
-  sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: space.sm },
+  sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   railWrap: { backgroundColor: colors.white },
   rail: { paddingHorizontal: space.lg, gap: space.md },
+  howItWorks: { color: colors.textSecondary, paddingHorizontal: space.lg, marginTop: space.lg },
   credit: { color: colors.textSecondary, paddingHorizontal: space.lg, marginTop: space.sm },
 });

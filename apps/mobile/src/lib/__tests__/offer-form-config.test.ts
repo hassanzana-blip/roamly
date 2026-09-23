@@ -20,7 +20,7 @@ describe("tilbudsfakta (ingen bestilling i appen)", () => {
     const h = providerHandoff(SEK_OFFER.offer);
     expect(h).toMatchObject({ kind: "external", url: KAYAK_URL, providerName: "SAS", sellerKind: "airline", disclosure: "Billetten kan ikke refunderes." });
     if (h.kind !== "external") throw new Error();
-    expect(handoffLabel(h, NB)).toBe("Se tilbud hos SAS");
+    expect(handoffLabel(h, NB)).toBe("Gå til tilbud hos SAS");
     expect(providerHandoff(EUR_HS_OFFER.offer)).toEqual({ kind: "not_in_app" });
     expect(providerHandoff(UNSAFE_LINK_OFFER.offer)).toEqual({ kind: "invalid_link" });
     for (const url of ["javascript:alert(1)", "https://ok.example/a b", "https://ok.example/\u0000x", "HTTPS://", "ftp://x.example", "https://user@evil.example/"]) {
@@ -135,7 +135,7 @@ describe("på engelsk (lagret valg)", () => {
   it("tilbudsfakta, prisgrunnlag og videre-knapp", () => {
     const h = providerHandoff(SEK_OFFER.offer);
     if (h.kind !== "external") throw new Error();
-    expect(handoffLabel(h, EN)).toBe("View offer at SAS");
+    expect(handoffLabel(h, EN)).toBe("Go to offer at SAS");
     expect(priceBasis(SEK_OFFER.offer, EN)).toBe("Total for 1 adult · Return");
     const family = { ...SEK_OFFER.offer, passengers: [{ id: "a", type: "adult" as const }, { id: "b", type: "adult" as const }, { id: "c", type: "child" as const, age: 8 }, { id: "d", type: "infant_without_seat" as const, age: 1 }] };
     expect(priceBasis(family, EN)).toBe("Total for 2 adults, 1 child, 1 infant · Return");
