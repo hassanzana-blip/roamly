@@ -467,6 +467,25 @@ describe("kundekonto", () => {
     expect(keychain.size).toBe(0);
   });
 
+  it("registrering: nye kontoer lages med e-post – et telefonnummer sendes aldri til serveren", async () => {
+    const { server, factory } = setup({ "mobileAuth.register": () => ({ data: AUTH_RESULT }) });
+    await render(
+      <AppProvider initialLocale="nb" apiFactory={factory}>
+        <AccountScreen />
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByLabelText("Ny konto"));
+    await fireEvent.changeText(screen.getByTestId("first-name"), "Kari");
+    await fireEvent.changeText(screen.getByTestId("last-name"), "Nordmann");
+    await fireEvent.changeText(screen.getByTestId("email"), "+47 912 34 567");
+    await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
+    await fireEvent.press(screen.getByTestId("auth-submit"));
+    expect(screen.getByTestId("auth-error")).toHaveTextContent("Skriv inn en gyldig e-postadresse.");
+    expect(server.calls.filter((c) => c.path === "mobileAuth.register")).toHaveLength(0);
+    expect(keychain.size).toBe(0);
+  });
+
   it("ved oppstart: en lagret sesjon serveren ikke kjenner lenger, slettes", async () => {
     keychain.set("hellosky.customer-session", { value: JSON.stringify({ token: TOKEN, expiresAt: "2099-01-01T00:00:00Z" }), options: {} });
     const { server, factory } = setup({ "mobileAuth.me": () => ({ data: null }) });

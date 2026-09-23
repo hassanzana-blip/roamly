@@ -121,7 +121,8 @@ describe("app: kundesesjon med Bearer-token", () => {
   });
 
   it("engangskode på SMS gir token i appen", async () => {
-    await (await mobileCaller()).mobileAuth.register({ identifier: "+4791234567", password: PASSWORD, firstName: "Siri", lastName: "Test" });
+    // En eksisterende konto med telefon (ny registrering med telefon er stengt).
+    await getDb().insert(customerAccounts).values({ phone: "+4791234567", passwordHash: "!", firstName: "Siri", lastName: "Test" });
     const [acc] = await getDb().select().from(customerAccounts).limit(1);
     await getDb().insert(customerOtpCodes).values({ customerId: acc.id, codeHash: sha256Hex(`${acc.id}:123456`), expiresAt: new Date(Date.now() + 600_000) });
     const res = await (await mobileCaller()).mobileAuth.verifyLoginCode({ phone: "+47 912 34 567", code: "123456" });
@@ -211,7 +212,7 @@ describe("ansatte kan ikke være kunder", () => {
   });
 
   it("engangskode og sosial innlogging slipper ikke en ansatt inn som kunde", async () => {
-    await (await mobileCaller()).mobileAuth.register({ identifier: "+4798765432", password: PASSWORD, firstName: "Tlf", lastName: "Konto" });
+    await getDb().insert(customerAccounts).values({ phone: "+4798765432", passwordHash: "!", firstName: "Tlf", lastName: "Konto" });
     const [acc] = await getDb().select().from(customerAccounts).limit(1);
     await getDb().update(customerAccounts).set({ email: "eier@hellosky.test" }).where((await import("drizzle-orm")).eq(customerAccounts.id, acc.id));
     await seedStaff();
@@ -223,7 +224,7 @@ describe("ansatte kan ikke være kunder", () => {
     await expectAppCode((await mobileCaller()).mobileAuth.exchangeSocialToken({ token: "clerk-session-token-xxxxxxxx" }), "FORBIDDEN");
     await expectAppCode(web(makeCtx()).customerAuth.exchangeSocialToken({ token: "clerk-session-token-xxxxxxxx" }), "FORBIDDEN");
     expect(await countRows("customer_identities")).toBe(0);
-    expect(await countRows("customer_sessions")).toBe(1); // bare den fra registreringen, som nå er ugyldig
+    expect(await countRows("customer_sessions")).toBe(0); // verken kode eller sosial innlogging utstedte en sesjon
 
     // En vanlig kunde via sosial innlogging i appen får token.
     vi.mocked(verifySocialToken).mockResolvedValue({ subject: "user_kunde", email: "reisende@example.test", emailVerified: true, firstName: "Reisende", lastName: "Kunde", social: "apple" });

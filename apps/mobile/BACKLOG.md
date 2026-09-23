@@ -118,7 +118,7 @@ the web, with a Bearer token instead of a cookie.
 | 11 | Account locale on registration | verified | `3046d65`: register sends the app language (`api.test.ts`, `mobileClient.it.ts`). |
 | 12 | Password recovery through the web's safe flow | verified | `0962f90`: the web's reset flow over the mobile API. The lookalike-address takeover (review blocker) is fixed: the link goes only to the stored, exactly matching address, ASCII only, with a per-account cap and a timing floor (`mobileAccount.it.ts`). `3285865`: the app sheet gives a neutral answer (`account.test.tsx`). |
 | 13 | In-app account deletion | partial | Shipped (`0962f90`, `3285865`): password, or DELETE/SLETT with a login under 10 min old; a wrong password changes nothing; idempotent under a double tap; the token is cleared. Scope is today's web policy. Held for approval: the full data purge and Clerk/Apple cleanup (approval 1). |
-| 14 | Profile editing | verified | `3285865`: name and language, with the server's rules shown at the field and an immediate refresh. The phone number is a login key, so it changes only through the SMS-verified flow (`0962f90`, server). The app UI for that flow is not built; the web still changes it directly (web UI needed). |
+| 14 | Profile editing | verified | `3285865`: name and language, with the server's rules shown at the field and an immediate refresh. The phone number is a login key, so it changes only through the SMS-verified flow (`0962f90`, server). The app UI for that flow is not built; the web has it (Codex, `3290525`). New accounts register with e-mail only (see "Phone registration"). |
 | 15 | Session expiry, offline, relaunch keep the search | verified | `3285865`: a session that has ended (at launch, while saving or while deleting) signs out with "your search is still here"; the token lives only in the keychain; after an offline launch the account is fetched again when the app returns to the foreground. Gap: no offline banner before a request fails. |
 | 16 | Privacy, terms, help, contact | partial | `3285865`: hellosky.no/hjelp, /personvern, /vilkar and /om-oss open in a Safari view, marked "in Norwegian" in English. Blocked: app-specific legal text and verified contact channels (approvals 2–3). |
 | 17 | Plain explanation of HelloSky | verified | Home (`2b8ee6f`), the details hand-off note, and "How HelloSky works" in Profile (`3285865`). |
@@ -172,6 +172,60 @@ the web, with a Bearer token instead of a cookie.
   still to come.
 - The KAYAK click store is in memory: after a restart or on another replica
   a click is not recorded, but the link still opens.
-- Registering with a phone number never verifies the number (pre-existing,
-  web and app). Fixing it needs SMS-verified registration and a product
-  decision.
+- Accounts registered with a phone number before registration was closed
+  still have that unverified number as a login key. See "Phone
+  registration" below.
+
+## Phone registration (security; closed for new accounts)
+
+**The problem** (Codex's review). Registration accepted a phone number and
+made it a login key at once, with a password, without proof that the
+number was yours. Anyone could register someone else's number first. When
+the owner later signed in with an SMS code, they would land in an account
+the other person holds the password for.
+
+**What this change ships (the narrow option):**
+- New accounts are created with an e-mail address only, on the web and in
+  the app. Both call the same server function. A phone number gets
+  `VALIDATION` with `reason: "phone_registration_unavailable"` before any
+  lookup, so a taken number and a free number get the same answer.
+- Accounts that already have a phone keep working. Password login and
+  SMS-code login are unchanged. No customer data is changed and no
+  "verified" flag is added.
+- A number is added or changed only through the SMS-verified flow
+  (`requestPhoneChange`/`confirmPhoneChange` on both routers, `5b30529`).
+  The account's other phone writes only keep the same number or remove it.
+- The app never offered phone registration: its field accepts only an
+  e-mail address, and a test now pins that.
+- Tests: 4 in `api/test/mobileAccount.it.ts` (the two security tests fail
+  on the old code) and 1 in the app.
+
+**Web copy (Codex's lane, not edited here).** `src/pages/Auth.tsx` in
+register mode still asks for "E-mail or phone number" (`au.identifier`,
+`au.identifier.ph`, `au.register.sub`). A phone number there now gets the
+server's Norwegian message. Suggested fix: register mode asks for an e-mail
+address only; login keeps "e-mail or phone".
+
+**Remaining risk.** Accounts registered with a phone number before this
+change keep it as a login key. The audit log records them as
+`customer.registered` with `via: "phone"`, so they can be counted without
+changing any data. That count has not been done. What to do about them is
+a product decision. For example: ask for an SMS code once before the next
+password login, or send the number's owner a notice.
+
+**Proposed SMS-verified registration (not built; needs review).**
+1. `requestRegistrationCode({ phone })`: rate limits per IP and per number,
+   and the answer is always `{ ok: true }`. A free number gets a 6-digit
+   code. A number that already has an account instead gets an SMS saying
+   "you already have an account, sign in with a code". Only the number's
+   owner sees the difference.
+2. The pending code is stored hashed, with a 10-minute expiry and an
+   attempt limit. This needs a new table (an additive migration). A sealed
+   stateless challenge would avoid the migration, but it cannot be made
+   single-use without storage.
+3. `confirmRegistration({ phone, code, password, names })` creates the
+   account and a session only if the code matches. If the number was taken
+   in the meantime, it returns the same generic error.
+4. UX: a code step in register mode, on the web (Codex) and in the app.
+5. Cost: one SMS per registration attempt, through the existing SMS
+   provider. That raises volume, so it needs Ali's OK before it goes live.

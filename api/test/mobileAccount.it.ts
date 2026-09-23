@@ -69,6 +69,12 @@ async function appCtx(token?: string, headers: Record<string, string> = {}) {
 }
 const appCaller = async (token?: string) => mobile(await appCtx(token));
 
+/** En eksisterende konto med telefonnummer (fra før registrering med telefon ble stengt), innlogget i appen. */
+async function existingPhoneAccount(phone: string) {
+  await getDb().insert(s.customerAccounts).values({ phone, passwordHash: await hashPassword(PASSWORD), firstName: "Kari", lastName: "Nordmann" });
+  return (await appCaller()).mobileAuth.login({ identifier: phone, password: PASSWORD });
+}
+
 async function registerApp(identifier: string, extra: Partial<MobileRegisterInput> = {}) {
   return (await appCaller()).mobileAuth.register({ identifier, password: PASSWORD, firstName: "Kari", lastName: "Nordmann", ...extra });
 }
@@ -210,7 +216,7 @@ describe("mobileAuth.requestPasswordReset: nettets vei, samme nøytrale svar", (
     await getDb().insert(s.customerAccounts).values({ email: "admin@hellosky.test", passwordHash: await hashPassword(PASSWORD), firstName: "Før", lastName: "Ansatt" });
     const gone = await registerApp("borte@hellosky.test");
     await (await appCaller(gone.session.token)).mobileAuth.deleteAccount({ password: PASSWORD });
-    await registerApp("+4791112233");
+    await existingPhoneAccount("+4791112233");
 
     for (const identifier of ["ukjent@hellosky.test", "borte@hellosky.test", "admin@hellosky.test", "eier@hellosky.test", "+47 911 12 233"]) {
       expect(await (await appCaller()).mobileAuth.requestPasswordReset({ identifier }), identifier).toEqual({ ok: true });
@@ -332,6 +338,50 @@ describe("e-postadresser som bare ligner (utf8mb4_unicode_ci / 0900_ai_ci)", () 
 
 // ─── 2. Profil og 3. språk ved registrering ─────────────────────────────────
 
+describe("registrering med telefonnummer er stengt (ingen ubekreftet innloggingsvei)", () => {
+  beforeEach(async () => {
+    await fresh();
+    smsSent.length = 0;
+  });
+
+  it("nett og app: et telefonnummer som identifikator gir VALIDATION, og ingen konto opprettes", async () => {
+    for (const register of [
+      () => web(makeCtx()).customerAuth.register({ identifier: "+47 900 00 001", password: PASSWORD, firstName: "Kari", lastName: "Nordmann" }),
+      async () => (await appCaller()).mobileAuth.register({ identifier: "+4790000001", password: PASSWORD, firstName: "Kari", lastName: "Nordmann" }),
+    ]) {
+      const err = await caught(register());
+      expect(appCode(err)).toBe("VALIDATION");
+      expect(causeOf(err)).toMatchObject({ field: "identifier", reason: "phone_registration_unavailable" });
+    }
+    expect(await countRows("customer_accounts")).toBe(0);
+    expect(smsSent).toHaveLength(0);
+  });
+
+  it("forhåndsregistrering av andres nummer er umulig, og svaret røper ikke om nummeret finnes", async () => {
+    await existingPhoneAccount("+4790000002");
+    const taken = await caught((await appCaller()).mobileAuth.register({ identifier: "+4790000002", password: "angriper-passord-1", firstName: "A", lastName: "B" }));
+    const free = await caught((await appCaller()).mobileAuth.register({ identifier: "+4790000003", password: "angriper-passord-1", firstName: "A", lastName: "B" }));
+    expect([appCode(taken), appCode(free)]).toEqual(["VALIDATION", "VALIDATION"]);
+    expect(causeOf(taken)).toEqual(causeOf(free));
+    expect(await countRows("customer_accounts")).toBe(1);
+  });
+
+  it("eksisterende kontoer med telefon virker som før: passord og SMS-kode", async () => {
+    const acc = await existingPhoneAccount("+4790000004");
+    expect(acc.profile.phone).toBe("+4790000004");
+    await (await appCaller()).mobileAuth.requestLoginCode({ phone: "+4790000004" });
+    expect((await (await appCaller()).mobileAuth.verifyLoginCode({ phone: "+4790000004", code: lastCodeTo("+4790000004") })).profile.id).toBe(acc.profile.id);
+  });
+
+  it("veien for nye kunder: e-post først, så et bekreftet nummer", async () => {
+    const reg = await registerApp("ny@hellosky.test");
+    const c = await appCaller(reg.session.token);
+    await c.mobileAuth.requestPhoneChange({ phone: "+4790000005", password: PASSWORD });
+    const profile = await c.mobileAuth.confirmPhoneChange({ phone: "+4790000005", code: lastCodeTo("+4790000005") });
+    expect(profile.phone).toBe("+4790000005");
+  });
+});
+
 describe("mobileAuth.updateProfile og språk", () => {
   beforeEach(fresh);
   afterAll(closeDb);
@@ -364,8 +414,8 @@ describe("mobileAuth.updateProfile og språk", () => {
 
   it("valideringsfeil har appCode VALIDATION og feltet; ingenting lagres", async () => {
     const reg = await registerApp("feil@hellosky.test");
-    const phoneOnly = await registerApp("+4791234111");
-    const other = await registerApp("+4791234222");
+    const phoneOnly = await existingPhoneAccount("+4791234111");
+    const other = await existingPhoneAccount("+4791234222");
     const c = await appCaller(reg.session.token);
     const before = await rows("SELECT * FROM customer_accounts ORDER BY id");
 
@@ -495,7 +545,7 @@ describe("mobileAuth.requestPhoneChange / confirmPhoneChange", () => {
   });
 
   it("R3b + R2: et nummer som tilhører en annen – eller et fremmed, uregistrert nummer – kan ikke kapres, og svaret røper ikke om det er i bruk", async () => {
-    const owner = await registerApp("+4794444111");
+    const owner = await existingPhoneAccount("+4794444111");
     const attacker = await registerApp("angriper@example.com");
     const a = await appCaller(attacker.session.token);
 
@@ -510,9 +560,8 @@ describe("mobileAuth.requestPhoneChange / confirmPhoneChange", () => {
     await expectField(a.mobileAuth.confirmPhoneChange({ phone: "+4794444111", code: "123456" }), "VALIDATION", "code");
     await expectField(a.mobileAuth.confirmPhoneChange({ phone: "+4794444222", code: "123456" }), "VALIDATION", "code");
     expect(await rows(`SELECT phone FROM customer_accounts WHERE id = ${attacker.profile.id}`)).toEqual([{ phone: null }]);
-    // Offeret kan fortsatt registrere seg med sitt eget ledige nummer, og SMS-innlogging for nummeret i bruk går til eieren.
-    const real = await registerApp("+4794444222");
-    expect(real.profile.phone).toBe("+4794444222");
+    // Det ledige nummeret er fortsatt ledig (ingen konto fikk det), og SMS-innlogging for nummeret i bruk går til eieren.
+    expect(await countRows("customer_accounts", "phone = '+4794444222'")).toBe(0);
     await (await appCaller()).mobileAuth.requestLoginCode({ phone: "+4794444111" });
     expect((await (await appCaller()).mobileAuth.verifyLoginCode({ phone: "+4794444111", code: lastCodeTo("+4794444111") })).profile.id).toBe(owner.profile.id);
 

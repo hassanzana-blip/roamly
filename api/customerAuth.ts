@@ -311,6 +311,18 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
   const ip = clientIp(ctx.req);
   assertRateLimit("customer-register", ip, 6, 10 * 60_000);
   const id = parseIdentifier(input.identifier);
+  // Et telefonnummer er en innloggingsvei (SMS-kode). Uten bevis på at nummeret
+  // er ditt, kunne hvem som helst forhåndsregistrere andres nummer og beholde
+  // passordtilgang når eieren senere logger inn med kode. Nye kontoer opprettes
+  // derfor med e-post; nummeret legges til etterpå og bekreftes med SMS-kode
+  // (requestPhoneChange/confirmPhoneChange). Sjekkes før oppslaget, så svaret
+  // aldri røper om nummeret finnes. Eksisterende kontoer med telefon røres ikke.
+  if (id.kind === "phone") {
+    throw new AppError("VALIDATION", {
+      message: "Nye kontoer opprettes med e-post. Legg til telefonnummeret etterpå – det bekreftes med en SMS-kode.",
+      data: { field: "identifier", reason: "phone_registration_unavailable" },
+    });
+  }
 
   const issues = customerPasswordIssues(input.password);
   if (issues.length) {
@@ -322,16 +334,13 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
   // En ansatts e-post får nøyaktig samme svar som en adresse som allerede er i
   // bruk – på samme sted i rekkefølgen – så registreringen kan ikke brukes til
   // å kartlegge hvem som er ansatt. Den egentlige grunnen står bare i revisjonsloggen.
-  const staffEmail = id.kind === "email" && (await isStaffEmail(id.value));
+  const staffEmail = await isStaffEmail(id.value);
   if (staffEmail) {
     await logAudit({ actorType: "system", action: "customer.register_blocked_staff", targetType: "customer_account", ip, metadata: { reason: "staff_email", emailHash: sha256Hex(id.value).slice(0, 16) } });
   }
   if (existing[0] || staffEmail) {
     throw new AppError("CONFLICT", {
-      message:
-        id.kind === "email"
-          ? "Det finnes allerede en konto med denne e-postadressen. Prøv å logge inn."
-          : "Det finnes allerede en konto med dette telefonnummeret. Prøv å logge inn.",
+      message: "Det finnes allerede en konto med denne e-postadressen. Prøv å logge inn.",
       data: { field: "identifier" },
     });
   }
@@ -353,8 +362,8 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
   const locale = input.locale ?? "nb";
   const referralCode = genReferralCode();
   const result = await db.insert(customerAccounts).values({
-    email: id.kind === "email" ? id.value : null,
-    phone: id.kind === "phone" ? id.value : null,
+    email: id.value,
+    phone: null,
     passwordHash,
     firstName,
     lastName,
@@ -366,7 +375,7 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
   });
   const customerId = Number(result[0].insertId);
 
-  if (input.marketingConsent !== undefined && id.kind === "email") {
+  if (input.marketingConsent !== undefined) {
     await db.insert(consents).values({
       customerAccountId: customerId,
       email: id.value,
@@ -386,17 +395,14 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
   await flagRegistrationVelocity(customerId, ip).catch(() => {});
 
   // Bekreftelses-e-post (verifisering) — blokkerer ikke innlogging.
-  // Telefon-kontoer er lovlige, men forblir uverifiserte for reiser/saker på e-post.
-  if (id.kind === "email") {
-    await issueVerificationEmail(customerId, id.value, firstName, locale);
-  }
+  await issueVerificationEmail(customerId, id.value, firstName, locale);
 
   await issue(customerId);
 
   return publicProfile({
     id: customerId,
-    email: id.kind === "email" ? id.value : null,
-    phone: id.kind === "phone" ? id.value : null,
+    email: id.value,
+    phone: null,
     firstName,
     lastName,
     emailVerified: false,
