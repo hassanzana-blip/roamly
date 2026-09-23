@@ -127,7 +127,7 @@ export default function ResultsScreen() {
           </Text>
           {demo ? <DemoBadge /> : null}
         </View>
-        <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>
+        <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={2}>
           {subtitle}
         </Text>
       </View>
@@ -205,7 +205,13 @@ export default function ResultsScreen() {
     ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
     ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
     ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: r.status.partial, testID: "partial-banner" }] : []),
-    ...(notice ? [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }] : []),
+    // Alt omregnet (bare en opplysning): lukket bak «Om «ca.»-priser»; kortene har «ca.» og kilden.
+    // Mangler kronepriser (en advarsel): alltid åpen.
+    ...(notice
+      ? notice.tone === "info"
+        ? [{ key: "fx", tone: notice.tone, text: notice.text, label: t.price.fx.about, testID: "fx-notice" }]
+        : [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }]
+      : []),
   ];
   const sortLabel = t.results.sorts[view.sort].summary;
   const clearFilters = () => setView(clearedFilters);
@@ -508,14 +514,14 @@ export default function ResultsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.md },
+  header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.sm },
   headerText: { flex: 1, alignItems: "center", gap: 2 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: space.sm, maxWidth: "100%" },
-  chips: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.md },
+  chips: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
   notices: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.sm },
   statusRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.xs, minHeight: 28 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#3DDC84" },
-  countRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingBottom: space.md, minHeight: TOUCH },
+  countRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingBottom: space.xs, minHeight: TOUCH },
   sortLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH },
   item: { paddingHorizontal: space.lg },
   errorBox: { padding: space.lg, gap: space.md },

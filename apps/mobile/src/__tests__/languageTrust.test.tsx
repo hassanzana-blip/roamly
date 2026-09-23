@@ -281,3 +281,19 @@ describe("videre til tilbyderen", () => {
     expect(screen.getByTestId("warning-overnight")).toHaveTextContent("Outbound arrives the next day.");
   });
 });
+
+describe("omregning når alt gikk bra", () => {
+  it("forklaringen ligger bak en tydelig knapp; kortene har «approx.» og kilden", async () => {
+    const offers = SEARCH_RESULT.offers.filter((o) => o.price.nok.kind !== "unavailable");
+    await renderResults({ ...SEARCH_RESULT, offers, fx: { ...SEARCH_RESULT.fx, status: "ok", unconvertedCount: 0 } });
+    const fx = screen.getByTestId("fx-notice");
+    expect(fx).toHaveTextContent('About "approx." prices');
+    expect(fx.props.accessibilityRole).toBe("button");
+    expect(fx.props.accessibilityState).toMatchObject({ expanded: false });
+    await fireEvent.press(fx);
+    expect(screen.getByTestId("fx-notice")).toHaveTextContent(/^Prices marked "approx\." are converted to NOK with Norges Bank's mid rate of 22 Sep 2026/);
+    expect(within(screen.getByTestId("price-sek_1")).getByText("Norges Bank rate 22 Sep 2026")).toBeOnTheScreen();
+    // Demo-/testmiljøvarselet er aldri lukket.
+    expect(screen.queryByTestId("sandbox-banner")).toBeNull();
+  });
+});

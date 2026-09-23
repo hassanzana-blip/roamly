@@ -330,7 +330,12 @@ export function Banner({ tone, children, testID, dark }: { tone: "info" | "warni
   );
 }
 
-export type NoticeItem = { key: string; tone: "info" | "warning"; text: string; detail?: string; testID?: string };
+/**
+ * `detail`: lengre tekst bak en utvidelse. `label`: for rene opplysninger som
+ * ikke må leses før listen – vises lukket som en kort, tydelig knapp
+ * («Om «ca.»-priser»), og åpnes til hele teksten. Advarsler har aldri `label`.
+ */
+export type NoticeItem = { key: string; tone: "info" | "warning"; text: string; detail?: string; label?: string; testID?: string };
 
 /**
  * Korte meldinger over innhold på mørk bakgrunn, samlet i én rolig flate så de
@@ -347,24 +352,26 @@ export function Notices({ items }: { items: NoticeItem[] }) {
   );
 }
 
-function NoticeLine({ tone, text, detail, testID }: Omit<NoticeItem, "key">) {
+function NoticeLine({ tone, text, detail, label, testID }: Omit<NoticeItem, "key">) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const fg = tone === "warning" ? colors.warningOnDark : colors.onDarkMuted;
+  const expandable = Boolean(detail || label);
+  const shown = open ? (detail ?? text) : (label ?? text);
   const body = (
     <>
       <View style={styles.noticeIcon}>
         <Icon name={tone === "warning" ? "alert" : "info"} size={15} color={fg} />
       </View>
-      <Text style={[type.footnote, { color: fg, flex: 1 }]}>{open && detail ? detail : text}</Text>
-      {detail ? (
+      <Text style={[type.footnote, { color: fg, flex: 1 }, label && !open ? { color: colors.onDark, fontWeight: "600" } : null]}>{shown}</Text>
+      {expandable ? (
         <View style={styles.noticeIcon}>
           <Icon name={open ? "chevronUp" : "chevronDown"} size={16} color={colors.onDark} />
         </View>
       ) : null}
     </>
   );
-  if (!detail) {
+  if (!expandable) {
     return (
       <View testID={testID} style={styles.noticeLine} accessibilityRole={tone === "warning" ? "alert" : "summary"}>
         {body}
@@ -541,7 +548,7 @@ const styles = StyleSheet.create({
 
   banner: { flexDirection: "row", gap: space.sm, alignItems: "flex-start", borderRadius: radius.input, paddingHorizontal: space.md, paddingVertical: 10 },
   navRow: { minHeight: TOUCH + 8, borderRadius: radius.sm, marginHorizontal: -space.sm, paddingHorizontal: space.sm },
-  notices: { backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.md, paddingVertical: 10, gap: space.sm },
+  notices: { backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.md, paddingVertical: space.sm, gap: 6 },
   noticeLine: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
   noticeIcon: { paddingTop: 2 },
   demo: { alignSelf: "flex-start", backgroundColor: colors.warningSoft, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },

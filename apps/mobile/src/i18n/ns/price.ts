@@ -19,6 +19,7 @@ const en = {
     "The provider may charge in a currency other than Norwegian kroner. The NOK amount is an estimate using Norges Bank's indicative mid rate, and the final amount may differ.",
   fx: {
     shortConverted: (date: string | null) => `Prices marked "approx." are converted with Norges Bank's rate${date ? ` of ${date}` : ""} and may differ.`,
+    about: 'About "approx." prices',
     converted: (date: string | null) =>
       `Prices marked "approx." are converted to NOK with Norges Bank's mid rate${date ? ` of ${date}` : ""}. The provider may charge in another currency, and the final amount may differ.`,
     missing: (n: number) => `${n === 1 ? "One offer" : `${n} offers`} could not be converted to NOK and ${n === 1 ? "is" : "are"} listed last.`,
@@ -47,6 +48,7 @@ const nb: typeof en = {
     "Leverandøren kan ta betalt i en annen valuta enn norske kroner. Kronebeløpet er et anslag med Norges Banks veiledende midtkurs, og endelig beløp kan avvike.",
   fx: {
     shortConverted: (date) => `Priser merket «ca.» er omregnet med Norges Banks kurs${date ? ` ${date}` : ""} og kan avvike.`,
+    about: "Om «ca.»-priser",
     converted: (date) =>
       `Priser merket «ca.» er omregnet til kroner med Norges Banks midtkurs${date ? ` ${date}` : ""}. Leverandøren kan ta betalt i en annen valuta, og endelig beløp kan avvike.`,
     missing: (n) => `${n === 1 ? "Ett tilbud" : `${n} tilbud`} kunne ikke regnes om til kroner og står nederst.`,
