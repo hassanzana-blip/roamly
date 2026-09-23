@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDateLong, formatDateShort, formatDayMonth, layoverInfo } from "./format";
+import { fareConditionLabel, formatDateLong, formatDateShort, formatDayMonth, layoverInfo } from "./format";
 
 /**
  * Mellomlanding måles i flyplassens egen tidssone: en overnatting er en
@@ -59,5 +59,17 @@ describe("rene datoer", () => {
     // 23:30 UTC på 3. oktober er fortsatt 3. oktober i UTC – vi tester bare at ISO-strenger med tid fortsatt tolkes.
     expect(formatDateShort("2026-10-03T12:00:00Z", "nb-NO")).toContain("3.");
     expect(formatDateShort("tull", "nb-NO")).toBe("");
+  });
+});
+
+describe("fareConditionLabel", () => {
+  it("gebyr uten oppgitt beløp (KAYAK «fee») er aldri «uten gebyr»", () => {
+    const label = fareConditionLabel("change", { allowed: true, feeApplies: true }, false);
+    expect(label).toMatch(/mot gebyr|for a fee/);
+    expect(label).not.toMatch(/uten gebyr|free of charge/);
+  });
+
+  it("tillatt uten gebyrflagg og uten beløp er fortsatt gratis endring", () => {
+    expect(fareConditionLabel("change", { allowed: true }, false)).toMatch(/uten gebyr|free of charge/);
   });
 });

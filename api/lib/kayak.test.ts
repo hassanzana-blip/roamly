@@ -247,6 +247,21 @@ describe("KAYAK: kartlegging", () => {
     expect(kiwi.conditions).toBeUndefined();
   });
 
+  it("refusjon/endring: «fee» er tillatt mot gebyr, ukjente verdier gir ingen påstand", () => {
+    const body = structuredClone(POLL_COMPLETE) as unknown as { results: { bookingOptions: { fareFamilies: { amenities: { code: string; restriction: string }[] }[] }[] }[] };
+    const amenities = body.results[0]!.bookingOptions[0]!.fareFamilies[0]!.amenities;
+    amenities.find((a) => a.code === "change")!.restriction = "fee";
+    amenities.find((a) => a.code === "refundable")!.restriction = "somethingNew";
+    const [offer] = mapPollResponse(parsePollResponse(body), input, ctx);
+    expect(offer.conditions).toEqual({ changeBeforeDeparture: { allowed: true, feeApplies: true } });
+    expect(offer.changeable).toBe(false);
+  });
+
+  it("refusjon/endring fra fasilitetene: inkludert = tillatt, «unavailable» = ikke tillatt", () => {
+    const [offer] = mapPollResponse(parsePollResponse(POLL_COMPLETE), input, ctx);
+    expect(offer.conditions).toEqual({ changeBeforeDeparture: { allowed: true }, refundBeforeDeparture: { allowed: false } });
+  });
+
   it("«operert av» vises bare når operatøren er en annen enn det markedsførende selskapet", () => {
     const body = structuredClone(POLL_COMPLETE) as unknown as { segments: Record<string, Record<string, unknown>> };
     body.segments["1750604400000B614881155"].operationalDisplay = "JetBlue";

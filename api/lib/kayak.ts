@@ -12,6 +12,7 @@ import type {
   CabinClass,
   Carrier,
   ExternalBooking,
+  FareCondition,
   Offer,
   OfferConditions,
   OfferSlice,
@@ -464,6 +465,18 @@ function bagsFrom(fees: BookingOption["fees"], families: BookingOption["fareFami
   return { count: 0, unknown: true };
 }
 
+/**
+ * Refusjon/endring fra KAYAKs fare-family-fasiliteter: «included»/«flexible» =
+ * tillatt, «fee» = tillatt mot et gebyr uten oppgitt beløp, «unavailable» =
+ * ikke tillatt. Andre eller manglende verdier gir ingen påstand.
+ */
+function fareCondition(restriction: string | undefined): FareCondition | undefined {
+  if (restriction === "included" || restriction === "flexible") return { allowed: true };
+  if (restriction === "fee") return { allowed: true, feeApplies: true };
+  if (restriction === "unavailable") return { allowed: false };
+  return undefined;
+}
+
 function amenity(families: BookingOption["fareFamilies"], code: string): string | undefined {
   return families?.flatMap((f) => f.amenities ?? []).find((a) => a.code === code)?.restriction;
 }
@@ -572,11 +585,13 @@ export function mapPollResponse(body: KayakPollResponse, input: KayakSearchInput
       const badges = (bo.badges ?? []).map((b) => b.code);
       const refundable = refundAmenity === "included" || refundAmenity === "flexible" || badges.includes("freeCancellation");
       const changeable = changeAmenity === "included" || changeAmenity === "flexible";
+      const refundCondition = fareCondition(refundAmenity);
+      const changeCondition = fareCondition(changeAmenity);
       const conditions: OfferConditions | undefined =
-        refundAmenity || changeAmenity
+        refundCondition || changeCondition
           ? {
-              ...(refundAmenity ? { refundBeforeDeparture: { allowed: refundable } } : {}),
-              ...(changeAmenity ? { changeBeforeDeparture: { allowed: changeable } } : {}),
+              ...(refundCondition ? { refundBeforeDeparture: refundCondition } : {}),
+              ...(changeCondition ? { changeBeforeDeparture: changeCondition } : {}),
             }
           : undefined;
 

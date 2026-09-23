@@ -429,7 +429,7 @@ export function bookingStateLabel(state: string): string {
 /** Etikett for billettvilkår med gebyrbeløp. */
 export function fareConditionLabel(
   kind: "refund" | "change",
-  cond: { allowed: boolean; penaltyAmount?: string | null; penaltyCurrency?: string | null } | undefined,
+  cond: { allowed: boolean; penaltyAmount?: string | null; penaltyCurrency?: string | null; feeApplies?: boolean } | undefined,
   fallbackAllowed: boolean,
 ): string {
   const allowed = cond?.allowed ?? fallbackAllowed;
@@ -437,5 +437,7 @@ export function fareConditionLabel(
   if (!allowed) return kind === "refund" ? pick({ nb: "Ikke refunderbar", en: "Non-refundable" }) : pick({ nb: "Kan ikke endres", en: "Cannot be changed" });
   const pen = cond?.penaltyAmount ? Number(cond.penaltyAmount) : 0;
   if (pen > 0) return `${verb} ${pick({ nb: "mot gebyr", en: "for a fee of" })} ${formatPrice(cond!.penaltyAmount!, cond?.penaltyCurrency ?? "NOK")}`;
+  // Gebyr uten oppgitt beløp (KAYAK): aldri «uten gebyr».
+  if (cond?.feeApplies) return `${verb} ${pick({ nb: "mot gebyr", en: "for a fee" })}`;
   return kind === "refund" ? pick({ nb: "Refunderbar", en: "Refundable" }) : pick({ nb: "Kan endres uten gebyr", en: "Changeable free of charge" });
 }

@@ -32,12 +32,17 @@ describe("tilbudsfakta (ingen bestilling i appen)", () => {
     expect(SEK_OFFER.offer.refundable).toBe(false);
     expect(conditionFacts(SEK_OFFER.offer, NB)).toEqual([]);
     expect(conditionFacts(SAME_TRIP_OTHER_SELLER.offer, NB)).toEqual([
-      { key: "refund", label: "Refusjon før avreise", value: "Ikke tillatt", allowed: false },
-      { key: "change", label: "Endring før avreise", value: "Tillatt ifølge tilbyderen", allowed: true },
+      { key: "refund", label: "Refusjon før avreise", value: "Ikke tillatt", state: "not_allowed" },
+      { key: "change", label: "Endring før avreise", value: "Tillatt ifølge tilbyderen", state: "allowed" },
     ]);
-    // Gebyrbeløp vises aldri (kan være i annen valuta) – bare om det er tillatt.
-    const withFee = conditionFacts({ ...SEK_OFFER.offer, conditions: { changeBeforeDeparture: { allowed: true, penaltyAmount: "50.00", penaltyCurrency: "EUR" } } }, NB);
-    expect(withFee).toEqual([{ key: "change", label: "Endring før avreise", value: "Tillatt ifølge tilbyderen", allowed: true }]);
+    // Et gebyr er aldri «bare tillatt». Beløpet vises ikke (kan være i annen valuta).
+    const withFee = conditionFacts({ ...SEK_OFFER.offer, conditions: { changeBeforeDeparture: { allowed: true, penaltyAmount: "50.00", penaltyCurrency: "EUR", feeApplies: true } } }, NB);
+    expect(withFee).toEqual([{ key: "change", label: "Endring før avreise", value: "Tillatt mot gebyr ifølge tilbyderen", state: "fee" }]);
+    // KAYAK «fee»: gebyr uten oppgitt beløp.
+    const kayakFee = conditionFacts({ ...SEK_OFFER.offer, conditions: { refundBeforeDeparture: { allowed: true, feeApplies: true } } }, EN);
+    expect(kayakFee).toEqual([{ key: "refund", label: "Refund before departure", value: "Allowed for a fee, according to the provider", state: "fee" }]);
+    // Uten gebyrflagg fra serveren: bare «tillatt».
+    expect(conditionFacts({ ...SEK_OFFER.offer, conditions: { changeBeforeDeparture: { allowed: true } } }, EN)[0]!.state).toBe("allowed");
   });
 
   it("bagasje: «ikke oppgitt» er ikke «ikke inkludert»", () => {

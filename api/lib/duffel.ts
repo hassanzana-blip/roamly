@@ -493,7 +493,14 @@ function mapSlice(slice: ZSlice): OfferSlice {
 function mapConditions(c: ZOffer["conditions"]): OfferConditions | undefined {
   if (!c) return undefined;
   const one = (x: NonNullable<ZOffer["conditions"]>["refund_before_departure"]) =>
-    x ? { allowed: Boolean(x.allowed), penaltyAmount: x.penalty_amount ?? null, penaltyCurrency: x.penalty_currency ?? null } : undefined;
+    x
+      ? {
+          allowed: Boolean(x.allowed),
+          penaltyAmount: x.penalty_amount ?? null,
+          penaltyCurrency: x.penalty_currency ?? null,
+          ...(x.allowed && Number(x.penalty_amount ?? 0) > 0 ? { feeApplies: true } : {}),
+        }
+      : undefined;
   return { refundBeforeDeparture: one(c.refund_before_departure), changeBeforeDeparture: one(c.change_before_departure) };
 }
 

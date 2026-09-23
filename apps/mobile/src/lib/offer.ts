@@ -63,14 +63,22 @@ export function sellerKindLabel(kind: SellerKind, { t }: Pick<I18n, "t">): strin
 
 // ─── Vilkår: bare det leverandøren faktisk oppga ────────────────────────────
 
-export type ConditionFact = { key: "refund" | "change"; label: string; value: string; allowed: boolean };
+export type ConditionFact = { key: "refund" | "change"; label: string; value: string; state: "allowed" | "fee" | "not_allowed" };
 
 /**
  * Bare om endring/refusjon er tillatt. Gebyrbeløp vises aldri: de kan være i
  * annen valuta, og appen viser bare kroner (kildekodetesten sperrer feltene).
  */
-function conditionText(c: FareCondition, { t }: Pick<I18n, "t">): string {
-  return c.allowed ? t.offer.conditions.allowed : t.offer.conditions.notAllowed;
+function conditionState(c: FareCondition): ConditionFact["state"] {
+  if (!c.allowed) return "not_allowed";
+  // Serveren sier om et gebyr gjelder; beløpet leses aldri (bare kroner i appen).
+  return c.feeApplies ? "fee" : "allowed";
+}
+
+function conditionFact(key: ConditionFact["key"], label: string, c: FareCondition, { t }: Pick<I18n, "t">): ConditionFact {
+  const state = conditionState(c);
+  const w = t.offer.conditions;
+  return { key, label, state, value: state === "fee" ? w.allowedFee : state === "allowed" ? w.allowed : w.notAllowed };
 }
 
 /**
@@ -82,8 +90,8 @@ export function conditionFacts(offer: Offer, i18n: Pick<I18n, "t">): ConditionFa
   const out: ConditionFact[] = [];
   const c = offer.conditions;
   const t = i18n.t.offer.conditions;
-  if (c?.refundBeforeDeparture) out.push({ key: "refund", label: t.refund, value: conditionText(c.refundBeforeDeparture, i18n), allowed: c.refundBeforeDeparture.allowed });
-  if (c?.changeBeforeDeparture) out.push({ key: "change", label: t.change, value: conditionText(c.changeBeforeDeparture, i18n), allowed: c.changeBeforeDeparture.allowed });
+  if (c?.refundBeforeDeparture) out.push(conditionFact("refund", t.refund, c.refundBeforeDeparture, i18n));
+  if (c?.changeBeforeDeparture) out.push(conditionFact("change", t.change, c.changeBeforeDeparture, i18n));
   return out;
 }
 

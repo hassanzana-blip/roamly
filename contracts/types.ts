@@ -92,6 +92,12 @@ export interface FareCondition {
   allowed: boolean;
   penaltyAmount?: string | null;
   penaltyCurrency?: string | null;
+  /**
+   * true når endring/refusjon koster et gebyr – også når beløpet ikke er
+   * oppgitt (KAYAK «fee»). Duffel/demo: satt når penaltyAmount > 0. Appen
+   * leser bare dette flagget, aldri beløpet (som kan være i annen valuta).
+   */
+  feeApplies?: boolean;
 }
 
 export interface OfferConditions {

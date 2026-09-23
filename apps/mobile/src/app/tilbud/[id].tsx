@@ -446,7 +446,7 @@ export default function OfferScreen() {
           {tab === "terms" && hasTerms ? (
             <InformationCard title={dt.termsTitle} testID="terms-card">
               {conds.map((c) => (
-                <InfoRow key={c.key} icon={c.allowed ? "check" : "close"} title={c.label} subtitle={c.value} />
+                <InfoRow key={c.key} icon={c.state === "allowed" ? "check" : c.state === "fee" ? "info" : "close"} title={c.label} subtitle={c.value} testID={`condition-${c.key}`} />
               ))}
               {disclosure ? <Text style={[type.footnote, { color: colors.text }]} testID="disclosure">{disclosure}</Text> : null}
               <Text style={[type.caption, { color: colors.textSecondary }]}>{dt.termsConfirm}</Text>

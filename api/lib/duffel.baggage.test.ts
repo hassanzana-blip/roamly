@@ -45,3 +45,18 @@ describe("Duffel: bagasje — oppgitt kontra ukjent", () => {
     expect(o.baggage.checkedUnknown).toBe(true);
   });
 });
+
+describe("Duffel: vilkår med gebyr", () => {
+  const withConditions = (conditions: unknown) => ({ ...(offer(undefined) as object), conditions }) as never;
+
+  it("et gebyr over 0 merkes feeApplies; beløpet beholdes for nettet", () => {
+    const o = mapOffer(withConditions({ change_before_departure: { allowed: true, penalty_amount: "50.00", penalty_currency: "EUR" }, refund_before_departure: { allowed: false, penalty_amount: null, penalty_currency: null } }));
+    expect(o.conditions?.changeBeforeDeparture).toEqual({ allowed: true, penaltyAmount: "50.00", penaltyCurrency: "EUR", feeApplies: true });
+    expect(o.conditions?.refundBeforeDeparture).toEqual({ allowed: false, penaltyAmount: null, penaltyCurrency: null });
+  });
+
+  it("gebyr 0 eller ikke oppgitt gir ikke feeApplies", () => {
+    const o = mapOffer(withConditions({ change_before_departure: { allowed: true, penalty_amount: "0.00", penalty_currency: "EUR" } }));
+    expect(o.conditions?.changeBeforeDeparture?.feeApplies).toBeUndefined();
+  });
+});

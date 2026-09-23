@@ -332,8 +332,8 @@ export function demoSearch(input: {
           refundable,
           changeable,
           conditions: {
-            refundBeforeDeparture: { allowed: refundable, penaltyAmount: refundable ? penalty : null, penaltyCurrency: refundable ? "NOK" : null },
-            changeBeforeDeparture: { allowed: changeable, penaltyAmount: changeable ? penalty : null, penaltyCurrency: changeable ? "NOK" : null },
+            refundBeforeDeparture: { allowed: refundable, penaltyAmount: refundable ? penalty : null, penaltyCurrency: refundable ? "NOK" : null, ...(refundable && Number(penalty) > 0 ? { feeApplies: true } : {}) },
+            changeBeforeDeparture: { allowed: changeable, penaltyAmount: changeable ? penalty : null, penaltyCurrency: changeable ? "NOK" : null, ...(changeable && Number(penalty) > 0 ? { feeApplies: true } : {}) },
           },
           identityDocumentsRequired: international && !["DK", "SE", "FI", "IS", "GB", "DE", "NL", "FR", "ES", "IT", "PT", "AT", "CH", "IE", "PL", "CZ", "HU", "GR", "LV", "LT", "EE"].includes(dest.countryCode),
           services: {
