@@ -15,7 +15,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "no.hellosky.app",
       "infoPlist": {
-        "CFBundleDevelopmentRegion": "en",
+        "CFBundleDevelopmentRegion": "nb",
         "CFBundleLocalizations": [
           "en",
           "nb"

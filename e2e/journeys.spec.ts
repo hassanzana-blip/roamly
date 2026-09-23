@@ -29,7 +29,7 @@ async function register(page: Page, email: string, password = "kundepassord-2026
   await page.getByRole("button", { name: "Opprett konto", exact: true }).first().click();
   await page.getByLabel("Fornavn").fill("Kari");
   await page.getByLabel("Etternavn").fill("Nordmann");
-  await page.getByLabel("E-post eller telefonnummer").fill(email);
+  await page.getByLabel("E-post", { exact: true }).fill(email);
   await page.getByLabel("Passord", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Opprett konto", exact: true }).last().click();
   await expect(page).not.toHaveURL(/\/logg-inn/, { timeout: 30_000 });

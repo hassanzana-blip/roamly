@@ -15,7 +15,9 @@ import { safeNextPath } from "@/lib/nextPath";
 
 /**
  * Innlogging og registrering for kunder – bevisst enkelt:
- * e-post ELLER telefon + passord + for-/etternavn. Ingen adresse.
+ * Nye kontoer bruker e-post + passord + navn. Eksisterende kunder kan
+ * fortsatt logge inn med e-post eller telefon. Telefonnummer legges til
+ * først etter SMS-bekreftelse i profilen.
  */
 
 type Mode = "login" | "register" | "forgot" | "otp";
@@ -339,13 +341,14 @@ export default function Auth() {
             ) : (
               <>
                 <Field
-                  label={t("au.identifier")}
+                  label={mode === "register" ? t("common.email") : t("au.identifier")}
                   hint={mode === "register" ? t("au.identifier.hint") : undefined}
                 >
                   <input
+                    type={mode === "register" ? "email" : "text"}
                     autoComplete="username"
                     inputMode="email"
-                    placeholder={t("au.identifier.ph")}
+                    placeholder={mode === "register" ? t("common.emailph") : t("au.identifier.ph")}
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     className={inputCls}

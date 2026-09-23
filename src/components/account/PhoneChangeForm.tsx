@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Phone } from "lucide-react";
 import Icon from "@/components/app/Icon";
 import { detailsOf, humanMessage } from "@/lib/apiError";
@@ -27,13 +27,19 @@ export default function PhoneChangeForm({ currentPhone, hasPassword, requestCode
   const numberRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
 
+  // Focus only after React has committed the new, enabled input.
+  useEffect(() => {
+    if (pending) return;
+    if (step === "number") numberRef.current?.focus();
+    else if (step === "code") codeRef.current?.focus();
+  }, [step, pending]);
+
   const begin = () => {
     setStep("number");
     setPassword("");
     setCode("");
     setError(null);
     setReauth(false);
-    requestAnimationFrame(() => numberRef.current?.focus());
   };
 
   const submit = async () => {
@@ -48,7 +54,6 @@ export default function PhoneChangeForm({ currentPhone, hasPassword, requestCode
         setPassword("");
         setCode("");
         setStep("code");
-        requestAnimationFrame(() => codeRef.current?.focus());
       } else if (step === "code") {
         await confirmCode({ phone: phone.trim(), code });
         setCode("");

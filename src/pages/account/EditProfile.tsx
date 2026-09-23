@@ -56,7 +56,9 @@ export default function EditProfile() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !customer) navigate("/logg-inn");
+    if (!isLoading && !customer) {
+      navigate("/logg-inn?next=%2Fprofil%2Frediger", { replace: true });
+    }
   }, [customer, isLoading, navigate]);
 
   // Fyll skjemaet fra kontoen første gang den er lastet (render-tids-synk, ikke effekt)
@@ -132,7 +134,7 @@ export default function EditProfile() {
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell>
-        <AppHeader title="Rediger profil" back />
+        <AppHeader title="Rediger profil" back as="h1" />
 
         {/* Profilbilde */}
         <section className="mb-6 flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-soft">
