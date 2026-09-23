@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Sjekker det eksporterte iOS-bygget (dist/) etter `npm run export:ios`:
 // ingen serverkode, ingen leverandørnøkler, ingen hemmelighetsnavn, ingen
-// AsyncStorage, ingen bestillingslenke – og serveradressen fra EXPO_PUBLIC_API_BASE_URL er bygget inn.
+// AsyncStorage – og serveradressen fra EXPO_PUBLIC_API_BASE_URL er bygget inn.
+// Leverandørens egen lenke åpnes med expo-web-browser (lovlig her); klikket
+// måles med nettets egen flights.trackProviderClick.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -31,8 +33,6 @@ const forbidden = [
   "drizzle-orm", "mysql2", "@hono/node-server", "api/lib/", "staffAuth", "adminOwner",
   // Lagring som ikke er nøkkelringen
   "@react-native-async-storage", "AsyncStorage",
-  // Ingen bestilling i appen: ingen kode som åpner leverandørens side.
-  "openBrowserAsync", "expo-web-browser",
 ];
 const hits = forbidden.filter((s) => text.includes(s));
 
@@ -41,6 +41,7 @@ const problems = [];
 if (hits.length) problems.push(`Forbudte strenger i bygget: ${hits.join(", ")}`);
 if (base && !text.includes(base)) problems.push(`Serveradressen ${base} er ikke bygget inn.`);
 if (!text.includes("/api/mobile/trpc")) problems.push("Appens API-sti (/api/mobile/trpc) mangler i bygget.");
+if (!text.includes("trackProviderClick")) problems.push("Klikkmålingen (flights.trackProviderClick) mangler i bygget.");
 
 if (problems.length) {
   console.error(problems.join("\n"));

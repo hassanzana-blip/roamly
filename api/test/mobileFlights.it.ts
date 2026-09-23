@@ -8,7 +8,9 @@ vi.mock("../lib/flightProviders", async (importOriginal) => ({
   getFlightProvider: vi.fn(),
 }));
 
-import { closeDb, expectAppCode, makeCtx, TOMORROW_PLUS, truncateAll } from "./setup";
+import { closeDb, expectAppCode, getDb, makeCtx, TOMORROW_PLUS, truncateAll } from "./setup";
+import { providerClicks } from "../../db/schema";
+import { flightsRouter, trackProviderClickProcedure } from "../flights";
 import { createCallerFactory } from "../middleware";
 import { appRouter } from "../router";
 import { mobileAppRouter } from "../mobileRouter";
@@ -251,6 +253,54 @@ describe("nettets flights.search er uendret", () => {
     for (const path of ["flights.getOffer", "flights.status", "flights.priceHints", "flights.findBooking"]) {
       expect((await app.request(`/api/mobile/trpc/${path}`)).status, path).toBe(404);
     }
-    expect(Object.keys(mobileFlightsRouter._def.record).sort()).toEqual(["airports", "search"]);
+    // Appens flyruter: søk, flyplassøk og nettets klikkmåling – ingen bestilling eller tilbudsoppslag.
+    expect(Object.keys(mobileFlightsRouter._def.record).sort()).toEqual(["airports", "search", "trackProviderClick"]);
+  });
+});
+
+describe("mobil flights.trackProviderClick: nettets klikkmåling, urørt", () => {
+  beforeEach(async () => {
+    await truncateAll();
+  });
+
+  it("er nøyaktig nettets prosedyre, ikke en kopi", () => {
+    expect(mobileFlightsRouter._def.record.trackProviderClick).toBe(trackProviderClickProcedure);
+    expect(flightsRouter._def.record.trackProviderClick).toBe(trackProviderClickProcedure);
+  });
+
+  it("registrerer klikket ut fra tilbuds-id og søkeøkt alene – rute og pris slås opp på serveren", async () => {
+    useProvider(providerResult());
+    const offer = base(); // demotilbud, lagret på serveren av demoSearch
+    const res = await mobile(mobileCtx()).flights.trackProviderClick({ offerId: offer.id, sessionId: "app-okt-1" });
+    expect(res.clickRef).toMatch(/^[0-9a-f-]{36}$/);
+    const rows = await getDb().select().from(providerClicks);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      clickRef: res.clickRef,
+      sessionRef: "app-okt-1",
+      customerId: null,
+      originIata: offer.slices[0].origin.iata,
+      destinationIata: offer.slices[0].destination.iata,
+      sandbox: true,
+    });
+  });
+
+  it("ukjent tilbud: ingen feil og ingen rad – lenken skal åpnes uansett", async () => {
+    const res = await mobile(mobileCtx()).flights.trackProviderClick({ offerId: "finnes-ikke" });
+    expect(res).toEqual({ clickRef: null });
+    expect(await getDb().select().from(providerClicks)).toHaveLength(0);
+  });
+
+  it("over HTTP på appens endepunkt, uten token", async () => {
+    useProvider(providerResult());
+    const offer = base();
+    const res = await app.request("/api/mobile/trpc/flights.trackProviderClick", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": "10.88.0.2" },
+      body: JSON.stringify({ json: { offerId: offer.id, sessionId: "app-okt-2" } }),
+    });
+    expect(res.status).toBe(200);
+    const rows = await getDb().select().from(providerClicks);
+    expect(rows.map((r) => r.sessionRef)).toEqual(["app-okt-2"]);
   });
 });

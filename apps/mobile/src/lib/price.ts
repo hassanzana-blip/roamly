@@ -68,25 +68,32 @@ export function serviceFeeNokMinor(price: MobileOfferPrice): number | null {
   return Number.isSafeInteger(minor) ? minor : null;
 }
 
-/** Meldingen over resultatlisten om valuta. null når alt er i kroner. */
-export function fxNotice(result: Pick<MobileSearchResult, "fx">): { tone: "info" | "warning"; text: string } | null {
+/**
+ * Meldingen over resultatlisten om valuta. null når alt er i kroner. `short`
+ * er den korte linjen over listen; `text` er hele forklaringen.
+ */
+export function fxNotice(result: Pick<MobileSearchResult, "fx">): { tone: "info" | "warning"; short: string; text: string } | null {
   const { status, rateDate, unconvertedCount } = result.fx;
   const dated = rateDate ? ` ${formatNumericDate(rateDate)}` : "";
   const converted = `Priser merket «ca.» er omregnet til kroner med Norges Banks midtkurs${dated}. Leverandøren kan ta betalt i en annen valuta, og endelig beløp kan avvike.`;
+  const shortConverted = `Priser merket «ca.» er omregnet med Norges Banks kurs${dated} og kan avvike.`;
   switch (status) {
     case "not_needed":
       return null;
     case "ok":
-      return { tone: "info", text: converted };
-    case "partial":
-      return {
-        tone: "warning",
-        text: `${converted} ${unconvertedCount === 1 ? "Ett tilbud" : `${unconvertedCount} tilbud`} kunne ikke regnes om til kroner og står nederst.`,
-      };
-    case "stale":
-      return { tone: "warning", text: "Valutakursene er for gamle til å brukes. Tilbud priset i annen valuta vises uten pris, nederst i listen." };
+      return { tone: "info", short: shortConverted, text: converted };
+    case "partial": {
+      const missing = `${unconvertedCount === 1 ? "Ett tilbud" : `${unconvertedCount} tilbud`} kunne ikke regnes om til kroner og står nederst.`;
+      return { tone: "warning", short: `${shortConverted} ${missing}`, text: `${converted} ${missing}` };
+    }
+    case "stale": {
+      const text = "Valutakursene er for gamle til å brukes. Tilbud priset i annen valuta vises uten pris, nederst i listen.";
+      return { tone: "warning", short: text, text };
+    }
     case "unavailable":
-    default:
-      return { tone: "warning", text: "Tilbud priset i annen valuta kunne ikke regnes om til kroner akkurat nå. De vises uten pris, nederst i listen." };
+    default: {
+      const text = "Tilbud priset i annen valuta kunne ikke regnes om til kroner akkurat nå. De vises uten pris, nederst i listen.";
+      return { tone: "warning", short: text, text };
+    }
   }
 }

@@ -1,14 +1,15 @@
 import { useEffect, type ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
-import { SEARCH_RESULT } from "../test/fixtures";
+import { NOK_OFFER, SAME_TRIP_OTHER_SELLER, SEARCH_RESULT, SEK_OFFER } from "../test/fixtures";
 import ResultsScreen from "../app/resultater";
-import FilterScreen from "../app/filter";
 
-const router = (globalThis as unknown as { __router: { push: jest.Mock; back: jest.Mock; replace: jest.Mock } }).__router;
+// Resultatsiden: sortering, filterbrikker, filterarket, datoer og gruppering
+// av samme reise hos flere tilbydere – mot ekte app-tilstand og API-klient.
+
 const BCN = { iata: "BCN", name: "Barcelona El Prat", city: "Barcelona", country: "Spania" };
 
 function SearchOnMount({ children }: { children: ReactNode }) {
@@ -28,70 +29,114 @@ function withDirect(): MobileSearchResult {
   return { ...SEARCH_RESULT, offers: [...SEARCH_RESULT.offers, direct] };
 }
 
-async function renderBoth(result: MobileSearchResult) {
+async function renderResults(result: MobileSearchResult) {
   const server = fakeServer({ "flights.search": () => ({ data: result }) });
   const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
   await render(
-    <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+    <AppProvider apiFactory={factory} initial={{ destination: BCN, departDate: "2026-10-23", returnDate: "2026-10-30" }}>
       <SearchOnMount>
         <ResultsScreen />
-        <FilterScreen />
       </SearchOnMount>
     </AppProvider>,
   );
   await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
+  return server;
 }
 
-const offerIds = () => screen.getAllByTestId(/^offer-/).map((el) => el.props.testID as string);
+const cardIds = () => screen.getAllByTestId(/^offer-/).map((el) => el.props.testID as string);
 
-describe("sortering og filtre på resultatene", () => {
-  it("sorteringsknappene endrer rekkefølgen; tilbud uten kronepris står sist", async () => {
-    await renderBoth(withDirect());
-    // «Billigst» er serverens rekkefølge, urørt.
-    expect(offerIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-thb_1", "offer-direct_1"]);
+describe("sortering", () => {
+  it("«Billigst» er serverens rekkefølge; «Raskest» sorterer på reisetid; uten kronepris står sist", async () => {
+    await renderResults(withDirect());
+    expect(cardIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-thb_1", "offer-direct_1"]);
+    expect(screen.getByText("Laveste pris først")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("open-sort"));
     await fireEvent.press(screen.getByTestId("sort-duration"));
-    expect(offerIds()[0]).toBe("offer-direct_1");
-    expect(offerIds().at(-1)).toBe("offer-thb_1");
-    expect(screen.getByText(/raskeste først/)).toBeOnTheScreen();
+    expect(cardIds()[0]).toBe("offer-direct_1");
+    expect(cardIds().at(-1)).toBe("offer-thb_1");
+    expect(screen.getByText("Korteste reisetid først")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("open-sort-toolbar"));
     await fireEvent.press(screen.getByTestId("sort-price"));
-    expect(offerIds()[0]).toBe("offer-sek_1");
+    expect(cardIds()[0]).toBe("offer-sek_1");
   });
+});
 
-  it("filteret «Bare direkte» viser bare direktefly, teller skjulte og merker filterknappen", async () => {
-    await renderBoth(withDirect());
-    expect(screen.getByLabelText("Bare direkte, 1 reise")).toBeOnTheScreen();
-    await fireEvent.press(screen.getByTestId("stops-direct"));
-    expect(offerIds()).toEqual(["offer-direct_1"]);
-    expect(screen.getByText(/5 skjult av filtre/)).toBeOnTheScreen();
+describe("filtre", () => {
+  it("brikken «Direkte» filtrerer, teller skjulte og merker filterknappen; «Alle» nullstiller", async () => {
+    await renderResults(withDirect());
+    await fireEvent.press(screen.getByTestId("chip-direct"));
+    expect(cardIds()).toEqual(["offer-direct_1"]);
+    expect(screen.getByTestId("result-count")).toHaveTextContent("1 reise · 1 tilbud · 5 skjult av filtre");
     expect(screen.getByLabelText("Filtrer, 1 aktive")).toBeOnTheScreen();
-    expect(screen.getByTestId("filter-apply")).toHaveTextContent("Vis 1 reise");
-    await fireEvent.press(screen.getByTestId("filter-apply"));
-    expect(router.back).toHaveBeenCalled();
+    await fireEvent.press(screen.getByTestId("chip-all"));
+    expect(cardIds()).toHaveLength(6);
   });
 
-  it("valg som ville gitt null reiser kan ikke velges, og «Nullstill» fjerner filteret", async () => {
-    await renderBoth(withDirect());
+  it("filterarket: valg uten treff er sperret, avgangstid virker og «Nullstill filtre» fjerner alt", async () => {
+    await renderResults(withDirect());
+    await fireEvent.press(screen.getByTestId("open-filters"));
     expect(screen.getByTestId("band-night").props.accessibilityState).toMatchObject({ disabled: true });
     await fireEvent.press(screen.getByTestId("band-afternoon"));
-    expect(offerIds()).toEqual(["offer-direct_1"]);
+    expect(cardIds()).toEqual(["offer-direct_1"]);
+    expect(screen.getByTestId("filter-apply").props.accessibilityLabel).toBe("Vis 1 reise");
     await fireEvent.press(screen.getByTestId("band-afternoon"));
     await fireEvent.press(screen.getByTestId("band-morning"));
-    expect(offerIds()).toHaveLength(5);
+    expect(cardIds()).toHaveLength(5);
     // Ingen morgenavgang er direkte: valget er sperret i stedet for å gi en tom liste.
     expect(screen.getByTestId("stops-direct").props.accessibilityState).toMatchObject({ disabled: true });
-    expect(screen.getByLabelText("Bare direkte, 0 reiser")).toBeOnTheScreen();
-    await fireEvent.press(screen.getByLabelText("Nullstill avgangstid"));
-    expect(offerIds()).toHaveLength(6);
+    expect(screen.getByLabelText("Direkte, 0 reiser")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("filter-reset"));
+    expect(cardIds()).toHaveLength(6);
     expect(screen.queryByText(/skjult av filtre/)).toBeNull();
   });
 
-  it("uten søk: filterskjermen sier fra i stedet for å vise tomme valg", async () => {
-    const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: fakeServer({}).fetchImpl });
-    await render(
-      <AppProvider apiFactory={factory}>
-        <FilterScreen />
-      </AppProvider>,
-    );
-    expect(screen.getByTestId("filter-empty")).toBeOnTheScreen();
+  it("bagasjefilteret finnes bare når noen tilbud har innsjekket bagasje – og «fra»-prisen er et tilbud som passer", async () => {
+    await renderResults(SEARCH_RESULT);
+    expect(screen.queryByTestId("chip-bags")).toBeNull();
+    await screen.unmount();
+
+    await renderResults({ ...SEARCH_RESULT, offers: [SEK_OFFER, SAME_TRIP_OTHER_SELLER, NOK_OFFER] });
+    await fireEvent.press(screen.getByTestId("chip-bags"));
+    // Bare Gotogate har innsjekket bagasje: SAS-reisen vises med Gotogates pris, alene.
+    expect(cardIds()).toEqual(["offer-gtg_1"]);
+    expect(within(screen.getByTestId("price-gtg_1")).getByText(/^1\s390\skr$/)).toBeOnTheScreen();
+    expect(screen.queryByText("2 tilbydere")).toBeNull();
+  });
+});
+
+describe("samme reise hos flere tilbydere", () => {
+  it("ett kort per reise; den billigste tilbyderen representerer den; tellingen skiller reiser og tilbud", async () => {
+    await renderResults({ ...SEARCH_RESULT, offers: [SAME_TRIP_OTHER_SELLER, SEK_OFFER, NOK_OFFER] });
+    expect(cardIds()).toEqual(["offer-gtg_1", "offer-nok_1"]);
+    expect(within(screen.getByTestId("offer-gtg_1")).getByText("2 tilbydere")).toBeOnTheScreen();
+    expect(screen.getByTestId("result-count")).toHaveTextContent("2 reiser · 3 tilbud");
+  });
+});
+
+describe("resultatkortet", () => {
+  it("tur-retur viser både ut- og hjemreise, og hva prisen gjelder", async () => {
+    await renderResults(SEARCH_RESULT);
+    const card = within(screen.getByTestId("offer-sek_1"));
+    expect(card.getByText("Ut · 23. okt.")).toBeOnTheScreen();
+    expect(card.getByText("Hjem · 30. okt.")).toBeOnTheScreen();
+    expect(card.getByText("Totalt for 1 voksen · Tur-retur")).toBeOnTheScreen();
+    expect(card.getByText("Håndbagasje inkludert")).toBeOnTheScreen();
+    expect(card.getByText("Innsjekket bagasje: ikke oppgitt")).toBeOnTheScreen();
+  });
+});
+
+describe("datoer", () => {
+  it("«Datoer» i verktøylinjen søker på nytt med den nye datoen", async () => {
+    const server = await renderResults(SEARCH_RESULT);
+    await fireEvent.press(screen.getByTestId("open-dates"));
+    await fireEvent(screen.getByTestId("dates-depart"), "onChange", {}, new Date(2026, 10, 2));
+    await fireEvent.press(screen.getByTestId("dates-search"));
+    await waitFor(() => expect(server.calls.filter((c) => c.path === "flights.search")).toHaveLength(2));
+    const last = server.calls.filter((c) => c.path === "flights.search").at(-1)!;
+    expect((last.input as { slices: { departureDate: string }[] }).slices[0]!.departureDate).toBe("2026-11-02");
+    // Hjemreisen var før den nye utreisen: flyttes en uke etter.
+    expect((last.input as { slices: { departureDate: string }[] }).slices[1]!.departureDate).toBe("2026-11-09");
   });
 });

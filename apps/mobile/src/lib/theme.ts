@@ -1,63 +1,87 @@
+import type { TextStyle } from "react-native";
+
 /**
- * HelloSkys app-uttrykk: midnattsblå toppfelt med diskret verdenskart, hvite
- * svevende kort og sterk indigo for handlinger. Alle tekstpar under er sjekket
- * mot WCAG AA (minst 4,5:1): hvit på indigo 9,0, indigo på feltflate 8,1,
- * textMuted på feltflate 4,7, onDarkMuted på navy 8,2 og på navyRaised 6,7.
+ * HelloSkys app-uttrykk: kull/svart grunn, hvite flater og HelloSky-blått
+ * bare som handlingsfarge. Svart og hvitt bærer identiteten; blått er aksent.
+ *
+ * Tekstpar sjekket mot WCAG AA (minst 4,5:1): hvit på blå 5,8 · blå på hvit 5,8 ·
+ * sekundær på hvit 5,8 og på innfelt flate 5,4 · onDarkMuted på grunnen 9,5 og
+ * på hevet flate 8,4 · blueOnDark på grunnen 6,1 og på hevet flate 5,4.
+ * #0754F8 er for mørk som liten tekst på kull (3,4) – der brukes blueOnDark.
  */
 export const colors = {
   // Mørke flater
-  navy: "#1A1E5C",
-  navyDeep: "#12154A",
-  navyRaised: "#262B78",
-  navyLine: "rgba(255,255,255,0.14)",
-  onDark: "#FFFFFF",
-  onDarkMuted: "#B7BCE8",
+  bg: "#0C0D0F",
+  raised: "#191B1F",
+  darkBorder: "#2B2D32",
+  onDark: "#F8F9FA",
+  onDarkMuted: "#B2B5BC",
+  onDarkDim: "#8E9199",
+
+  // Lyse flater
+  white: "#FFFFFF",
+  inset: "#F5F5F7",
+  lightBorder: "#E6E7EB",
+  text: "#111214",
+  textSecondary: "#62656D",
 
   // Handling
-  indigo: "#2F3BAA",
-  indigoPressed: "#252F8C",
-  indigoInk: "#2F3BAA",
-  indigoSoft: "#ECEEFB",
+  blue: "#0754F8",
+  bluePressed: "#0544CC",
+  blueOnDark: "#4C8DFF",
+  blueSoft: "#EAF0FF",
 
-  // Lyse flater og tekst
-  page: "#F3F5FA",
-  white: "#FFFFFF",
-  surfaceMuted: "#F2F3F8",
-  border: "#E3E7F0",
-  input: "#CDD3E1",
-  text: "#0F1233",
-  textSecondary: "#566079",
-  textMuted: "#646D86",
-
-  // Tilstander
-  success: "#127A4B",
-  successSurface: "#E7F5EE",
+  // Tilstander (alltid sammen med tekst eller ikon – aldri farge alene)
+  success: "#0A7A3F",
+  successSoft: "#E8F5EE",
   warning: "#8A5000",
-  warningSurface: "#FFF5E1",
-  layover: "#9A5B00",
-  destructive: "#B3261E",
-  destructiveSurface: "#FDECEA",
+  warningSoft: "#FFF6E5",
+  warningOnDark: "#FFD27A",
+  danger: "#B42318",
+  dangerSoft: "#FDECEA",
+
+  // Fotooverlegg (nøytralt svart, aldri blåtonet)
+  scrim: "rgba(12, 13, 15, 0.55)",
+  scrimStrong: "rgba(12, 13, 15, 0.78)",
 } as const;
 
-export const fonts = {
-  regular: "Manrope_400Regular",
-  medium: "Manrope_500Medium",
-  semibold: "Manrope_600SemiBold",
-  bold: "Manrope_700Bold",
-  heavy: "Manrope_800ExtraBold",
-} as const;
-
-export const radius = { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 } as const;
-export const space = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, xxxl: 40 } as const;
+export const radius = { sm: 10, input: 14, card: 20, sheet: 28, pill: 999 } as const;
+/** 4-punktsrytme. */
+export const space = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const;
 
 /** Minste trykkflate (Apples retningslinje: 44 pt). */
 export const TOUCH = 44;
 
-/** Skygger (boxShadow virker på iOS med den nye arkitekturen og på web). */
+/**
+ * Typografi: iOS' systemskrift (SF Pro) – ingen fontfiler lastes ned eller
+ * følger med. Tall som skal sammenlignes (klokkeslett, priser) har tabellsifre.
+ * Tekststørrelsen følger telefonens innstilling; ingenting er låst.
+ */
+const tabular: TextStyle = { fontVariant: ["tabular-nums"] };
+export const type = {
+  hero: { fontSize: 28, lineHeight: 34, fontWeight: "600", letterSpacing: -0.4 },
+  title: { fontSize: 22, lineHeight: 28, fontWeight: "600", letterSpacing: -0.3 },
+  section: { fontSize: 18, lineHeight: 24, fontWeight: "600", letterSpacing: -0.2 },
+  headline: { fontSize: 17, lineHeight: 22, fontWeight: "600" },
+  body: { fontSize: 16, lineHeight: 22, fontWeight: "400" },
+  bodyStrong: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
+  callout: { fontSize: 15, lineHeight: 20, fontWeight: "400" },
+  calloutStrong: { fontSize: 15, lineHeight: 20, fontWeight: "600" },
+  footnote: { fontSize: 13, lineHeight: 18, fontWeight: "400" },
+  footnoteStrong: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: "400" },
+  code: { fontSize: 26, lineHeight: 30, fontWeight: "700", letterSpacing: -0.3 },
+  codeSmall: { fontSize: 22, lineHeight: 26, fontWeight: "700", letterSpacing: -0.2 },
+  time: { fontSize: 17, lineHeight: 22, fontWeight: "600", ...tabular },
+  timeLarge: { fontSize: 22, lineHeight: 28, fontWeight: "600", ...tabular },
+  price: { fontSize: 24, lineHeight: 30, fontWeight: "700", letterSpacing: -0.3, ...tabular },
+  tabular,
+} satisfies Record<string, TextStyle>;
+
+/** Diskrete skygger – ingen glød. */
 export const shadow = {
-  card: { boxShadow: "0px 10px 30px rgba(18, 21, 74, 0.22)" },
-  soft: { boxShadow: "0px 2px 8px rgba(18, 21, 74, 0.08)" },
-  button: { boxShadow: "0px 8px 18px rgba(47, 59, 170, 0.35)" },
+  card: { boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.06)" },
+  sheet: { boxShadow: "0px -1px 0px rgba(0, 0, 0, 0.04)" },
 } as const;
 
 /** Merket («H») – samme sti som nettets SkyMark. */

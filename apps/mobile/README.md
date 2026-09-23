@@ -5,39 +5,52 @@ Appen snakker bare med HelloSkys server på `/api/mobile/trpc` – aldri direkte
 
 ## Hva appen gjør
 
-Appen er **bare for flysøk og sammenligning**. Den har ingen bestilling, åpner aldri leverandørens lenke og viser
-ingen gate-, sete-, boardingkort- eller bestillingsopplysninger.
+Appen er **bare for flysøk og sammenligning**. Den selger ingenting selv og viser ingen gate-, sete-, boardingkort-
+eller bestillingsopplysninger. Vil kunden ha et tilbud, åpnes tilbyderens egen side, og bestillingen fullføres der.
 
-- **Søk** (uten innlogging): fra/til med flyplassøk (`flights.airports`), én vei eller tur-retur, datoer (iOS-kalender
-  i et ark), voksne/barn (2–11 år)/spedbarn med alder, reiseklasse og «bare direktefly».
-- **Resultater** (`flights.search`): billettkort med store flyplasskoder, rute, reisetid og bytter. Sortering
-  («Billigst» = serverens rekkefølge, «Raskest», «Færrest bytter») og filtre (antall bytter, avgangstid for
-  utreisen) regnes bare på data tilbudene har; tilbud uten kronepris står alltid nederst. Appen viser **bare
-  kronebeløp**:
+- **Hjem** (uten innlogging): fotohode med hilsen (kundens fornavn når innlogget, ellers nøytral), hvitt søkeark med
+  `Tur-retur | Én vei`, fra/til med flyplassøk (`flights.airports`, bare den valgte flyplassen – aldri andre i samme by),
+  datoer (iOS-kalender i et ark), voksne/barn (2–11 år)/spedbarn med alder, reiseklasse og «Bare direktefly».
+  Reisemålskortene søker direkte.
+- **Resultater** (`flights.search`): ett kort per reise med ut- og hjemreise, bagasje og **hva prisen gjelder**
+  («Totalt for 2 voksne · Tur-retur» – aldri per person). Samme reise hos flere tilbydere vises én gang med billigste
+  tilbyder og «N tilbydere» (samme gruppering som nettet). Brikker og filterark (mellomlandinger, innsjekket bagasje,
+  avgangstid), sortering («Billigst» = serverens rekkefølge, «Raskest», «Færrest mellomlandinger») og «Datoer» som
+  søker på nytt. Tilbud uten kronepris står alltid nederst. Appen viser **bare kronebeløp**:
   - `1 234 kr` – leverandørens egen kronepris,
-  - `ca. 1 234 kr` + «Omregnet med Norges Banks kurs 22.09.2026» – omregnet på serveren, med merknad om at
-    leverandøren kan ta betalt i en annen valuta og at endelig beløp kan avvike,
+  - `ca. 1 234 kr` + «Omregnet med Norges Banks kurs 22.09.2026» – omregnet på serveren; meldingen over listen sier
+    at endelig beløp kan avvike og kan åpnes for hele forklaringen,
   - «Ingen pris i kroner» + grunnen – når kurs mangler, er for gammel eller valutaen ikke støttes.
   Leverandørens beløp, valuta og publiserte kurs ligger urørt i serverkontrakten, men vises aldri i appen.
-- **Tilbud**: tidslinje med strekninger og bytter (varighet regnet med tidssone), bagasje og vilkår når leverandøren
-  oppgir dem, hvem som selger billetten, og kronemerknaden. Servicegebyret vises som beløp bare når det er i kroner.
-- **Konto** (`mobileAuth`): vanlig kundeinnlogging med e-post og passord, ny konto og utlogging. Ingen andre roller.
+- **Flydetaljer**: fotokort, faner Oversikt / Bagasje / Vilkår / Reiseplan. Bagasje per reisende med tre tilstander
+  (inkludert, ikke inkludert, ikke oppgitt); vilkår bare når leverandøren oppga dem (aldri gebyrbeløp); tidslinje med
+  bytter, flyplassbytte og +1 døgn. Flere tilbydere av samme reise kan velges; pris, bagasje og vilkår følger valget.
+- **Videre til tilbyderen**: «Se tilbud hos [tilbyder]» åpner leverandørens egen https-lenke **urørt** i
+  Safari-visning (`expo-web-browser`), med «Bestillingen fullføres hos tilbyderen.» under. Klikket måles med nettets
+  eksisterende `flights.trackProviderClick` (samme prosedyre er montert på `/api/mobile/trpc`; ingen ny
+  videresending). Lenker som ikke er ren https, åpnes ikke.
+- **Utforsk** og **Profil** (`mobileAuth`): reisemål, vanlig kundeinnlogging med e-post og passord, ny konto,
+  utlogging og fotokreditering. Ingen andre roller.
 
 ## Utseende
 
-Midnattsblå toppfelt med et prikket verdenskart (`assets/world-dots.png`, laget av `scripts/make-worldmap.mjs` fra
-Natural Earth-data i `world-atlas`), hvite kort, indigo knapper og Manrope. Farger og mål står i `src/lib/theme.ts`
-(tekstparene er sjekket mot WCAG AA), felles komponenter i `src/components/ui.tsx`, ikoner (SVG i Lucide-stil) i
-`src/components/Icon.tsx`. Trykkflater er minst 44 pt.
+Kull/svart grunn, hvite søke- og kortflater og HelloSky-blått bare som handlingsfarge; iOS' systemskrift med
+tabellsifre for tid og pris; ekte foto (se under). Tokens, kontrastmålinger, komponenter og skjermer står i
+[`DESIGN.md`](DESIGN.md); verdiene bor i `src/lib/theme.ts`, felles komponenter i `src/components/ui.tsx`.
+Trykkflater er minst 44 pt.
+
+**Foto:** HelloSkys egne, godkjente reisefoto fra nettets register, kopiert inn av `scripts/make-photos.mjs`
+(`assets/photos/*.jpg`). De følger med appen – ingen bildesøk mens appen brukes, ingen Unsplash-nøkkel i appen.
+Kreditering «Foto: Unsplash» på bildet og en liste i Profil, slik registeret (`src/content/photos.ts`) oppgir.
 
 ## Sikkerhet
 
 - Kundens opake token lagres kun i iOS-nøkkelringen (`expo-secure-store`, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`), og sendes
-  som `Authorization: Bearer` bare på `mobileAuth.me`/`logout`. Søk sendes aldri med token.
+  som `Authorization: Bearer` bare på `mobileAuth.me`/`logout`. Søk og klikkmåling sendes aldri med token.
 - Ingen AsyncStorage, ingen logging (`no-console` er en lintfeil i `src/`).
 - Eneste konfigurasjon er den offentlige `EXPO_PUBLIC_API_BASE_URL` (https påkrevd; http bare mot localhost i utvikling).
-  Ingen leverandørnøkler, ingen serverkode og ingen kode som åpner leverandørens side i bygget – `npm run check:bundle`
-  bekrefter det på det eksporterte bygget.
+  Ingen leverandørnøkler og ingen serverkode i bygget – `npm run check:bundle` bekrefter det på det eksporterte bygget,
+  og at klikkmålingen er med.
 - Delte typer fra `../../contracts` importeres kun med `import type`. Metro blokkerer rotens `node_modules`.
 
 ## Kommandoer
@@ -69,9 +82,9 @@ Bundle-ID-en `no.hellosky.app` i `app.json` er en **plassholder** til den er bek
 
 Gjenstår før et bygg (i rekkefølge, gjøres av eieren av kontoene):
 
-1. **Backend som ikke er produksjon.** Railway-prosjektet har i dag bare miljøet `production`. Appens API
-   (`/api/mobile/trpc`) finnes bare på denne grenen. Et staging-miljø (se `DEPLOYMENT.md` §10) må settes opp og
-   grenen deployes dit, med egen https-adresse.
+1. **Backend som ikke er produksjon.** Railway-prosjektet har et tomt miljø `staging` (ingen tjenester ennå).
+   Appens API (`/api/mobile/trpc`) finnes bare på denne grenen. Web og egen database må legges til i `staging`
+   (se `DEPLOYMENT.md` §10) når kostnaden er godkjent, og grenen deployes dit, med egen https-adresse.
 2. **Expo-konto** + `npx eas-cli@latest login` og `npx eas-cli@latest init` i `apps/mobile` (skriver prosjekt-ID i
    `app.json`).
 3. `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_API_BASE_URL --value https://<staging> --visibility plaintext`

@@ -133,6 +133,12 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
       call<MobileAuthResult>("mutation", "mobileAuth.register", { identifier: r.email.trim(), password: r.password, firstName: r.firstName.trim(), lastName: r.lastName.trim(), locale: "nb" }),
     me: () => call<CustomerProfile | null>("query", "mobileAuth.me", undefined, { auth: true }),
     logout: () => call<{ ok: true }>("mutation", "mobileAuth.logout", undefined, { auth: true }),
+    /**
+     * Nettets klikkmåling (flights.trackProviderClick) før kunden sendes til
+     * leverandøren: bare tilbuds-id og den anonyme søkeøkten, uten token.
+     */
+    trackProviderClick: (offerId: string, sessionId?: string) =>
+      call<{ clickRef: string | null }>("mutation", "flights.trackProviderClick", { offerId, ...(sessionId ? { sessionId } : {}) }, { timeoutMs: 8_000 }),
   };
 }
 

@@ -83,6 +83,8 @@ describe("melding om valuta over resultatlisten", () => {
     expect(n?.text).toContain("Leverandøren kan ta betalt i en annen valuta, og endelig beløp kan avvike.");
     expect(n?.text).toContain("Ett tilbud kunne ikke regnes om til kroner og står nederst.");
     expect(fxNotice({ fx: { ...SEARCH_RESULT.fx, unconvertedCount: 3 } })?.text).toContain("3 tilbud kunne ikke");
+    // Den korte linjen over listen sier fortsatt at beløpet kan avvike, og hvor mange som mangler.
+    expect(n?.short).toBe("Priser merket «ca.» er omregnet med Norges Banks kurs 22.09.2026 og kan avvike. Ett tilbud kunne ikke regnes om til kroner og står nederst.");
   });
 
   it("ok, stale, unavailable og not_needed", () => {

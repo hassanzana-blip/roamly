@@ -1,17 +1,32 @@
 import { useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
-import { useApp } from "../lib/appState";
-import { ApiError } from "../lib/api";
-import { Banner, Body, Button, Card, Field, ScreenHeader, Segmented, Title } from "../components/ui";
-import { Icon } from "../components/Icon";
-import { colors, fonts, space } from "../lib/theme";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useApp } from "../../lib/appState";
+import { ApiError } from "../../lib/api";
+import { ALL_PHOTOS } from "../../lib/destinations";
+import { Banner, Field, InfoRow, InformationCard, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
+import { colors, space, type } from "../../lib/theme";
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+/** Kreditering for bildene appen har med seg (samme opphav som nettets /fotokreditering). */
+function PhotoCredits() {
+  return (
+    <InformationCard title="Fotokreditering" testID="photo-credits">
+      <Text style={[type.footnote, { color: colors.textSecondary }]}>
+        Bildene er ekte fotografier fra Unsplash, brukt under Unsplash-lisensen. Fotografens navn vises når det er registrert.
+      </Text>
+      {ALL_PHOTOS.map((p) => (
+        <Text key={p.id} style={[type.footnote, { color: colors.text }]}>{`${p.credit.caption} – ${p.credit.photographer ? `${p.credit.photographer}, ` : ""}${p.credit.source}`}</Text>
+      ))}
+    </InformationCard>
+  );
+}
+
 /** Vanlig kundeinnlogging med e-post og passord. Ingen andre roller finnes i appen. */
 export default function AccountScreen() {
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { auth, login, register, logout } = useApp();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -21,15 +36,12 @@ export default function AccountScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const close = () => router.back();
+  const top = { paddingTop: insets.top + space.lg };
 
   if (auth.status === "loading") {
     return (
-      <View style={styles.screen}>
-        <ScreenHeader title="Konto" onBack={close} backIcon="close" backLabel="Lukk" />
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.white} />
-        </View>
+      <View style={[styles.screen, styles.center]}>
+        <ActivityIndicator color={colors.onDark} />
       </View>
     );
   }
@@ -38,46 +50,40 @@ export default function AccountScreen() {
     const p = auth.profile;
     const initials = p ? `${p.firstName.slice(0, 1)}${p.lastName.slice(0, 1)}`.toUpperCase() : "";
     return (
-      <View style={styles.screen}>
-        <ScreenHeader title="Konto" onBack={close} backIcon="close" backLabel="Lukk">
-          <View style={styles.hello}>
-            <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              {initials ? <Text style={styles.avatarText}>{initials}</Text> : <Icon name="user" size={26} color={colors.white} />}
-            </View>
-            <Title onDark>{p ? `Hei, ${p.firstName}` : "Du er logget inn"}</Title>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-in">
+        <StatusBar style="light" />
+        <View style={styles.hello}>
+          <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
-        </ScreenHeader>
-        <ScrollView contentContainerStyle={styles.content} testID="account-signed-in">
-          {p ? (
-            <Card floating>
-              <View style={styles.infoRow}>
-                <Icon name="user" size={20} color={colors.indigo} />
-                <Body>{`${p.firstName} ${p.lastName}`.trim()}</Body>
-              </View>
-              {p.email ? (
-                <View style={styles.infoRow}>
-                  <Icon name="mail" size={20} color={colors.indigo} />
-                  <Body muted>{p.email}</Body>
-                </View>
-              ) : null}
-            </Card>
-          ) : (
-            <Banner tone="warning">Vi fikk ikke hentet kontoen din akkurat nå. Sjekk nettforbindelsen.</Banner>
-          )}
-          <Button
-            testID="logout-button"
-            label="Logg ut"
-            icon="logout"
-            variant="onDark"
-            loading={busy}
-            onPress={async () => {
-              setBusy(true);
-              await logout();
-              setBusy(false);
-            }}
-          />
-        </ScrollView>
-      </View>
+          <Text style={[type.title, { color: colors.onDark, flex: 1 }]} accessibilityRole="header">
+            {p ? `Hei, ${p.firstName}` : "Du er logget inn"}
+          </Text>
+        </View>
+        {p ? (
+          <InformationCard title="Konto">
+            <InfoRow icon="user" title={`${p.firstName} ${p.lastName}`.trim()} subtitle="Navn" />
+            {p.email ? <InfoRow icon="mail" title={p.email} subtitle="E-post" /> : null}
+          </InformationCard>
+        ) : (
+          <Banner tone="warning" dark>
+            Vi fikk ikke hentet kontoen din akkurat nå. Sjekk nettforbindelsen.
+          </Banner>
+        )}
+        <SecondaryButton
+          dark
+          testID="logout-button"
+          label={busy ? "Logger ut …" : "Logg ut"}
+          icon="logout"
+          onPress={async () => {
+            if (busy) return;
+            setBusy(true);
+            await logout();
+            setBusy(false);
+          }}
+        />
+        <PhotoCredits />
+      </ScrollView>
     );
   }
 
@@ -104,14 +110,15 @@ export default function AccountScreen() {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={styles.screen}>
-      <ScreenHeader title="Konto" onBack={close} backIcon="close" backLabel="Lukk">
+      <StatusBar style="light" />
+      <ScrollView contentContainerStyle={[styles.content, top]} keyboardShouldPersistTaps="handled" testID="account-signed-out">
         <View style={{ gap: space.xs }}>
-          <Title onDark>{mode === "login" ? "Logg inn" : "Opprett konto"}</Title>
-          <Text style={styles.sub}>Du kan søke etter fly uten å logge inn.</Text>
+          <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
+            {mode === "login" ? "Logg inn" : "Opprett konto"}
+          </Text>
+          <Text style={[type.footnote, { color: colors.onDarkMuted }]}>Du kan søke etter fly uten å logge inn.</Text>
         </View>
-      </ScreenHeader>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" testID="account-signed-out">
-        <Card floating style={{ gap: space.lg }}>
+        <InformationCard>
           <Segmented
             label="Innlogging"
             value={mode}
@@ -158,20 +165,19 @@ export default function AccountScreen() {
               {error}
             </Banner>
           ) : null}
-          <Button testID="auth-submit" label={mode === "login" ? "Logg inn" : "Opprett konto"} onPress={submit} loading={busy} />
-        </Card>
+          <PrimaryButton testID="auth-submit" label={mode === "login" ? "Logg inn" : "Opprett konto"} onPress={submit} loading={busy} />
+        </InformationCard>
+        <PhotoCredits />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.navy },
-  content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxxl },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  sub: { fontFamily: fonts.medium, fontSize: 15, color: colors.onDarkMuted },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  center: { alignItems: "center", justifyContent: "center" },
+  content: { paddingHorizontal: space.lg, gap: space.lg, paddingBottom: space.xxxl },
   hello: { flexDirection: "row", alignItems: "center", gap: space.md },
-  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.indigo, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.navyLine },
-  avatarText: { fontFamily: fonts.heavy, fontSize: 20, color: colors.white },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontSize: 18, fontWeight: "700", color: colors.white },
 });

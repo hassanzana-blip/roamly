@@ -4,7 +4,9 @@
     "slug": "hellosky",
     "scheme": "hellosky",
     "version": "1.0.0",
-    "platforms": ["ios"],
+    "platforms": [
+      "ios"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,7 +20,9 @@
       "bundleIdentifier": "no.hellosky.app",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "nb",
-        "CFBundleLocalizations": ["nb"],
+        "CFBundleLocalizations": [
+          "nb"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -26,7 +30,9 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": false

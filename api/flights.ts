@@ -245,6 +245,66 @@ export const airportsProcedure = publicQuery
     return [...local, ...extra.filter((a) => !seen.has(a.iata))].slice(0, limit);
   });
 
+/**
+ * Klikket ut av HelloSky.
+ *
+ * Kalles i det kunden går videre til leverandøren. Den er bevisst mager:
+ * klienten sender bare tilbuds-id-en og søkeøkten, og serveren slår opp
+ * resten selv. Alternativet – å la nettleseren sende rute, pris og
+ * leverandør – ville gjort forretningstallene til noe hvem som helst kan
+ * skrive inn.
+ *
+ * Svaret er en referanse leverandøren senere kan matche en konvertering
+ * mot. Feiler alt, svarer vi likevel: lenken skal åpne uansett.
+ *
+ * Delt med appens API (api/mobileFlights.ts): samme dør ut fra nett og app.
+ */
+export const trackProviderClickProcedure = publicQuery
+  .input(z.object({ offerId: z.string().min(1).max(128), sessionId: z.string().max(64).optional() }))
+  .mutation(async ({ input, ctx }): Promise<{ clickRef: string | null }> => {
+    try {
+      const offer = await resolveOffer(input.offerId);
+      const first = offer.slices[0]!;
+      const last = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : undefined;
+      const paxOf = (type: string) => offer.passengers.filter((p) => p.type === type).length;
+      const amount = Math.round(Number(offer.totalAmount) * 100);
+      // Sandkassestatus hører til leverandøren, ikke til tilbudet. Et klikk
+      // på et testtilbud skal aldri telle som forretning.
+      const source = offer.source ?? "unknown";
+      let sandbox = false;
+      try {
+        sandbox = getFlightProvider(offer.source).sandbox;
+      } catch {
+        sandbox = true; // ukjent opphav teller ikke som ekte
+      }
+      const clickRef = await recordProviderClick({
+        customerId: ctx.customer?.customerId ?? null,
+        sessionRef: input.sessionId ?? null,
+        provider: source,
+        sellerName: offer.booking?.provider?.name ?? offer.owner.name,
+        originIata: first.origin.iata,
+        destinationIata: first.destination.iata,
+        departDate: first.departingAt.slice(0, 10),
+        returnDate: last && last.destination.iata === first.origin.iata ? last.departingAt.slice(0, 10) : null,
+        adults: Math.max(1, paxOf("adult")),
+        children: paxOf("child"),
+        infants: paxOf("infant_without_seat"),
+        cabin: first.segments[0]?.cabinClass ?? "economy",
+        carrierIata: offer.owner.iata,
+        stops: first.stops,
+        shownPriceMinor: Number.isFinite(amount) && amount > 0 ? amount : null,
+        currency: offer.totalCurrency,
+        device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
+        market: marketFrom(ctx.req.headers),
+        sandbox,
+      });
+      return { clickRef };
+    } catch {
+      // Måling er aldri viktigere enn at kunden kommer videre.
+      return { clickRef: null };
+    }
+  });
+
 export const flightsRouter = createRouter({
   status: publicQuery.query((): Promise<ServiceStatusWithFees> => serviceStatus()),
 
@@ -263,63 +323,7 @@ export const flightsRouter = createRouter({
     }
   }),
 
-  /**
-   * Klikket ut av HelloSky.
-   *
-   * Kalles i det kunden går videre til leverandøren. Den er bevisst mager:
-   * klienten sender bare tilbuds-id-en og søkeøkten, og serveren slår opp
-   * resten selv. Alternativet – å la nettleseren sende rute, pris og
-   * leverandør – ville gjort forretningstallene til noe hvem som helst kan
-   * skrive inn.
-   *
-   * Svaret er en referanse leverandøren senere kan matche en konvertering
-   * mot. Feiler alt, svarer vi likevel: lenken skal åpne uansett.
-   */
-  trackProviderClick: publicQuery
-    .input(z.object({ offerId: z.string().min(1).max(128), sessionId: z.string().max(64).optional() }))
-    .mutation(async ({ input, ctx }): Promise<{ clickRef: string | null }> => {
-      try {
-        const offer = await resolveOffer(input.offerId);
-        const first = offer.slices[0]!;
-        const last = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : undefined;
-        const paxOf = (type: string) => offer.passengers.filter((p) => p.type === type).length;
-        const amount = Math.round(Number(offer.totalAmount) * 100);
-        // Sandkassestatus hører til leverandøren, ikke til tilbudet. Et klikk
-        // på et testtilbud skal aldri telle som forretning.
-        const source = offer.source ?? "unknown";
-        let sandbox = false;
-        try {
-          sandbox = getFlightProvider(offer.source).sandbox;
-        } catch {
-          sandbox = true; // ukjent opphav teller ikke som ekte
-        }
-        const clickRef = await recordProviderClick({
-          customerId: ctx.customer?.customerId ?? null,
-          sessionRef: input.sessionId ?? null,
-          provider: source,
-          sellerName: offer.booking?.provider?.name ?? offer.owner.name,
-          originIata: first.origin.iata,
-          destinationIata: first.destination.iata,
-          departDate: first.departingAt.slice(0, 10),
-          returnDate: last && last.destination.iata === first.origin.iata ? last.departingAt.slice(0, 10) : null,
-          adults: Math.max(1, paxOf("adult")),
-          children: paxOf("child"),
-          infants: paxOf("infant_without_seat"),
-          cabin: first.segments[0]?.cabinClass ?? "economy",
-          carrierIata: offer.owner.iata,
-          stops: first.stops,
-          shownPriceMinor: Number.isFinite(amount) && amount > 0 ? amount : null,
-          currency: offer.totalCurrency,
-          device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
-          market: marketFrom(ctx.req.headers),
-          sandbox,
-        });
-        return { clickRef };
-      } catch {
-        // Måling er aldri viktigere enn at kunden kommer videre.
-        return { clickRef: null };
-      }
-    }),
+  trackProviderClick: trackProviderClickProcedure,
 
   getOffer: publicQuery.input(z.object({ offerId: z.string().min(1).max(128) })).query(async ({ input }) => {
     try {

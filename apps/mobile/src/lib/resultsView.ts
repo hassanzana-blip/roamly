@@ -1,9 +1,11 @@
 import type { MobileOffer } from "@contracts/mobileSearch";
+import { checkedBagIncluded } from "./offer";
 
 /**
  * Sortering og filtre på resultatlisten – bare på data tilbudene faktisk har:
- * kronepris (serverens rekkefølge), samlet reisetid, antall bytter og
- * avgangstid for utreisen (lokal tid på flyplassen, slik leverandøren oppga den).
+ * kronepris (serverens rekkefølge), samlet reisetid, antall mellomlandinger,
+ * innsjekket bagasje slik leverandøren oppga den, og avgangstid for utreisen
+ * (lokal tid på flyplassen, slik leverandøren oppga den).
  *
  * Tilbud uten pris i kroner står alltid nederst, uansett sortering, så
  * merknaden «står nederst» over listen alltid stemmer.
@@ -13,20 +15,20 @@ export type SortKey = "price" | "duration" | "stops";
 export type StopsFilter = "any" | "direct" | "max1";
 export type TimeBand = "night" | "morning" | "afternoon" | "evening";
 
-export type ResultsView = { sort: SortKey; stops: StopsFilter; departBands: TimeBand[] };
+export type ResultsView = { sort: SortKey; stops: StopsFilter; bags: boolean; departBands: TimeBand[] };
 
-export const DEFAULT_VIEW: ResultsView = { sort: "price", stops: "any", departBands: [] };
+export const DEFAULT_VIEW: ResultsView = { sort: "price", stops: "any", bags: false, departBands: [] };
 
 export const SORTS: { value: SortKey; label: string; summary: string }[] = [
-  { value: "price", label: "Billigst", summary: "billigste i kroner først" },
-  { value: "duration", label: "Raskest", summary: "raskeste først" },
-  { value: "stops", label: "Færrest bytter", summary: "færrest bytter først" },
+  { value: "price", label: "Billigst", summary: "Laveste pris først" },
+  { value: "duration", label: "Raskest", summary: "Korteste reisetid først" },
+  { value: "stops", label: "Færrest mellomlandinger", summary: "Færrest mellomlandinger først" },
 ];
 
 export const STOPS: { value: StopsFilter; label: string }[] = [
   { value: "any", label: "Alle" },
-  { value: "direct", label: "Bare direkte" },
-  { value: "max1", label: "Maks 1 bytte" },
+  { value: "direct", label: "Direkte" },
+  { value: "max1", label: "Maks 1 mellomlanding" },
 ];
 
 export const TIME_BANDS: { value: TimeBand; label: string; range: string; from: number; to: number }[] = [
@@ -70,6 +72,7 @@ function hasNok(o: MobileOffer): boolean {
 function passes(o: MobileOffer, v: ResultsView): boolean {
   if (v.stops === "direct" && maxStops(o) > 0) return false;
   if (v.stops === "max1" && maxStops(o) > 1) return false;
+  if (v.bags && !checkedBagIncluded(o.offer)) return false;
   if (v.departBands.length) {
     const band = departBand(o);
     if (!band || !v.departBands.includes(band)) return false;
@@ -98,7 +101,7 @@ export function applyView(offers: MobileOffer[], v: ResultsView): MobileOffer[] 
 
 /** Antall aktive filtre (sortering teller ikke). */
 export function activeFilterCount(v: ResultsView): number {
-  return (v.stops !== "any" ? 1 : 0) + (v.departBands.length ? 1 : 0);
+  return (v.stops !== "any" ? 1 : 0) + (v.bags ? 1 : 0) + (v.departBands.length ? 1 : 0);
 }
 
 /** Hvor mange tilbud et valg ville gitt, med de andre filtrene uendret – vises ved hvert valg. */

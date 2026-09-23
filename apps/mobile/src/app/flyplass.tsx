@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Airport } from "@contracts/airports";
 import { useApp } from "../lib/appState";
 import { normalizeQuery } from "../lib/searchForm";
 import { ApiError } from "../lib/api";
-import { Banner, Field, ScreenHeader, StateView } from "../components/ui";
+import { Banner, Field, IconButton, StateView } from "../components/ui";
 import { Icon } from "../components/Icon";
-import { colors, fonts, radius, space } from "../lib/theme";
+import { colors, radius, space, type } from "../lib/theme";
 
-/** Flyplassøk (flights.airports på serveren). Brukes for både «Fra» og «Til». */
+/**
+ * Flyplassøk (flights.airports på serveren), for både «Fra» og «Til».
+ * Registeret har bare enkeltflyplasser, og søket bruker nøyaktig den som
+ * velges – aldri andre flyplasser i samme by.
+ */
 export default function AirportPicker() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { felt } = useLocalSearchParams<{ felt?: string }>();
   const field = felt === "til" ? "destination" : "origin";
   const { api, setForm } = useApp();
@@ -58,13 +64,19 @@ export default function AirportPicker() {
   const question = field === "origin" ? "Hvor reiser du fra?" : "Hvor skal du?";
 
   return (
-    <View style={styles.screen}>
-      <ScreenHeader title="Velg flyplass" onBack={() => router.back()} backIcon="close" backLabel="Lukk" />
-      <View style={styles.sheet}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, space.lg) }]}>
+      <View style={styles.head}>
+        <IconButton icon="close" label="Lukk" variant="light" onPress={() => router.back()} testID="header-back" />
+        <Text style={[type.headline, styles.title]} accessibilityRole="header">
+          Velg flyplass
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+      <View style={styles.body}>
         <Field
           label={question}
           icon="search"
-          placeholder="By eller flyplass, f.eks. Barcelona"
+          placeholder="By, flyplass eller kode"
           value={query}
           onChangeText={setQuery}
           autoFocus
@@ -74,6 +86,7 @@ export default function AirportPicker() {
           clearButtonMode="while-editing"
           testID="airport-query"
         />
+        <Text style={[type.caption, { color: colors.textSecondary }]}>Vi søker bare fra og til flyplassen du velger – aldri andre flyplasser i samme by.</Text>
         {shownError ? (
           <Banner tone="error" testID="airport-error">
             {shownError}
@@ -81,20 +94,21 @@ export default function AirportPicker() {
         ) : null}
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.indigo} testID="airport-loading" />
-            <Text style={styles.loadingText}>Søker …</Text>
+            <ActivityIndicator color={colors.text} testID="airport-loading" />
+            <Text style={[type.footnote, { color: colors.textSecondary }]}>Søker …</Text>
           </View>
         ) : null}
         <FlatList
           data={shown}
           keyExtractor={(a) => a.iata}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: space.xxl }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             !active ? (
-              <StateView icon="mapPin" title="Finn flyplassen" body="Skriv minst to bokstaver: by, flyplass eller kode, for eksempel Barcelona eller BCN." />
+              <StateView dark={false} icon="mapPin" title="Finn flyplassen" body="Skriv minst to bokstaver: by, flyplass eller kode, for eksempel Barcelona eller BCN." />
             ) : !loading && !shownError ? (
-              <StateView icon="search" title="Fant ingen flyplass" body="Ingen treff. Prøv et annet navn eller en flyplasskode." />
+              <StateView dark={false} icon="search" title="Fant ingen flyplass" body="Ingen treff. Prøv et annet navn eller en flyplasskode." />
             ) : null
           }
           renderItem={({ item }) => (
@@ -102,21 +116,21 @@ export default function AirportPicker() {
               onPress={() => choose(item)}
               accessibilityRole="button"
               accessibilityLabel={`${item.city}, ${item.name}, ${item.country}, kode ${item.iata}`}
-              style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceMuted }]}
+              style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.inset }]}
               testID={`airport-${item.iata}`}
             >
               <View style={styles.codeBox}>
-                <Text style={styles.code}>{item.iata}</Text>
+                <Text style={[type.calloutStrong, { color: colors.text, letterSpacing: 0.3 }]}>{item.iata}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.city} numberOfLines={1}>
+                <Text style={[type.bodyStrong, { color: colors.text }]} numberOfLines={1}>
                   {item.city}
                 </Text>
-                <Text style={styles.name} numberOfLines={1}>
+                <Text style={[type.footnote, { color: colors.textSecondary }]} numberOfLines={1}>
                   {item.name}, {item.country}
                 </Text>
               </View>
-              <Icon name="chevronRight" size={18} color={colors.textMuted} />
+              <Icon name="chevronRight" size={18} color={colors.textSecondary} />
             </Pressable>
           )}
         />
@@ -126,13 +140,12 @@ export default function AirportPicker() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.navy },
-  sheet: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: space.lg, paddingTop: space.xl, gap: space.md },
-  loading: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.sm },
-  loadingText: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary },
-  row: { flexDirection: "row", alignItems: "center", minHeight: 64, paddingVertical: space.sm, paddingHorizontal: space.sm, borderRadius: radius.md, gap: space.md },
-  codeBox: { width: 56, height: 44, borderRadius: radius.sm, backgroundColor: colors.indigoSoft, alignItems: "center", justifyContent: "center" },
-  code: { fontFamily: fonts.heavy, fontSize: 16, color: colors.indigoInk, letterSpacing: 0.3 },
-  city: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  name: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
+  screen: { flex: 1, backgroundColor: colors.white },
+  head: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.md },
+  title: { flex: 1, textAlign: "center", color: colors.text },
+  body: { flex: 1, paddingHorizontal: space.lg, gap: space.md },
+  loading: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.xs },
+  row: { flexDirection: "row", alignItems: "center", minHeight: 64, paddingVertical: space.sm, paddingHorizontal: space.xs, borderRadius: radius.input, gap: space.md },
+  codeBox: { width: 52, height: 40, borderRadius: radius.sm, backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.lightBorder, marginLeft: 64 },
 });

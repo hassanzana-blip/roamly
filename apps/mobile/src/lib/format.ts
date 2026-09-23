@@ -60,7 +60,42 @@ export function formatDuration(minutes: number): string {
 
 export function formatStops(stops: number): string {
   if (stops <= 0) return "Direkte";
-  return stops === 1 ? "1 stopp" : `${stops} stopp`;
+  return stops === 1 ? "1 mellomlanding" : `${stops} mellomlandinger`;
+}
+
+/** Hele reisen: «Direkte», «1 mellomlanding hver vei» – «Opptil» bare når strekningene er ulike. */
+export function stopsSummary(slices: readonly { stops: number }[]): string {
+  const max = slices.reduce((m, s) => Math.max(m, s.stops), 0);
+  if (max === 0) return "Direkte";
+  if (slices.length === 1) return formatStops(max);
+  return slices.every((s) => s.stops === max) ? `${formatStops(max)} hver vei` : `Opptil ${formatStops(max).toLowerCase()}`;
+}
+
+/**
+ * Hvor mange kalenderdøgn ankomsten ligger etter avgangen, regnet på datoene
+ * slik leverandøren oppga dem (lokal tid på hver flyplass). 1 = «+1».
+ */
+export function dayOffset(departingAt: string, arrivingAt: string): number {
+  const a = parseIsoDate(departingAt);
+  const b = parseIsoDate(arrivingAt);
+  if (!a || !b) return 0;
+  return Math.round((Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 86_400_000);
+}
+
+/** «23. okt.» – kort dato uten ukedag. */
+export function formatShortDay(iso: string): string {
+  const p = parseIsoDate(iso);
+  return p ? `${p.d}. ${MONTHS[p.m - 1]}` : "";
+}
+
+/** Hilsen etter klokken på telefonen. */
+export function greeting(now: Date = new Date()): string {
+  const h = now.getHours();
+  if (h >= 5 && h < 10) return "God morgen";
+  if (h >= 10 && h < 12) return "God formiddag";
+  if (h >= 12 && h < 18) return "God ettermiddag";
+  if (h >= 18) return "God kveld";
+  return "Hei";
 }
 
 /** Lokal kalenderdato (enhetens tid) som YYYY-MM-DD. */

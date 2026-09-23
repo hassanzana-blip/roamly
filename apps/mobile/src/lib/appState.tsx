@@ -31,11 +31,16 @@ type AppContextValue = {
   form: SearchForm;
   setForm: (update: (f: SearchForm) => SearchForm) => void;
   search: SearchState;
-  /** Starter søket for skjemaet. Returnerer feilmelding hvis skjemaet ikke er gyldig. */
-  runSearch: () => string | null;
+  /**
+   * Starter søket for skjemaet (med ev. endringer, f.eks. et reisemål valgt fra
+   * et kort). Returnerer feilmelding hvis skjemaet ikke er gyldig.
+   */
+  runSearch: (patch?: Partial<SearchForm>) => string | null;
   /** Sortering og filtre på resultatlisten. Nullstilles ved hvert nytt søk. */
   view: ResultsView;
   setView: (update: (v: ResultsView) => ResultsView) => void;
+  /** Måler klikket ut (nettets flights.trackProviderClick). Venter aldri, feiler aldri synlig. */
+  trackClick: (offerId: string) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -142,14 +147,16 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
 
   const setForm = useCallback((update: (f: SearchForm) => SearchForm) => setFormState((f) => update(f)), []);
 
-  const runSearch = useCallback((): string | null => {
-    const problem = validateForm(form);
+  const runSearch = useCallback((patch?: Partial<SearchForm>): string | null => {
+    const next = patch ? { ...form, ...patch } : form;
+    if (patch) setFormState(next);
+    const problem = validateForm(next);
     if (problem) return problem;
     const seq = ++searchSeq.current;
     setSearch({ status: "loading" });
     setViewState(DEFAULT_VIEW);
     api
-      .search(toSearchRequest(form, sessionId))
+      .search(toSearchRequest(next, sessionId))
       .then((result) => {
         if (seq === searchSeq.current) setSearch({ status: "done", result });
       })
@@ -163,9 +170,17 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
 
   const setView = useCallback((update: (v: ResultsView) => ResultsView) => setViewState((v) => update(v)), []);
 
+  const trackClick = useCallback(
+    (offerId: string) => {
+      // «Fire and forget», som på nettet: lenken åpnes uansett hva målingen svarer.
+      api.trackProviderClick(offerId, sessionId).catch(() => undefined);
+    },
+    [api, sessionId],
+  );
+
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, form, setForm, search, runSearch, view, setView }),
-    [api, auth, login, register, logout, form, setForm, search, runSearch, view, setView],
+    () => ({ api, auth, login, register, logout, form, setForm, search, runSearch, view, setView, trackClick }),
+    [api, auth, login, register, logout, form, setForm, search, runSearch, view, setView, trackClick],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -6,7 +6,8 @@ import { mobileFlightsRouter } from "./mobileFlights";
  * Appens API (/api/mobile/trpc): flysøk/sammenligning og vanlig kundeinnlogging.
  *
  * Bare det iOS-utgaven faktisk bruker er montert. flights er appens egen
- * variant (api/mobileFlights.ts): flyplassøk og søk med NOK-sammenligningspris.
+ * variant (api/mobileFlights.ts): flyplassøk, søk med NOK-sammenligningspris
+ * og nettets egen klikkmåling før kunden sendes til leverandøren.
  * Bestilling (checkout, orders), konto, prisovervåking, reiseplaner og alle
  * interne ruter (staffAuth, admin,
  * team, partners, expenses …) finnes ikke her – de kan verken kalles eller ses

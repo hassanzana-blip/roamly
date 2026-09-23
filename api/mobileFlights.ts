@@ -1,6 +1,6 @@
 import { createRouter, publicQuery } from "./middleware";
 import type { TrpcContext } from "./context";
-import { airportsProcedure, runFlightSearch, searchSchema } from "./flights";
+import { airportsProcedure, runFlightSearch, searchSchema, trackProviderClickProcedure } from "./flights";
 import { toTRPCError } from "./lib/errors";
 import { computeServiceFeeMinor, loadPricingOverrides, type PricingOverrides } from "./lib/pricing";
 import { fromMinor, toMinor } from "./lib/money";
@@ -117,4 +117,10 @@ export const mobileFlightsRouter = createRouter({
       throw toTRPCError(err);
     }
   }),
+  /**
+   * Samme klikkmåling som nettet, urørt: appen sender bare tilbuds-id og
+   * søkeøkt, serveren slår opp resten. Lenken appen åpner etterpå er
+   * leverandørens egen (booking.url) – ingen ny omdirigering hos HelloSky.
+   */
+  trackProviderClick: trackProviderClickProcedure,
 });

@@ -1,8 +1,8 @@
-import { offerExpired, sellerName } from "../offer";
+import { baggageFacts, conditionFacts, handoffLabel, offerExpired, priceBasis, providerHandoff, sellerName, tripKind } from "../offer";
 import { resolveApiBase } from "../config";
-import { formatDay, formatDuration, formatStops, formatTime } from "../format";
+import { formatDay, formatDuration, formatStops, formatTime, stopsSummary } from "../format";
 import { OSLO, initialForm, toSearchRequest, validateForm, type SearchForm } from "../searchForm";
-import { EUR_HS_OFFER, NOK_OFFER, SEK_OFFER } from "../../test/fixtures";
+import { EUR_HS_OFFER, KAYAK_URL, NOK_OFFER, SAME_TRIP_OTHER_SELLER, SEK_OFFER, UNSAFE_LINK_OFFER } from "../../test/fixtures";
 
 describe("tilbudsfakta (ingen bestilling i appen)", () => {
   it("selgerens navn vises bare når leverandøren oppgir det", () => {
@@ -10,6 +10,46 @@ describe("tilbudsfakta (ingen bestilling i appen)", () => {
     expect(sellerName(NOK_OFFER.offer)).toBe("Kiwi.com");
     expect(sellerName(EUR_HS_OFFER.offer)).toBeNull();
     expect(sellerName({ ...SEK_OFFER.offer, booking: { ...SEK_OFFER.offer.booking!, provider: { code: "X", name: "  " } } })).toBeNull();
+  });
+
+  it("videre til leverandøren: nøyaktig samme https-lenke, urørt; alt annet åpnes ikke", () => {
+    const h = providerHandoff(SEK_OFFER.offer);
+    expect(h).toMatchObject({ kind: "external", url: KAYAK_URL, providerName: "SAS", sellerKind: "airline", disclosure: "Billetten kan ikke refunderes." });
+    if (h.kind !== "external") throw new Error();
+    expect(handoffLabel(h)).toBe("Se tilbud hos SAS");
+    expect(providerHandoff(EUR_HS_OFFER.offer)).toEqual({ kind: "not_in_app" });
+    expect(providerHandoff(UNSAFE_LINK_OFFER.offer)).toEqual({ kind: "invalid_link" });
+    for (const url of ["javascript:alert(1)", "https://ok.example/a b", "https://ok.example/\u0000x", "HTTPS://", "ftp://x.example", "https://user@evil.example/"]) {
+      expect(providerHandoff({ ...SEK_OFFER.offer, booking: { ...SEK_OFFER.offer.booking!, url } })).toEqual({ kind: "invalid_link" });
+    }
+  });
+
+  it("vilkår bare fra `conditions`; «refundable: false» alene er ingen påstand", () => {
+    expect(SEK_OFFER.offer.refundable).toBe(false);
+    expect(conditionFacts(SEK_OFFER.offer)).toEqual([]);
+    expect(conditionFacts(SAME_TRIP_OTHER_SELLER.offer)).toEqual([
+      { key: "refund", label: "Refusjon før avreise", value: "Ikke tillatt", allowed: false },
+      { key: "change", label: "Endring før avreise", value: "Tillatt ifølge tilbyderen", allowed: true },
+    ]);
+    // Gebyrbeløp vises aldri (kan være i annen valuta) – bare om det er tillatt.
+    const withFee = conditionFacts({ ...SEK_OFFER.offer, conditions: { changeBeforeDeparture: { allowed: true, penaltyAmount: "50.00", penaltyCurrency: "EUR" } } });
+    expect(withFee).toEqual([{ key: "change", label: "Endring før avreise", value: "Tillatt ifølge tilbyderen", allowed: true }]);
+  });
+
+  it("bagasje: «ikke oppgitt» er ikke «ikke inkludert»", () => {
+    expect(baggageFacts(SEK_OFFER.offer).map((f) => [f.key, f.state, f.value])).toEqual([
+      ["carryOn", "included", "Inkludert"],
+      ["checked", "unknown", "Ikke oppgitt"],
+    ]);
+    const none = { ...SEK_OFFER.offer, baggage: { carryOnBags: 0, checkedBags: 0 } };
+    expect(baggageFacts(none).map((f) => f.value)).toEqual(["Ikke inkludert", "Ikke inkludert"]);
+  });
+
+  it("prisen gjelder alle reisende og hele reisen", () => {
+    expect(priceBasis(SEK_OFFER.offer)).toBe("Totalt for 1 voksen · Tur-retur");
+    const family = { ...SEK_OFFER.offer, passengers: [{ id: "a", type: "adult" as const }, { id: "b", type: "adult" as const }, { id: "c", type: "child" as const, age: 8 }, { id: "d", type: "infant_without_seat" as const, age: 1 }] };
+    expect(priceBasis(family)).toBe("Totalt for 2 voksne, 1 barn, 1 spedbarn · Tur-retur");
+    expect(tripKind({ ...SEK_OFFER.offer, slices: SEK_OFFER.offer.slices.slice(0, 1) })).toBe("Én vei");
   });
 
   it("utløpte tilbud gjenkjennes", () => {
@@ -71,6 +111,12 @@ describe("norske datoer og tider", () => {
     expect(formatDuration(275)).toBe("4 t 35 min");
     expect(formatDuration(45)).toBe("45 min");
     expect(formatStops(0)).toBe("Direkte");
-    expect(formatStops(2)).toBe("2 stopp");
+    expect(formatStops(1)).toBe("1 mellomlanding");
+    expect(formatStops(2)).toBe("2 mellomlandinger");
+    // Hele reisen: «Opptil» bare når ut- og hjemreise har ulikt antall.
+    expect(stopsSummary([{ stops: 0 }, { stops: 0 }])).toBe("Direkte");
+    expect(stopsSummary([{ stops: 1 }])).toBe("1 mellomlanding");
+    expect(stopsSummary([{ stops: 1 }, { stops: 1 }])).toBe("1 mellomlanding hver vei");
+    expect(stopsSummary([{ stops: 0 }, { stops: 2 }])).toBe("Opptil 2 mellomlandinger");
   });
 });

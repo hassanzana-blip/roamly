@@ -22,6 +22,17 @@ jest.mock("expo-secure-store", () => {
   };
 });
 
+// Leverandørens side åpnes i SFSafariViewController – her et spionobjekt.
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(async () => ({ type: "dismiss" })),
+}));
+
+// Bilder: en View med samme tilgjengelighetsetikett.
+jest.mock("expo-image", () => {
+  const { View } = require("react-native");
+  const Image = (props: { testID?: string; accessibilityLabel?: string }) => <View testID={props.testID} accessibilityLabel={props.accessibilityLabel} />;
+  return { __esModule: true, Image };
+});
 
 jest.mock("expo-crypto", () => ({
   randomUUID: () => "11111111-2222-4333-8444-555555555555",
@@ -29,14 +40,17 @@ jest.mock("expo-crypto", () => ({
 
 jest.mock("@react-native-community/datetimepicker", () => {
   const { View } = require("react-native");
-  const Picker = (props: { testID?: string; accessibilityLabel?: string }) => <View testID={props.testID} accessibilityLabel={props.accessibilityLabel} />;
+  // onChange videresendes, så tester kan velge en dato: fireEvent(picker, "onChange", {}, dato).
+  const Picker = (props: { testID?: string; accessibilityLabel?: string; onChange?: (e: unknown, d?: Date) => void }) => (
+    <View testID={props.testID} accessibilityLabel={props.accessibilityLabel} {...({ onChange: props.onChange } as object)} />
+  );
   return { __esModule: true, default: Picker };
 });
 
 jest.mock("react-native-svg", () => {
   const { View } = require("react-native");
   const Stub = () => <View />;
-  return { __esModule: true, default: Stub, Svg: Stub, Path: Stub, Circle: Stub, Rect: Stub };
+  return { __esModule: true, default: Stub, Svg: Stub, Path: Stub, Circle: Stub, Rect: Stub, Defs: Stub, LinearGradient: Stub, Stop: Stub };
 });
 
 // expo-router: navigasjonen registreres, skjermene rendres direkte.
