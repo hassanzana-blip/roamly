@@ -291,6 +291,50 @@ describe("mobil flights.trackProviderClick: nettets klikkmåling, urørt", () =>
     expect(await getDb().select().from(providerClicks)).toHaveLength(0);
   });
 
+  it("KAYAK-tilbud fra et ekte søk måles – på appens og nettets endepunkt", async () => {
+    // KAYAK-id-er (kyk_…) kan ikke slås opp hos leverandøren i etterkant, og
+    // resolveOffer avviser dem med vilje (de bestilles aldri i vår checkout).
+    // Klikket måles derfor mot tilbudet serveren selv returnerte i søket.
+    const kayakId = "kyk_sok123.res9.0";
+    const provided = { ...providerResult(), offers: [external(kayakId, "1234.50", "NOK", "Norwegian"), external("kyk_sok123.res9.1", "1500.00", "EUR", "Kiwi.com")] };
+    useProvider(provided);
+    await mobile(mobileCtx()).flights.search(INPUT);
+
+    const app1 = await mobile(mobileCtx()).flights.trackProviderClick({ offerId: kayakId, sessionId: "app-okt-kayak" });
+    expect(app1.clickRef).toMatch(/^[0-9a-f-]{36}$/);
+    const [row] = await getDb().select().from(providerClicks);
+    const offer = provided.offers[0];
+    expect(row).toMatchObject({
+      clickRef: app1.clickRef,
+      provider: "kayak",
+      sellerName: "Norwegian",
+      sessionRef: "app-okt-kayak",
+      originIata: offer.slices[0].origin.iata,
+      destinationIata: offer.slices[0].destination.iata,
+      departDate: offer.slices[0].departingAt.slice(0, 10),
+      shownPriceMinor: 123450,
+      currency: "NOK",
+      sandbox: true,
+    });
+
+    // Samme prosedyre på nettet: tilbudet fra appens søk er også kjent der (samme server).
+    const web1 = await web(makeCtx()).flights.trackProviderClick({ offerId: "kyk_sok123.res9.1" });
+    expect(web1.clickRef).toMatch(/^[0-9a-f-]{36}$/);
+    expect((await getDb().select().from(providerClicks)).map((r) => [r.sellerName, r.shownPriceMinor, r.currency])).toEqual([
+      ["Norwegian", 123450, "NOK"],
+      ["Kiwi.com", 150000, "EUR"],
+    ]);
+
+    // Nettets tilbudsoppslag og checkout avviser fortsatt KAYAK-tilbud.
+    await expectAppCode(web(makeCtx()).flights.getOffer({ offerId: kayakId }), "SUPPLIER_REJECTED");
+  });
+
+  it("KAYAK-id som ikke kom fra et søk her: ingen rad – klienten kan ikke dikte opp rute eller pris", async () => {
+    const res = await mobile(mobileCtx()).flights.trackProviderClick({ offerId: "kyk_oppdiktet.res1.0" });
+    expect(res).toEqual({ clickRef: null });
+    expect(await getDb().select().from(providerClicks)).toHaveLength(0);
+  });
+
   it("over HTTP på appens endepunkt, uten token", async () => {
     useProvider(providerResult());
     const offer = base();

@@ -128,6 +128,91 @@ export async function resolveOffer(offerId: string): Promise<Offer> {
   return offer;
 }
 
+// ─── Klikkfakta for KAYAK-tilbud ─────────────────────────────────────────────
+// KAYAK-tilbud kan ikke slås opp hos leverandøren i etterkant, og resolveOffer
+// avviser dem med vilje (de bestilles aldri i vår checkout). Uten dette fikk
+// hvert klikk på et KAYAK-tilbud clickRef null og ingen rad i provider_clicks –
+// altså nettopp klikkene metasøket lever av. Når serveren selv har returnert
+// tilbudet i et søk, huskes de få feltene klikkmålingen trenger, så klienten
+// fortsatt bare sender tilbuds-id-en og aldri kan diktere rute eller pris.
+
+type ClickFacts = {
+  source: Offer["source"];
+  sellerName: string;
+  originIata: string;
+  destinationIata: string;
+  departDate: string;
+  returnDate: string | null;
+  adults: number;
+  children: number;
+  infants: number;
+  cabin: string;
+  carrierIata: string;
+  stops: number;
+  shownPriceMinor: number | null;
+  currency: string;
+};
+
+function clickFactsOf(offer: Offer): ClickFacts {
+  const first = offer.slices[0]!;
+  const last = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : undefined;
+  const paxOf = (type: string) => offer.passengers.filter((p) => p.type === type).length;
+  const amount = Math.round(Number(offer.totalAmount) * 100);
+  return {
+    source: offer.source,
+    sellerName: offer.booking?.provider?.name ?? offer.owner.name,
+    originIata: first.origin.iata,
+    destinationIata: first.destination.iata,
+    departDate: first.departingAt.slice(0, 10),
+    returnDate: last && last.destination.iata === first.origin.iata ? last.departingAt.slice(0, 10) : null,
+    adults: Math.max(1, paxOf("adult")),
+    children: paxOf("child"),
+    infants: paxOf("infant_without_seat"),
+    cabin: first.segments[0]?.cabinClass ?? "economy",
+    carrierIata: offer.owner.iata,
+    stops: first.stops,
+    shownPriceMinor: Number.isFinite(amount) && amount > 0 ? amount : null,
+    currency: offer.totalCurrency,
+  };
+}
+
+/** Lenge nok til at et resultat som fortsatt vises (KAYAK_RESULT_TTL_MS) kan klikkes, med margin. */
+const CLICK_FACTS_TTL_MS = 60 * 60_000;
+/** Små poster (ingen tilbudsobjekter), så taket holder minnet lavt også ved mange søk. */
+const CLICK_FACTS_MAX = 20_000;
+const kayakClickFacts = new Map<string, { expires: number; facts: ClickFacts }>();
+
+function rememberKayakClickFacts(result: SearchResult): void {
+  const expires = Date.now() + CLICK_FACTS_TTL_MS;
+  for (const offer of result.offers) {
+    if (!isKayakOffer(offer.id)) continue;
+    try {
+      kayakClickFacts.delete(offer.id); // ny innsettingsrekkefølge = nyest sist
+      kayakClickFacts.set(offer.id, { expires, facts: clickFactsOf(offer) });
+    } catch {
+      // Et tilbud uten strekninger kan ikke måles; det skal ikke velte søket.
+    }
+  }
+  for (const key of kayakClickFacts.keys()) {
+    if (kayakClickFacts.size <= CLICK_FACTS_MAX) break;
+    kayakClickFacts.delete(key); // eldste først
+  }
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of kayakClickFacts) if (v.expires < now) kayakClickFacts.delete(k);
+}, 60_000).unref();
+
+async function clickFactsFor(offerId: string): Promise<ClickFacts> {
+  if (isKayakOffer(offerId)) {
+    const hit = kayakClickFacts.get(offerId);
+    if (!hit || hit.expires < Date.now()) throw new AppError("OFFER_NOT_FOUND");
+    return hit.facts;
+  }
+  return clickFactsOf(await resolveOffer(offerId));
+}
+
 /**
  * Selve søket: rategrense, validering, leverandørvalg, cache og måling. Delt
  * mellom nettets flights.search og appens NOK-søk (api/mobileFlights.ts), så
@@ -171,6 +256,7 @@ export async function runFlightSearch(input: SearchInput, ctx: TrpcContext): Pro
   const last = input.slices.length > 1 ? input.slices[input.slices.length - 1] : undefined;
   const paxOf = (type: string) => input.passengers.filter((p) => p.type === type).length;
   const track = (result: SearchResult | null, errorCode: string | null) => {
+    if (result) rememberKayakClickFacts(result);
     // «totalAmount» er en desimalstreng fra leverandøren. Vi regner den om
     // til minste enhet her og aldri til flyttall i databasen.
     const amounts = (result?.offers ?? [])
@@ -263,17 +349,13 @@ export const trackProviderClickProcedure = publicQuery
   .input(z.object({ offerId: z.string().min(1).max(128), sessionId: z.string().max(64).optional() }))
   .mutation(async ({ input, ctx }): Promise<{ clickRef: string | null }> => {
     try {
-      const offer = await resolveOffer(input.offerId);
-      const first = offer.slices[0]!;
-      const last = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : undefined;
-      const paxOf = (type: string) => offer.passengers.filter((p) => p.type === type).length;
-      const amount = Math.round(Number(offer.totalAmount) * 100);
+      const { source: offerSource, ...facts } = await clickFactsFor(input.offerId);
       // Sandkassestatus hører til leverandøren, ikke til tilbudet. Et klikk
       // på et testtilbud skal aldri telle som forretning.
-      const source = offer.source ?? "unknown";
+      const source = offerSource ?? "unknown";
       let sandbox = false;
       try {
-        sandbox = getFlightProvider(offer.source).sandbox;
+        sandbox = getFlightProvider(offerSource).sandbox;
       } catch {
         sandbox = true; // ukjent opphav teller ikke som ekte
       }
@@ -281,19 +363,7 @@ export const trackProviderClickProcedure = publicQuery
         customerId: ctx.customer?.customerId ?? null,
         sessionRef: input.sessionId ?? null,
         provider: source,
-        sellerName: offer.booking?.provider?.name ?? offer.owner.name,
-        originIata: first.origin.iata,
-        destinationIata: first.destination.iata,
-        departDate: first.departingAt.slice(0, 10),
-        returnDate: last && last.destination.iata === first.origin.iata ? last.departingAt.slice(0, 10) : null,
-        adults: Math.max(1, paxOf("adult")),
-        children: paxOf("child"),
-        infants: paxOf("infant_without_seat"),
-        cabin: first.segments[0]?.cabinClass ?? "economy",
-        carrierIata: offer.owner.iata,
-        stops: first.stops,
-        shownPriceMinor: Number.isFinite(amount) && amount > 0 ? amount : null,
-        currency: offer.totalCurrency,
+        ...facts,
         device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
         market: marketFrom(ctx.req.headers),
         sandbox,
