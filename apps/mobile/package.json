@@ -42,7 +42,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "jest",
-    "export:ios": "expo export --platform ios",
+    "export:ios": "expo export --platform ios --clear",
     "check:bundle": "node scripts/check-bundle.mjs"
   },
   "private": true,
