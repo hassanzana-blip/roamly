@@ -13,6 +13,14 @@ const en = {
   noneTitle: "No airport found",
   noneBody: "No matches. Try another name or an airport code.",
   rowLabel: (city: string, name: string, country: string, iata: string) => `${city}, ${name}, ${country}, code ${iata}`,
+  recentTitle: "Recent",
+  suggestDestinations: "Destinations to explore",
+  suggestOrigins: "Airports in Norway",
+  remember: "Remember as my usual departure airport",
+  rememberHint: "Saved only on this phone. New searches start from it.",
+  usual: (city: string, iata: string) => `Usual departure airport: ${city} (${iata})`,
+  forget: "Forget",
+  clearQuery: "Clear the search",
 };
 
 const nb: typeof en = {
@@ -28,6 +36,14 @@ const nb: typeof en = {
   emptyBody: "Skriv minst to bokstaver: by, flyplass eller kode, for eksempel Barcelona eller BCN.",
   noneTitle: "Fant ingen flyplass",
   noneBody: "Ingen treff. Prøv et annet navn eller en flyplasskode.",
+  recentTitle: "Nylige",
+  suggestDestinations: "Reisemål å utforske",
+  suggestOrigins: "Flyplasser i Norge",
+  remember: "Husk som min vanlige avreiseflyplass",
+  rememberHint: "Lagres bare på denne telefonen. Nye søk starter derfra.",
+  usual: (city, iata) => `Vanlig avreiseflyplass: ${city} (${iata})`,
+  forget: "Glem",
+  clearQuery: "Tøm søket",
   rowLabel: (city, name, country, iata) => `${city}, ${name}, ${country}, kode ${iata}`,
 };
 

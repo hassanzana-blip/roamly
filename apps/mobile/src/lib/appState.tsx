@@ -6,10 +6,11 @@ import type { MobileSearchResult } from "@contracts/mobileSearch";
 import { ApiError, createApiClient, type ApiClient, type RegisterRequest } from "./api";
 import { API_BASE } from "./config";
 import { clearSession, loadSession, saveSession } from "./tokenStore";
-import { initialForm, toSearchRequest, validateForm, type SearchForm } from "./searchForm";
+import { initialForm, toSearchRequest, validateForm, type AirportChoice, type SearchForm } from "./searchForm";
 import { DEFAULT_VIEW, type ResultsView } from "./resultsView";
 import { parseDraft } from "./draft";
 import { readPref, writePref } from "./localStore";
+import { addRecent, parseHomeAirport, parseRecent, recentKey, type RecentSearch } from "./recent";
 import { I18nProvider } from "../i18n";
 import type { Locale } from "../i18n/types";
 import type { FormErrorCode } from "../i18n/ns/search";
@@ -59,6 +60,13 @@ type AppContextValue = {
   setView: (update: (v: ResultsView) => ResultsView) => void;
   /** Måler klikket ut (nettets flights.trackProviderClick). Venter aldri, feiler aldri synlig. */
   trackClick: (offerId: string) => void;
+  /** Nylige søk på denne telefonen (nyeste først). Lagres når et gyldig søk kjøres. */
+  recent: RecentSearch[];
+  removeRecent: (key: string) => void;
+  clearRecent: () => void;
+  /** Foretrukket avreiseflyplass – bare når kunden selv har valgt det. Brukes som «Fra» i et nytt skjema. */
+  homeAirport: AirportChoice | null;
+  setHomeAirport: (a: AirportChoice | null) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -102,7 +110,23 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
 
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
   // Søkeutkastet fra forrige gang (bare skjemaet), ellers standardskjemaet.
-  const [form, setFormState] = useState<SearchForm>(() => ({ ...(readPref("draft", (v) => parseDraft(v)) ?? initialForm()), ...initial }));
+  const [homeAirport, setHomeAirportState] = useState<AirportChoice | null>(() => readPref("homeAirport", parseHomeAirport));
+  const [form, setFormState] = useState<SearchForm>(() => {
+    const draft = readPref("draft", (v) => parseDraft(v));
+    const base = draft ?? { ...initialForm(), origin: homeAirport ?? initialForm().origin };
+    return { ...base, ...initial };
+  });
+  const [recent, setRecent] = useState<RecentSearch[]>(() => readPref("recent", (v) => parseRecent(v)) ?? []);
+  const saveRecent = useCallback((next: RecentSearch[]) => {
+    setRecent(next);
+    writePref("recent", next.length ? next : null);
+  }, []);
+  const removeRecent = useCallback((key: string) => saveRecent(recent.filter((r) => recentKey(r) !== key)), [recent, saveRecent]);
+  const clearRecent = useCallback(() => saveRecent([]), [saveRecent]);
+  const setHomeAirport = useCallback((a: AirportChoice | null) => {
+    setHomeAirportState(a);
+    writePref("homeAirport", a);
+  }, []);
   useEffect(() => {
     const id = setTimeout(() => writePref("draft", form), 400);
     return () => clearTimeout(id);
@@ -237,6 +261,7 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
     if (patch) setFormState(next);
     const problem = validateForm(next);
     if (problem) return problem;
+    saveRecent(addRecent(recent, next));
     const seq = ++searchSeq.current;
     searchAbort.current?.abort();
     const abort = new AbortController();
@@ -253,7 +278,7 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
         setSearch({ status: "error", error: err });
       });
     return null;
-  }, [api, form, sessionId]);
+  }, [api, form, sessionId, recent, saveRecent]);
 
   const cancelSearch = useCallback(() => {
     searchSeq.current++;
@@ -273,8 +298,8 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
   );
 
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick }),
-    [api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick],
+    () => ({ api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport }),
+    [api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
