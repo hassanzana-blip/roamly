@@ -173,3 +173,13 @@ describe("endre søket", () => {
     expect(router.back).not.toHaveBeenCalled();
   });
 });
+
+describe("fra kort til detaljer", () => {
+  it("første kort åpner detaljene for akkurat det tilbudet (kortets billigste tilbyder)", async () => {
+    const router = (globalThis as unknown as { __router: { push: jest.Mock } }).__router;
+    await renderResults(SEARCH_RESULT);
+    const firstId = cardIds()[0]!.replace(/^offer-/, "");
+    await fireEvent.press(screen.getAllByTestId(/^offer-/)[0]!);
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/tilbud/[id]", params: { id: firstId } });
+  });
+});
