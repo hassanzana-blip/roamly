@@ -512,7 +512,7 @@ function StayResultsInner() {
           )}
           {error && (
             <p role="alert" className="rounded-lg border border-destructive/30 bg-card p-8 text-center text-sm text-muted-foreground">
-              {humanMessage(error)}
+              {humanMessage(error, undefined, "search")}
             </p>
           )}
 

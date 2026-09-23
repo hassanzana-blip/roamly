@@ -12,6 +12,7 @@ import { DESTINATIONS } from "@/content/discover";
 import { useSavedDestinations } from "@/lib/useAccount";
 import { useCollections } from "@/lib/collections";
 import ResultCard from "@/components/offers/ResultCard";
+import { groupOffers } from "@/lib/itineraryGroups";
 import OfferDetailsSheet from "@/components/offers/OfferDetailsSheet";
 import {
   DropdownMenu,
@@ -98,6 +99,34 @@ function CheckRow({ checked, onChange, label, code }: { checked: boolean; onChan
 const PROVIDERS = ["duffel", "travelport", "kayak", "demo"] as const;
 type ProviderParam = (typeof PROVIDERS)[number];
 const providerParam = (v: string | null): ProviderParam | undefined => (PROVIDERS as readonly string[]).includes(v ?? "") ? (v as ProviderParam) : undefined;
+
+/**
+ * Nabodatoer som ekte søk.
+ *
+ * «Prøv andre datoer» er et råd. Dette er lenker som faktisk kjører søket,
+ * bygget av den søkestrengen brukeren allerede står i, så vi lover ingen
+ * treff – bare et søk som er verdt å prøve.
+ */
+function NearbyDates({ links }: { links: { days: number; href: string; label: string }[] }) {
+  const t = useT();
+  if (!links.length) return null;
+  return (
+    <div className="mt-6 border-t border-border pt-5">
+      <p className="text-[14px] font-semibold">{t("sr.nearby.title")}</p>
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
+        {links.map((l) => (
+          <Link
+            key={l.days}
+            to={l.href}
+            className="press inline-flex min-h-11 items-center rounded-xl border border-border bg-card px-4 text-[15px] font-semibold text-azure-ink hover:border-foreground/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function SearchResults() {
   const t = useT();
@@ -365,6 +394,38 @@ export default function SearchResults() {
     }
     return rank(filteredBase, sort, totalOf);
   }, [filteredBase, sort, totalOf]);
+
+  // Samme reise solgt av flere kanaler blir ett kort. Grupperingen skjer etter
+  // filtrering og rangering, så den kan verken skjule en reise eller flytte på
+  // rekkefølgen – den slår bare sammen det som allerede var likt.
+  const groups = useMemo(() => groupOffers(filtered, totalOf), [filtered, totalOf]);
+
+  /**
+   * «Ingen treff» skal ikke være en blindvei. Nabodatoene bygges av søket
+   * brukeren allerede har gjort, så lenkene er ekte søk – ikke forslag vi
+   * ikke kan innfri.
+   */
+  const nearbyDateLinks = useMemo(() => {
+    if (isMulti || !depart) return [];
+    const shift = (iso: string, days: number) => {
+      const d = new Date(`${iso}T12:00:00Z`);
+      if (Number.isNaN(d.getTime())) return null;
+      d.setUTCDate(d.getUTCDate() + days);
+      return d.toISOString().slice(0, 10);
+    };
+    const today = new Date().toISOString().slice(0, 10);
+    return [-3, -1, 1, 3]
+      .map((days) => {
+        const nextDepart = shift(depart, days);
+        const nextRet = ret ? shift(ret, days) : null;
+        if (!nextDepart || nextDepart < today || (ret && !nextRet)) return null;
+        const next = new URLSearchParams(params);
+        next.set("depart", nextDepart);
+        if (nextRet) next.set("ret", nextRet);
+        return { days, href: `/sok?${next.toString()}`, label: formatDayMonth(nextDepart) };
+      })
+      .filter((x): x is { days: number; href: string; label: string } => x !== null);
+  }, [isMulti, depart, ret, params]);
 
   const summary = useMemo(() => {
     if (!filteredBase.length) return null;
@@ -1057,10 +1118,11 @@ export default function SearchResults() {
             <div role="alert" className="card-soft p-8 text-center">
               <ConnectionProblemSpot className="mx-auto" />
               <h2 className="t-h2 mt-4">{t("sr.error.title")}</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{humanMessage(search.error)}</p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{humanMessage(search.error, undefined, "search")}</p>
               <Button className="mt-6 rounded-full" onClick={doSearch}>
                 <RefreshCw aria-hidden="true" /> {t("common.retry")}
               </Button>
+              <NearbyDates links={nearbyDateLinks} />
             </div>
           )}
 
@@ -1074,6 +1136,7 @@ export default function SearchResults() {
                   {t("sr.filter.reset")}
                 </Button>
               )}
+              {!allOffers.length && <NearbyDates links={nearbyDateLinks} />}
             </div>
           )}
 
@@ -1084,7 +1147,11 @@ export default function SearchResults() {
                 {result.sandbox || result.demoMode ? `${t("sr.examples")} · ` : ""}
                 {t("sr.totalfor", { party: partyLabel(passengers, t) })}
                 {" · "}
-                <span className="text-foreground">{t("sr.results", { count: filtered.length })}</span>
+                {/* Reisen er enheten brukeren sammenligner. Antall tilbud står
+                    ved siden av når de er flere, så tallet ikke ser ut til å ha
+                    krympet etter grupperingen. */}
+                <span className="text-foreground">{t("sr.results", { count: groups.length })}</span>
+                {groups.length !== filtered.length ? ` · ${t("sr.offers", { count: filtered.length })}` : ""}
                 {activeFilters > 0 ? ` ${t("sr.results.of", { count: allOffers.length })}` : ""}
                 {!externalBooking ? ` · ${t("sr.totalnote")}` : ""}
                 {expiresInMin !== null && expiresInMin > 0 ? ` · ${t("sr.validfor", { count: expiresInMin })}` : ""}
@@ -1095,20 +1162,21 @@ export default function SearchResults() {
                   {t("sr.partial")}
                 </p>
               )}
-              {filtered.slice(0, visible).map((offer, i) => (
-                <div key={offer.id} className={i < 8 ? "fade-up" : undefined} style={i < 8 ? { animationDelay: `${i * 45}ms` } : undefined}>
+              {groups.slice(0, visible).map((group, i) => (
+                <div key={group.key} className={i < 8 ? "fade-up" : undefined} style={i < 8 ? { animationDelay: `${i * 45}ms` } : undefined}>
                   <ResultCard
-                    offer={offer}
-                    totalMinor={totalOf(offer)}
+                    offer={group.best}
+                    totalMinor={group.bestTotal}
+                    sellers={group.sellers}
                     onDetails={setDetailsOffer}
                     onSelect={selectOffer}
                     badge={i === 0 && sort !== "earliest" ? tabs.find((x) => x.key === sort)?.label ?? sortLabel : undefined}
                   />
                 </div>
               ))}
-              {visible < filtered.length && (
+              {visible < groups.length && (
                 <Button variant="outline" size="lg" className="h-[52px] w-full rounded-xl text-[17px] font-bold" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
-                  {t("sr.more", { count: filtered.length - visible })}
+                  {t("sr.more", { count: groups.length - visible })}
                 </Button>
               )}
               {/* Hvor bestillingen skjer, og hva du bør sjekke der. */}

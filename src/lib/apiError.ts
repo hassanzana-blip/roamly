@@ -64,6 +64,22 @@ const MESSAGES: Record<AppCode, string> = {
   INTERNAL: "Noe gikk galt hos oss. Prøv igjen, eller kontakt oss hvis det fortsetter.",
 };
 
+/**
+ * Samme feilkode betyr ikke det samme i søket som i bestillingen.
+ * «Flyselskapet kunne ikke fullføre bestillingen» er riktig i kassen og
+ * direkte villedende på en resultatside der ingen har bestilt noe.
+ * Disse tekstene overstyrer standardteksten når vi vet at vi står i et søk.
+ */
+const SEARCH_MESSAGES: Partial<Record<AppCode, string>> = {
+  SUPPLIER_REJECTED: "Søket kunne ikke utføres med disse valgene. Sjekk flyplassene og datoene.",
+  SUPPLIER_UNAVAILABLE: "Søkemotoren svarer ikke akkurat nå. Prøv igjen om et øyeblikk.",
+  SUPPLIER_TIMEOUT: "Søket tok for lang tid. Prøv igjen, eller juster datoene.",
+  VALIDATION: "Søket mangler noe. Sjekk flyplassene, datoene og antall reisende.",
+  NOT_FOUND: "Vi fant ikke denne ruten. Sjekk flyplassene og datoene.",
+};
+
+export type MessageContext = "search" | "booking";
+
 type ErrorLike = {
   message?: unknown;
   data?: { appCode?: unknown; retryable?: unknown; details?: Record<string, unknown> } | null;
@@ -115,8 +131,9 @@ export function messageFor(code: AppCode | null | undefined, fallback = MESSAGES
  * når den kommer med en kjent appCode (da er den kuratert på serveren);
  * ellers vises standardteksten for koden, eller INTERNAL.
  */
-export function humanMessage(err: unknown, fallback?: string): string {
+export function humanMessage(err: unknown, fallback?: string, context: MessageContext = "booking"): string {
   const code = appCodeOf(err);
+  if (context === "search" && code && SEARCH_MESSAGES[code]) return SEARCH_MESSAGES[code]!;
   if (code === "RATE_LIMITED") {
     const s = retryAfterSecOf(err);
     return s ? `For mange forsøk. Vent ${s} sekunder og prøv igjen.` : MESSAGES.RATE_LIMITED;
