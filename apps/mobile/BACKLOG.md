@@ -112,7 +112,7 @@ the web, with a Bearer token instead of a cookie.
 | 5 | Demo / sandbox / partial / live shown truthfully | verified | `2b8ee6f`: "live" only with a known provider and `sandbox: false`, otherwise "unverified". Tests: `resultStatus.test.ts`, `languageTrust.test.tsx`. |
 | 6 | Price freshness, expired offers | partial | Results warn after 15 min and can refresh; an expired offer gets "search again" or "continue anyway" (`3046d65`). No revalidation is invented. Gap: on the details screen, expiry is checked only when it renders. |
 | 7 | Passenger totals and NOK FX provenance | partial | `priceMode: total`; Norges Bank rate and date shown; "approx." marked. Gap: the response's `priceMode` is not checked. |
-| 8 | Norwegian Bokmål first, typed dictionary, English as a saved choice | verified | `3046d65` + `2b8ee6f`: `nb: typeof en` catches missing keys at compile time. Owner brief (23 Sep): a fresh install starts in Bokmål, and a saved choice (English or Bokmål) is kept. The default is never written as a choice, on the phone or on the account: a profile save sends `locale` only when the customer chose one (`languageTrust.test.tsx`, `account.test.tsx`). iOS `CFBundleLocalizations` lives in app.json (Codex); `CFBundleDevelopmentRegion` is `nb` since `6b400fd` (native fallback language, needs a dev build to check). Gap: a prefs file with an unknown version is replaced on the next save, which loses a saved English choice (pre-existing in `localStore.ts`). |
+| 8 | Norwegian Bokmål first, typed dictionary, English as a saved choice | verified | `3046d65` + `2b8ee6f`: `nb: typeof en` catches missing keys at compile time. Owner brief (23 Sep): a fresh install starts in Bokmål, and a saved choice (English or Bokmål) is kept. The default is never written as a choice, on the phone or on the account: a profile save sends `locale` only when the customer chose one (`languageTrust.test.tsx`, `account.test.tsx`). iOS `CFBundleLocalizations` lives in app.json (Codex); `CFBundleDevelopmentRegion` is `nb` since `6b400fd` (native fallback language, needs a dev build to check). `00d18db`: a prefs file from another app version is kept byte for byte. Its known keys are still read, so a saved English choice keeps working. Only a deliberate language choice is merged in, keeping `v` and the unknown fields. A file that cannot be read is never overwritten, and a failed write never crashes (`localStore.test.ts`, `languageTrust.test.tsx`). |
 | 9 | Language switch persists, before login and in Profile, no restart | verified | `languageTrust.test.tsx` (switch, remount, same request in both languages). Saving the profile also stores the language on the account (`3285865`). |
 | 10 | Localized dates, plurals, a11y labels, validation, errors | partial | Formatters take the locale; errors map by code. Gap: some server messages are Norwegian only (e.g. VALIDATION details). |
 | 11 | Account locale on registration | verified | `3046d65`: register sends the app language (`api.test.ts`, `mobileClient.it.ts`). |
@@ -147,7 +147,7 @@ the web, with a Bearer token instead of a cookie.
 | 40 | Explore: search and context | partial | Static list of 24 destinations; no search or filter. |
 | 41 | Compact hierarchy | verified (web, simulated safe area) | `dbb5bb2`: result cards 359 → 243 pt. `dad15c4` (measured, `docs/evidence`): at 375/393/430 the Home destinations show 77/108/132 pt of photo above the tab bar, the next journey is 90/100/100 % visible, and the Details bar is 131 pt. The demo warning stays visible. Not yet checked on a device. |
 | 42 | Small and large phones, keyboard, long strings | partial | Safe areas on every screen. Gaps: no keyboard handling in the airport picker; fixed widths and one-line labels can clip long English strings; nothing checked on a device (web captures only). `dad15c4`: the offer bar and primary buttons wrap instead of clipping; at 135 % text nothing is cut and nothing overflows sideways (web approximation, not Dynamic Type). |
-| 43 | VoiceOver order, roles, announcements | partial | `b4ff05b`: modal sheets with the escape gesture; the backdrop hidden from VoiceOver; an adjustable stepper with a value and actions; results announced; the wordmark no longer a heading (`a11y.test.tsx`). Not yet checked with VoiceOver on a device. Next stage: explicit `accessibilityLanguage` (nb-NO/en-GB), so VoiceOver uses the app's language whatever the phone is set to. |
+| 43 | VoiceOver order, roles, announcements | partial | `b4ff05b`: modal sheets with the escape gesture; the backdrop hidden from VoiceOver; an adjustable stepper with a value and actions; results announced; the wordmark no longer a heading (`a11y.test.tsx`). `00d18db`: explicit `accessibilityLanguage` (nb-NO/en-GB) on every text, button, switch, field, accessible group and sheet root. The language names in Profile use their own language. A tree test checks every focusable element on Home, Results, Details, the airport picker and Profile, in both languages (`a11yLanguage.test.tsx`). Not yet checked with VoiceOver on a device. |
 | 44 | Dynamic Type, contrast, touch targets, reduced motion | partial | Theme contrast ≥ 4.5:1 (disabled text 4.37, exempt). `b4ff05b`: 44pt minimum on secondary buttons, segments and tabs; Reduce Motion makes sheets fade and photos appear without a transition. Gap: Dynamic Type never tested at large sizes. `dad15c4`: «Om «ca.»-priser» is a real 44 pt row; filter chips reach 44 pt inside their scroll view. |
 | 45 | Loading and tap feedback | partial | No skeletons. |
 | 46 | Performance measured | partial | Nothing measured yet. |
@@ -168,10 +168,9 @@ the web, with a Bearer token instead of a cookie.
 
 ## Known risks
 
-- Recorded for the next stage (Codex, 23 Sep):
-  - A prefs file with an unknown version must be kept, not overwritten
-    (item 8).
-  - Explicit `accessibilityLanguage` (item 43).
+- At 135 % text, a very long word in a seller's name splits across lines
+  in the seller row. Nothing is cut. The fix needs a layout decision; see
+  DESIGN.md, «Igjen å vurdere» 4.
 
 - Staging answers with demo data. The first real-provider run of the app is
   still to come.

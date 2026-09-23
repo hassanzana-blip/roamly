@@ -297,3 +297,103 @@ Not checked here:
   Dynamic Type sizes.
 - Offers with more travellers or long provider names. The fixture has one
   adult and short names; the tests cover wrapping instead of clipping.
+
+## Edge cases: four travellers, long seller names (00d18db)
+
+Only the new edge cases; the 13 core screens above were not captured again.
+Captured from a clean worktree at `00d18db`, the commit with all the code of
+this stage, at 375 × 812 pt with a simulated safe area of 50/34 pt. Same
+method as above: a fresh browser profile per run, the «Søk fly» label check,
+Inter instead of SF Pro.
+
+**Test data.** `src/test/edgeFixtures.ts` is labelled «TESTDATA FOR
+KANTILFELLER – fiktive navn og priser». The companies do not exist. The
+data is 2 adults, 1 child (8) and 1 infant (1), and four offers with
+`sandbox: true`:
+- One journey, flown by «Nordlys Testflyselskap Interkontinentale Ruter»,
+  is sold by three sellers:
+  - «Fjordreise Testbyrå med et svært langt firmanavn AS»: 18 450 kr,
+    2 checked bags, refund for a fee, change allowed.
+  - «Example Long-Name International Travel Agency GmbH (test)»:
+    18 990 kr, checked bag not stated, change not allowed.
+  - The airline itself: 19 990 kr, no checked bag, no conditions stated.
+- A second journey has one offer, at 21 340 kr.
+
+The travellers were set with the steppers on Home. The recorded search
+request carried all four passengers. The fixture's flights are dated
+23/30 Oct. The form keeps its default dates (8–15 Oct), so the Results
+header and the cards show different dates. That comes from the fixture, not
+the app.
+
+**Runs.** Bokmål (fresh install), English (chosen in Profile), and Bokmål at
+135 % text. The 135 % run uses CSS `zoom: 1.35` on every text block. That is
+an approximation, not iOS Dynamic Type. In each run the script chose each
+seller in turn and read the bar, the action's accessible name, the provider
+note, and the Baggage and Terms tabs. It checked three things:
+- **Clipped:** a text with a line cap and hidden overflow, or a text sticking
+  out of a clipping parent.
+- **Split word:** a word broken across two lines. Spaces and hyphens are
+  allowed break points; a non-breaking space holds a word together.
+- **Sideways overflow** of the page.
+
+**Found and fixed in `00d18db`** (each measured with the edge fixtures on the code before its fix):
+- **Home:** the travellers tile read «2 voksne, 1 b…», cut by a one-line cap.
+  At 135 %, «By eller flyplass» was also cut. Both now wrap; «1 barn» stays
+  together.
+- **Details, summary and timeline:** the airline name was cut to one line.
+  With the cap removed, the timeline squeezed it into a ~70 pt strip beside
+  the duration («Testflysels» / «kap») even at normal text. Now the duration
+  moves below a name that does not fit on one line. Short names («Norwegian»
+  in the standard fixture) keep one line; this was checked in nb and en.
+- **Details tabs at 135 %:** «Oversikt», «Bagasje» and «Reiseplan» were cut.
+  The row now wraps.
+- **Offer bar at 135 %:** the amount split mid-word («18 450 k» / «r»). When
+  the amount itself wraps, the price now takes the whole row and the button
+  goes below it.
+
+| Check (375 × 812 pt) | nb | en | nb, 135 % text | Result |
+|---|---|---|---|---|
+| Steppers → search request | 2 / 1 / 1; 2 adults, child 8, infant 1 | same | same | PASSED |
+| Travellers tile (tile height) | «2 voksne, 1 barn, 1 spedbarn» in full (90 pt) | «2 adults, 1 child, 1 infant» (70 pt) | in full (117 pt) | PASSED |
+| Results: count; grouped card | «2 reiser · 4 tilbud»; «3 tilbydere», 18 450 kr | «2 journeys · 4 offers»; «3 providers», NOK 18,450 | as nb | PASSED |
+| Price basis on cards and in the bar, every seller | «Totalt for 2 voksne, 1 barn, 1 spedbarn · Tur-retur» | «Total for 2 adults, 1 child, 1 infant · Return» | as nb | PASSED |
+| Seller → bar price / action name / provider note | 18 450 / 18 990 / 19 990 kr; «Gå til tilbud hos ‹seller›»; «‹seller› · Bestillingen fullføres hos tilbyderen.» | NOK 18,450 / 18,990 / 19,990; «Go to offer at ‹seller›»; «‹seller› · You complete the booking with the provider.» | as nb | PASSED |
+| Seller → Baggage tab, checked bag | «2 stk. inkludert» / «Ikke oppgitt» / «Ikke inkludert» | «2 included» / «Not stated» / «Not included» | as nb | PASSED |
+| Seller → Terms tab | refund with fee + change allowed / change not allowed / no Terms tab | same in English | as nb | PASSED |
+| Offer bar height, including the 34 pt inset | 159 (the basis and the provider note take two lines each) | 159 | 273 / 273 / 252; price alone, button below | PASSED (grows instead of cutting) |
+| Details tabs | one row, 84/80/65/91 pt wide | one row | 3 + 1 rows | PASSED |
+| Clipped text / sideways overflow | none / none | none / none | none / none | PASSED |
+| Words split across lines | none | none | «Testflyselskap», «Interkontinentale» in the airline's seller row | FAILED (open, see below) |
+
+**Open.** At 135 % text the airline's seller row splits its two long words
+(«Testflyselska» / «p»). The name column there is ~150 pt, next to the
+price. The row is complete and readable, and nothing is cut. Fixing it
+changes the seller row's layout, for example moving the price below a name
+that does not fit. That needs a design decision, so it is left for review.
+At normal text in both languages no word is split.
+
+Also checked on the standard fixture at `00d18db`, 375 pt, nb and en, with no
+images: the price and «Gå til tilbud» share one row, the timeline keeps
+«Norwegian» and the duration on one line, and nothing is clipped or split.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `edge-nb-00d18db-375-1-home.png` | `2351fb0c17915770…` | 750×1780 |
+| `edge-nb-00d18db-375-2-results.png` | `7920874b1a17844e…` | 750×1780 |
+| `edge-nb-00d18db-375-3-details-sellers.png` | `567039173a6efcd9…` | 750×3985 |
+| `edge-nb-00d18db-375-4-itinerary.png` | `212c787ae1db8e27…` | 750×3985 |
+| `edge-en-00d18db-375-1-home.png` | `3945249102c6db41…` | 750×1780 |
+| `edge-en-00d18db-375-3-details-sellers.png` | `7c0fc4c8f7526869…` | 750×3956 |
+| `edge-nb-00d18db-375-5-details-text135.png` | `1a1c8909da61a965…` | 750×3979 |
+| `edge-nb-00d18db-375-6-bar-text135.png` | `c4b34bb5e5dcb6af…` | 750×1832 |
+
+Each image carries a caption bar (commit, screen, width, language, test-data
+note), so its size includes the caption.
+
+Not checked here:
+- An iPhone or simulator: SF Pro, real Dynamic Type sizes, the real safe
+  area.
+- **VoiceOver.** `accessibilityLanguage` is checked by code tests only
+  (`a11yLanguage.test.tsx`). VoiceOver itself has not been run.
+- The price basis in the bar can still break between «1» and «spedbarn».
+  That is ordinary wrapping, not clipping.

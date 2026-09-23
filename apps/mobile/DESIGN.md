@@ -198,7 +198,7 @@ og 430 × 932, pluss Resultater ved 320 × 568.
 | D1 | Detaljene gjelder kortet man trykket på | `/tilbud/<id>`, samme tider og pris | `dy_eve`, 18:40 22:00 06:55 10:15, 1 990 kr |
 | D2 | Fotoppsummering med begge etapper | utreise stort, hjemreise under | ja |
 | D3 | Faner og «Reiseinformasjon» i første bilde | faner 44 pt; overskriften over bunnlinjen | 533 < 681 / 542 < 721 / 542 < 801 |
-| D4 | Kompakt bunnlinje | pris og grunnlag til venstre, «Gå til tilbud» til høyre, valgt tilbyder og «Bestillingen fullføres hos tilbyderen.» ved handlingen; ≤ 135 pt med safe area; brytes i stedet for å kuttes | 131 / 131 / 131 |
+| D4 | Kompakt bunnlinje | pris og grunnlag til venstre, «Gå til tilbud» til høyre, valgt tilbyder og «Bestillingen fullføres hos tilbyderen.» ved handlingen; ≤ 135 pt med safe area; brytes i stedet for å kuttes, og deles selve beløpet over to linjer (stor tekst), står prisen alene og knappen under (`00d18db`) | 131 / 131 / 131 |
 | F1 | Ingen vannrett rulling og ingen kuttet tekst | – | ingen |
 | F2 | Trykkflater ≥ 44 pt, uten `hitSlop` over naboer eller utenfor et klippende felt | alle synlige i første bilde | ja |
 
@@ -229,15 +229,22 @@ og 430 × 932, pluss Resultater ved 320 × 568.
    - Ingen lagring av reiser (hjerte). Serveren har lagrede reiser for nettet, men de er ikke tilgjengelige i
      mobilfasaden ennå (BACKLOG 37).
 3. *Typografi (valgfritt):* flyplasskodene i Flydetaljer er 32 pt, referansen ~28.
-4. *Neste runde, ikke glemt:*
-   - En innstillingsfil med ukjent versjon skal beholdes, ikke overskrives (BACKLOG 8).
-   - Eksplisitt `accessibilityLanguage` (nb-NO/en-GB), så VoiceOver bruker riktig stemme uansett telefonens språk.
-5. *Ikke målt:* flere reisende og lange tilbydernavn i bunnlinjen og på kortene. Testene sikrer at tekst brytes i
-   stedet for å kuttes, men det finnes ikke skjermbilder av det ennå.
+4. *Selgerraden ved stor tekst (åpen, `00d18db`):* ved 135 % tekst deles et svært langt ord i navnet
+   («Testflyselska» / «p»), fordi navnet står i en smal kolonne ved prisen. Ingenting kuttes. En løsning er å legge
+   prisen under et navn som ikke får plass, men det endrer raden og venter på en beslutning.
+
+**Lukket i `00d18db`:**
+- En innstillingsfil med ukjent versjon beholdes, og bare et bevisst språkvalg skrives inn (BACKLOG 8).
+- `accessibilityLanguage` (nb-NO/en-GB) står på alt VoiceOver kan stoppe på (BACKLOG 43). Det er sjekket i kodetester,
+  ikke med VoiceOver.
+- Flere reisende og lange tilbydernavn er målt ved 375 pt, på bokmål, engelsk og med 135 % tekst (MANIFEST,
+  «Edge cases»). Reisende-feltet, navnet i oppsummeringen og tidslinjen og fanene brytes nå i stedet for å kuttes.
+  I tidslinjen legger varigheten seg under et langt navn.
+- Ved stor tekst deles ikke beløpet i bunnlinjen lenger («18 450 k» / «r»): prisen står alene og knappen under (D4).
 
 ## Forhåndsvisninger
 
 Skjermbildene i overleveringen (`docs/evidence`, se `MANIFEST.md`) er laget med react-native-web i Chromium, 375, 393
-og 430 pt brede, med Inter i stedet for SF Pro. De nyeste (`nb-dad15c4-*`, og `nb-d99568d-*` før dem) har simulert safe area; de eldre har ingen.
+og 430 pt brede, med Inter i stedet for SF Pro. De nyeste (`edge-*-00d18db-*` for kantilfellene, `nb-dad15c4-*`, og `nb-d99568d-*` før dem) har simulert safe area; de eldre har ingen.
 De er ikke fra en iOS-simulator. En ekte iPhone eller simulator viser SF Pro, iOS-kalenderen, statuslinjen og den
 ekte safe area.
