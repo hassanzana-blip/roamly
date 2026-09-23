@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Sjekker det eksporterte iOS-bygget (dist/) etter `npm run export:ios`:
 // ingen serverkode, ingen leverandørnøkler, ingen hemmelighetsnavn, ingen
-// AsyncStorage – og serveradressen fra EXPO_PUBLIC_API_BASE_URL er bygget inn.
+// AsyncStorage, ingen bestillingslenke – og serveradressen fra EXPO_PUBLIC_API_BASE_URL er bygget inn.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -31,6 +31,8 @@ const forbidden = [
   "drizzle-orm", "mysql2", "@hono/node-server", "api/lib/", "staffAuth", "adminOwner",
   // Lagring som ikke er nøkkelringen
   "@react-native-async-storage", "AsyncStorage",
+  // Ingen bestilling i appen: ingen kode som åpner leverandørens side.
+  "openBrowserAsync", "expo-web-browser",
 ];
 const hits = forbidden.filter((s) => text.includes(s));
 

@@ -7,7 +7,7 @@ import { colors, fonts } from "../lib/theme";
 export function PriceTag({ price, align = "right", large, testID }: { price: MobileOfferPrice; align?: "left" | "right"; large?: boolean; testID?: string }) {
   const d = priceDisplay(price);
   return (
-    <View style={{ alignItems: align === "right" ? "flex-end" : "flex-start", gap: 2 }} accessible accessibilityLabel={d.accessibilityLabel} testID={testID}>
+    <View style={{ alignItems: align === "right" ? "flex-end" : "flex-start", gap: 2, flexShrink: 1 }} accessible accessibilityLabel={d.accessibilityLabel} testID={testID}>
       <Text style={[styles.primary, large && styles.large, !d.available && styles.unavailable]}>{d.primary}</Text>
       {d.secondary ? <Text style={[styles.secondary, { textAlign: align }]}>{d.secondary}</Text> : null}
     </View>
@@ -15,8 +15,8 @@ export function PriceTag({ price, align = "right", large, testID }: { price: Mob
 }
 
 const styles = StyleSheet.create({
-  primary: { fontFamily: fonts.bold, fontSize: 19, color: colors.petrol },
-  large: { fontSize: 28 },
-  unavailable: { fontFamily: fonts.semibold, fontSize: 15, color: colors.textSecondary },
-  secondary: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: colors.textSecondary, maxWidth: 220 },
+  primary: { fontFamily: fonts.heavy, fontSize: 20, letterSpacing: -0.3, color: colors.indigoInk },
+  large: { fontSize: 32, lineHeight: 38, color: colors.text },
+  unavailable: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
+  secondary: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, color: colors.textSecondary, maxWidth: 180 },
 });

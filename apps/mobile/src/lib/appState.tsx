@@ -6,6 +6,7 @@ import { ApiError, createApiClient, type ApiClient, type RegisterRequest } from 
 import { API_BASE } from "./config";
 import { clearSession, loadSession, saveSession } from "./tokenStore";
 import { initialForm, toSearchRequest, validateForm, type SearchForm } from "./searchForm";
+import { DEFAULT_VIEW, type ResultsView } from "./resultsView";
 
 // ─── Tjenester for hele appen: API-klient, kundesesjon og søk ───────────────
 
@@ -32,6 +33,9 @@ type AppContextValue = {
   search: SearchState;
   /** Starter søket for skjemaet. Returnerer feilmelding hvis skjemaet ikke er gyldig. */
   runSearch: () => string | null;
+  /** Sortering og filtre på resultatlisten. Nullstilles ved hvert nytt søk. */
+  view: ResultsView;
+  setView: (update: (v: ResultsView) => ResultsView) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -65,6 +69,7 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
   const [form, setFormState] = useState<SearchForm>(() => ({ ...initialForm(), ...initial }));
   const [search, setSearch] = useState<SearchState>({ status: "idle" });
   const searchSeq = useRef(0);
+  const [view, setViewState] = useState<ResultsView>(DEFAULT_VIEW);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +147,7 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
     if (problem) return problem;
     const seq = ++searchSeq.current;
     setSearch({ status: "loading" });
+    setViewState(DEFAULT_VIEW);
     api
       .search(toSearchRequest(form, sessionId))
       .then((result) => {
@@ -155,9 +161,11 @@ export function AppProvider({ children, apiFactory = defaultFactory, initial }: 
     return null;
   }, [api, form, sessionId]);
 
+  const setView = useCallback((update: (v: ResultsView) => ResultsView) => setViewState((v) => update(v)), []);
+
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, form, setForm, search, runSearch }),
-    [api, auth, login, register, logout, form, setForm, search, runSearch],
+    () => ({ api, auth, login, register, logout, form, setForm, search, runSearch, view, setView }),
+    [api, auth, login, register, logout, form, setForm, search, runSearch, view, setView],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -5,19 +5,30 @@ Appen snakker bare med HelloSkys server på `/api/mobile/trpc` – aldri direkte
 
 ## Hva appen gjør
 
-- **Søk** (uten innlogging): fra/til med flyplassøk (`flights.airports`), én vei eller tur-retur, datoer, voksne/barn
-  (2–11 år)/spedbarn med alder, reiseklasse og «bare direktefly».
-- **Resultater** (`flights.search`): i serverens rekkefølge – billigste i kroner først. Appen viser **bare kronebeløp**:
+Appen er **bare for flysøk og sammenligning**. Den har ingen bestilling, åpner aldri leverandørens lenke og viser
+ingen gate-, sete-, boardingkort- eller bestillingsopplysninger.
+
+- **Søk** (uten innlogging): fra/til med flyplassøk (`flights.airports`), én vei eller tur-retur, datoer (iOS-kalender
+  i et ark), voksne/barn (2–11 år)/spedbarn med alder, reiseklasse og «bare direktefly».
+- **Resultater** (`flights.search`): billettkort med store flyplasskoder, rute, reisetid og bytter. Sortering
+  («Billigst» = serverens rekkefølge, «Raskest», «Færrest bytter») og filtre (antall bytter, avgangstid for
+  utreisen) regnes bare på data tilbudene har; tilbud uten kronepris står alltid nederst. Appen viser **bare
+  kronebeløp**:
   - `1 234 kr` – leverandørens egen kronepris,
   - `ca. 1 234 kr` + «Omregnet med Norges Banks kurs 22.09.2026» – omregnet på serveren, med merknad om at
     leverandøren kan ta betalt i en annen valuta og at endelig beløp kan avvike,
   - «Ingen pris i kroner» + grunnen – når kurs mangler, er for gammel eller valutaen ikke støttes.
-  Leverandørens beløp, valuta og publiserte kurs ligger urørt i serverkontrakten og bestillingslenken, men vises aldri
-  i appen (en kildekode-test sperrer bruk av de feltene utenfor tester).
-- **Tilbud**: strekninger, bytter (varighet regnet med tidssone), bagasje, vilkår og kronemerknad. Servicegebyret vises
-  som beløp bare når det er i kroner. Tilbud leverandøren selger (KAYAK) åpnes hos
-  leverandøren med den urørte https-lenken i `SFSafariViewController`. Tilbud HelloSky selger kan ikke bestilles i appen ennå.
+  Leverandørens beløp, valuta og publiserte kurs ligger urørt i serverkontrakten, men vises aldri i appen.
+- **Tilbud**: tidslinje med strekninger og bytter (varighet regnet med tidssone), bagasje og vilkår når leverandøren
+  oppgir dem, hvem som selger billetten, og kronemerknaden. Servicegebyret vises som beløp bare når det er i kroner.
 - **Konto** (`mobileAuth`): vanlig kundeinnlogging med e-post og passord, ny konto og utlogging. Ingen andre roller.
+
+## Utseende
+
+Midnattsblå toppfelt med et prikket verdenskart (`assets/world-dots.png`, laget av `scripts/make-worldmap.mjs` fra
+Natural Earth-data i `world-atlas`), hvite kort, indigo knapper og Manrope. Farger og mål står i `src/lib/theme.ts`
+(tekstparene er sjekket mot WCAG AA), felles komponenter i `src/components/ui.tsx`, ikoner (SVG i Lucide-stil) i
+`src/components/Icon.tsx`. Trykkflater er minst 44 pt.
 
 ## Sikkerhet
 
@@ -25,7 +36,8 @@ Appen snakker bare med HelloSkys server på `/api/mobile/trpc` – aldri direkte
   som `Authorization: Bearer` bare på `mobileAuth.me`/`logout`. Søk sendes aldri med token.
 - Ingen AsyncStorage, ingen logging (`no-console` er en lintfeil i `src/`).
 - Eneste konfigurasjon er den offentlige `EXPO_PUBLIC_API_BASE_URL` (https påkrevd; http bare mot localhost i utvikling).
-  Ingen leverandørnøkler, ingen serverkode i bygget – `npm run check:bundle` bekrefter det på det eksporterte bygget.
+  Ingen leverandørnøkler, ingen serverkode og ingen kode som åpner leverandørens side i bygget – `npm run check:bundle`
+  bekrefter det på det eksporterte bygget.
 - Delte typer fra `../../contracts` importeres kun med `import type`. Metro blokkerer rotens `node_modules`.
 
 ## Kommandoer

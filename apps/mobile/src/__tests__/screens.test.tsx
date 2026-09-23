@@ -1,7 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
-import * as WebBrowser from "expo-web-browser";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
@@ -11,6 +10,15 @@ import SearchScreen from "../app/index";
 import ResultsScreen from "../app/resultater";
 import OfferScreen from "../app/tilbud/[id]";
 import AccountScreen from "../app/konto";
+
+/** Appen er bare for søk og sammenligning: ingen bestilling, ingen lenke til leverandøren. */
+function expectNoBookingAction() {
+  const tree = renderedStrings();
+  expect(tree).not.toMatch(/bestill/i);
+  expect(tree).not.toMatch(/https?:\/\//);
+  expect(tree).not.toContain(KAYAK_URL);
+  expect(screen.queryByTestId(/^handoff/)).toBeNull();
+}
 
 // Skjermtester: ekte skjermer, ekte app-tilstand og ekte API-klient – bare
 // HTTP-laget er en falsk server som husker hver forespørsel.
@@ -82,7 +90,6 @@ const consoleSpies = (["log", "info", "warn", "error", "debug"] as const).map((m
 
 beforeEach(() => {
   keychain.clear();
-  jest.mocked(WebBrowser.openBrowserAsync).mockClear();
   consoleSpies.forEach((s) => s.mockClear());
 });
 
@@ -153,6 +160,7 @@ describe("søk uten innlogging", () => {
       /Norges Banks midtkurs 22\.09\.2026\. Leverandøren kan ta betalt i en annen valuta, og endelig beløp kan avvike\. Ett tilbud kunne ikke regnes om til kroner og står nederst\./,
     );
     expectNoForeignAmounts();
+    expectNoBookingAction();
   });
 
   it("serverfeil vises med serverens melding", async () => {
@@ -195,33 +203,48 @@ describe("tilbudsdetaljer og videresending", () => {
     await waitFor(() => expect(screen.getByTestId("offer-screen")).toBeOnTheScreen());
   }
 
-  it("eksternt tilbud åpner leverandørens lenke nøyaktig som den er", async () => {
+  it("tilbud fra ekstern selger: fakta og kronepris, men ingen bestilling og ingen lenke", async () => {
     await openOffer("sek_1");
     expect(screen.getByText(/^ca\. 1\s442\skr$/)).toBeOnTheScreen();
     expect(screen.getByText("Omregnet med Norges Banks kurs 22.09.2026")).toBeOnTheScreen();
     expect(screen.getByTestId("fx-details")).toHaveTextContent(/annen valuta enn norske kroner.*endelig beløp kan avvike/);
-    expect(screen.getByText(/Du bestiller og betaler hos SAS, ikke hos HelloSky/)).toBeOnTheScreen();
-    expect(screen.getByText("SAS kan ta betalt i en annen valuta enn norske kroner.")).toBeOnTheScreen();
+    expect(screen.getByTestId("seller")).toHaveTextContent("Selges av SAS");
+    expect(screen.getByText("Håndbagasje: 1")).toBeOnTheScreen();
     expectNoForeignAmounts();
-    await fireEvent.press(screen.getByTestId("handoff-button"));
-    expect(WebBrowser.openBrowserAsync).toHaveBeenCalledTimes(1);
-    expect(jest.mocked(WebBrowser.openBrowserAsync).mock.calls[0]![0]).toBe(KAYAK_URL);
+    expectNoBookingAction();
   });
 
-  it("tilbud HelloSky selger: gebyret nevnes uten beløp i annen valuta, og ingen bestillingsknapp", async () => {
+  it("tilbud HelloSky selger: gebyret nevnes uten beløp i annen valuta, og ingen selger eller bestilling", async () => {
     await openOffer("hs_eur");
     expect(screen.getByTestId("service-fee")).toHaveTextContent("Prisen inkluderer HelloSkys servicegebyr.");
+    expect(screen.queryByTestId("seller")).toBeNull();
     expectNoForeignAmounts();
-    expect(screen.getByTestId("handoff-not-in-app")).toBeOnTheScreen();
-    expect(screen.queryByTestId("handoff-button")).toBeNull();
+    expectNoBookingAction();
   });
 
-  it("alle tilbudsdetaljer: ingen utenlandske beløp, kurser eller valutakoder", async () => {
+  it("alle tilbudsdetaljer: ingen utenlandske beløp, kurser, valutakoder, bestilling eller lenker", async () => {
     for (const o of SEARCH_RESULT.offers) {
       await openOffer(o.offer.id);
       expectNoForeignAmounts();
+      expectNoBookingAction();
       await screen.unmount();
     }
+  });
+
+  it("utløpt tilbud: nøytral merknad om at prisen kan ha endret seg", async () => {
+    const old = { ...SEARCH_RESULT.offers[0]!, offer: { ...SEARCH_RESULT.offers[0]!.offer, id: "old_1", expiresAt: "2020-01-01T00:00:00Z" } };
+    const { factory } = setup({ "flights.search": () => ({ data: { ...SEARCH_RESULT, offers: [old] } }) });
+    setParams({ id: "old_1" });
+    await render(
+      <AppProvider apiFactory={factory} initial={{ destination: BCN }}>
+        <SearchOnMount>
+          <OfferScreen />
+        </SearchOnMount>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("offer-screen")).toBeOnTheScreen());
+    expect(screen.getByTestId("offer-expired")).toHaveTextContent("Prisen kan ha endret seg siden søket. Søk på nytt for oppdaterte priser.");
+    expectNoBookingAction();
   });
 
   it("tilbud i kroner med servicegebyr i kroner: gebyret vises som kronebeløp", async () => {
@@ -258,13 +281,6 @@ describe("tilbudsdetaljer og videresending", () => {
     );
     await waitFor(() => expect(screen.getByTestId("offer-screen")).toBeOnTheScreen());
     expect(screen.getByText("Bytte i København · 1 t 45 min")).toBeOnTheScreen();
-  });
-
-  it("en utrygg lenke åpnes aldri", async () => {
-    await openOffer("unsafe_1");
-    expect(screen.getByTestId("handoff-invalid")).toBeOnTheScreen();
-    expect(screen.queryByTestId("handoff-button")).toBeNull();
-    expect(WebBrowser.openBrowserAsync).not.toHaveBeenCalled();
   });
 
   it("uten søkeresultat: ber kunden søke på nytt", async () => {

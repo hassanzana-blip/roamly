@@ -22,9 +22,6 @@ jest.mock("expo-secure-store", () => {
   };
 });
 
-jest.mock("expo-web-browser", () => ({
-  openBrowserAsync: jest.fn(async () => ({ type: "dismiss" })),
-}));
 
 jest.mock("expo-crypto", () => ({
   randomUUID: () => "11111111-2222-4333-8444-555555555555",
@@ -39,7 +36,7 @@ jest.mock("@react-native-community/datetimepicker", () => {
 jest.mock("react-native-svg", () => {
   const { View } = require("react-native");
   const Stub = () => <View />;
-  return { __esModule: true, default: Stub, Svg: Stub, Path: Stub };
+  return { __esModule: true, default: Stub, Svg: Stub, Path: Stub, Circle: Stub, Rect: Stub };
 });
 
 // expo-router: navigasjonen registreres, skjermene rendres direkte.

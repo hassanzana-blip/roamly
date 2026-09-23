@@ -1,31 +1,15 @@
-import { bookingHandoff, handoffLabel, offerExpired } from "../booking";
+import { offerExpired, sellerName } from "../offer";
 import { resolveApiBase } from "../config";
 import { formatDay, formatDuration, formatStops, formatTime } from "../format";
 import { OSLO, initialForm, toSearchRequest, validateForm, type SearchForm } from "../searchForm";
-import { EUR_HS_OFFER, KAYAK_URL, NOK_OFFER, SEK_OFFER, UNSAFE_LINK_OFFER } from "../../test/fixtures";
+import { EUR_HS_OFFER, NOK_OFFER, SEK_OFFER } from "../../test/fixtures";
 
-describe("videresending til leverandøren", () => {
-  it("eksterne tilbud: nøyaktig samme https-lenke, urørt", () => {
-    const h = bookingHandoff(SEK_OFFER.offer);
-    expect(h).toMatchObject({ kind: "external", providerName: "SAS", sellerKind: "airline" });
-    if (h.kind !== "external") throw new Error();
-    expect(h.url).toBe(KAYAK_URL);
-    expect(handoffLabel(h)).toBe("Bestill hos SAS");
-    const agency = bookingHandoff(NOK_OFFER.offer);
-    if (agency.kind !== "external") throw new Error();
-    expect(handoffLabel(agency)).toBe("Se tilbudet hos Kiwi.com");
-  });
-
-  it("tilbud HelloSky selger kan ikke bestilles i appen", () => {
-    expect(bookingHandoff(EUR_HS_OFFER.offer)).toEqual({ kind: "not_in_app" });
-  });
-
-  it("utrygge lenker åpnes ikke", () => {
-    expect(bookingHandoff(UNSAFE_LINK_OFFER.offer)).toEqual({ kind: "invalid_link" });
-    for (const url of ["javascript:alert(1)", "https://ok.example/a b", "https://ok.example/\u0000x", "HTTPS://", "ftp://x.example", "https://user@evil.example/"]) {
-      const offer = { ...SEK_OFFER.offer, booking: { ...SEK_OFFER.offer.booking!, url } };
-      expect(bookingHandoff(offer)).toEqual({ kind: "invalid_link" });
-    }
+describe("tilbudsfakta (ingen bestilling i appen)", () => {
+  it("selgerens navn vises bare når leverandøren oppgir det", () => {
+    expect(sellerName(SEK_OFFER.offer)).toBe("SAS");
+    expect(sellerName(NOK_OFFER.offer)).toBe("Kiwi.com");
+    expect(sellerName(EUR_HS_OFFER.offer)).toBeNull();
+    expect(sellerName({ ...SEK_OFFER.offer, booking: { ...SEK_OFFER.offer.booking!, provider: { code: "X", name: "  " } } })).toBeNull();
   });
 
   it("utløpte tilbud gjenkjennes", () => {

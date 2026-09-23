@@ -1,16 +1,16 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import type { OfferSlice, Segment } from "@contracts/types";
 import { useApp } from "../../lib/appState";
-import { bookingHandoff, handoffLabel, offerExpired } from "../../lib/booking";
+import { offerExpired, sellerName } from "../../lib/offer";
 import { formatDay, formatDuration, formatNok, formatStops, formatTime, minutesBetween } from "../../lib/format";
 import { CONVERTED_NOTICE, serviceFeeNokMinor } from "../../lib/price";
 import { cabinLabel } from "../../lib/searchForm";
 import { PriceTag } from "../../components/PriceTag";
-import { Banner, Body, Button, Card, SectionTitle } from "../../components/ui";
-import { colors, fonts, space } from "../../lib/theme";
+import { Icon } from "../../components/Icon";
+import { Banner, Body, Button, Card, CarrierBadge, Pill, RouteHero, ScreenHeader, SectionTitle, StateView, TicketDivider } from "../../components/ui";
+import { colors, fonts, radius, space } from "../../lib/theme";
 
 /** «Bytte i København · 1 t 55 min» – uten varighet når tidspunktene ikke kan regnes trygt. */
 function layoverText(city: string, arrive: string, depart: string): string {
@@ -18,39 +18,91 @@ function layoverText(city: string, arrive: string, depart: string): string {
   return minutes === null ? `Bytte i ${city}` : `Bytte i ${city} · ${formatDuration(minutes)}`;
 }
 
-function SegmentRow({ seg }: { seg: Segment }) {
+/** Ett punkt på tidslinjen: klokkeslett, prikk på linjen og sted. */
+function Stop({ time, city, iata, airport, first, last }: { time: string; city: string; iata: string; airport: string; first?: boolean; last?: boolean }) {
   return (
-    <View style={styles.segment}>
-      <Text style={styles.segTimes}>
-        {formatTime(seg.departingAt)} {seg.origin.city} ({seg.origin.iata})
-      </Text>
-      <Text style={styles.segMeta}>
-        {seg.carrier.name} {seg.flightNumber ? `· ${seg.carrier.iata}${seg.flightNumber}` : ""} · {formatDuration(seg.durationMinutes)}
-        {seg.operatingCarrier && seg.operatingCarrier.iata !== seg.carrier.iata ? ` · Flys av ${seg.operatingCarrier.name}` : ""}
-      </Text>
-      <Text style={styles.segTimes}>
-        {formatTime(seg.arrivingAt)} {seg.destination.city} ({seg.destination.iata})
-      </Text>
+    <View style={styles.tlRow}>
+      <Text style={styles.tlTime}>{time}</Text>
+      <View style={styles.rail}>
+        <View style={[styles.railLine, first && { top: 12 }, last && { bottom: undefined, height: 12 }]} />
+        <View style={styles.dot} />
+      </View>
+      <View style={styles.tlBody}>
+        <Text style={styles.tlPlace}>{`${city} (${iata})`}</Text>
+        {airport ? (
+          <Text style={styles.tlAirport} numberOfLines={2}>
+            {airport}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** Mellomrad på tidslinjen (flyging eller bytte). */
+function Between({ children }: { children: ReactNode }) {
+  return (
+    <View style={styles.tlRow}>
+      <View style={styles.tlTimeSpacer} />
+      <View style={styles.rail}>
+        <View style={styles.railLine} />
+      </View>
+      <View style={[styles.tlBody, { paddingVertical: space.sm }]}>{children}</View>
+    </View>
+  );
+}
+
+function SegmentBlock({ seg, first, last }: { seg: Segment; first: boolean; last: boolean }) {
+  const operated = seg.operatingCarrier && seg.operatingCarrier.iata !== seg.carrier.iata ? `Flys av ${seg.operatingCarrier.name}` : null;
+  return (
+    <View>
+      <Stop time={formatTime(seg.departingAt)} city={seg.origin.city} iata={seg.origin.iata} airport={seg.origin.name} first={first} />
+      <Between>
+        <View style={styles.flightBar}>
+          <CarrierBadge code={seg.carrier.iata || seg.carrier.name} size={30} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.flightName} numberOfLines={1}>
+              {seg.carrier.name}
+              {seg.flightNumber ? ` · ${seg.carrier.iata}${seg.flightNumber}` : ""}
+            </Text>
+            {operated ? <Text style={styles.tlAirport}>{operated}</Text> : null}
+          </View>
+          {formatDuration(seg.durationMinutes) ? <Pill tone="neutral">{formatDuration(seg.durationMinutes)}</Pill> : null}
+        </View>
+      </Between>
+      <Stop time={formatTime(seg.arrivingAt)} city={seg.destination.city} iata={seg.destination.iata} airport={seg.destination.name} last={last} />
     </View>
   );
 }
 
 function SliceBlock({ slice, title }: { slice: OfferSlice; title: string }) {
   return (
-    <Card>
+    <Card floating>
       <SectionTitle>{`${title} · ${formatDay(slice.departingAt)}`}</SectionTitle>
-      <Body muted>
-        {formatDuration(slice.durationMinutes)} · {formatStops(slice.stops)}
-      </Body>
-      {slice.segments.map((seg, i) => {
-        const next = slice.segments[i + 1];
-        return (
-          <View key={seg.id || i} style={{ gap: space.sm }}>
-            <SegmentRow seg={seg} />
-            {next ? <Text style={styles.layover}>{layoverText(seg.destination.city, seg.arrivingAt, next.departingAt)}</Text> : null}
-          </View>
-        );
-      })}
+      <View style={styles.sliceMeta}>
+        <Pill tone="indigo" icon="clock">
+          {formatDuration(slice.durationMinutes)}
+        </Pill>
+        <Pill tone={slice.stops === 0 ? "success" : "neutral"}>{formatStops(slice.stops)}</Pill>
+      </View>
+      <View style={{ marginTop: space.xs }}>
+        {slice.segments.map((seg, i) => {
+          const next = slice.segments[i + 1];
+          return (
+            <View key={seg.id || i}>
+              <SegmentBlock seg={seg} first={i === 0} last={!next} />
+              {next ? (
+                <Between>
+                  <View style={styles.layover}>
+                    <Icon name="clock" size={16} color={colors.layover} />
+                    <Text style={styles.layoverText}>{layoverText(seg.destination.city, seg.arrivingAt, next.departingAt)}</Text>
+                  </View>
+                </Between>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
     </Card>
   );
 }
@@ -59,94 +111,119 @@ export default function OfferScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { search } = useApp();
-  const [openError, setOpenError] = useState<string | null>(null);
-  const [opening, setOpening] = useState(false);
 
   const result = search.status === "done" ? search.result : null;
   const item = result?.offers.find((o) => o.offer.id === id);
   if (!result || !item) {
     return (
-      <View style={styles.missing}>
-        <Body>Tilbudet er ikke lenger tilgjengelig. Søk på nytt for å se oppdaterte priser.</Body>
-        <Button label="Til søket" variant="secondary" onPress={() => router.replace("/")} />
+      <View style={styles.screen}>
+        <ScreenHeader title="Tilbud" onBack={() => router.back()} />
+        <StateView dark icon="refresh" title="Tilbudet er borte" body="Tilbudet er ikke lenger tilgjengelig. Søk på nytt for å se oppdaterte priser.">
+          <Button label="Til søket" onPress={() => router.replace("/")} />
+        </StateView>
       </View>
     );
   }
 
   const { offer, price } = item;
-  const handoff = bookingHandoff(offer);
+  const seller = sellerName(offer);
   const expired = offerExpired(offer);
   const testData = result.sandbox === true || result.demoMode;
   const bag = offer.baggage;
   const feeNok = serviceFeeNokMinor(price);
-
-  const open = async (url: string) => {
-    setOpenError(null);
-    setOpening(true);
-    try {
-      // SFSafariViewController: lenken åpnes urørt, og leverandørens side har ikke tilgang til appen.
-      await WebBrowser.openBrowserAsync(url, { controlsColor: colors.azure, dismissButtonStyle: "close" });
-    } catch {
-      setOpenError("Kunne ikke åpne leverandørens side. Prøv igjen.");
-    } finally {
-      setOpening(false);
-    }
-  };
+  const outbound = offer.slices[0];
 
   return (
-    <ScrollView style={{ backgroundColor: colors.sand }} contentContainerStyle={styles.content} testID="offer-screen">
-      {testData ? <Banner tone="warning">Testdata: prisen og lenken er ikke ekte.</Banner> : null}
-      <Card>
-        <Text style={styles.carrier}>{offer.owner.name}</Text>
-        <PriceTag price={price} align="left" large testID="offer-price" />
-        {price.nok.kind === "converted" ? <Body muted testID="fx-details">{CONVERTED_NOTICE}</Body> : null}
-        {feeNok !== null ? (
-          <Body muted testID="service-fee">{`Herav HelloSkys servicegebyr: ${formatNok(feeNok)}`}</Body>
-        ) : price.serviceFee ? (
-          <Body muted testID="service-fee">Prisen inkluderer HelloSkys servicegebyr.</Body>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} testID="offer-screen">
+      <ScreenHeader title="Tilbud" onBack={() => router.back()}>
+        {outbound ? (
+          <RouteHero
+            from={{ code: outbound.origin.iata, city: outbound.origin.city }}
+            to={{ code: outbound.destination.iata, city: outbound.destination.city }}
+            label={`${offer.slices.length > 1 ? "Tur-retur" : "Én vei"} fra ${outbound.origin.city} til ${outbound.destination.city}`}
+          />
         ) : null}
-        <Body muted>{`${cabinLabel(offer.cabinClass)} · ${offer.refundable ? "Kan refunderes" : "Kan ikke refunderes"} · ${offer.changeable ? "Kan endres" : "Kan ikke endres"}`}</Body>
-      </Card>
+      </ScreenHeader>
 
-      {offer.slices.map((s, i) => (
-        <SliceBlock key={s.id || i} slice={s} title={offer.slices.length > 1 ? (i === 0 ? "Utreise" : "Hjemreise") : "Reise"} />
-      ))}
+      <View style={styles.cards}>
+        {testData ? <Banner tone="warning">Testdata: prisen er ikke ekte.</Banner> : null}
 
-      <Card>
-        <SectionTitle>Bagasje per person</SectionTitle>
-        <Body>{`Håndbagasje: ${bag.carryOnUnknown ? "ikke oppgitt" : bag.carryOnBags}`}</Body>
-        <Body>{`Innsjekket bagasje: ${bag.checkedUnknown ? "ikke oppgitt" : bag.checkedBags}`}</Body>
-      </Card>
-
-      <Card>
-        <SectionTitle>Bestilling</SectionTitle>
-        {handoff.kind === "external" ? (
-          <View style={{ gap: space.md }} testID="handoff-external">
-            <Body>{`Du bestiller og betaler hos ${handoff.providerName}, ikke hos HelloSky. Prisen kan endre seg når du kommer dit.`}</Body>
-            {price.nok.kind === "converted" ? <Body muted>{`${handoff.providerName} kan ta betalt i en annen valuta enn norske kroner.`}</Body> : null}
-            {handoff.disclosure ? <Body muted>{handoff.disclosure}</Body> : null}
-            {expired ? <Banner tone="warning">Tilbudet kan ha utløpt. Søk gjerne på nytt før du bestiller.</Banner> : null}
-            {openError ? <Banner tone="error">{openError}</Banner> : null}
-            <Button testID="handoff-button" label={handoffLabel(handoff)} loading={opening} onPress={() => open(handoff.url)} accessibilityHint="Åpner leverandørens side i en nettleser" />
+        <Card floating>
+          <View style={styles.carrierRow}>
+            <CarrierBadge code={offer.owner.iata || offer.owner.name} size={40} />
+            <Text style={styles.carrier} numberOfLines={2}>
+              {offer.owner.name}
+            </Text>
           </View>
-        ) : handoff.kind === "invalid_link" ? (
-          <Banner tone="warning" testID="handoff-invalid">
-            Lenken til leverandøren ser ikke trygg ut, så vi åpner den ikke.
-          </Banner>
-        ) : (
-          <Body testID="handoff-not-in-app">Dette tilbudet selges av HelloSky og kan foreløpig ikke bestilles i appen.</Body>
-        )}
-      </Card>
+          <TicketDivider />
+          <PriceTag price={price} align="left" large testID="offer-price" />
+          {price.nok.kind === "converted" ? <Body muted testID="fx-details">{CONVERTED_NOTICE}</Body> : null}
+          {feeNok !== null ? (
+            <Body muted testID="service-fee">{`Herav HelloSkys servicegebyr: ${formatNok(feeNok)}`}</Body>
+          ) : price.serviceFee ? (
+            <Body muted testID="service-fee">Prisen inkluderer HelloSkys servicegebyr.</Body>
+          ) : null}
+          <View style={styles.pills}>
+            <Pill tone="neutral" icon="seat">
+              {cabinLabel(offer.cabinClass)}
+            </Pill>
+            <Pill tone={offer.refundable ? "success" : "neutral"}>{offer.refundable ? "Kan refunderes" : "Kan ikke refunderes"}</Pill>
+            <Pill tone={offer.changeable ? "success" : "neutral"}>{offer.changeable ? "Kan endres" : "Kan ikke endres"}</Pill>
+          </View>
+          {seller ? (
+            <View style={styles.bagRow} testID="seller">
+              <Icon name="info" size={18} color={colors.textSecondary} />
+              <Body muted>{`Selges av ${seller}`}</Body>
+            </View>
+          ) : null}
+          {expired ? (
+            <Banner tone="warning" testID="offer-expired">
+              Prisen kan ha endret seg siden søket. Søk på nytt for oppdaterte priser.
+            </Banner>
+          ) : null}
+        </Card>
+
+        {offer.slices.map((s, i) => (
+          <SliceBlock key={s.id || i} slice={s} title={offer.slices.length > 1 ? (i === 0 ? "Utreise" : "Hjemreise") : "Reise"} />
+        ))}
+
+        <Card floating>
+          <SectionTitle>Bagasje per person</SectionTitle>
+          <View style={styles.bagRow}>
+            <Icon name="bag" size={20} color={colors.indigo} />
+            <Body>{`Håndbagasje: ${bag.carryOnUnknown ? "ikke oppgitt" : bag.carryOnBags}`}</Body>
+          </View>
+          <View style={styles.bagRow}>
+            <Icon name="bag" size={20} color={colors.indigo} />
+            <Body>{`Innsjekket bagasje: ${bag.checkedUnknown ? "ikke oppgitt" : bag.checkedBags}`}</Body>
+          </View>
+        </Card>
+
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl },
-  missing: { flex: 1, padding: space.xl, gap: space.lg, justifyContent: "center", backgroundColor: colors.sand },
-  carrier: { fontFamily: fonts.bold, fontSize: 18, color: colors.petrol },
-  segment: { gap: 2, borderLeftWidth: 2, borderLeftColor: colors.mintDeep, paddingLeft: space.md },
-  segTimes: { fontFamily: fonts.semibold, fontSize: 15, color: colors.text },
-  segMeta: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
-  layover: { fontFamily: fonts.medium, fontSize: 13, color: colors.warning, paddingLeft: space.md },
+  screen: { flex: 1, backgroundColor: colors.navy },
+  content: { paddingBottom: space.xxxl },
+  cards: { paddingHorizontal: space.lg, gap: space.md },
+  carrierRow: { flexDirection: "row", alignItems: "center", gap: space.md },
+  carrier: { flex: 1, fontFamily: fonts.bold, fontSize: 17, color: colors.text },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  sliceMeta: { flexDirection: "row", gap: space.sm },
+  tlRow: { flexDirection: "row", alignItems: "stretch" },
+  tlTime: { width: 52, fontFamily: fonts.heavy, fontSize: 16, color: colors.text, paddingTop: 2 },
+  tlTimeSpacer: { width: 52 },
+  rail: { width: 22, alignItems: "center" },
+  railLine: { position: "absolute", top: 0, bottom: 0, width: 2, backgroundColor: colors.indigoSoft },
+  dot: { marginTop: 7, width: 10, height: 10, borderRadius: 5, backgroundColor: colors.indigo, borderWidth: 2, borderColor: colors.white },
+  tlBody: { flex: 1, paddingLeft: space.sm, paddingBottom: space.xs },
+  tlPlace: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },
+  tlAirport: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
+  flightBar: { flexDirection: "row", alignItems: "center", gap: space.sm, backgroundColor: colors.surfaceMuted, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: space.sm },
+  flightName: { fontFamily: fonts.semibold, fontSize: 14, color: colors.text },
+  layover: { flexDirection: "row", alignItems: "center", gap: 6 },
+  layoverText: { fontFamily: fonts.semibold, fontSize: 13, color: colors.layover },
+  bagRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
 });

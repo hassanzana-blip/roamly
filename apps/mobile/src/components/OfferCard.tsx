@@ -2,58 +2,98 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MobileOffer } from "@contracts/mobileSearch";
 import type { OfferSlice } from "@contracts/types";
 import { PriceTag } from "./PriceTag";
+import { Icon } from "./Icon";
+import { CarrierBadge, Pill, RouteLine, TicketDivider } from "./ui";
 import { formatDuration, formatStops, formatTime } from "../lib/format";
 import { priceDisplay } from "../lib/price";
-import { colors, fonts, radius, space } from "../lib/theme";
+import { sellerName } from "../lib/offer";
+import { cabinLabel } from "../lib/searchForm";
+import { colors, fonts, radius, shadow, space } from "../lib/theme";
 
-function SliceLine({ slice, label }: { slice: OfferSlice; label: string }) {
+/** Én strekning som på en billett: avgang og kode til venstre, rute i midten, ankomst til høyre. */
+function SliceRow({ slice, label }: { slice: OfferSlice; label: string | null }) {
   return (
-    <View style={styles.slice}>
-      <Text style={styles.sliceLabel}>{label}</Text>
-      <Text style={styles.times}>
-        {formatTime(slice.departingAt)} – {formatTime(slice.arrivingAt)}
-      </Text>
-      <Text style={styles.meta}>
-        {slice.origin.iata} → {slice.destination.iata} · {formatDuration(slice.durationMinutes)} · {formatStops(slice.stops)}
-      </Text>
+    <View style={{ gap: space.xs }}>
+      {label ? <Text style={styles.sliceLabel}>{label}</Text> : null}
+      <View style={styles.sliceRow}>
+        <View style={styles.end}>
+          <Text style={styles.code}>{slice.origin.iata}</Text>
+          <Text style={styles.city} numberOfLines={1}>
+            {slice.origin.city}
+          </Text>
+          <Text style={styles.time}>{formatTime(slice.departingAt)}</Text>
+        </View>
+        <RouteLine top={formatDuration(slice.durationMinutes)} bottom={formatStops(slice.stops)} />
+        <View style={[styles.end, { alignItems: "flex-end" }]}>
+          <Text style={styles.code}>{slice.destination.iata}</Text>
+          <Text style={[styles.city, { textAlign: "right" }]} numberOfLines={1}>
+            {slice.destination.city}
+          </Text>
+          <Text style={styles.time}>{formatTime(slice.arrivingAt)}</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
+/** Tilbudet som et billettkort på den mørke resultatlisten. */
 export function OfferCard({ item, onPress }: { item: MobileOffer; onPress: () => void }) {
   const { offer, price } = item;
-  const seller = offer.booking?.kind === "external" ? `Selges av ${offer.booking.provider.name}` : "Kan ikke bestilles i appen ennå";
+  const name = sellerName(offer);
+  const seller = name ? `Selges av ${name}` : null;
   const d = priceDisplay(price);
+  const legs = offer.slices.map((s) => `${s.origin.iata} til ${s.destination.iata} ${formatTime(s.departingAt)}–${formatTime(s.arrivingAt)}, ${formatStops(s.stops).toLowerCase()}`).join("; ");
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${offer.owner.name}. ${d.accessibilityLabel}. ${seller}`}
+      accessibilityLabel={`${offer.owner.name}. ${d.accessibilityLabel}. ${legs}.${seller ? ` ${seller}.` : ""}`}
       accessibilityHint="Viser detaljer om tilbudet"
-      style={({ pressed }) => [styles.card, pressed && { backgroundColor: colors.sand }]}
+      style={({ pressed }) => [styles.card, shadow.card, pressed && { transform: [{ scale: 0.985 }] }]}
       testID={`offer-${offer.id}`}
     >
       <View style={styles.top}>
-        <Text style={styles.carrier} numberOfLines={1}>
+        <CarrierBadge code={offer.owner.iata || offer.owner.name} />
+        <Text style={styles.carrier} numberOfLines={2}>
           {offer.owner.name}
         </Text>
-        <PriceTag price={price} testID={`price-${offer.id}`} />
+        <Pill tone="neutral">{cabinLabel(offer.cabinClass)}</Pill>
       </View>
       {offer.slices.map((s, i) => (
-        <SliceLine key={s.id || i} slice={s} label={offer.slices.length > 1 ? (i === 0 ? "Ut" : "Hjem") : "Reise"} />
+        <SliceRow key={s.id || i} slice={s} label={offer.slices.length > 1 ? (i === 0 ? "Ut" : "Hjem") : null} />
       ))}
-      <Text style={styles.seller}>{seller}</Text>
+      <TicketDivider />
+      <View style={styles.footer}>
+        <View style={styles.sellerRow}>
+          {seller ? (
+            <>
+              <Icon name="info" size={16} color={colors.textSecondary} />
+              <Text style={styles.seller} numberOfLines={2}>
+                {seller}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.seller}>Se detaljer</Text>
+          )}
+          <Icon name="chevronRight" size={16} color={colors.textMuted} />
+        </View>
+        <PriceTag price={price} testID={`price-${offer.id}`} />
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: space.lg, gap: space.sm },
-  top: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: space.md },
-  carrier: { flex: 1, fontFamily: fonts.bold, fontSize: 16, color: colors.petrol, paddingTop: 2 },
-  slice: { gap: 1 },
-  sliceLabel: { fontFamily: fonts.semibold, fontSize: 11, letterSpacing: 0.6, textTransform: "uppercase", color: colors.textMuted },
-  times: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
-  meta: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
-  seller: { fontFamily: fonts.medium, fontSize: 13, color: colors.azureInk },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, padding: space.lg, gap: space.md, overflow: "hidden" },
+  top: { flexDirection: "row", alignItems: "center", gap: space.md },
+  carrier: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.text },
+  sliceLabel: { fontFamily: fonts.bold, fontSize: 11, letterSpacing: 0.8, textTransform: "uppercase", color: colors.textMuted },
+  sliceRow: { flexDirection: "row", alignItems: "center" },
+  end: { width: 88 },
+  code: { fontFamily: fonts.heavy, fontSize: 24, lineHeight: 28, letterSpacing: -0.3, color: colors.text },
+  city: { fontFamily: fonts.medium, fontSize: 12, color: colors.textMuted },
+  time: { fontFamily: fonts.bold, fontSize: 15, color: colors.text, marginTop: 2 },
+  footer: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space.md },
+  sellerRow: { flex: 1, minWidth: 120, flexDirection: "row", alignItems: "center", gap: 6, paddingBottom: 2 },
+  seller: { flex: 1, fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
 });
