@@ -90,3 +90,8 @@ export function toSearchRequest(f: SearchForm, sessionId?: string): SearchReques
   if (f.tripType === "roundtrip") slices.push({ origin: f.destination.iata, destination: f.origin.iata, departureDate: f.returnDate });
   return { slices, passengers, cabinClass: f.cabinClass, ...(f.directOnly ? { directOnly: true } : {}), ...(sessionId ? { sessionId } : {}) };
 }
+
+/** Flyplassøket slik det sendes: uten mellomrom i endene og med enkle mellomrom inni. */
+export function normalizeQuery(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ");
+}

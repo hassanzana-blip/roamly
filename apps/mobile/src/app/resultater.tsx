@@ -21,7 +21,18 @@ export default function ResultsScreen() {
     .filter(Boolean)
     .join(" · ");
 
-  if (search.status === "loading" || search.status === "idle") {
+  if (search.status === "idle") {
+    // Åpnet uten et søk (lenke, omstart eller tilbakestilt tilstand): ingen evig spinner.
+    return (
+      <View style={styles.center} testID="results-empty">
+        <SectionTitle>Ingen søk ennå</SectionTitle>
+        <Body muted style={{ textAlign: "center" }}>Velg reisemål og datoer, så sammenligner vi prisene for deg.</Body>
+        <Button testID="start-search" label="Start et søk" onPress={() => router.replace("/")} />
+      </View>
+    );
+  }
+
+  if (search.status === "loading") {
     return (
       <View style={styles.center} testID="results-loading">
         <ActivityIndicator size="large" color={colors.azure} />

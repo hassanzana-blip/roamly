@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { Airport } from "@contracts/airports";
 import { useApp } from "../lib/appState";
+import { normalizeQuery } from "../lib/searchForm";
 import { ApiError } from "../lib/api";
 import { Banner, Body, Field } from "../components/ui";
 import { colors, fonts, space } from "../lib/theme";
@@ -14,42 +15,38 @@ export default function AirportPicker() {
   const field = felt === "til" ? "destination" : "origin";
   const { api, setForm } = useApp();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Airport[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Svaret lagres sammen med søket det gjelder. Bare et svar for akkurat det
+  // som står i feltet nå vises og kan velges – aldri treff fra forrige søk.
+  const [answer, setAnswer] = useState<{ key: string; results: Airport[]; error: string | null } | null>(null);
 
-  const q = query.trim();
+  const q = normalizeQuery(query);
+  const key = q.toLowerCase();
   const active = q.length >= 2;
 
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
     const timer = setTimeout(() => {
-      setLoading(true);
       api
         .airports(q, 12)
-        .then((r) => {
-          if (!cancelled) {
-            setResults(r);
-            setError(null);
-          }
+        .then((results) => {
+          if (!cancelled) setAnswer({ key, results, error: null });
         })
         .catch((e: unknown) => {
-          if (!cancelled) setError(e instanceof ApiError ? e.message : "Kunne ikke søke etter flyplasser.");
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
+          if (!cancelled) setAnswer({ key, results: [], error: e instanceof ApiError ? e.message : "Kunne ikke søke etter flyplasser." });
         });
     }, 250);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [api, q, active]);
+  }, [api, q, key, active]);
 
-  // Under to tegn: ingen treff og ingen feil å vise (utledet, ikke lagret).
-  const shown = active ? results : [];
-  const shownError = active ? error : null;
+  // Alt som vises er utledet for søket som står i feltet nå.
+  const current = active && answer?.key === key ? answer : null;
+  const shown = current?.results ?? [];
+  const shownError = current?.error ?? null;
+  const loading = active && !current;
 
   const choose = (a: Airport) => {
     const choice = { iata: a.iata, name: a.name, city: a.city, country: a.country };
@@ -70,8 +67,12 @@ export default function AirportPicker() {
         returnKeyType="search"
         testID="airport-query"
       />
-      {shownError ? <Banner tone="error">{shownError}</Banner> : null}
-      {active && loading ? <ActivityIndicator color={colors.azure} /> : null}
+      {shownError ? (
+        <Banner tone="error" testID="airport-error">
+          {shownError}
+        </Banner>
+      ) : null}
+      {loading ? <ActivityIndicator color={colors.azure} testID="airport-loading" /> : null}
       <FlatList
         data={shown}
         keyExtractor={(a) => a.iata}
