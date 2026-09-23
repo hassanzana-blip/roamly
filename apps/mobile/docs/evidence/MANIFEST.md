@@ -102,3 +102,23 @@ They will be added as a new "after" set once pushed.
 
 Each image is 786×1809 px: a 2× capture of a 393×852 viewport plus the
 caption bar.
+
+## Result-card density (0271bb6 → dbb5bb2)
+
+Same harness and fixture. The first card is offer `dy_eve`. Heights are
+in points at the viewport size. "Next card visible" is how much of the
+second journey shows above the floating Filter/Sort/Dates bar before
+scrolling.
+
+| Viewport | Language | Card height before → after | Next card visible before → after |
+|---|---|---|---|
+| 393×852 | en | 359 → 243 | 35% → 100% (start of a third) |
+| 320×568 | en | 359 → 243 | 0% → 0%; the first card now fits |
+| 320×568 | nb | 397 → 279 | 0% → 0%; the first card now fits |
+
+At 320 pt the header, filter chips and the demo/FX notices take the top
+half of the screen. They are not shortened, because the demo warning must
+stay visible.
+
+Files: `density-before-393-en.png`, `density-after-393-en.png`,
+`density-before-320-nb.png`, `density-after-320-nb.png`.
