@@ -95,7 +95,8 @@ function EditProfileSheet({ profile, visible, onClose, onSaved }: { profile: Cus
     if (!lastName.trim()) return setError({ field: "lastName", text: a.fieldErrors.lastName });
     setBusy(true);
     try {
-      await updateProfile({ firstName: firstName.trim(), lastName: lastName.trim(), locale: i18n.locale });
+      // Kontoens språk (e-post) endres bare når kunden faktisk har valgt språk i appen – ikke av standarden.
+      await updateProfile({ firstName: firstName.trim(), lastName: lastName.trim(), ...(i18n.chosen ? { locale: i18n.locale } : {}) });
       onSaved();
     } catch (e) {
       const field = e instanceof ApiError ? (e.field ?? null) : null;

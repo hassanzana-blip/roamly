@@ -9,7 +9,8 @@ Provider search and click tracking stay on the server.
 - Expo owner: `helloskytravels-team`; existing project slug: `zana`.
 - Display name: HelloSky; iOS bundle identifier: `no.hellosky.app`.
 - App Store Connect listing: Hellosky Travel, app ID `6815342171`.
-- English is the default app language; Norwegian Bokmål is selectable.
+- Norwegian Bokmål is the language on a fresh install; English is a choice in
+  Profile that is saved on the phone and kept.
 - EAS remotely manages build numbers. Creating a build does not submit it.
 
 The Expo project slug is a project identifier; it is not the name shown to users.

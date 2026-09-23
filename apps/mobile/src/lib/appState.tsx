@@ -92,7 +92,7 @@ const defaultFactory: ApiFactory = (getToken) => {
 
 /**
  * Hele appens tilstand, pakket i språkvalget. `initialLocale` er for tester og
- * forhåndsvisninger; ellers leses det lagrede valget (engelsk som standard).
+ * forhåndsvisninger; ellers leses det lagrede valget (norsk bokmål ved ny installasjon).
  */
 export function AppProvider({ children, initialLocale, ...rest }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm>; initialLocale?: Locale }) {
   return (

@@ -131,7 +131,7 @@ describe("norske datoer og tider", () => {
   });
 });
 
-describe("på engelsk (standardspråket)", () => {
+describe("på engelsk (lagret valg)", () => {
   it("tilbudsfakta, prisgrunnlag og videre-knapp", () => {
     const h = providerHandoff(SEK_OFFER.offer);
     if (h.kind !== "external") throw new Error();

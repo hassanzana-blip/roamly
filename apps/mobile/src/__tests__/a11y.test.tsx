@@ -90,6 +90,6 @@ describe("tilgjengelighet", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
-    expect(announce).toHaveBeenCalledWith("5 journeys found");
+    expect(announce).toHaveBeenCalledWith("Fant 5 reiser");
   });
 });

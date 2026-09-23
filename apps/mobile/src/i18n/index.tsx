@@ -69,15 +69,23 @@ export function i18nFor(locale: Locale): I18n {
   return { locale, t: dictionaryFor(locale), f: formattersFor(locale) };
 }
 
-type I18nContextValue = I18n & { setLocale: (l: Locale) => void };
+/**
+ * `chosen`: kunden (eller en test/forhåndsvisning) har valgt språket. Standarden
+ * ved ny installasjon er ikke et valg, og sendes derfor ikke til kontoen.
+ */
+type I18nContextValue = I18n & { setLocale: (l: Locale) => void; chosen: boolean };
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 const PREF_KEY = "locale";
 
-/** Språket som er lagret på telefonen, ellers engelsk. */
+/** Språket som er lagret på telefonen, ellers norsk bokmål (ny installasjon). */
 export function storedLocale(): Locale {
-  return readPref(PREF_KEY, (v) => (isLocale(v) ? v : null)) ?? DEFAULT_LOCALE;
+  return savedLocale() ?? DEFAULT_LOCALE;
+}
+
+function savedLocale(): Locale | null {
+  return readPref(PREF_KEY, (v) => (isLocale(v) ? v : null));
 }
 
 /**
@@ -86,11 +94,13 @@ export function storedLocale(): Locale {
  */
 export function I18nProvider({ children, initialLocale }: { children: ReactNode; initialLocale?: Locale }) {
   const [locale, setLocaleState] = useState<Locale>(() => initialLocale ?? storedLocale());
+  const [chosen, setChosen] = useState(() => initialLocale !== undefined || savedLocale() !== null);
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
+    setChosen(true);
     writePref(PREF_KEY, l);
   }, []);
-  const value = useMemo(() => ({ ...i18nFor(locale), setLocale }), [locale, setLocale]);
+  const value = useMemo(() => ({ ...i18nFor(locale), setLocale, chosen }), [locale, setLocale, chosen]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

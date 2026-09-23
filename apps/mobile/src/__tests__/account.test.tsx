@@ -28,11 +28,12 @@ function setup(routes: Parameters<typeof fakeServer>[0]) {
   return { server, factory };
 }
 
-async function renderSignedIn(routes: Parameters<typeof fakeServer>[0], profile: CustomerProfile = PROFILE, locale: "en" | "nb" = "en") {
+/** `locale: null` = ny installasjon: ikke valgt, ingenting lagret (appen viser bokmål). */
+async function renderSignedIn(routes: Parameters<typeof fakeServer>[0], profile: CustomerProfile = PROFILE, locale: "en" | "nb" | null = "en") {
   signedInKeychain();
   const s = setup({ "mobileAuth.me": () => ({ data: profile }), ...routes });
   await render(
-    <AppProvider initialLocale={locale} apiFactory={s.factory}>
+    <AppProvider initialLocale={locale ?? undefined} apiFactory={s.factory}>
       <AccountScreen />
     </AppProvider>,
   );
@@ -59,6 +60,22 @@ describe("endre profil", () => {
     const call = server.calls.find((c) => c.path === "mobileAuth.updateProfile")!;
     expect(call.headers.authorization).toBe(`Bearer ${TOKEN}`);
     expect(call.input).toEqual({ firstName: "Karianne", lastName: "Nordmann", locale: "en" });
+  });
+
+  it("kontoens språk endres bare når kunden har valgt språk – ikke av standarden ved ny installasjon", async () => {
+    const { server } = await renderSignedIn({ "mobileAuth.updateProfile": (req) => ({ data: { ...PROFILE, ...(req.input as object) } }) }, { ...PROFILE, locale: "en" }, null);
+    await fireEvent.press(screen.getByTestId("open-edit-profile"));
+    await fireEvent.press(screen.getByTestId("edit-save"));
+    await waitFor(() => expect(screen.getByTestId("profile-saved")).toBeOnTheScreen());
+    // Appen viser bokmål, men kontoens engelske e-postspråk røres ikke.
+    expect(server.calls.filter((c) => c.path === "mobileAuth.updateProfile")[0]!.input).toEqual({ firstName: "Kari", lastName: "Nordmann" });
+
+    // Etter et eget valg i Profil følger språket med.
+    await fireEvent.press(screen.getByTestId("segment-en"));
+    await fireEvent.press(screen.getByTestId("open-edit-profile"));
+    await fireEvent.press(screen.getByTestId("edit-save"));
+    await waitFor(() => expect(server.calls.filter((c) => c.path === "mobileAuth.updateProfile")).toHaveLength(2));
+    expect(server.calls.filter((c) => c.path === "mobileAuth.updateProfile")[1]!.input).toEqual({ firstName: "Kari", lastName: "Nordmann", locale: "en" });
   });
 
   it("telefonnummeret (en innloggingsnøkkel) kan ikke endres i appen", async () => {
@@ -138,7 +155,7 @@ describe("glemt passord", () => {
     await fireEvent.press(screen.getByTestId("open-forgot"));
     await fireEvent.changeText(screen.getByTestId("forgot-email"), "kari");
     await fireEvent.press(screen.getByTestId("forgot-send"));
-    expect(screen.getByTestId("forgot-error")).toHaveTextContent("Enter a valid e-mail address.");
+    expect(screen.getByTestId("forgot-error")).toHaveTextContent("Skriv inn en gyldig e-postadresse.");
     expect(server.calls.filter((c) => c.path === "mobileAuth.requestPasswordReset")).toHaveLength(0);
   });
 });
@@ -232,7 +249,7 @@ describe("utløpt økt og hjelp", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    expect(screen.getByTestId("how-it-works")).toHaveTextContent(/you book and pay on that provider's own website/);
+    expect(screen.getByTestId("how-it-works")).toHaveTextContent(/bestiller og betaler du på tilbyderens egen nettside/);
     for (const [id, url] of [
       ["link-help", WEB_PAGES.help],
       ["link-privacy", WEB_PAGES.privacy],
@@ -243,7 +260,19 @@ describe("utløpt økt og hjelp", () => {
       expect(WebBrowser.openBrowserAsync).toHaveBeenLastCalledWith(url, expect.anything());
     }
     expect(Object.values(WEB_PAGES).every((u) => u.startsWith("https://hellosky.no/"))).toBe(true);
-    // Engelsk språk: kunden får vite at nettsidene er på norsk.
+    expect(screen.getAllByText("Åpner hellosky.no").length).toBe(4);
+  });
+
+  it("med engelsk som lagret valg får kunden vite at nettsidene er på norsk", async () => {
+    writePref("locale", "en");
+    const { factory } = setup({ "mobileAuth.me": () => ({ data: null }) });
+    await render(
+      <AppProvider apiFactory={factory}>
+        <AccountScreen />
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    expect(screen.getByTestId("how-it-works")).toHaveTextContent(/you book and pay on that provider's own website/);
     expect(screen.getAllByText("Opens hellosky.no (in Norwegian)").length).toBe(4);
   });
 });

@@ -1,10 +1,11 @@
 import { useEffect, type ReactNode } from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
+import * as FileSystem from "expo-file-system";
 import * as WebBrowser from "expo-web-browser";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
-import { readPref } from "../lib/localStore";
+import { __resetLocalStoreForTests, readPref, writePref } from "../lib/localStore";
 import { fakeServer } from "../test/fakeServer";
 import { AUTH_RESULT, SEARCH_RESULT, SEK_OFFER } from "../test/fixtures";
 import SearchScreen from "../app/(tabs)/index";
@@ -12,9 +13,9 @@ import ResultsScreen from "../app/resultater";
 import OfferScreen from "../app/tilbud/[id]";
 import AccountScreen from "../app/(tabs)/profil";
 
-// Språk (engelsk standard, norsk som lagret valg) og tillit: ærlige merker for
-// demo/testmiljø/ekte priser, utdaterte priser, avbrutt søk, ett klikk = én
-// måling, utløpt tilbud og advarsler før man går videre.
+// Språk (norsk bokmål ved første oppstart, engelsk som lagret valg) og tillit:
+// ærlige merker for demo/testmiljø/ekte priser, utdaterte priser, avbrutt søk,
+// ett klikk = én måling, utløpt tilbud og advarsler før man går videre.
 
 const router = (globalThis as unknown as { __router: { push: jest.Mock; back: jest.Mock; replace: jest.Mock } }).__router;
 const setParams = (globalThis as unknown as { __setParams: (p: Record<string, string>) => void }).__setParams;
@@ -35,6 +36,11 @@ function SearchOnMount({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** Kunden har valgt engelsk i Profil tidligere (lagret på telefonen). */
+function savedEnglish() {
+  writePref("locale", "en");
+}
+
 async function renderResults(result: MobileSearchResult, locale?: "en" | "nb") {
   const s = setup({ "flights.search": () => ({ data: result }), "flights.trackProviderClick": () => ({ data: { clickRef: null } }) });
   await render(
@@ -48,25 +54,37 @@ async function renderResults(result: MobileSearchResult, locale?: "en" | "nb") {
   return s;
 }
 
-describe("engelsk er standardspråket", () => {
-  it("uten lagret valg er appen på engelsk – med samme kronebeløp", async () => {
+describe("ny installasjon: norsk bokmål; engelsk er et lagret valg", () => {
+  it("uten lagret valg er appen på norsk bokmål – og standarden lagres ikke som et valg", async () => {
     await renderResults(SEARCH_RESULT);
     const card = within(screen.getByTestId("offer-sek_1"));
-    expect(card.getByText("Total for 1 adult · Return")).toBeOnTheScreen();
-    expect(card.getByText("Out · 23 Oct")).toBeOnTheScreen();
-    expect(within(screen.getByTestId("price-nok_1")).getByText(/^NOK\s2,100\.50$/)).toBeOnTheScreen();
-    expect(screen.getByTestId("result-count")).toHaveTextContent("5 journeys · 5 offers");
+    expect(card.getByText("Totalt for 1 voksen · Tur-retur")).toBeOnTheScreen();
+    expect(card.getByText("Ut · 23. okt.")).toBeOnTheScreen();
+    expect(within(screen.getByTestId("price-nok_1")).getByText(/^2\s100,50\skr$/)).toBeOnTheScreen();
+    expect(screen.getByTestId("result-count")).toHaveTextContent("5 reiser · 5 tilbud");
+    expect(readPref("locale", (v) => v)).toBeNull();
   });
 
-  it("forsiden og søkeknappen er på engelsk", async () => {
+  it("forsiden og søkeknappen er på norsk", async () => {
     const { factory } = setup({});
     await render(
       <AppProvider apiFactory={factory}>
         <SearchScreen />
       </AppProvider>,
     );
-    expect(screen.getByTestId("search-button").props.accessibilityLabel).toBe("Search flights");
-    expect(screen.getByText("You don't need to log in to search.")).toBeOnTheScreen();
+    expect(screen.getByTestId("search-button").props.accessibilityLabel).toBe("Søk fly");
+    expect(screen.getByText("Du trenger ikke logge inn for å søke.")).toBeOnTheScreen();
+  });
+
+  it("et lagret engelsk valg beholdes: samme kronebeløp, engelsk tekst", async () => {
+    savedEnglish();
+    await renderResults(SEARCH_RESULT);
+    const card = within(screen.getByTestId("offer-sek_1"));
+    expect(card.getByText("Total for 1 adult · Return")).toBeOnTheScreen();
+    expect(card.getByText("Out · 23 Oct")).toBeOnTheScreen();
+    expect(within(screen.getByTestId("price-nok_1")).getByText(/^NOK\s2,100\.50$/)).toBeOnTheScreen();
+    expect(screen.getByTestId("result-count")).toHaveTextContent("5 journeys · 5 offers");
+    expect(readPref("locale", (v) => v)).toBe("en");
   });
 });
 
@@ -79,19 +97,26 @@ describe("språkvalget", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    expect(screen.getByText("You can search for flights without logging in.")).toBeOnTheScreen();
-    await fireEvent.press(screen.getByTestId("segment-nb"));
     expect(screen.getByText("Du kan søke etter fly uten å logge inn.")).toBeOnTheScreen();
-    expect(readPref("locale", (v) => v as string)).toBe("nb");
+    // Ny installasjon: bokmål er valgt i velgeren, men ingenting er lagret bare av å vise Profil.
+    expect(screen.getByTestId("segment-nb").props.accessibilityState).toMatchObject({ selected: true });
+    expect(screen.getByTestId("segment-en").props.accessibilityState).toMatchObject({ selected: false });
+    expect(readPref("locale", (v) => v)).toBeNull();
+    await fireEvent.press(screen.getByTestId("segment-en"));
+    expect(screen.getByText("You can search for flights without logging in.")).toBeOnTheScreen();
+    expect(readPref("locale", (v) => v as string)).toBe("en");
     await screen.unmount();
+    __resetLocalStoreForTests(); // som en ekte omstart: minnet er tomt, valget må leses fra filen
 
-    // Ny oppstart: det lagrede valget leses før første bilde.
+    // Ny oppstart: det lagrede valget leses før første bilde – norsk er bare standarden for en ny installasjon.
     await render(
       <AppProvider apiFactory={factory}>
         <AccountScreen />
       </AppProvider>,
     );
-    await waitFor(() => expect(screen.getByText("Du kan søke etter fly uten å logge inn.")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText("You can search for flights without logging in.")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("segment-nb"));
+    expect(readPref("locale", (v) => v as string)).toBe("nb");
   });
 
   it("språket endrer aldri søket: samme forespørsel på engelsk og norsk", async () => {
@@ -104,7 +129,11 @@ describe("språkvalget", () => {
     expect(JSON.stringify(input(en))).not.toMatch(/currency|locale|"en"|"nb"/);
   });
 
-  it("ny konto får appens språk som kontospråk", async () => {
+  it.each([
+    ["ny installasjon", undefined, "nb"],
+    ["engelsk lagret", "en", "en"],
+  ] as const)("ny konto får appens språk som kontospråk (%s)", async (_label, saved, expected) => {
+    if (saved) writePref("locale", saved);
     const { server, factory } = setup({ "mobileAuth.register": () => ({ data: AUTH_RESULT }), "mobileAuth.me": () => ({ data: null }) });
     await render(
       <AppProvider apiFactory={factory}>
@@ -119,10 +148,13 @@ describe("språkvalget", () => {
     await fireEvent.changeText(screen.getByTestId("password"), "password-123456");
     await fireEvent.press(screen.getByTestId("auth-submit"));
     await waitFor(() => expect(server.calls.some((c) => c.path === "mobileAuth.register")).toBe(true));
-    expect(server.calls.find((c) => c.path === "mobileAuth.register")!.input).toMatchObject({ locale: "en" });
+    expect(server.calls.find((c) => c.path === "mobileAuth.register")!.input).toMatchObject({ locale: expected });
+    // Å registrere seg lagrer ikke språket på telefonen; bare et eget valg i Profil gjør det.
+    expect(readPref("locale", (v) => v)).toBe(saved ?? null);
   });
 
   it("feil ved innlogging vises på engelsk, også når serveren svarer på norsk", async () => {
+    savedEnglish();
     const { factory } = setup({
       "mobileAuth.me": () => ({ data: null }),
       "mobileAuth.login": () => ({ status: 401, error: { message: "Feil e-post/telefon eller passord.", appCode: "UNAUTHORIZED" } }),
@@ -140,7 +172,36 @@ describe("språkvalget", () => {
   });
 });
 
+describe("språkvalget leses fra filen på telefonen", () => {
+  const PREFS = "file:///documents/hellosky-prefs.json";
+  async function coldStart(content: string) {
+    (FileSystem as unknown as { __files: Map<string, string> }).__files.set(PREFS, content);
+    __resetLocalStoreForTests();
+    const { factory } = setup({});
+    await render(
+      <AppProvider apiFactory={factory}>
+        <SearchScreen />
+      </AppProvider>,
+    );
+    return screen.getByTestId("search-button").props.accessibilityLabel as string;
+  }
+
+  it("et lagret engelsk valg gjelder fra første bilde etter kaldstart", async () => {
+    expect(await coldStart(JSON.stringify({ v: 1, locale: "en" }))).toBe("Search flights");
+  });
+
+  it.each([["de"], ["EN"], ["nb-NO"], [""], [null], [42], [{}]])("en ukjent verdi (%p) gir bokmål, ikke krasj", async (value) => {
+    expect(await coldStart(JSON.stringify({ v: 1, locale: value }))).toBe("Søk fly");
+  });
+
+  it("en ødelagt fil gir bokmål, ikke krasj", async () => {
+    expect(await coldStart("{ikke json")).toBe("Søk fly");
+  });
+});
+
 describe("ærlige merker på resultatene", () => {
+  beforeEach(savedEnglish);
+
   it("ekte priser: «Live prices» med klokkeslett, ingen DEMO – selv om Duffel ikke er satt opp (demoMode)", async () => {
     await renderResults({ ...SEARCH_RESULT, provider: "kayak", sandbox: false, demoMode: true });
     expect(screen.queryByTestId("sandbox-banner")).toBeNull();
@@ -218,6 +279,8 @@ describe("tregt søk kan stoppes", () => {
 });
 
 describe("videre til tilbyderen", () => {
+  beforeEach(savedEnglish);
+
   beforeEach(() => jest.mocked(WebBrowser.openBrowserAsync).mockClear());
 
   async function openOffer(result: MobileSearchResult, id: string) {
@@ -283,6 +346,8 @@ describe("videre til tilbyderen", () => {
 });
 
 describe("omregning når alt gikk bra", () => {
+  beforeEach(savedEnglish);
+
   it("forklaringen ligger bak en tydelig knapp; kortene har «approx.» og kilden", async () => {
     const offers = SEARCH_RESULT.offers.filter((o) => o.price.nok.kind !== "unavailable");
     await renderResults({ ...SEARCH_RESULT, offers, fx: { ...SEARCH_RESULT.fx, status: "ok", unconvertedCount: 0 } });

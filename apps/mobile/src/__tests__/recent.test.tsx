@@ -72,7 +72,7 @@ describe("nylige søk på forsiden", () => {
     const list = within(screen.getByTestId("recent-searches"));
     expect(list.getByText("Oslo → Barcelona")).toBeOnTheScreen();
     expect(list.getByText("Bergen → London")).toBeOnTheScreen();
-    expect(screen.getByText("Saved only on this phone.")).toBeOnTheScreen();
+    expect(screen.getByText("Lagres bare på denne telefonen.")).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByTestId("recent-remove-OSL-BCN"));
     expect(screen.queryByTestId("recent-OSL-BCN")).toBeNull();
@@ -105,11 +105,11 @@ describe("flyplassvelgeren før man skriver", () => {
     expect(screen.getByTestId("origin")).toHaveTextContent("TRD");
     expect(readPref("homeAirport", (v) => v)).toBeNull();
 
-    // Med bryteren: huskes, og vises med «Forget».
+    // Med bryteren: huskes, og vises med «Glem».
     await fireEvent(screen.getByTestId("remember-home-airport"), "valueChange", true);
     await fireEvent.press(screen.getAllByTestId("airport-BGO")[0]!);
     expect(readPref("homeAirport", (v) => (v as { iata: string }).iata)).toBe("BGO");
-    expect(screen.getByTestId("home-airport")).toHaveTextContent(/^Usual departure airport: Bergen \(BGO\)Forget$/);
+    expect(screen.getByTestId("home-airport")).toHaveTextContent(/^Vanlig avreiseflyplass: Bergen \(BGO\)Glem$/);
     await fireEvent.press(screen.getByTestId("forget-home-airport"));
     expect(readPref("homeAirport", (v) => v)).toBeNull();
   });
