@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emailCandidates } from "./staffBoundary";
+import { mailboxKey, sameMailbox } from "./staffBoundary";
 import { readBearerToken, readCustomerToken } from "./customerSessions";
 
 const TOKEN = "AbC_def-0123456789abcdefghijklmnopqrstuvwxy"; // randomToken(32)-form, 43 tegn
@@ -8,16 +8,34 @@ function req(headers: Record<string, string>) {
   return new Request("http://localhost/api/trpc/x", { headers });
 }
 
-describe("emailCandidates", () => {
+describe("mailboxKey", () => {
   it("normaliserer store bokstaver og mellomrom", () => {
-    expect(emailCandidates("  Eier@HelloSky.test ")).toEqual(["eier@hellosky.test"]);
+    expect(mailboxKey("  Eier@HelloSky.test ")).toBe("eier@hellosky.test");
   });
-  it("tar med adressen uten +merkelapp", () => {
-    expect(emailCandidates("eier+reise@hellosky.test")).toEqual(["eier+reise@hellosky.test", "eier@hellosky.test"]);
+  it("fjerner +merkelapp, også med store bokstaver", () => {
+    expect(mailboxKey("Eier+Reise@HelloSky.TEST")).toBe("eier@hellosky.test");
   });
   it("tåler rare adresser uten å kaste", () => {
-    expect(emailCandidates("+x@hellosky.test")).toEqual(["+x@hellosky.test"]);
-    expect(emailCandidates("ingen-krøllalfa")).toEqual(["ingen-krøllalfa"]);
+    expect(mailboxKey("+x@hellosky.test")).toBe("+x@hellosky.test");
+    expect(mailboxKey("ingen-krøllalfa")).toBe("ingen-krøllalfa");
+  });
+});
+
+describe("sameMailbox er symmetrisk og uavhengig av store bokstaver", () => {
+  it("merkelapp på kundesiden: ansatt eier@ sperrer eier+kunde@", () => {
+    expect(sameMailbox("eier@hellosky.test", "eier+kunde@hellosky.test")).toBe(true);
+  });
+  it("merkelapp på den lagrede ansattadressen: owner+staff@ sperrer owner@", () => {
+    expect(sameMailbox("owner+staff@hellosky.test", "owner@hellosky.test")).toBe(true);
+    expect(sameMailbox("owner@hellosky.test", "owner+staff@hellosky.test")).toBe(true);
+  });
+  it("blandede store bokstaver i den lagrede adressen", () => {
+    expect(sameMailbox("Owner+Staff@HelloSky.TEST", "owner@hellosky.test")).toBe(true);
+    expect(sameMailbox("OWNER@HELLOSKY.TEST", "Owner+x@hellosky.test")).toBe(true);
+  });
+  it("ulike postkasser er ulike", () => {
+    expect(sameMailbox("owner@hellosky.test", "owner2@hellosky.test")).toBe(false);
+    expect(sameMailbox("owner@hellosky.test", "owner@hellosky.no")).toBe(false);
   });
 });
 

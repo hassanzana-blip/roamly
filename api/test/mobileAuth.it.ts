@@ -81,19 +81,19 @@ describe("app: kundesesjon med Bearer-token", () => {
   it("Bearer-tokenet gir tilgang til kundeprosedyrer – på appens endepunkt og på /api/trpc", async () => {
     const { session } = await (await mobileCaller()).mobileAuth.register({ identifier: "per@hellosky.test", password: PASSWORD, firstName: "Per", lastName: "Hansen" });
 
-    const app1 = await mobileCaller(session.token);
-    expect(await app1.mobileAuth.me()).toMatchObject({ email: "per@hellosky.test" });
-    await app1.account.save({ kind: "destination", refId: "barcelona" });
-    expect((await app1.account.saved()).map((s) => s.refId)).toEqual(["barcelona"]);
+    expect(await (await mobileCaller(session.token)).mobileAuth.me()).toMatchObject({ email: "per@hellosky.test" });
 
-    // Samme token virker også mot nettets router (samme kundesesjoner, samme regler).
-    const webCtx = await appCtx(session.token);
-    expect(await web(webCtx).customerAuth.me()).toMatchObject({ email: "per@hellosky.test" });
+    // Samme token virker også mot kundeprosedyrer i nettets router (samme kundesesjoner, samme regler).
+    const webBearer = web(await appCtx(session.token));
+    expect(await webBearer.customerAuth.me()).toMatchObject({ email: "per@hellosky.test" });
+    await webBearer.account.save({ kind: "destination", refId: "barcelona" });
+    expect((await webBearer.account.saved()).map((s) => s.refId)).toEqual(["barcelona"]);
 
     // Uten token, med feil token eller med feil form: ingen kunde.
     expect(await (await mobileCaller()).mobileAuth.me()).toBeNull();
-    await expectAppCode((await mobileCaller()).account.saved(), "UNAUTHORIZED");
-    await expectAppCode((await mobileCaller("x".repeat(43))).account.saved(), "UNAUTHORIZED");
+    await expectAppCode((await mobileCaller()).mobileAuth.logoutAll(), "UNAUTHORIZED");
+    await expectAppCode((await mobileCaller("x".repeat(43))).mobileAuth.logoutAll(), "UNAUTHORIZED");
+    await expectAppCode(web(await appCtx("x".repeat(43))).account.saved(), "UNAUTHORIZED");
     const malformed = await appCtx(undefined, { headers: { authorization: "Bearer ikke gyldig!" } });
     expect(malformed.customer).toBeNull();
   });
@@ -105,7 +105,7 @@ describe("app: kundesesjon med Bearer-token", () => {
 
     expect(await (await mobileCaller(a)).mobileAuth.logout()).toEqual({ ok: true });
     expect((await appCtx(a)).customer).toBeNull();
-    await expectAppCode((await mobileCaller(a)).account.saved(), "UNAUTHORIZED");
+    await expectAppCode(web(await appCtx(a)).account.saved(), "UNAUTHORIZED");
     expect((await appCtx(b)).customer).not.toBeNull();
     // Idempotent: et allerede tilbakekalt token gir fortsatt ok.
     expect(await (await mobileCaller(a)).mobileAuth.logout()).toEqual({ ok: true });
@@ -164,12 +164,16 @@ describe("ansatte kan ikke være kunder", () => {
   });
   afterAll(closeDb);
 
-  it("en ansatts e-post kan ikke registreres – på nett, i appen, med store bokstaver eller +merkelapp", async () => {
+  it("en ansatts e-post kan ikke registreres – på nett, i appen, med store bokstaver eller +merkelapp i begge retninger", async () => {
     await seedStaff();
-    for (const identifier of ["eier@hellosky.test", "ADMIN@HelloSky.test", "eier+reise@hellosky.test"]) {
-      await expectAppCode(web(makeCtx()).customerAuth.register({ identifier, password: PASSWORD, firstName: "Test", lastName: "Test" }), "FORBIDDEN");
-      await expectAppCode((await mobileCaller()).mobileAuth.register({ identifier, password: PASSWORD, firstName: "Test", lastName: "Test" }), "FORBIDDEN");
+    // Lagret med merkelapp og blandede store bokstaver – sperrer likevel grunnadressen.
+    await getDb().insert(staffUsers).values({ email: "Owner+Staff@HelloSky.TEST", name: "Eier to", role: "OWNER", status: "invited" });
+    const blocked = ["eier@hellosky.test", "ADMIN@HelloSky.test", "eier+reise@hellosky.test", "owner@hellosky.test", "OWNER+kunde@hellosky.test", "owner+staff@hellosky.test"];
+    for (const identifier of blocked) {
+      await expectAppCode(web(makeCtx()).customerAuth.register({ identifier, password: PASSWORD, firstName: "Test", lastName: "Test" }), "CONFLICT");
+      await expectAppCode((await mobileCaller()).mobileAuth.register({ identifier, password: PASSWORD, firstName: "Test", lastName: "Test" }), "CONFLICT");
     }
+    expect(await countRows("audit_logs", "action='customer.register_blocked_staff'")).toBe(blocked.length * 2);
     expect(await countRows("customer_accounts")).toBe(0);
     expect(await countRows("customer_sessions")).toBe(0);
 
@@ -228,10 +232,49 @@ describe("ansatte kan ikke være kunder", () => {
     expect((await appCtx(res.session.token)).customer?.email).toBe("reisende@example.test");
   });
 
+  it("registrering: en ansatts e-post gir nøyaktig samme offentlige svar som en e-post som allerede er i bruk", async () => {
+    await seedStaff();
+    await (await mobileCaller()).mobileAuth.register({ identifier: "opptatt@hellosky.test", password: PASSWORD, firstName: "Opptatt", lastName: "Kunde" });
+
+    let n = 0;
+    async function attempt(endpoint: string, identifier: string, password = PASSWORD) {
+      n += 1;
+      const res = await app.request(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": `10.77.0.${n}` },
+        body: JSON.stringify({ json: { identifier, password, firstName: "Test", lastName: "Test" } }),
+      });
+      const body = (await res.json()) as { error: { json: { data: Record<string, unknown> } } };
+      delete body.error.json.data.requestId; // unik per forespørsel
+      return { status: res.status, body };
+    }
+
+    for (const endpoint of ["/api/trpc/customerAuth.register", "/api/mobile/trpc/mobileAuth.register"]) {
+      const taken = await attempt(endpoint, "opptatt@hellosky.test");
+      const staff = await attempt(endpoint, "eier@hellosky.test");
+      expect(taken.status).toBe(409);
+      expect(taken.body.error.json).toMatchObject({ data: { appCode: "CONFLICT", details: { field: "identifier" } } });
+      expect(staff).toEqual(taken);
+
+      // Samme rekkefølge på sjekkene: et svakt passord gir VALIDATION for begge.
+      const weakTaken = await attempt(endpoint, "opptatt@hellosky.test", "kort");
+      const weakStaff = await attempt(endpoint, "eier@hellosky.test", "kort");
+      expect(weakTaken.body.error.json.data.appCode).toBe("VALIDATION");
+      expect(weakStaff).toEqual(weakTaken);
+    }
+
+    // Den egentlige grunnen står bare i revisjonsloggen – uten selve adressen.
+    const audit = await rows<{ metadata_json: string }>("SELECT metadata_json FROM audit_logs WHERE action='customer.register_blocked_staff'");
+    expect(audit).toHaveLength(2);
+    expect(JSON.parse(audit[0].metadata_json)).toMatchObject({ reason: "staff_email" });
+    expect(audit[0].metadata_json).not.toContain("eier@hellosky.test");
+    expect(await countRows("customer_accounts")).toBe(1);
+  });
+
   it("appens API har ingen staff-/admin-ruter og leser aldri staff-cookien", async () => {
     const keys = Object.keys(mobileAppRouter._def.record);
-    expect(keys.sort()).toEqual(["account", "checkout", "flights", "mobileAuth", "orders", "ping", "tripPlans", "watch"]);
-    for (const internal of ["staffAuth", "admin", "team", "partners", "expenses"]) expect(keys).not.toContain(internal);
+    expect(keys.sort()).toEqual(["flights", "mobileAuth", "ping"]);
+    for (const excluded of ["staffAuth", "admin", "team", "partners", "expenses", "checkout", "orders", "account", "watch", "tripPlans", "customerAuth"]) expect(keys).not.toContain(excluded);
 
     await seedStaff();
     const staffLogin = makeCtx();
@@ -254,10 +297,25 @@ describe("ansatte kan ikke være kunder", () => {
     // Over HTTP: admin/staffAuth finnes ikke på appens endepunkt; ping gjør det.
     const ping = await app.request("/api/mobile/trpc/ping");
     expect(ping.status).toBe(200);
-    for (const path of ["staffAuth.me", "admin.dashboard", "staffAuth.login"]) {
-      const res = await app.request(`/api/mobile/trpc/${path}`, { method: path.endsWith("login") ? "POST" : "GET", headers: { cookie, "content-type": "application/json" }, body: path.endsWith("login") ? "{}" : undefined });
-      expect(res.status).toBe(404);
+    const excluded: Array<[string, "GET" | "POST"]> = [
+      ["staffAuth.me", "GET"],
+      ["staffAuth.login", "POST"],
+      ["admin.dashboard", "GET"],
+      ["checkout.createSession", "POST"],
+      ["checkout.status", "GET"],
+      ["orders.get", "GET"],
+      ["account.saved", "GET"],
+      ["watch.list", "GET"],
+      ["tripPlans.list", "GET"],
+      ["customerAuth.login", "POST"],
+    ];
+    for (const [path, method] of excluded) {
+      const res = await app.request(`/api/mobile/trpc/${path}`, { method, headers: { cookie, "content-type": "application/json" }, body: method === "POST" ? "{}" : undefined });
+      expect(res.status, path).toBe(404);
     }
+    // Nettets /api/trpc er uendret: rutene finnes der (uinnlogget → 401, ikke 404).
+    expect((await app.request("/api/trpc/account.saved")).status).toBe(401);
+    expect((await app.request("/api/trpc/checkout.status?input=%7B%7D")).status).not.toBe(404);
   });
 
   it("over HTTP: appen logger inn uten Origin, bruker Bearer og logger ut", async () => {

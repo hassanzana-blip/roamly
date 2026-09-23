@@ -283,10 +283,6 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
   const ip = clientIp(ctx.req);
   assertRateLimit("customer-register", ip, 6, 10 * 60_000);
   const id = parseIdentifier(input.identifier);
-  if (id.kind === "email" && (await isStaffEmail(id.value))) {
-    log.warn({ via: "register" }, "kundeinnlogging avvist: ansatts e-post");
-    throw new AppError("FORBIDDEN", { message: STAFF_EMAIL_MESSAGE, data: { field: "identifier" } });
-  }
 
   const issues = customerPasswordIssues(input.password);
   if (issues.length) {
@@ -295,7 +291,14 @@ export async function registerCustomer(input: z.infer<typeof registerInput>, ctx
 
   const db = getDb();
   const existing = await db.select({ id: customerAccounts.id }).from(customerAccounts).where(whereIdentifier(id)).limit(1);
-  if (existing[0]) {
+  // En ansatts e-post får nøyaktig samme svar som en adresse som allerede er i
+  // bruk – på samme sted i rekkefølgen – så registreringen kan ikke brukes til
+  // å kartlegge hvem som er ansatt. Den egentlige grunnen står bare i revisjonsloggen.
+  const staffEmail = id.kind === "email" && (await isStaffEmail(id.value));
+  if (staffEmail) {
+    await logAudit({ actorType: "system", action: "customer.register_blocked_staff", targetType: "customer_account", ip, metadata: { reason: "staff_email", emailHash: sha256Hex(id.value).slice(0, 16) } });
+  }
+  if (existing[0] || staffEmail) {
     throw new AppError("CONFLICT", {
       message:
         id.kind === "email"

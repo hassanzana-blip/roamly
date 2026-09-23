@@ -1,4 +1,3 @@
-import { inArray } from "drizzle-orm";
 import { getDb } from "../queries/connection";
 import { staffUsers } from "../../db/schema";
 
@@ -12,26 +11,37 @@ import { staffUsers } from "../../db/schema";
  */
 
 /**
- * Adressene som regnes som «samme postkasse»: selve adressen og varianten uten
- * «+merkelapp» (zana+reise@… leveres til zana@…). Små bokstaver, uten mellomrom.
+ * Postkassen en adresse leveres til: små bokstaver, uten mellomrom og uten
+ * «+merkelapp» i lokaldelen (eier+reise@… og EIER@… er samme postkasse som
+ * eier@…). En lokaldel som bare er «+…» beholdes som den er.
  */
-export function emailCandidates(email: string): string[] {
+export function mailboxKey(email: string): string {
   const e = email.trim().toLowerCase();
   const at = e.lastIndexOf("@");
-  if (at <= 0) return [e];
+  if (at <= 0) return e;
   const local = e.slice(0, at);
-  const domain = e.slice(at + 1);
   const base = local.split("+")[0];
-  return [...new Set([e, base ? `${base}@${domain}` : e])];
+  return `${base || local}@${e.slice(at + 1)}`;
 }
 
-/** Tilhører e-posten en ansatt? Null/tom e-post (telefonkontoer) er aldri staff. */
+/**
+ * Samme postkasse? Symmetrisk og uavhengig av databasens sortering: begge
+ * sider normaliseres her, så en ansatt lagret som «Eier+Staff@X» sperrer
+ * «eier@x», og en ansatt lagret som «eier@x» sperrer «EIER+kunde@X».
+ */
+export function sameMailbox(a: string, b: string): boolean {
+  return mailboxKey(a) === mailboxKey(b);
+}
+
+/**
+ * Tilhører e-posten en ansatt? Null/tom e-post (telefonkontoer) er aldri staff.
+ *
+ * Staff-tabellen er liten (noen få ansatte), så alle adressene hentes og
+ * sammenlignes i koden. Da kan ikke kollasjon, store bokstaver eller en
+ * merkelapp på den lagrede adressen gi et hull.
+ */
 export async function isStaffEmail(email: string | null | undefined): Promise<boolean> {
   if (!email || !email.trim()) return false;
-  const rows = await getDb()
-    .select({ id: staffUsers.id })
-    .from(staffUsers)
-    .where(inArray(staffUsers.email, emailCandidates(email)))
-    .limit(1);
-  return rows.length > 0;
+  const staff = await getDb().select({ email: staffUsers.email }).from(staffUsers);
+  return staff.some((s) => sameMailbox(s.email, email));
 }
