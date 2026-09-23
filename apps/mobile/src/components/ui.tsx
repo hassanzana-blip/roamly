@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./Icon";
 import { colors, radius, SKY_MARK_PATH, space, TOUCH, type } from "../lib/theme";
 import { useI18n } from "../i18n";
+import { useReducedMotion } from "../lib/motion";
 
 // ─── Merke ──────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ export function SkyMark({ size = 24, color = colors.blue }: { size?: number; col
 /** Det godkjente merket: blå «H» og ordmerket. Likt på alle skjermer. */
 export function Wordmark({ size = 22, dark = true }: { size?: number; dark?: boolean }) {
   return (
-    <View style={styles.wordmark} accessibilityRole="header" accessibilityLabel="HelloSky">
+    <View style={styles.wordmark} accessible accessibilityRole="image" accessibilityLabel="HelloSky">
       <SkyMark size={size + 2} />
       <Text style={[styles.wordmarkText, { fontSize: size, color: dark ? colors.onDark : colors.text }]}>hellosky</Text>
     </View>
@@ -430,7 +431,21 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
         <Text style={[type.bodyStrong, { color: colors.text }]}>{label}</Text>
         {hint ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{hint}</Text> : null}
       </View>
-      <View style={styles.row12} accessibilityRole="adjustable" accessibilityLabel={`${label}: ${value}`}>
+      {/* VoiceOver: én justerbar kontroll (sveip opp/ned); knappene er for trykk. */}
+      <View
+        style={styles.row12}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityHint={hint}
+        accessibilityValue={{ min, max, now: value, text: String(value) }}
+        accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === "increment" && value < max) onChange(value + 1);
+          if (e.nativeEvent.actionName === "decrement" && value > min) onChange(value - 1);
+        }}
+        testID={`stepper-${label}`}
+      >
         <Pressable onPress={() => onChange(value - 1)} disabled={value <= min} accessibilityRole="button" accessibilityLabel={t.common.fewer(label)} style={[styles.stepButton, value <= min && { opacity: 0.35 }]}>
           <Icon name="minus" size={18} color={colors.text} />
         </Pressable>
@@ -447,11 +462,13 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
 export function BottomSheet({ visible, title, onClose, children, testID, footer }: { visible: boolean; title: string; onClose: () => void; children: ReactNode; testID?: string; footer?: ReactNode }) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={reduced ? "fade" : "slide"} onRequestClose={onClose}>
       <View style={styles.sheetRoot}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]} testID={testID}>
+        {/* Bakgrunnen lukker ved trykk; for VoiceOver er «Ferdig» og tofingers-Z (escape) veien ut. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]} testID={testID} accessibilityViewIsModal onAccessibilityEscape={onClose}>
           <View style={styles.grabber} />
           <View style={styles.sheetHead}>
             <Text style={[type.title, { color: colors.text }]} accessibilityRole="header">
@@ -493,7 +510,7 @@ const styles = StyleSheet.create({
   primary: { minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xl },
   primaryInactive: { backgroundColor: colors.darkBorder },
   primaryText: { fontSize: 17, lineHeight: 22, fontWeight: "600", color: colors.white },
-  secondary: { minHeight: 40, borderRadius: radius.pill, alignItems: "center", justifyContent: "center", paddingHorizontal: space.lg },
+  secondary: { minHeight: TOUCH, borderRadius: radius.pill, alignItems: "center", justifyContent: "center", paddingHorizontal: space.lg },
   secondaryLight: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lightBorder },
   secondaryDark: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
   link: { minHeight: TOUCH, justifyContent: "center" },
@@ -510,11 +527,11 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: colors.blue, borderColor: colors.blue },
 
   segmented: { flexDirection: "row", backgroundColor: colors.inset, borderRadius: radius.pill, padding: 4 },
-  segment: { flex: 1, minHeight: 40, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", borderRadius: radius.pill, paddingHorizontal: space.md },
+  segment: { flex: 1, minHeight: TOUCH, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", borderRadius: radius.pill, paddingHorizontal: space.md },
   segmentSelected: { backgroundColor: colors.blue },
 
   tabs: { flexDirection: "row", gap: space.sm },
-  tab: { flex: 1, minHeight: 40, borderRadius: radius.input, alignItems: "center", justifyContent: "center", paddingHorizontal: space.sm, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
+  tab: { flex: 1, minHeight: TOUCH, borderRadius: radius.input, alignItems: "center", justifyContent: "center", paddingHorizontal: space.sm, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
   tabSelected: { backgroundColor: colors.white, borderColor: colors.white },
 
   card: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.xl, gap: space.lg },

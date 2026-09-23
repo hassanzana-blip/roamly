@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { AccessibilityInfo, FlatList, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -93,6 +93,13 @@ export default function ResultsScreen() {
   const offers = search.status === "done" ? search.result.offers : null;
   const shown = useMemo(() => (offers ? applyView(offers, view) : []), [offers, view]);
   const journeys = useMemo(() => groupJourneys(shown), [shown]);
+
+  // VoiceOver: si fra én gang når et søk er ferdig – hvor mange reiser, eller hva som gikk galt.
+  const doneCount = search.status === "done" ? groupJourneys(search.result.offers).length : null;
+  const announced = search.status === "done" ? r.announceFound(t.results.journeys(doneCount ?? 0)) : search.status === "error" ? errorText(search.error, i18n) : null;
+  useEffect(() => {
+    if (announced) AccessibilityInfo.announceForAccessibility(announced);
+  }, [announced]);
   const filters = activeFilterCount(view);
 
   const title = form.origin && form.destination ? `${form.origin.city} → ${form.destination.city}` : r.fallbackTitle;

@@ -5,6 +5,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { Photo as PhotoData } from "../lib/destinations";
 import { colors } from "../lib/theme";
 import { useI18n } from "../i18n";
+import { useReducedMotion } from "../lib/motion";
 
 /**
  * Foto med nøytralt svart overlegg for lesbar tekst. Bildet følger med appen;
@@ -28,6 +29,7 @@ export function PhotoBackdrop({
 }) {
   const { t, locale } = useI18n();
   const [failed, setFailed] = useState(false);
+  const reduced = useReducedMotion();
   const show = photo && !failed;
   return (
     <View style={[styles.root, style]} testID={testID}>
@@ -36,7 +38,7 @@ export function PhotoBackdrop({
           source={photo.image}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
-          transition={150}
+          transition={reduced ? 0 : 150}
           onError={() => setFailed(true)}
           accessible
           accessibilityLabel={photo.credit.caption[locale]}
