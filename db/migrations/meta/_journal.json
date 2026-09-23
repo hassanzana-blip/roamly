@@ -50,6 +50,20 @@
       "when": 1789845575762,
       "tag": "0006_min_side_planer_dokumenter_venner",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1790155535781,
+      "tag": "0007_metasok_sporing",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1790156838543,
+      "tag": "0008_eierprofil",
+      "breakpoints": true
     }
   ]
 }

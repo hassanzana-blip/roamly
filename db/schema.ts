@@ -127,6 +127,15 @@ export const staffSessions = mysqlTable(
     revokedAt: timestamp("revoked_at"),
     /** Satt når skjermen har stått urørt for lenge. Sesjonen lever, men gjør ingenting. */
     lockedAt: timestamp("locked_at"),
+    /**
+     * Hvem av eierne som sitter her nå: «zana» eller «zyar».
+     *
+     * Én konto, to identiteter. Uten dette feltet sier revisjonsloggen bare
+     * at «eier» endret en leverandørinnstilling, og da er den til liten
+     * hjelp den dagen noen spør hvem. Feltet er null for kontoer som ikke
+     * har profiler.
+     */
+    activeProfile: varchar("active_profile", { length: 16 }),
   },
   (t) => [
     uniqueIndex("uq_session_token").on(t.tokenHash),
@@ -1637,4 +1646,161 @@ export const contentReports = mysqlTable(
     resolvedAt: timestamp("resolved_at"),
   },
   (t) => [index("idx_report_status").on(t.status, t.createdAt), index("idx_report_target").on(t.targetType, t.targetId)],
+);
+
+// ─── Metasøk: klikk ut og konvertering inn ─────────────────────────────────
+
+/**
+ * Hvert klikk som forlater HelloSky.
+ *
+ * Forretningsmodellen er metasøk: kunden bestiller hos leverandøren, ikke
+ * hos oss. Klikket ut er derfor det siste vi ser av reisen – og fram til nå
+ * så vi det ikke i det hele tatt. Uten denne raden kan ingen svare på hvor
+ * mange som faktisk gikk videre, til hvem, på hvilken rute, for hvilket
+ * beløp. Eierdashbordet ville vært et vindu mot en tom database.
+ *
+ * Raden er anonym som standard. `customerId` fylles bare når noen er
+ * innlogget, og vi lagrer ingen IP – bare marked og enhetstype, som er det
+ * som trengs for å se hvor trafikken kommer fra.
+ *
+ * Beløpet er prisen leverandøren viste i det øyeblikket klikket skjedde.
+ * Det er ikke en inntekt og skal aldri presenteres som en: det er
+ * bruttoverdien på reisen kunden gikk videre med.
+ */
+export const providerClicks = mysqlTable(
+  "provider_clicks",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    /** Stabil id vi kan matche en senere konvertering mot. */
+    clickRef: varchar("click_ref", { length: 40 }).notNull(),
+    /** Innlogget kunde, når det finnes en. Anonyme klikk står som null. */
+    customerId: ref("customer_id").references((): AnyMySqlColumn => customerAccounts.id),
+    /** Søkeøkten klikket hørte til – knytter klikk til søk uten å identifisere noen. */
+    sessionRef: varchar("session_ref", { length: 64 }),
+    /** «kayak», «duffel», «travelport» – hvilken adapter tilbudet kom fra. */
+    provider: varchar("provider", { length: 32 }).notNull(),
+    /** Selgeren leverandøren oppga, f.eks. «Norwegian» eller «Kiwi.com». */
+    sellerName: varchar("seller_name", { length: 120 }),
+    originIata: varchar("origin_iata", { length: 3 }).notNull(),
+    destinationIata: varchar("destination_iata", { length: 3 }).notNull(),
+    departDate: varchar("depart_date", { length: 10 }).notNull(),
+    returnDate: varchar("return_date", { length: 10 }),
+    adults: int("adults").notNull().default(1),
+    children: int("children").notNull().default(0),
+    infants: int("infants").notNull().default(0),
+    cabin: varchar("cabin", { length: 16 }).notNull().default("economy"),
+    /** Flyselskapet på første strekning. */
+    carrierIata: varchar("carrier_iata", { length: 3 }),
+    stops: int("stops"),
+    /** Prisen leverandøren viste, i minste enhet. Bruttoverdi, ikke inntekt. */
+    shownPriceMinor: minor("shown_price_minor"),
+    currency: varchar("currency", { length: 3 }),
+    /** «mobile» | «tablet» | «desktop». */
+    device: varchar("device", { length: 16 }),
+    /** Markedet søket ble gjort i, f.eks. «NO». */
+    market: varchar("market", { length: 8 }),
+    /** Hvor trafikken kom fra, når vi vet det. Ingen fri tekst fra klienten. */
+    source: varchar("source", { length: 64 }),
+    /** Var tilbudet fra en sandkasse? Da teller det ikke som forretning. */
+    sandbox: boolean("sandbox").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("uq_providerclicks_ref").on(t.clickRef),
+    index("idx_providerclicks_created").on(t.createdAt),
+    index("idx_providerclicks_provider").on(t.provider, t.createdAt),
+    index("idx_providerclicks_route").on(t.originIata, t.destinationIata, t.createdAt),
+  ],
+);
+
+/**
+ * Konverteringer rapportert av leverandøren.
+ *
+ * Tabellen er tom til en leverandør faktisk rapporterer noe. Den finnes
+ * likevel nå, fordi strukturen bestemmer hva vi kan si senere: et estimat og
+ * en bekreftet provisjon er ikke det samme tallet, og de skal aldri kunne
+ * legges sammen ved et uhell.
+ *
+ * `status` er hele poenget:
+ *  - `estimated`  leverandøren har meldt et salg, men ikke godkjent det
+ *  - `confirmed`  godkjent, men ikke utbetalt
+ *  - `paid`       pengene er mottatt
+ *  - `reversed`   kansellert, refundert eller avvist i etterkant
+ *
+ * Dashbordet summerer hver status for seg. Ingenting annet er ærlig.
+ */
+export const affiliateConversions = mysqlTable(
+  "affiliate_conversions",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    /** Leverandørens egen id for salget – gjør importen idempotent. */
+    externalRef: varchar("external_ref", { length: 120 }).notNull(),
+    /** Klikket dette salget kom fra, når leverandøren oppgir det. */
+    clickRef: varchar("click_ref", { length: 40 }),
+    provider: varchar("provider", { length: 32 }).notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("estimated"),
+    /** Bruttoverdien på reisen, slik leverandøren rapporterte den. */
+    bookingValueMinor: minor("booking_value_minor"),
+    /** HelloSkys provisjon. Dette er inntekten – ikke beløpet over. */
+    commissionMinor: minor("commission_minor"),
+    currency: varchar("currency", { length: 3 }),
+    /** Når leverandøren sier salget skjedde. */
+    occurredAt: timestamp("occurred_at"),
+    /** Når vi mottok det. */
+    reportedAt: timestamp("reported_at").notNull().defaultNow(),
+    /** Når status sist endret seg – f.eks. godkjent eller reversert. */
+    settledAt: timestamp("settled_at"),
+    note: varchar("note", { length: 255 }),
+  },
+  (t) => [
+    uniqueIndex("uq_affiliateconv_external").on(t.provider, t.externalRef),
+    index("idx_affiliateconv_status").on(t.status, t.reportedAt),
+    index("idx_affiliateconv_click").on(t.clickRef),
+  ],
+);
+
+/**
+ * Søk, også fra dem som ikke er innlogget.
+ *
+ * `search_history` har `customer_id NOT NULL` og er kundens egen historikk –
+ * den skal ikke bygges om til analyse. De aller fleste søk gjøres uten
+ * innlogging, og de manglet helt. Denne raden er anonym med vilje: rute,
+ * datoer, reisende, marked, enhet, treff eller ikke. Ingen person.
+ *
+ * `resultCount = 0` er den viktigste raden i tabellen: et søk uten treff er
+ * et hull i dekningen, og det er noe en eier må kunne se.
+ */
+export const searchEvents = mysqlTable(
+  "search_events",
+  {
+    id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    sessionRef: varchar("session_ref", { length: 64 }),
+    originIata: varchar("origin_iata", { length: 3 }).notNull(),
+    destinationIata: varchar("destination_iata", { length: 3 }).notNull(),
+    departDate: varchar("depart_date", { length: 10 }).notNull(),
+    returnDate: varchar("return_date", { length: 10 }),
+    adults: int("adults").notNull().default(1),
+    children: int("children").notNull().default(0),
+    infants: int("infants").notNull().default(0),
+    cabin: varchar("cabin", { length: 16 }).notNull().default("economy"),
+    provider: varchar("provider", { length: 32 }),
+    /** Antall tilbud leverandøren ga. 0 = hull i dekningen. */
+    resultCount: int("result_count").notNull().default(0),
+    /** Laveste totalpris i svaret, i minste enhet. Null når det ikke var treff. */
+    lowestPriceMinor: minor("lowest_price_minor"),
+    currency: varchar("currency", { length: 3 }),
+    /** Hvor lang tid leverandøren brukte. Grunnlaget for helsetallene. */
+    durationMs: int("duration_ms"),
+    /** Feilkode når søket feilet, ellers null. */
+    errorCode: varchar("error_code", { length: 64 }),
+    device: varchar("device", { length: 16 }),
+    market: varchar("market", { length: 8 }),
+    sandbox: boolean("sandbox").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_searchevents_created").on(t.createdAt),
+    index("idx_searchevents_route").on(t.originIata, t.destinationIata, t.createdAt),
+    index("idx_searchevents_noresult").on(t.resultCount, t.createdAt),
+  ],
 );

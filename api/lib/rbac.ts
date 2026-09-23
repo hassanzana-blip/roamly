@@ -5,6 +5,7 @@ export type StaffRole = "OWNER" | "ADMIN" | "SUPPORT" | "FINANCE" | "READ_ONLY";
 
 export type Permission =
   | "overview:read"
+  | "company:read"
   | "bookings:read"
   | "bookings:write"
   | "bookings:reconcile"
@@ -60,7 +61,10 @@ const ADMIN_OPS: Permission[] = [
 ];
 
 export const ROLE_PERMISSIONS: Record<StaffRole, ReadonlySet<Permission>> = {
-  OWNER: new Set<Permission>([...ADMIN_OPS, "audit:read", "staff:read", "staff:manage", "payroll:read", "payroll:manage"]),
+  // «company:read» er selskapets økonomi – bruttoverdi, provisjon, konvertering.
+  // Den ligger med vilje bare hos eieren: driftsoversikten («overview:read»)
+  // trenger alle for å gjøre jobben, denne trenger ingen andre.
+  OWNER: new Set<Permission>([...ADMIN_OPS, "company:read", "audit:read", "staff:read", "staff:manage", "payroll:read", "payroll:manage"]),
   ADMIN: new Set<Permission>([...ADMIN_OPS, "audit:read", "staff:read", "payroll:read"]),
   SUPPORT: new Set<Permission>([
     "overview:read",

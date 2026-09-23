@@ -5,6 +5,7 @@ import { getDb } from "./queries/connection";
 import { expenseReceipts, expenses, staffUsers } from "../db/schema";
 import { AppError, toTRPCError } from "./lib/errors";
 import { logAudit } from "./lib/audit";
+import { staffActorLabel } from "./lib/audit";
 import { clientIp } from "./lib/ratelimit";
 
 // ─── Utgifter ───────────────────────────────────────────────────────────────
@@ -202,7 +203,7 @@ export const expensesRouter = createRouter({
         const id = Number(res[0].insertId);
         if (input.receipt) await db.insert(expenseReceipts).values({ expenseId: id, data: input.receipt.data });
         await logAudit({
-          actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+          actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
           action: "expense.created", targetType: "expense", targetId: id,
           metadata: { grossMinor: input.grossMinor, currency: input.currency, category: input.category }, ip: clientIp(ctx.req),
         });
@@ -237,7 +238,7 @@ export const expensesRouter = createRouter({
             note: input.note ?? row.note,
           })
           .where(eq(expenses.id, input.id));
-        await logAudit({ actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name, action: "expense.updated", targetType: "expense", targetId: input.id, ip: clientIp(ctx.req) });
+        await logAudit({ actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff), action: "expense.updated", targetType: "expense", targetId: input.id, ip: clientIp(ctx.req) });
         return { ok: true as const };
       } catch (err) {
         throw toTRPCError(err);
@@ -254,7 +255,7 @@ export const expensesRouter = createRouter({
         assertDraft(row.status);
         await db.delete(expenseReceipts).where(eq(expenseReceipts.expenseId, input.id));
         await db.delete(expenses).where(eq(expenses.id, input.id));
-        await logAudit({ actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name, action: "expense.deleted", targetType: "expense", targetId: input.id, ip: clientIp(ctx.req) });
+        await logAudit({ actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff), action: "expense.deleted", targetType: "expense", targetId: input.id, ip: clientIp(ctx.req) });
         return { ok: true as const };
       } catch (err) {
         throw toTRPCError(err);
@@ -280,7 +281,7 @@ export const expensesRouter = createRouter({
       const db = getDb();
       const res = await db.update(expenses).set({ status: "bokfort" }).where(and(eq(expenses.period, input.period), eq(expenses.status, "draft")));
       const n = Number(res[0].affectedRows ?? 0);
-      await logAudit({ actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name, action: "expense.period_closed", targetType: "period", metadata: { period: input.period, count: n }, ip: clientIp(ctx.req) });
+      await logAudit({ actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff), action: "expense.period_closed", targetType: "period", metadata: { period: input.period, count: n }, ip: clientIp(ctx.req) });
       return { closed: n };
     }),
 

@@ -11,6 +11,7 @@ import {
 import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { AppError } from "./lib/errors";
 import { logAudit } from "./lib/audit";
+import { staffActorLabel } from "./lib/audit";
 import { isDuplicateKeyError } from "./lib/jobs";
 
 /**
@@ -355,7 +356,7 @@ export const communityRouter = createRouter({
           : await db.update(communityComments).set({ hidden: true }).where(eq(communityComments.id, input.id));
       if (Number(result[0].affectedRows) === 0) throw new AppError("NOT_FOUND");
       await logAudit({
-        actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+        actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "community.hidden", targetType: `community_${input.targetType}`, targetId: input.id,
         metadata: { reason: input.reason }, ip: clientIp(ctx.req),
       });
@@ -372,7 +373,7 @@ export const communityRouter = createRouter({
           : await db.update(communityComments).set({ hidden: false }).where(eq(communityComments.id, input.id));
       if (Number(result[0].affectedRows) === 0) throw new AppError("NOT_FOUND");
       await logAudit({
-        actorType: "staff", actorId: ctx.staff.userId, actorLabel: ctx.staff.name,
+        actorType: "staff", actorId: ctx.staff.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "community.unhidden", targetType: `community_${input.targetType}`, targetId: input.id, ip: clientIp(ctx.req),
       });
       return { ok: true };

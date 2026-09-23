@@ -11,6 +11,7 @@ import {
   teamMessages,
 } from "../db/schema";
 import { logAudit } from "./lib/audit";
+import { staffActorLabel } from "./lib/audit";
 
 const SEVERITIES = ["low", "medium", "high", "critical"] as const;
 const PROBLEM_STATUSES = ["open", "in_progress", "resolved"] as const;
@@ -159,7 +160,7 @@ export const teamRouter = createRouter({
         reportedById: ctx.staff!.userId,
       });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "problem.created", targetType: "problem_report",
         targetId: String(Number(result[0].insertId)),
       });
@@ -186,7 +187,7 @@ export const teamRouter = createRouter({
       await db.update(problemReports).set(patch).where(eq(problemReports.id, input.id));
       if (input.status === "resolved") {
         await logAudit({
-          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
           action: "problem.resolved", targetType: "problem_report", targetId: String(input.id),
         });
       }
@@ -253,7 +254,7 @@ export const teamRouter = createRouter({
         registeredById: ctx.staff!.userId,
       });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "payroll.entry_added", targetType: "payroll_entry",
         targetId: String(Number(result[0].insertId)),
         metadata: { staffUserId: input.staffUserId, amount: input.amount, period: input.periodLabel },
@@ -269,7 +270,7 @@ export const teamRouter = createRouter({
         .set({ status: "paid", paidAt: new Date() })
         .where(eq(payrollEntries.id, input.id));
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "payroll.marked_paid", targetType: "payroll_entry", targetId: String(input.id),
       });
       return { ok: true };

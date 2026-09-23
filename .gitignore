@@ -48,3 +48,6 @@ playwright-report/
 .migrations-check/
 travelport-response.json
 artifacts/
+
+# Lokale QA-stubber og engangsskript – aldri i repoet.
+*.tmp.mjs

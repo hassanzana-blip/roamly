@@ -1,6 +1,7 @@
 import { getDb } from "../queries/connection";
 import { auditLogs } from "../../db/schema";
 import { log } from "./logger";
+import { profileLabel } from "../../contracts/ownerProfiles";
 
 export type AuditActorType = "staff" | "customer" | "system" | "worker" | "webhook";
 
@@ -23,6 +24,19 @@ const DEFAULT_ACTOR_LABEL: Record<AuditActorType, string> = {
   worker: "Bakgrunnsjobb",
   webhook: "Webhook",
 };
+
+/**
+ * Navnet som skal stå i loggen for en innlogget ansatt.
+ *
+ * Zana og Zyar deler én eierkonto. Uten dette ville hver rad sagt bare
+ * kontonavnet, og loggen kunne ikke svare på hvem av dem som endret noe.
+ * Er ingen profil valgt – eller er kontoen ikke en eierkonto – står
+ * kontonavnet som før.
+ */
+export function staffActorLabel(staff: { name: string; activeProfile?: string | null } | null | undefined): string {
+  if (!staff) return DEFAULT_ACTOR_LABEL.staff;
+  return profileLabel(staff.activeProfile) ?? staff.name;
+}
 
 /**
  * Append-only revisjonslogg. Aldri legg passord, tokens, kortdata eller

@@ -40,6 +40,7 @@ import { getSetting, priceWithServiceFee, SETTING_KEYS, setSetting } from "./lib
 import { DEFAULT_REWARD_RULES, rewardRules } from "./lib/rewards";
 import { enqueueJob, retryJob } from "./lib/jobs";
 import { logAudit } from "./lib/audit";
+import { staffActorLabel } from "./lib/audit";
 import { humanReference } from "./lib/tokens";
 import { sessionIsFresh } from "./lib/sessions";
 import { clientIp } from "./lib/ratelimit";
@@ -348,7 +349,7 @@ export const adminRouter = createRouter({
         bookingId: input.bookingId, authorId: ctx.staff!.userId, body: input.body,
       });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "booking.note_added", targetType: "booking", targetId: input.bookingId,
       });
       return { ok: true };
@@ -362,7 +363,7 @@ export const adminRouter = createRouter({
       await enqueueJob("send_email", { kind: "booking_confirmation", bookingId: input.bookingId },
         { dedupeKey: `resend-confirmation:${input.bookingId}:${Date.now()}` });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "booking.confirmation_resent", targetType: "booking", targetId: input.bookingId,
       });
       return { ok: true };
@@ -375,7 +376,7 @@ export const adminRouter = createRouter({
       const [doc] = await getDb().select().from(passengerDocuments).where(eq(passengerDocuments.id, input.documentId)).limit(1);
       if (!doc) throw new TRPCError({ code: "NOT_FOUND", message: "Fant ikke dokumentet." });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "passenger_document.revealed", targetType: "passenger_document", targetId: input.documentId,
         metadata: { bookingId: doc.bookingId, passengerId: doc.passengerId }, ip: clientIp(ctx.req),
       });
@@ -396,7 +397,7 @@ export const adminRouter = createRouter({
       await db.update(bookingAttempts).set({ lastErrorCode: null }).where(eq(bookingAttempts.id, input.attemptId));
       await enqueueJob(job, { attemptId: input.attemptId }, { dedupeKey: `${job === "recover_attempt" ? "recover" : "attempt"}:${input.attemptId}`, priority: 1 });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "booking_attempt.retried", targetType: "booking_attempt", targetId: input.attemptId, metadata: { state: attempt.state },
       });
       return { ok: true };
@@ -408,7 +409,7 @@ export const adminRouter = createRouter({
       await enqueueJob("reconcile_order", { bookingId: input.bookingId },
         { dedupeKey: `reconcile:${input.bookingId}` });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "booking.reconcile_requested", targetType: "booking", targetId: input.bookingId,
       });
       return { ok: true };
@@ -424,7 +425,7 @@ export const adminRouter = createRouter({
       const booking = await transitionBooking(input.bookingId, input.toState,
         { type: "staff", id: String(ctx.staff!.userId) }, input.reason);
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: `booking.state_changed`, targetType: "booking", targetId: input.bookingId,
         metadata: { from: booking.state, to: input.toState, reason: input.reason },
         ip: clientIp(ctx.req),
@@ -499,7 +500,7 @@ export const adminRouter = createRouter({
         expiresAt: new Date(Date.now() + input.expiresInHours * 60 * 60_000),
       });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "quote.created", targetType: "quote", targetId: reference,
         metadata: { offerId: input.offerId, total, currency: offer.totalCurrency, passengers: prepared?.stored.length ?? 0 },
       });
@@ -533,7 +534,7 @@ export const adminRouter = createRouter({
       await enqueueJob("send_email", { kind: "quote_checkout", quoteId: input.quoteId, token },
         { dedupeKey: `quote-send:${input.quoteId}:${Date.now()}` });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "quote.sent", targetType: "quote", targetId: quote.reference,
       });
       return { ok: true, checkoutPath: `/tilbud/${token}` };
@@ -586,7 +587,7 @@ export const adminRouter = createRouter({
       });
       await enqueueJob("book_from_quote", { quoteId: input.quoteId });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "quote.marked_paid", targetType: "quote", targetId: quote.reference,
         metadata: { note: input.note, amount: quote.totalAmount, currency: quote.currency },
         ip: clientIp(ctx.req),
@@ -780,7 +781,7 @@ export const adminRouter = createRouter({
       const [customer] = await getDb().select().from(customers).where(eq(customers.id, input.customerId)).limit(1);
       if (!customer) throw new TRPCError({ code: "NOT_FOUND", message: "Fant ikke kunden." });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "customer.contact_revealed", targetType: "customer", targetId: input.customerId,
         ip: clientIp(ctx.req),
       });
@@ -890,7 +891,7 @@ export const adminRouter = createRouter({
           reason: input.reason, requestedAmountMinor: input.amountMinor ?? null, passengerIds: input.passengerIds ?? null,
         });
         await logAudit({
-          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
           action: "refund.requested", targetType: "refund_case", targetId: rc.id,
           metadata: { bookingId: input.bookingId, kind: input.kind, amountMinor: input.amountMinor ?? null, reason: input.reason },
           ip: clientIp(ctx.req),
@@ -947,7 +948,7 @@ export const adminRouter = createRouter({
         }
         await enqueueJob("process_refund", { refundCaseId: rc.id }, { dedupeKey: `refund:${rc.id}`, priority: 2 });
         await logAudit({
-          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
           action: "refund.approved", targetType: "refund_case", targetId: rc.id,
           metadata: { amountMinor: amount, currency: rc.currency, note: input.note ?? null }, ip: clientIp(ctx.req),
         });
@@ -975,7 +976,7 @@ export const adminRouter = createRouter({
           }, { dedupeKey: `refund-rejected:${rc.id}` });
         }
         await logAudit({
-          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
           action: "refund.rejected", targetType: "refund_case", targetId: rc.id, metadata: { reason: input.reason }, ip: clientIp(ctx.req),
         });
         return { ok: true };
@@ -995,7 +996,7 @@ export const adminRouter = createRouter({
       }
       await enqueueJob("process_refund", { refundCaseId: rc.id }, { dedupeKey: `refund:${rc.id}`, priority: 2 });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "refund.retried", targetType: "refund_case", targetId: rc.id,
       });
       return { ok: true };
@@ -1020,7 +1021,7 @@ export const adminRouter = createRouter({
         }
         const result = await finalizeCapturedAttempt(input.attemptId, { pspChargeId: input.pspChargeId ?? null, actor: `staff:${ctx.staff!.userId}` });
         await logAudit({
-          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+          actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
           action: "attempt.marked_captured", targetType: "booking_attempt", targetId: input.attemptId,
           metadata: { pspChargeId: input.pspChargeId ?? null, bookingId: result.bookingId, state: result.state },
           ip: clientIp(ctx.req),
@@ -1070,7 +1071,7 @@ export const adminRouter = createRouter({
         }
       }
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "schedule_change.resolved", targetType: "schedule_change", targetId: input.id, metadata: { resolution: input.resolution, note: input.note ?? null },
       });
       return { ok: true };
@@ -1095,7 +1096,7 @@ export const adminRouter = createRouter({
         if (b?.state === "REVIEW") await transitionBooking(b.id, "CONFIRMED", { type: "staff", id: String(ctx.staff!.userId) }, "Svindelflagg avklart").catch(() => null);
       }
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: `fraud_flag.${input.decision}`, targetType: "fraud_flag", targetId: input.id, metadata: { bookingId: flag.bookingId },
       });
       return { ok: true };
@@ -1174,7 +1175,7 @@ export const adminRouter = createRouter({
       const previous = await getSetting<unknown>(input.key, null);
       await setSetting(input.key, input.value, ctx.staff!.userId);
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "settings.changed", targetType: "setting", targetId: input.key, metadata: { previous, value: input.value }, ip: clientIp(ctx.req),
       });
       return { ok: true };
@@ -1214,7 +1215,7 @@ export const adminRouter = createRouter({
       const previous = await getSetting<unknown>("rewards.rules", null);
       await setSetting("rewards.rules", input, ctx.staff!.userId);
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "settings.changed", targetType: "setting", targetId: "rewards.rules", metadata: { previous, value: input }, ip: clientIp(ctx.req),
       });
       return { ok: true };
@@ -1292,7 +1293,7 @@ export const adminRouter = createRouter({
       if (Object.keys(updates).length === 0) return { ok: true };
       await db.update(supportCases).set(updates).where(eq(supportCases.id, input.id));
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "case.updated", targetType: "support_case", targetId: input.id,
         metadata: updates as Record<string, unknown>,
       });
@@ -1327,7 +1328,7 @@ export const adminRouter = createRouter({
         await db.update(supportCases).set({ status: "pending_customer" }).where(eq(supportCases.id, input.id));
       }
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: input.internal ? "case.internal_note" : "case.replied",
         targetType: "support_case", targetId: input.id,
       });
@@ -1350,7 +1351,7 @@ export const adminRouter = createRouter({
         bookingId: input.bookingId, priority: input.priority, assigneeId: ctx.staff!.userId,
       });
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "case.created", targetType: "support_case", targetId: reference,
         metadata: { bookingId: input.bookingId, subject: input.subject },
       });
@@ -1437,7 +1438,7 @@ export const adminRouter = createRouter({
       });
 
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "booking.manual_created", targetType: "booking", targetId: reference,
         metadata: { total: pricing.totalAmount, currency: input.currency, tripType: input.tripType },
         ip: clientIp(ctx.req),
@@ -1559,7 +1560,7 @@ export const adminRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       await retryJob(input.jobId);
       await logAudit({
-        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: ctx.staff!.name,
+        actorType: "staff", actorId: ctx.staff!.userId, actorLabel: staffActorLabel(ctx.staff),
         action: "job.retried", targetType: "job", targetId: input.jobId,
       });
       return { ok: true };
