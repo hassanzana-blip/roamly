@@ -103,22 +103,34 @@ They will be added as a new "after" set once pushed.
 Each image is 786×1809 px: a 2× capture of a 393×852 viewport plus the
 caption bar.
 
-## Result-card density (0271bb6 → dbb5bb2)
+## Result-card density and small screens (0271bb6 → dbb5bb2 → 3f3d884)
 
-Same harness and fixture. The first card is offer `dy_eve`. Heights are
-in points at the viewport size. "Next card visible" is how much of the
-second journey shows above the floating Filter/Sort/Dates bar before
-scrolling.
+Same harness and fixture. The first card is offer `dy_eve`. Values are in
+points at the viewport size. "Bar" is the top edge of the floating
+Filter/Sort/Dates bar: anything below it is covered until you scroll.
 
-| Viewport | Language | Card height before → after | Next card visible before → after |
-|---|---|---|---|
-| 393×852 | en | 359 → 243 | 35% → 100% (start of a third) |
-| 320×568 | en | 359 → 243 | 0% → 0%; the first card now fits |
-| 320×568 | nb | 397 → 279 | 0% → 0%; the first card now fits |
+| Viewport, language | Commit | First card top → bottom | Details button bottom | Bar top | Total and Details clear of the bar? |
+|---|---|---|---|---|---|
+| 393×852, en | 0271bb6 | 274 → 633 (359 tall) | – | 786 | yes; next card 35% visible |
+| 393×852, en | dbb5bb2 | 274 → 517 (243 tall) | 491 | 786 | yes; next card 100% visible |
+| 393×852, en | 3f3d884 | 216 → 459 (243 tall) | 433 | 786 | yes; next card 100% visible |
+| 320×568, en | dbb5bb2 | 310 → 553 | 527 | 502 | **no** |
+| 320×568, en | 3f3d884 | 234 → 477 | 451 | 502 | yes, the whole card |
+| 320×568, nb | dbb5bb2 | 292 → 571 | 537 | 502 | **no** |
+| 320×568, nb | 3f3d884 | 250 → 529 | 495 | 502 | yes; the second line of "Totalt for 1 voksen · Tur-retur" scrolls into view |
 
-At 320 pt the header, filter chips and the demo/FX notices take the top
-half of the screen. They are not shortened, because the demo warning must
-stay visible.
+**Correction.** The earlier version of this section said that at 320 pt
+"the first card now fits" (dbb5bb2). That was wrong: the floating bar
+covered its total and Details (Codex's review). 3f3d884 fixes it:
+- When every price was converted, the FX explanation starts collapsed
+  behind a labelled, accessible "Om «ca.»-priser" / 'About "approx."
+  prices' disclosure. Each affected card still shows "approx." and the
+  Norges Bank rate and date.
+- Slightly tighter spacing in the header rows.
+- The subtitle may wrap instead of being cut off.
 
-Files: `density-before-393-en.png`, `density-after-393-en.png`,
-`density-before-320-nb.png`, `density-after-320-nb.png`.
+The demo warning is not shortened or hidden.
+
+Files: `density-before-393-en.png` and `density-before-320-nb.png`
+(0271bb6); `density-after-393-en.png`, `density-after-320-nb.png` and
+`density-after-320-en.png` (3f3d884).
