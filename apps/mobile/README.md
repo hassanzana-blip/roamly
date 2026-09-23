@@ -2,6 +2,8 @@
 
 Selvstendig Expo-app (SDK 57, React Native 0.86, Expo Router) for flysøk på norsk bokmål med priser i norske kroner.
 Appen snakker bare med HelloSkys server på `/api/mobile/trpc` – aldri direkte med flyleverandører.
+En ny installasjon starter på bokmål. Et lagret engelsk eller norsk språkvalg beholdes ved omstart.
+Byggidentitet, miljøer og lanseringskrav står i [`RELEASE.md`](RELEASE.md).
 
 ## Hva appen gjør
 
@@ -37,7 +39,8 @@ eller bestillingsopplysninger. Vil kunden ha et tilbud, åpnes tilbyderens egen 
 Kull/svart grunn, hvite søke- og kortflater og HelloSky-blått bare som handlingsfarge; iOS' systemskrift med
 tabellsifre for tid og pris; ekte foto (se under). Tokens, kontrastmålinger, komponenter og skjermer står i
 [`DESIGN.md`](DESIGN.md); verdiene bor i `src/lib/theme.ts`, felles komponenter i `src/components/ui.tsx`.
-Trykkflater er minst 44 pt.
+Målet er trykkflater på minst 44 pt. Kjente avvik og målte resultater står i `DESIGN.md`;
+den nåværende valutaforklaringen er under målet og venter på retting.
 
 **Foto:** HelloSkys egne, godkjente reisefoto fra nettets register, kopiert inn av `scripts/make-photos.mjs`
 (`assets/photos/*.jpg`). De følger med appen – ingen bildesøk mens appen brukes, ingen Unsplash-nøkkel i appen.
@@ -45,8 +48,9 @@ Kreditering «Foto: Unsplash» på bildet og en liste i Profil, slik registeret 
 
 ## Sikkerhet
 
-- Kundens opake token lagres kun i iOS-nøkkelringen (`expo-secure-store`, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`), og sendes
-  som `Authorization: Bearer` bare på `mobileAuth.me`/`logout`. Søk og klikkmåling sendes aldri med token.
+- Kundens opake token lagres i iOS-nøkkelringen (`expo-secure-store`, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`), og sendes
+  som `Authorization: Bearer` på de beskyttede kunderutene: `me`, `updateProfile`, `deleteAccount` og `logout`.
+  Søk og klikkmåling sendes aldri med token.
 - Ingen AsyncStorage, ingen logging (`no-console` er en lintfeil i `src/`).
 - Eneste konfigurasjon er den offentlige `EXPO_PUBLIC_API_BASE_URL` (https påkrevd; http bare mot localhost i utvikling).
   Ingen leverandørnøkler og ingen serverkode i bygget – `npm run check:bundle` bekrefter det på det eksporterte bygget,
@@ -57,8 +61,8 @@ Kreditering «Foto: Unsplash» på bildet og en liste i Profil, slik registeret 
 
 ```bash
 cp .env.example .env.local        # sett EXPO_PUBLIC_API_BASE_URL
-npm install
-npm start                         # Expo dev-server (iOS: trykk i, eller Expo Go / dev build)
+npm ci
+npm start                         # Expo dev-server; native simulator på Mac eller kompatibelt utviklingsbygg
 npm run typecheck && npm run lint && npm test
 EXPO_PUBLIC_API_BASE_URL=https://… npm run export:ios && EXPO_PUBLIC_API_BASE_URL=https://… npm run check:bundle
 ```
@@ -66,42 +70,51 @@ EXPO_PUBLIC_API_BASE_URL=https://… npm run export:ios && EXPO_PUBLIC_API_BASE_
 Kontrakten mot serveren testes også fra serversiden: `api/test/mobileClient.it.ts` kjører denne appens `src/lib/api.ts`
 mot den ekte Hono-appen.
 
-## Privat iPhone-test (EAS) – forberedt, ikke kjørt
+## Bygg og privat iPhone-test
 
-`eas.json` har to interne profiler og **ingen** innsending til App Store (ingen `submit`-seksjon, ingen butikkprofil):
+Eksisterende prosjekt hos Expo er `helloskytravels-team/zana`; navnet kunden ser er HelloSky.
+Bundle-ID `no.hellosky.app` er registrert hos Apple, og appoppføringen Hellosky Travel har ID `6815342171`.
+Ikke kjør `eas init` på nytt eller opprett et nytt prosjekt for denne appen.
 
-| Profil | Hva | Krever Apple Developer Program? |
+| Profil i `eas.json` | Distribusjon | EAS-miljø |
 |---|---|---|
-| `simulator` | iOS-simulatorbygg (`ios.simulator: true`), ingen signering | Nei |
-| `preview` | Internt ad hoc-bygg for registrerte iPhoner | Ja |
+| `simulator` | iOS-simulator på Mac; usignert | `preview` |
+| `preview` | Intern distribusjon til registrerte iPhoner; krever signering | `preview` |
+| `testflight` | Butikkbygg; innsending er et separat godkjenningspunkt | `preview` |
+| `production` | Butikkbygg; innsending er et separat godkjenningspunkt | `production` |
 
-Ingen hemmeligheter eller adresser står i `eas.json`. Begge profilene henter variabler fra EAS-miljøet `preview`.
-Uten `EXPO_PUBLIC_API_BASE_URL` der viser appen «Appen er ikke satt opp» (feiler lukket).
+`submit`-profilene peker til eksisterende appoppføring. Ingen profil sender inn automatisk.
+Leverandørnøkler eller signeringshemmeligheter hører aldri hjemme i Git eller `EXPO_PUBLIC_`-variabler.
+Uten en gyldig offentlig `EXPO_PUBLIC_API_BASE_URL` viser appen «Appen er ikke satt opp».
 
-Bundle-ID-en `no.hellosky.app` i `app.json` er en **plassholder** til den er bekreftet og registrert hos Apple.
+**Verifisert 23.09.2026:** eksisterende Railway-staging på
+`https://roamly-staging.up.railway.app` har web, egen database og begge API-flatene.
+EAS-miljøet `preview` bruker denne adressen. Faktisk mobilklient fikk flyplasser og demoresultater;
+dette er ikke bevis på ekte bookbare priser. Produksjon på `hellosky.no` manglet mobilrutene ved siste kontroll.
+Staging kjører nå `18ad2ea`, og samme kunde er verifisert begge veier mellom web og appens faktiske API-klient.
+Se [konkret test- og byggebevis](docs/RELEASE_EVIDENCE.md) for testomfang, kilder og gjenstående kontroller.
 
-Gjenstår før et bygg (i rekkefølge, gjøres av eieren av kontoene):
+Et [native simulatorbygg](https://expo.dev/accounts/helloskytravels-team/projects/zana/builds/988e8421-4373-4e48-9fba-585928db397f)
+fra `79c2730` er ferdig kompilert. Det er eldre enn gjeldende kode, er ikke kjørt på en simulator, og kan ikke
+installeres på en fysisk iPhone. Nettleseropptakene i `docs/evidence` er supplerende bevis, ikke native tester.
 
-1. **Backend som ikke er produksjon.** Railway-prosjektet har et tomt miljø `staging` (ingen tjenester ennå).
-   Appens API (`/api/mobile/trpc`) finnes bare på denne grenen. Web og egen database må legges til i `staging`
-   (se `DEPLOYMENT.md` §10) når kostnaden er godkjent, og grenen deployes dit, med egen https-adresse.
-2. **Expo-konto** + `npx eas-cli@latest login` og `npx eas-cli@latest init` i `apps/mobile` (skriver prosjekt-ID i
-   `app.json`).
-3. `npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_API_BASE_URL --value https://<staging> --visibility plaintext`
-4. Simulator (uten Apple-medlemskap): `npx eas-cli@latest build -p ios --profile simulator`, og kjør bygget i
-   Xcode-simulatoren på en Mac.
-5. iPhone: aktivt Apple Developer Program, endelig bundle-ID, `npx eas-cli@latest device:create` for hver testtelefon,
-   så `npx eas-cli@latest build -p ios --profile preview` (EAS lager ad hoc-profil og sertifikat med Apple-innlogging).
+For et nytt privat enhetsbygg:
 
-Uten Apple-medlemskap kan appen også prøves på egen iPhone via Expo Go (`npx expo start --tunnel`; alle native moduler
-appen bruker, følger med Expo Go SDK 57), eller via Xcode med gratis Apple-ID (`npx expo run:ios --device` på Mac,
-7 dagers signering). Ingen av dem er testet herfra.
+1. Bestå kontrollene i `RELEASE.md` på én bestemt commit, og kontroller backend-adressen med
+   `node scripts/mobile-readiness.mjs https://roamly-staging.up.railway.app` fra reporoten.
+2. Kontroller eksisterende signeringsoppsett og at testtelefonen er registrert. Forrige `preview`-forsøk var
+   blokkert fordi intern iOS-distribusjon manglet tilgjengelige signeringsopplysninger. Ny tilgang eller nye
+   signeringsopplysninger må avklares før de opprettes.
+3. Når dette er på plass, kjør `eas build --platform ios --profile preview` fra `apps/mobile`, uten auto-submit.
+4. Åpne installasjonslenken fra det ferdige EAS-bygget på den registrerte iPhonen. Ingen ferdig
+   iPhone-installasjonslenke er dokumentert ennå.
+5. Kjør den native sjekklisten i `RELEASE.md`, inkludert datoark, tastatur, skjermkanter, VoiceOver og stor tekst.
 
 ## Før lansering
 
-- Bekreft `ios.bundleIdentifier` (`no.hellosky.app` er en plassholder) og produksjonsadressen.
-- Ekte test på iPhone/simulator (EAS Build eller Xcode), og live-sjekk av Norges Bank-kursene i produksjon.
-- Apples krav: kontosletting i appen og, hvis sosial innlogging legges til, «Logg inn med Apple».
-  Kontosletting er **ikke** lagt inn ennå: den eksisterende `customerAuth.deleteAccount` sletter ikke alle kundens data
-  (bl.a. opplastede reisedokumenter, reiseplaner, lagrede elementer, søkehistorikk, varsler, prisovervåking og
-  sosialt innhold). Den må utvides på serveren før appen kan tilby «Slett konto».
+- Full grønn CI, testet backend og ekte søk/tilbyderovergang på enhet for samme kandidat.
+- Kontoens slettingshandling finnes i appen og bruker den eksisterende kundetjenesten med ny
+  autentisering når nødvendig. Omfanget av sletting og eventuell lovpålagt oppbevaring må gjennomgås før
+  lansering; denne implementasjonen hevder ikke at alle historiske kundedata slettes.
+- Bekreft personvern-, support- og butikkopplysninger mot faktisk funksjonalitet.
+- Produksjonsdeploy og TestFlight/App Store-innsending krever eksplisitt godkjenning av kandidaten.

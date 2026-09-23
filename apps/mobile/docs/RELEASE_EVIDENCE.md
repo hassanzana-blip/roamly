@@ -1,0 +1,53 @@
+# Release evidence — 23 September 2026
+
+This is a development checkpoint, not production approval or proof of native-device behavior.
+
+## Candidate and test environment
+
+- Branch: `claude/bold-shannon-0wuhsd` (draft PR 8).
+- Tested server/mobile source: `18ad2eaf4823240513c7a8443cee05db62ed774a`.
+- [CI run 35922022749](https://github.com/hassanzana-blip/roamly/actions/runs/35922022749): all four jobs PASSED.
+- Existing Railway staging: `https://roamly-staging.up.railway.app`.
+- Staging deployment `b14f7bdd-5732-430e-9ca5-7d1a77563bff`: successful; its Details panel links to the exact commit above. Auto-deploy remains disabled.
+- No schema/migration difference from the previous staging source `265b664` under `db`, `drizzle` or `api/db`. Existing pre-deploy migration command retained.
+- No production deployment, signing credential creation or store submission.
+
+## Evidence independently checked
+
+| Check | Status | Evidence and limits |
+|---|---|---|
+| Mobile CI | PASSED | 177 tests passed, 3 live tests skipped; types, lint, Expo package/config checks, icon validation, iOS JS export and bundle guard passed. |
+| Independent local mobile suite | PASSED | Same 177 passed / 3 skipped, 42.584 seconds; typecheck passed. |
+| Server CI | PASSED | 522 unit tests, 185 MySQL integration tests, 5 readiness-checker tests; typecheck, lint, build and migration consistency gates passed. |
+| Browser CI | PASSED | 52 Playwright checks, 2.2 minutes, isolated demo/customer fixtures. |
+| Docker CI | PASSED | Image built and answered health check. |
+| Deployed staging readiness | PASSED | Six read-only probes at 21:41 UTC: database, web API, mobile API, OSL lookup, anonymous customer null, staff procedure absent. |
+| App client on staging | PASSED with DEMO DATA | Actual `src/lib/api.ts` over HTTP: airports 158 ms, anonymous profile 59 ms, one round-trip search 686 ms; 16 offers, `provider: demo`, `sandbox: true`. Single observations, not a performance benchmark. |
+| Shared accounts on staging | PASSED | Nine HTTP checks at 21:42 UTC using actual mobile client and web cookie API; details below. This does not test native SecureStore or interactive screens. |
+| Staging SEO isolation | PASSED | At 21:43 UTC: root and robots 200 with `X-Robots-Tag: noindex`; robots allows crawling with no sitemap; sitemap 404 with noindex. Canonical public-host behavior covered separately by CI. |
+| Native build | PASSED, older source | EAS simulator build `988e8421-4373-4e48-9fba-585928db397f`, source `79c2730`, compiled successfully. This archive cannot install on a physical iPhone. |
+| iOS simulator / physical iPhone / VoiceOver / Dynamic Type | NOT RUN | Windows host cannot run iOS Simulator. Native controls, safe areas and performance remain unverified. |
+| Signed iPhone preview | BLOCKED | Existing EAS internal-distribution credentials were unavailable. No new certificates or provisioning profiles created. |
+| Real fares / payment / ticketing | NOT VERIFIED | Staging uses demo provider. No booking or payment attempted. |
+
+## Shared-account checks
+
+Two randomly named `example.invalid` fixtures were created only in the separate staging database. Before running, Railway showed only APP_BASE_URL, APP_ENV and DATABASE_URL as service variables; SMTP_URL/SMTP_HOST were absent. Runtime Docker configuration has no mail transport. No real contact, email or SMS was used. Credentials stayed in memory; all test sessions were revoked. The two unverified test accounts remain in staging.
+
+1. Web registration creates a customer and cookie session.
+2. The actual mobile client logs into that same customer ID.
+3. A web profile edit appears in mobile without changing the account locale.
+4. A mobile profile edit and explicit locale choice appear on the web.
+5. A mobile bearer token cannot use the web profile route to bypass phone verification.
+6. Web logout-all revokes both web and mobile sessions.
+7. Mobile registration followed by web login resolves the same customer ID.
+8. Mobile logout revokes its own session while the separate web session survives.
+9. Final web logout-all revokes every remaining fixture session.
+
+The transport checks use real staging customer services and database records. Flight screenshots and demo search results remain fixtures, not live inventory. Account verification-email delivery was intentionally not tested because staging has no configured transport.
+
+## Open gates
+
+The next visual correction pass is in progress. Its code and screenshots must receive their own review and CI; the checks above do not certify future changes. The current native archive predates Bokmål-default and layout work. Real provider data, physical-device behavior, complete photo provenance, final policy/retention review, production deployment approval and store submission approval remain separate gates.
+
+Exact device build steps are in [README](../README.md) and [RELEASE](../RELEASE.md). Never substitute the simulator archive for an iPhone installation link.
