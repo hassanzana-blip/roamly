@@ -37,6 +37,9 @@ Codex's (ChatGPT).
 | `0962f90` | Account services over Bearer, with the review's security fixes; **today's deletion scope** | pushed |
 | `3285865` | App account screens, expired session, draft restore | pushed |
 | `b4ff05b` | Accessibility: 44pt, reduced motion, modal sheets, stepper, announcements | pushed |
+| `dbb5bb2` | Denser result cards | pushed |
+| `5b30529` | No cross-surface bypass: verified phone change and fresh-login deletion on web and app | pushed |
+| `13fe57c` | Recent searches, usual departure airport, airport suggestions | pushed |
 
 ## Needs Ali's approval (nothing here is pushed)
 
@@ -120,10 +123,10 @@ the web, with a Bearer token instead of a cookie.
 | 16 | Privacy, terms, help, contact | partial | `3285865`: hellosky.no/hjelp, /personvern, /vilkar and /om-oss open in a Safari view, marked "in Norwegian" in English. Blocked: app-specific legal text and verified contact channels (approvals 2–3). |
 | 17 | Plain explanation of HelloSky | verified | Home (`2b8ee6f`), the details hand-off note, and "How HelloSky works" in Profile (`3285865`). |
 | 18 | No inert primary controls | verified | `d8c3e68`: HelloSky-sold offers now open the same search on hellosky.no; an unsafe link gets no button; "Edit search" always reaches the form (tested). |
-| 19 | Recent searches stored locally, with remove and clear | missing | Next (batch E): on-device only. |
+| 19 | Recent searches stored locally, with remove and clear | verified | `13fe57c`: on the phone only, at most 6, the same journey moved up; one tap searches again; remove each or clear all; past dates roll forward; no account data or prices stored (tests). |
 | 20 | Draft restored after relaunch without stale dates | verified | `3285865`: `parseDraft`; past dates roll forward with the same trip length (tested); no token, name or e-mail is stored. |
-| 21 | Preferred departure airport | missing | Batch E. |
-| 22 | Airport autocomplete: recent and popular | partial | Server lookup with KAYAK fallback. No recent or popular; no one-tap recovery. |
+| 21 | Preferred departure airport | verified | `13fe57c`: only when the customer turns on "Remember as my usual departure airport"; shown with "Forget"; a new form starts from it (tests). |
+| 22 | Airport autocomplete: recent and popular | verified | `13fe57c`: before typing, the picker shows recent airports, then Norway's main airports (From) or the app's destinations (To), labelled as what they are, never "popular" without data. No matches: "Clear the search". |
 | 23 | Calendar bounds | partial | Minimum date only; no maximum (the provider horizon isn't known). Codex fixed web date validation in `79565c3`. |
 | 24 | Traveller and cabin sheets | partial | Caps and infant rules exist; no UI test of the sheet. |
 | 25 | Edit the search from results | partial | `d8c3e68`: "Edit search" goes to the form with the search kept. Gap: the results header reads the current form, which can differ from the results if the form is changed without searching. |
@@ -142,7 +145,7 @@ the web, with a Bearer token instead of a cookie.
 | 38 | Native share with a safe web fallback | verified | `d8c3e68`: the share text says the price may have changed and carries the same search on hellosky.no (no token, session or provider link; tested). |
 | 39 | Price alerts only if real | blocked | The server has `watch.*` (web only). The worker, live Duffel and SMTP can't be checked from here, so no switch is shown. |
 | 40 | Explore: search and context | partial | Static list of 24 destinations; no search or filter. |
-| 41 | Compact hierarchy | partial | Before/after images: `docs/evidence`. |
+| 41 | Compact hierarchy | partial | `dbb5bb2`: result cards 359 → 243 pt at 393 pt; the next journey 35% → 100% visible (measured, `docs/evidence`). Gap: at 320 pt the header and the notices fill the top half; the demo warning is kept visible on purpose. |
 | 42 | Small and large phones, keyboard, long strings | partial | Safe areas on every screen. Gaps: no keyboard handling in the airport picker; fixed widths and one-line labels can clip long English strings; nothing checked on a device (web captures only). |
 | 43 | VoiceOver order, roles, announcements | partial | `b4ff05b`: modal sheets with the escape gesture; the backdrop hidden from VoiceOver; an adjustable stepper with a value and actions; results announced; the wordmark no longer a heading (`a11y.test.tsx`). Not yet checked with VoiceOver on a device. |
 | 44 | Dynamic Type, contrast, touch targets, reduced motion | partial | Theme contrast ≥ 4.5:1 (disabled text 4.37, exempt). `b4ff05b`: 44pt minimum on secondary buttons, segments and tabs; Reduce Motion makes sheets fade and photos appear without a transition. Gap: Dynamic Type never tested at large sizes. |
