@@ -151,7 +151,7 @@ export const mobileAuthRouter = createRouter({
    */
   updateProfile: customerProcedure.input(mobileUpdateProfileInput).mutation(async ({ input, ctx }): Promise<CustomerProfile> => {
     const { locale, ...profile } = input;
-    const patch = await profilePatch(ctx.customer, profile, { ip: clientIp(ctx.req), phoneChange: "verified" });
+    const patch = await profilePatch(ctx.customer, profile);
     if (locale) patch.locale = locale;
     await getDb().update(customerAccounts).set(patch).where(eq(customerAccounts.id, ctx.customer.customerId));
     const fresh = await currentProfile(ctx.customer.customerId);

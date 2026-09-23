@@ -29,7 +29,7 @@ import { mobileAppRouter } from "../mobileRouter";
 import { mobileConfirmPhoneChangeInput, mobileDeleteAccountInput, mobilePasswordResetInput, mobileRequestPhoneChangeInput, mobileUpdateProfileInput } from "../mobileAuth";
 import { registerInput, requestPasswordReset, RESET_RESPONSE_MS } from "../customerAuth";
 import { createMobileContext } from "../context";
-import { resolveCustomerSession } from "../lib/customerSessions";
+import { CUSTOMER_COOKIE, resolveCustomerSession } from "../lib/customerSessions";
 import { CUSTOMER_DATA_MATRIX, type DeletionAction } from "../lib/customerDeletion";
 import { sendPasswordResetEmail } from "../lib/mailer";
 import { verifySocialToken } from "../lib/socialLogin";
@@ -521,22 +521,51 @@ describe("mobileAuth.requestPhoneChange / confirmPhoneChange", () => {
     await expectAppCode(a.mobileAuth.requestPhoneChange({ phone: "+4794444339", password: PASSWORD }), "RATE_LIMITED");
   });
 
-  it("nettets profilside: nummeret lagres fortsatt direkte, men «er nummeret i bruk?» er begrenset per kunde", async () => {
-    await registerApp("+4795555000");
-    const probe = await webLogin((await registerApp("sonde@example.com")).profile.email!);
-    const results: string[] = [];
-    for (let i = 0; i < 11; i++) {
-      const phone = i === 9 ? "+4795555000" : `+47955551${String(i).padStart(2, "0")}`;
-      try {
-        await probe.caller.customerAuth.updateProfile({ firstName: "Pro", lastName: "Be", phone });
-        results.push("ok");
-      } catch (err) {
-        results.push(String(appCode(err)));
-      }
-    }
-    expect(results).toEqual([...Array(9).fill("ok"), "CONFLICT", "RATE_LIMITED"]);
-    // Samme nummer som før er ikke et oppslag (ny forespørsel = sesjonen leses på nytt, med dagens nummer).
-    expect(await (await withCookie(probe.loginHeaders)).caller.customerAuth.updateProfile({ firstName: "Pro", lastName: "Be", phone: "+4795555108" })).toEqual({ ok: true });
+  it("ingen omvei: et nytt nummer krever SMS-kode på BEGGE ruterne, med cookie og med Bearer", async () => {
+    const reg = await registerApp("omvei@hellosky.test");
+    const w = await webLogin("omvei@hellosky.test");
+    const cookieToken = w.cookie.split(`${CUSTOMER_COOKIE}=`)[1]!.split(";")[0]!;
+    const phoneOf = async () => (await (await appCaller(reg.session.token)).mobileAuth.me())!.phone;
+    const blocked = async (p: Promise<unknown>) => {
+      const err = await caught(p);
+      expect(appCode(err)).toBe("VALIDATION");
+      expect(causeOf(err)).toMatchObject({ field: "phone", reason: "phone_verification_required" });
+    };
+
+    // Nettets rute med nett-cookien (nettets egen profilside).
+    await blocked(w.caller.customerAuth.updateProfile({ firstName: "Kari", lastName: "Nordmann", phone: "+4795555001" }));
+    // Nettets rute med appens Bearer-token (context.ts leser begge).
+    await blocked((await webAs(reg.session.token)).customerAuth.updateProfile({ firstName: "Kari", lastName: "Nordmann", phone: "+4795555002" }));
+    // Appens rute med nettets cookie.
+    const mobileWithCookie = makeCtx({ headers: { cookie: `${CUSTOMER_COOKIE}=${cookieToken}` }, url: "http://localhost:3000/api/mobile/trpc/test" });
+    mobileWithCookie.req.headers.delete("origin");
+    mobileWithCookie.customer = await resolveCustomerSession(mobileWithCookie.req);
+    expect(mobileWithCookie.customer?.customerId).toBe(reg.profile.id);
+    await blocked(mobile(mobileWithCookie).mobileAuth.updateProfile({ firstName: "Kari", lastName: "Nordmann", phone: "+4795555003" }));
+    // Over HTTP mot nettets endepunkt med Bearer, som en angriper med et stjålet app-token ville gjort.
+    const res = await app.request("/api/trpc/customerAuth.updateProfile", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${reg.session.token}`, origin: "http://localhost:3000", "x-forwarded-for": "10.59.0.1" },
+      body: JSON.stringify({ json: { firstName: "Kari", lastName: "Nordmann", phone: "+4795555004" } }),
+    });
+    expect(res.status).toBe(400);
+    expect(await phoneOf()).toBeNull();
+
+    // Nettets nye vei: samme tjeneste som appen (passord + kode til det nye nummeret).
+    await expectField(w.caller.customerAuth.requestPhoneChange({ phone: "+4795555010", password: "feil-passord-1" }), "UNAUTHORIZED", "password");
+    expect(await w.caller.customerAuth.requestPhoneChange({ phone: "+4795555010", password: PASSWORD })).toEqual({ ok: true });
+    await expectField(w.caller.customerAuth.confirmPhoneChange({ phone: "+4795555010", code: "000000" }), "VALIDATION", "code");
+    expect(await w.caller.customerAuth.confirmPhoneChange({ phone: "+4795555010", code: lastCodeTo("+4795555010") })).toEqual({ ok: true });
+    expect(await w.caller.customerAuth.me()).toMatchObject({ phone: "+4795555010" });
+    // Andre sesjoner (her appens token) er logget ut; nett-sesjonen som bekreftet lever.
+    expect(await (await appCaller(reg.session.token)).mobileAuth.me()).toBeNull();
+
+    // Samme nummer og å fjerne nummeret (kontoen har e-post) går fortsatt uten kode.
+    // Ny forespørsel = sesjonen leses på nytt, med dagens nummer (som over HTTP).
+    const next = async () => (await withCookie(w.loginHeaders)).caller;
+    expect(await (await next()).customerAuth.updateProfile({ firstName: "Kari", lastName: "Nordmann", phone: "+47 955 55 010" })).toEqual({ ok: true });
+    expect(await (await next()).customerAuth.updateProfile({ firstName: "Kari", lastName: "Nordmann", phone: "" })).toEqual({ ok: true });
+    expect(await (await next()).customerAuth.me()).toMatchObject({ phone: null });
   });
 
   it("konto uten passord: fersk innlogging kreves; en gammel sesjon gir FORBIDDEN reauth_required", async () => {
@@ -905,6 +934,27 @@ describe("mobileAuth.deleteAccount: én slettetjeneste for nett og app, med nett
     const g = await (await appCaller()).mobileAuth.exchangeSocialToken({ token: "clerk-session-token-cccccccc" });
     expect(await (await appCaller(g.session.token)).mobileAuth.deleteAccount({ confirmation: "SLETT" })).toEqual({ ok: true });
     expect(await countRows("customer_accounts", "deleted_at IS NOT NULL")).toBe(2);
+  });
+
+  it("konto uten passord: fersk innlogging kreves også på nettets rute og med nett-cookie på appens rute", async () => {
+    vi.mocked(verifySocialToken).mockResolvedValue({ subject: "user_apple_web", email: "nettapple@example.com", emailVerified: true, firstName: "Nett", lastName: null, social: "apple" });
+    const s1 = await (await appCaller()).mobileAuth.exchangeSocialToken({ token: "clerk-session-token-web-1" });
+    await ageSession(s1.session.token);
+    // Nettets rute med appens Bearer-token: FORBIDDEN, ingenting slettet.
+    const viaWeb = await caught((await webAs(s1.session.token)).customerAuth.deleteAccount({ confirmation: "SLETT" }));
+    expect(appCode(viaWeb)).toBe("FORBIDDEN");
+    expect(causeOf(viaWeb)).toMatchObject({ reason: "reauth_required" });
+    // Appens rute med samme sesjon som nett-cookie: FORBIDDEN.
+    const ctx = makeCtx({ headers: { cookie: `${CUSTOMER_COOKIE}=${s1.session.token}` }, url: "http://localhost:3000/api/mobile/trpc/test" });
+    ctx.req.headers.delete("origin");
+    ctx.customer = await resolveCustomerSession(ctx.req);
+    const viaCookie = await caught(mobile(ctx).mobileAuth.deleteAccount({ confirmation: "SLETT" }));
+    expect(appCode(viaCookie)).toBe("FORBIDDEN");
+    expect(await countRows("customer_accounts", "deleted_at IS NOT NULL")).toBe(0);
+    // En fersk innlogging sletter, også via nettets rute.
+    const s2 = await (await appCaller()).mobileAuth.exchangeSocialToken({ token: "clerk-session-token-web-2" });
+    expect(await (await webAs(s2.session.token)).customerAuth.deleteAccount({ confirmation: "SLETT" })).toEqual({ ok: true });
+    expect(await countRows("customer_accounts", "deleted_at IS NOT NULL")).toBe(1);
   });
 
   it("nettets deleteAccount bruker samme tjeneste og sletter nøyaktig det samme som før", async () => {

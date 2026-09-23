@@ -131,7 +131,7 @@ export const CUSTOMER_DATA_MATRIX: readonly DeletionRule[] = [
 export async function assertDeletionConfirmed(
   account: { passwordHash: string },
   input: { password?: string; confirmation?: string },
-  opts: { recentAuthForPasswordless?: Date } = {},
+  opts: { recentAuthForPasswordless: Date },
 ): Promise<void> {
   // Konto med passord: passordet bekrefter. Konto uten passord (sosial
   // innlogging): kunden skriver SLETT – sesjonen alene er ikke nok for et
@@ -145,7 +145,7 @@ export async function assertDeletionConfirmed(
   if (input.confirmation?.trim().toUpperCase() !== "SLETT") {
     throw new AppError("VALIDATION", { message: "Skriv SLETT for å bekrefte.", data: { field: "confirmation" } });
   }
-  if (opts.recentAuthForPasswordless && !sessionIsFresh(opts.recentAuthForPasswordless)) {
+  if (!sessionIsFresh(opts.recentAuthForPasswordless)) {
     throw new AppError("FORBIDDEN", { message: "Logg inn på nytt for å bekrefte at det er deg, og slett kontoen rett etterpå.", data: { reason: "reauth_required" } });
   }
 }
@@ -161,7 +161,8 @@ export async function assertDeletionConfirmed(
 export async function deleteCustomerAccount(
   customerId: number,
   input: { password?: string; confirmation?: string },
-  meta: { ip: string; via: "web" | "mobile"; recentAuthForPasswordless?: Date },
+  /** recentAuthForPasswordless: når sesjonen ble opprettet – påkrevd for alle kallere (nett og app). */
+  meta: { ip: string; via: "web" | "mobile"; recentAuthForPasswordless: Date },
 ): Promise<{ ok: true }> {
   assertRateLimit("customer-delete", String(customerId), 5, 10 * 60_000);
   const db = getDb();

@@ -710,21 +710,19 @@ export const profileInput = z.object({
 
 /**
  * Validerer en profilendring og gir raden som skal skrives. Tom telefon
- * fjerner nummeret (bare når kontoen har e-post).
+ * fjerner nummeret (bare når kontoen har e-post); samme nummer er uendret.
  *
- * Et nytt nummer er en ny innloggingsvei (SMS-kode), så det kan ikke bare
- * skrives inn:
- *  - `phoneChange: "verified"` (appen): et annet nummer enn dagens gir
- *    VALIDATION (reason: phone_verification_required) – det nye nummeret går
- *    gjennom requestPhoneChange/confirmPhoneChange (passord + SMS-kode).
- *  - `phoneChange: "direct"` (nettets profilside, uendret flyt): nummeret
- *    lagres direkte som før, men oppslaget «er nummeret i bruk?» er begrenset
- *    per kunde og per IP, så det ikke kan brukes til å kartlegge numre.
+ * Et nytt nummer er en ny innloggingsvei (SMS-kode), så det kan aldri bare
+ * skrives inn – verken fra nettet eller appen, og uansett om sesjonen kom
+ * fra en cookie eller et Bearer-token (begge ruterne leser begge). Et annet
+ * nummer enn dagens gir VALIDATION (reason: phone_verification_required);
+ * det går gjennom requestPhoneChange/confirmPhoneChange (passord eller fersk
+ * innlogging, pluss SMS-kode til det nye nummeret). Det finnes ingen
+ * parameter som slår dette av.
  */
 export async function profilePatch(
   customer: { customerId: number; email: string | null; phone: string | null },
   input: z.infer<typeof profileInput>,
-  opts: { ip: string; phoneChange: "direct" | "verified" },
 ): Promise<Partial<typeof customerAccounts.$inferInsert>> {
   const patch: Partial<typeof customerAccounts.$inferInsert> = {
     firstName: input.firstName.trim(),
@@ -741,19 +739,12 @@ export async function profilePatch(
       if (!phone) throw new AppError("VALIDATION", { message: "Ugyldig telefonnummer. Bruk landskode, f.eks. +47 912 34 567.", data: { field: "phone" } });
       const unchanged = customer.phone != null && phoneCandidates(phone).includes(customer.phone);
       if (!unchanged) {
-        if (opts.phoneChange === "verified") {
-          throw new AppError("VALIDATION", {
-            message: "Et nytt telefonnummer må bekreftes med en SMS-kode.",
-            data: { field: "phone", reason: "phone_verification_required" },
-          });
-        }
-        assertRateLimit("customer-phone-lookup", String(customer.customerId), 10, 60 * 60_000);
-        assertRateLimit("customer-phone-lookup-ip", opts.ip, 30, 60 * 60_000);
-        if (await phoneTakenByOther(phone, customer.customerId)) {
-          throw new AppError("CONFLICT", { message: "Telefonnummeret er allerede i bruk på en annen konto.", data: { field: "phone" } });
-        }
+        throw new AppError("VALIDATION", {
+          message: "Et nytt telefonnummer må bekreftes med en SMS-kode.",
+          data: { field: "phone", reason: "phone_verification_required" },
+        });
       }
-      patch.phone = phone;
+      patch.phone = customer.phone;
     }
   }
   return patch;
@@ -1113,12 +1104,28 @@ export const customerAuthRouter = createRouter({
     return { ok: true };
   }),
 
-  /** Rediger navn og telefon. */
+  /**
+   * Rediger navn (og fjern telefon når kontoen har e-post). Et nytt nummer går
+   * aldri her – bare via requestPhoneChange/confirmPhoneChange (se profilePatch).
+   */
   updateProfile: customerProcedure.input(profileInput).mutation(async ({ input, ctx }) => {
-    // Nettets profilside lagrer fortsatt nummeret direkte (egen flyt i src/); se profilePatch.
-    const patch = await profilePatch(ctx.customer, input, { ip: clientIp(ctx.req), phoneChange: "direct" });
+    const patch = await profilePatch(ctx.customer, input);
     await getDb().update(customerAccounts).set(patch).where(eq(customerAccounts.id, ctx.customer.customerId));
     return { ok: true };
+  }),
+
+  /**
+   * Nytt telefonnummer, steg 1: kontoeieren bekrefter seg (passord; uten
+   * passord en innlogging under 10 min), og en kode sendes til det nye
+   * nummeret. Samme tjeneste og regler som appen (mobileAuth). Svarer alltid
+   * { ok: true } – sier ikke om nummeret er i bruk.
+   */
+  requestPhoneChange: customerProcedure.input(phoneChangeRequestInput).mutation(({ input, ctx }) => requestPhoneChange(ctx.customer, input, ctx)),
+
+  /** Nytt telefonnummer, steg 2: koden fra SMS-en lagrer nummeret; andre sesjoner logges ut. */
+  confirmPhoneChange: customerProcedure.input(phoneChangeConfirmInput).mutation(async ({ input, ctx }) => {
+    await confirmPhoneChange(ctx.customer, input, ctx);
+    return { ok: true as const };
   }),
 
   /** Språk, valuta og markedsføringssamtykke (OTA-136). */
@@ -1199,7 +1206,8 @@ export const customerAuthRouter = createRouter({
   deleteAccount: customerProcedure.input(deleteAccountInput).mutation(async ({ input, ctx }) => {
     // Samme tjeneste som appen (api/lib/customerDeletion.ts) og samme sletting
     // som før (CUSTOMER_DATA_MATRIX); alle sesjoner – nett og app – tilbakekalles.
-    const res = await deleteCustomerAccount(ctx.customer.customerId, input, { ip: clientIp(ctx.req), via: "web" });
+    // Samme krav som appen: uten passord må innloggingen være fersk (FORBIDDEN reauth_required ellers).
+    const res = await deleteCustomerAccount(ctx.customer.customerId, input, { ip: clientIp(ctx.req), via: "web", recentAuthForPasswordless: ctx.customer.sessionCreatedAt });
     clearCustomerCookie(ctx.resHeaders);
     return res;
   }),
