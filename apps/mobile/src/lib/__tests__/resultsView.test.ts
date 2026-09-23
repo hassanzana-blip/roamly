@@ -1,5 +1,5 @@
 import type { MobileOffer } from "@contracts/mobileSearch";
-import { activeFilterCount, applyView, countWith, DEFAULT_VIEW, departBand, maxStops, totalDuration } from "../resultsView";
+import { activeFilterCount, airlineOptions, applyView, clearedFilters, countWith, DEFAULT_VIEW, departBand, legThresholds, maxStops, priceThresholds, thresholds, totalDuration } from "../resultsView";
 import { NOK_OFFER, SEARCH_RESULT, THB_OFFER } from "../../test/fixtures";
 
 /** Et tilbud med gitt id, avgangstid, varighet og bytter på hver strekning. */
@@ -66,5 +66,57 @@ describe("resultatvisning", () => {
       const out = applyView(SEARCH_RESULT.offers, { ...DEFAULT_VIEW, sort });
       expect(out.at(-1)!.offer.id).toBe("thb_1");
     }
+  });
+});
+
+describe("nye filtre: flyselskap, pris, lengste strekning, hjemreisens avgang", () => {
+  const nok = (kr: number): MobileOffer["price"]["nok"] => ({ kind: "exact", currency: "NOK", amountMinor: kr * 100, estimate: false });
+  const withCarrier = (o: MobileOffer, iata: string, name: string): MobileOffer => ({
+    ...o,
+    offer: { ...o.offer, slices: o.offer.slices.map((s) => ({ ...s, segments: s.segments.map((g) => ({ ...g, carrier: { iata, name } })) })) },
+  });
+  const withReturnAt = (o: MobileOffer, hhmm: string): MobileOffer => ({
+    ...o,
+    offer: { ...o.offer, slices: o.offer.slices.map((s, i) => (i === o.offer.slices.length - 1 && i > 0 ? { ...s, departingAt: `2026-10-30T${hhmm}:00` } : s)) },
+  });
+  const P1 = withReturnAt(withCarrier(offer("p1", "08:00", [{ minutes: 120, stops: 0 }, { minutes: 125, stops: 0 }], nok(1000)), "DY", "Norwegian"), "20:00");
+  const P2 = withReturnAt(withCarrier(offer("p2", "09:00", [{ minutes: 300, stops: 1 }, { minutes: 320, stops: 1 }], nok(1500)), "KL", "KLM"), "07:30");
+  const P3 = withCarrier(offer("p3", "10:00", [{ minutes: 600, stops: 2 }], nok(4000)), "KL", "KLM");
+  const P4 = withCarrier(offer("p4", "11:00", [{ minutes: 0, stops: 0 }], THB_OFFER.price.nok), "SK", "SAS"); // ukjent varighet og ingen kronepris
+  const ALL = [P1, P2, P3, P4];
+
+  it("flyselskap: minst ett fly med et valgt selskap; valgene kommer fra svaret", () => {
+    expect(airlineOptions(ALL).map((a) => [a.iata, a.count])).toEqual([["KL", 2], ["DY", 1], ["SK", 1]]);
+    expect(ids(applyView(ALL, { ...DEFAULT_VIEW, airlines: ["KL"] }))).toEqual(["p2", "p3"]);
+    expect(ids(applyView(ALL, { ...DEFAULT_VIEW, airlines: ["KL", "DY"] }))).toEqual(["p1", "p2", "p3"]);
+  });
+
+  it("makspris: bare kronepriser; tilbud uten kronepris skjules mens grensen er på", () => {
+    expect(ids(applyView(ALL, { ...DEFAULT_VIEW, maxPriceMinor: 1500_00 }))).toEqual(["p1", "p2"]);
+    expect(priceThresholds(ALL)).toEqual([1000_00, 1500_00]);
+  });
+
+  it("lengste strekning: ukjent varighet skjules mens grensen er på", () => {
+    expect(ids(applyView(ALL, { ...DEFAULT_VIEW, maxLegMinutes: 300 }))).toEqual(["p1"]);
+    expect(ids(applyView(ALL, { ...DEFAULT_VIEW, maxLegMinutes: 360 }))).toEqual(["p1", "p2"]);
+    expect(legThresholds(ALL)).toEqual([180, 360]);
+  });
+
+  it("hjemreisens avgang: bare reiser med hjemreise kan passe", () => {
+    expect(ids(applyView(ALL, { ...DEFAULT_VIEW, returnBands: ["evening"] }))).toEqual(["p1"]);
+    expect(ids(applyView(ALL, { ...DEFAULT_VIEW, returnBands: ["morning"] }))).toEqual(["p2"]);
+  });
+
+  it("alle filtre teller, og «nullstill» beholder sorteringen", () => {
+    const busy = { ...DEFAULT_VIEW, sort: "duration" as const, airlines: ["KL"], maxPriceMinor: 1500_00, maxLegMinutes: 360, returnBands: ["morning" as const] };
+    expect(activeFilterCount(busy)).toBe(4);
+    expect(clearedFilters(busy)).toEqual({ ...DEFAULT_VIEW, sort: "duration" });
+  });
+
+  it("terskler: bare verdier som faktisk skiller, rundet opp", () => {
+    expect(thresholds([100], 60)).toEqual([]);
+    expect(thresholds([100, 100, 100], 60)).toEqual([]);
+    expect(thresholds([61, 130, 250, 400], 60)).toEqual([120, 180, 300]);
+    expect(thresholds([61, 130, 250, 290], 60)).toEqual([120, 180]); // 300 ≥ høyeste verdi skiller ingenting
   });
 });

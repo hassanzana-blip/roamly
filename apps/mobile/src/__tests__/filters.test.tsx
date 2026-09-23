@@ -140,3 +140,26 @@ describe("datoer", () => {
     expect((last.input as { slices: { departureDate: string }[] }).slices[1]!.departureDate).toBe("2026-11-09");
   });
 });
+
+describe("flere filtre i filterarket", () => {
+  it("flyselskap og makspris: bare fra svaret, og uten kronepris skjules under en prisgrense", async () => {
+    const base = withDirect();
+    const last = base.offers.at(-1)!;
+    const dy = { ...last, offer: { ...last.offer, slices: last.offer.slices.map((s) => ({ ...s, segments: s.segments.map((g) => ({ ...g, carrier: { iata: "DY", name: "Norwegian" } })) })) } };
+    await renderResults({ ...base, offers: [...base.offers.slice(0, -1), dy] });
+    await fireEvent.press(screen.getByTestId("open-filters"));
+
+    expect(screen.getByTestId("airline-DY")).toHaveTextContent(/Norwegian \(DY\)/);
+    await fireEvent.press(screen.getByTestId("airline-DY"));
+    expect(cardIds()).toEqual(["offer-direct_1"]);
+    await fireEvent.press(screen.getByTestId("airline-DY"));
+
+    const limits = screen.getAllByTestId(/^price-\d+$/);
+    expect(limits.length).toBeGreaterThan(0);
+    await fireEvent.press(limits[0]!);
+    expect(cardIds()).not.toContain("offer-thb_1");
+    expect(cardIds()).not.toContain("offer-direct_1");
+    await fireEvent.press(screen.getByTestId("price-any"));
+    expect(cardIds()).toContain("offer-thb_1");
+  });
+});

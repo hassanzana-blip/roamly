@@ -11,7 +11,7 @@ import { errorText } from "../lib/errorText";
 import { pricesStale, providerDisplayName, resultKind } from "../lib/resultStatus";
 import { useI18n } from "../i18n";
 import { cabinLabel, passengerSummary } from "../lib/searchForm";
-import { activeFilterCount, applyView, countWith, SORTS, STOPS, TIME_BANDS, type SortKey, type TimeBand } from "../lib/resultsView";
+import { activeFilterCount, airlineOptions, applyView, clearedFilters, countWith, legThresholds, priceThresholds, SORTS, STOPS, TIME_BANDS, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
 import { groupJourneys } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
 import { Banner, BottomSheet, Chip, DemoBadge, IconButton, Notices, PrimaryButton, SecondaryButton, StateView, type NoticeItem } from "../components/ui";
@@ -45,14 +45,14 @@ function ToolButton({ icon, label, onPress, badge, testID, primary }: { icon: Ic
 }
 
 /** Radioknapp-rad i arkene. */
-function OptionRow({ label, detail, selected, disabled, onPress, testID }: { label: string; detail?: string; selected: boolean; disabled?: boolean; onPress: () => void; testID?: string }) {
+function OptionRow({ label, detail, selected, disabled, onPress, testID, multi }: { label: string; detail?: string; selected: boolean; disabled?: boolean; onPress: () => void; testID?: string; multi?: boolean }) {
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
       disabled={disabled}
-      accessibilityRole="radio"
-      accessibilityState={{ selected, disabled: !!disabled }}
+      accessibilityRole={multi ? "checkbox" : "radio"}
+      accessibilityState={multi ? { checked: selected, disabled: !!disabled } : { selected, disabled: !!disabled }}
       accessibilityLabel={detail ? `${label}, ${detail}` : label}
       style={({ pressed }) => [styles.option, selected && styles.optionSelected, disabled && { opacity: 0.4 }, pressed && !selected && { opacity: 0.7 }]}
     >
@@ -183,7 +183,7 @@ export default function ResultsScreen() {
     ...(notice ? [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }] : []),
   ];
   const sortLabel = t.results.sorts[view.sort].summary;
-  const clearFilters = () => setView((v) => ({ ...v, stops: "any", bags: false, departBands: [] }));
+  const clearFilters = () => setView(clearedFilters);
   const toggleStops = (value: "direct" | "max1") => setView((v) => ({ ...v, stops: v.stops === value ? "any" : value }));
 
   const chips: { key: string; label: string; selected: boolean; count: number; onPress: () => void }[] = [
@@ -244,6 +244,42 @@ export default function ResultsScreen() {
   );
 
   const shownFor = (patch: Parameters<typeof countWith>[2]) => groupJourneys(applyView(all, { ...view, ...patch })).length;
+  const hasReturn = all.some((o) => o.offer.slices.length > 1);
+  const airlines = airlineOptions(all);
+  const prices = priceThresholds(all);
+  const legs = legThresholds(all);
+  const bandGroup = (key: "departBands" | "returnBands", title: string, hint: string, prefix: string) => (
+    <View style={{ gap: space.sm }}>
+      <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+      <Text style={[type.footnote, { color: colors.textSecondary }]}>{hint}</Text>
+      <View style={styles.bands}>
+        {TIME_BANDS.map((b) => {
+          const selected = view[key].includes(b.value);
+          const n = shownFor({ [key]: [b.value] } as Partial<ResultsView>);
+          const disabled = n === 0 && !selected;
+          return (
+            <Pressable
+              key={b.value}
+              testID={`${prefix}-${b.value}`}
+              onPress={() => setView((v) => ({ ...v, [key]: selected ? v[key].filter((x) => x !== b.value) : [...v[key], b.value] }))}
+              disabled={disabled}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected, disabled }}
+              accessibilityLabel={r.bandSpoken(t.results.bands[b.value], b.range, reiser(n))}
+              style={({ pressed }) => [styles.band, selected && styles.bandOn, disabled && { opacity: 0.4 }, pressed && !selected && { opacity: 0.7 }]}
+            >
+              <View style={styles.bandTop}>
+                <Text style={[type.footnote, { color: selected ? colors.white : colors.textSecondary }]}>{t.results.bands[b.value]}</Text>
+                <Icon name={BAND_ICON[b.value]} size={18} color={selected ? colors.white : colors.text} strokeWidth={1.75} />
+              </View>
+              <Text style={[type.bodyStrong, type.tabular, { color: selected ? colors.white : colors.text }]}>{b.range}</Text>
+              <Text style={[type.caption, { color: selected ? colors.white : colors.textSecondary }]}>{reiser(n)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.screen}>
@@ -321,36 +357,54 @@ export default function ResultsScreen() {
               trackColor={{ true: colors.blue, false: colors.lightBorder }}
             />
           </View>
-          <View style={{ gap: space.sm }}>
-            <Text style={[type.bodyStrong, { color: colors.text }]}>{r.departTitle}</Text>
-            <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.departHint}</Text>
-            <View style={styles.bands}>
-              {TIME_BANDS.map((b) => {
-                const selected = view.departBands.includes(b.value);
-                const n = shownFor({ departBands: [b.value] });
-                const disabled = n === 0 && !selected;
+          {bandGroup("departBands", r.departTitle, r.departHint, "band")}
+          {hasReturn ? bandGroup("returnBands", r.returnTitle, r.returnHint, "return-band") : null}
+          {airlines.length > 1 ? (
+            <View style={{ gap: space.sm }} accessibilityLabel={r.airlinesTitle}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.airlinesTitle}</Text>
+              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.airlinesHint}</Text>
+              {airlines.map((a) => {
+                const selected = view.airlines.includes(a.iata);
+                const n = shownFor({ airlines: [a.iata] });
                 return (
-                  <Pressable
-                    key={b.value}
-                    testID={`band-${b.value}`}
-                    onPress={() => setView((v) => ({ ...v, departBands: selected ? v.departBands.filter((x) => x !== b.value) : [...v.departBands, b.value] }))}
-                    disabled={disabled}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: selected, disabled }}
-                    accessibilityLabel={r.bandSpoken(t.results.bands[b.value], b.range, reiser(n))}
-                    style={({ pressed }) => [styles.band, selected && styles.bandOn, disabled && { opacity: 0.4 }, pressed && !selected && { opacity: 0.7 }]}
-                  >
-                    <View style={styles.bandTop}>
-                      <Text style={[type.footnote, { color: selected ? colors.white : colors.textSecondary }]}>{t.results.bands[b.value]}</Text>
-                      <Icon name={BAND_ICON[b.value]} size={18} color={selected ? colors.white : colors.text} strokeWidth={1.75} />
-                    </View>
-                    <Text style={[type.bodyStrong, type.tabular, { color: selected ? colors.white : colors.text }]}>{b.range}</Text>
-                    <Text style={[type.caption, { color: selected ? colors.white : colors.textSecondary }]}>{reiser(n)}</Text>
-                  </Pressable>
+                  <OptionRow
+                    key={a.iata}
+                    multi
+                    testID={`airline-${a.iata}`}
+                    label={r.airlineRow(a.name, a.iata)}
+                    detail={reiser(n)}
+                    selected={selected}
+                    disabled={!n && !selected}
+                    onPress={() => setView((v) => ({ ...v, airlines: selected ? v.airlines.filter((x) => x !== a.iata) : [...v.airlines, a.iata] }))}
+                  />
                 );
               })}
             </View>
-          </View>
+          ) : null}
+          {prices.length ? (
+            <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.priceTitle}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.priceTitle}</Text>
+              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.priceHint}</Text>
+              <OptionRow testID="price-any" label={r.anyPrice} detail={reiser(shownFor({ maxPriceMinor: null }))} selected={view.maxPriceMinor === null} onPress={() => setView((v) => ({ ...v, maxPriceMinor: null }))} />
+              {prices.map((p) => {
+                const n = shownFor({ maxPriceMinor: p });
+                const selected = view.maxPriceMinor === p;
+                return <OptionRow key={p} testID={`price-${p}`} label={r.upTo(f.nok(p))} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, maxPriceMinor: p }))} />;
+              })}
+            </View>
+          ) : null}
+          {legs.length ? (
+            <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.legTitle}>
+              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.legTitle}</Text>
+              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.legHint}</Text>
+              <OptionRow testID="leg-any" label={r.anyLength} detail={reiser(shownFor({ maxLegMinutes: null }))} selected={view.maxLegMinutes === null} onPress={() => setView((v) => ({ ...v, maxLegMinutes: null }))} />
+              {legs.map((m) => {
+                const n = shownFor({ maxLegMinutes: m });
+                const selected = view.maxLegMinutes === m;
+                return <OptionRow key={m} testID={`leg-${m}`} label={r.upTo(f.duration(m))} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, maxLegMinutes: m }))} />;
+              })}
+            </View>
+          ) : null}
         </ScrollView>
       </BottomSheet>
 

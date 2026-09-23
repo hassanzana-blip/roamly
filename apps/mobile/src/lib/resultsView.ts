@@ -3,9 +3,11 @@ import { checkedBagIncluded } from "./offer";
 
 /**
  * Sortering og filtre på resultatlisten – bare på data tilbudene faktisk har:
- * kronepris (serverens rekkefølge), samlet reisetid, antall mellomlandinger,
- * innsjekket bagasje slik leverandøren oppga den, og avgangstid for utreisen
- * (lokal tid på flyplassen, slik leverandøren oppga den).
+ * kronepris (serverens rekkefølge), reisetid, antall mellomlandinger,
+ * innsjekket bagasje slik leverandøren oppga den, flyselskap, og avgangstid
+ * for utreise og hjemreise (lokal tid på flyplassen, slik leverandøren oppga
+ * den). Et filter på pris eller reisetid skjuler tilbud der verdien er ukjent
+ * (ingen kronepris, ugyldig varighet): de kan ikke vises å være innenfor.
  *
  * Tilbud uten pris i kroner står alltid nederst, uansett sortering, så
  * merknaden «står nederst» over listen alltid stemmer.
@@ -15,9 +17,27 @@ export type SortKey = "price" | "duration" | "stops";
 export type StopsFilter = "any" | "direct" | "max1";
 export type TimeBand = "night" | "morning" | "afternoon" | "evening";
 
-export type ResultsView = { sort: SortKey; stops: StopsFilter; bags: boolean; departBands: TimeBand[] };
+export type ResultsView = {
+  sort: SortKey;
+  stops: StopsFilter;
+  bags: boolean;
+  departBands: TimeBand[];
+  /** Hjemreisens avgang (bare tur-retur). */
+  returnBands: TimeBand[];
+  /** Markedsførende flyselskap (IATA); tomt = alle. Et tilbud passer når minst ett av flyene er med et valgt selskap. */
+  airlines: string[];
+  /** Høyeste totalpris i øre (kronepris), eller null. */
+  maxPriceMinor: number | null;
+  /** Lengste strekning (én vei) i minutter, eller null. */
+  maxLegMinutes: number | null;
+};
 
-export const DEFAULT_VIEW: ResultsView = { sort: "price", stops: "any", bags: false, departBands: [] };
+export const DEFAULT_VIEW: ResultsView = { sort: "price", stops: "any", bags: false, departBands: [], returnBands: [], airlines: [], maxPriceMinor: null, maxLegMinutes: null };
+
+/** Filtrene av, sorteringen beholdt. */
+export function clearedFilters(v: ResultsView): ResultsView {
+  return { ...DEFAULT_VIEW, sort: v.sort };
+}
 
 /** Rekkefølgen valgene vises i; tekstene står i ordboken (t.results). */
 export const SORTS: readonly SortKey[] = ["price", "duration", "stops"];
@@ -50,12 +70,42 @@ function totalStops(o: MobileOffer): number {
   return o.offer.slices.reduce((m, s) => m + s.stops, 0);
 }
 
-/** Tidsrommet utreisen går i, fra klokkeslettet leverandøren oppga. null når det ikke kan leses. */
-export function departBand(o: MobileOffer): TimeBand | null {
-  const m = /T(\d{2}):\d{2}/.exec(o.offer.slices[0]?.departingAt ?? "");
+function bandOf(at: string | undefined): TimeBand | null {
+  const m = /T(\d{2}):\d{2}/.exec(at ?? "");
   if (!m) return null;
   const h = Number(m[1]);
   return TIME_BANDS.find((b) => h >= b.from && h < b.to)?.value ?? null;
+}
+
+/** Tidsrommet utreisen går i, fra klokkeslettet leverandøren oppga. null når det ikke kan leses. */
+export function departBand(o: MobileOffer): TimeBand | null {
+  return bandOf(o.offer.slices[0]?.departingAt);
+}
+
+/** Tidsrommet hjemreisen går i (siste strekning), bare når reisen har mer enn én strekning. */
+export function returnBand(o: MobileOffer): TimeBand | null {
+  const slices = o.offer.slices;
+  return slices.length > 1 ? bandOf(slices[slices.length - 1]?.departingAt) : null;
+}
+
+/** Kroneprisen i øre, eller null når tilbudet ikke har pris i kroner. */
+export function nokMinor(o: MobileOffer): number | null {
+  return o.price.nok.kind === "unavailable" ? null : o.price.nok.amountMinor;
+}
+
+/** Lengste strekning (én vei) i minutter, eller null når en varighet mangler. */
+export function longestLeg(o: MobileOffer): number | null {
+  let max = 0;
+  for (const s of o.offer.slices) {
+    if (!Number.isFinite(s.durationMinutes) || s.durationMinutes <= 0) return null;
+    max = Math.max(max, s.durationMinutes);
+  }
+  return o.offer.slices.length ? max : null;
+}
+
+/** Markedsførende flyselskap på reisens fly (IATA). */
+export function airlinesOf(o: MobileOffer): Set<string> {
+  return new Set(o.offer.slices.flatMap((s) => s.segments.map((g) => g.carrier.iata)).filter(Boolean));
 }
 
 function hasNok(o: MobileOffer): boolean {
@@ -69,6 +119,22 @@ function passes(o: MobileOffer, v: ResultsView): boolean {
   if (v.departBands.length) {
     const band = departBand(o);
     if (!band || !v.departBands.includes(band)) return false;
+  }
+  if (v.returnBands.length) {
+    const band = returnBand(o);
+    if (!band || !v.returnBands.includes(band)) return false;
+  }
+  if (v.airlines.length) {
+    const mine = airlinesOf(o);
+    if (!v.airlines.some((a) => mine.has(a))) return false;
+  }
+  if (v.maxPriceMinor !== null) {
+    const p = nokMinor(o);
+    if (p === null || p > v.maxPriceMinor) return false;
+  }
+  if (v.maxLegMinutes !== null) {
+    const d = longestLeg(o);
+    if (d === null || d > v.maxLegMinutes) return false;
   }
   return true;
 }
@@ -94,7 +160,61 @@ export function applyView(offers: MobileOffer[], v: ResultsView): MobileOffer[] 
 
 /** Antall aktive filtre (sortering teller ikke). */
 export function activeFilterCount(v: ResultsView): number {
-  return (v.stops !== "any" ? 1 : 0) + (v.bags ? 1 : 0) + (v.departBands.length ? 1 : 0);
+  return (
+    (v.stops !== "any" ? 1 : 0) +
+    (v.bags ? 1 : 0) +
+    (v.departBands.length ? 1 : 0) +
+    (v.returnBands.length ? 1 : 0) +
+    (v.airlines.length ? 1 : 0) +
+    (v.maxPriceMinor !== null ? 1 : 0) +
+    (v.maxLegMinutes !== null ? 1 : 0)
+  );
+}
+
+export type AirlineOption = { iata: string; name: string; count: number };
+
+/** Flyselskapene i svaret, med antall tilbud hver (flest først). Navnet er leverandørens. */
+export function airlineOptions(offers: MobileOffer[]): AirlineOption[] {
+  const map = new Map<string, AirlineOption>();
+  for (const o of offers) {
+    const names = new Map(o.offer.slices.flatMap((s) => s.segments.map((g) => [g.carrier.iata, g.carrier.name || g.carrier.iata] as const)));
+    for (const [iata, name] of names) {
+      if (!iata) continue;
+      const cur = map.get(iata) ?? { iata, name, count: 0 };
+      cur.count += 1;
+      map.set(iata, cur);
+    }
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+/**
+ * Terskler til et «høyst»-filter, laget av verdiene i svaret: kvartilene
+ * rundet opp til `step`, uten duplikater, og bare de som faktisk skiller
+ * (under den høyeste verdien og minst den laveste).
+ */
+export function thresholds(values: number[], step: number): number[] {
+  const v = values.filter((x) => Number.isFinite(x) && x > 0).sort((a, b) => a - b);
+  if (v.length < 2) return [];
+  const min = v[0]!;
+  const max = v[v.length - 1]!;
+  const out = new Set<number>();
+  for (const q of [0.25, 0.5, 0.75]) {
+    const raw = v[Math.min(v.length - 1, Math.floor(q * (v.length - 1)))]!;
+    const t = Math.ceil(raw / step) * step;
+    if (t >= min && t < max) out.add(t);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/** Pristerskler i øre, rundet opp til hele 100 kr. */
+export function priceThresholds(offers: MobileOffer[]): number[] {
+  return thresholds(offers.map(nokMinor).filter((x): x is number => x !== null), 100_00);
+}
+
+/** Varighetsterskler for lengste strekning, rundet opp til hele timer. */
+export function legThresholds(offers: MobileOffer[]): number[] {
+  return thresholds(offers.map(longestLeg).filter((x): x is number => x !== null), 60);
 }
 
 /** Hvor mange tilbud et valg ville gitt, med de andre filtrene uendret – vises ved hvert valg. */
