@@ -209,7 +209,10 @@ export function convertMinorToNokKroner(supplierMinor: number, currency: string,
   const numerator = BigInt(supplierMinor) * num;
   const denominator = 10n ** BigInt(currencyExponent(currency) + scale + rate.unitMultiplier);
   const kroner = (2n * numerator + denominator) / (2n * denominator);
-  return Number(kroner) * 100;
+  const ore = kroner * 100n;
+  // Over 2^53 blir tallet unøyaktig i JavaScript – da gir vi heller ingen pris enn en feil pris.
+  if (ore > BigInt(Number.MAX_SAFE_INTEGER)) throw new RangeError("NOK-beløpet er for stort");
+  return Number(ore);
 }
 
 /**
@@ -239,5 +242,11 @@ export function convertToNok(amount: string, currency: string, table: FxTable | 
     quotedPerUnits: 10 ** rate.unitMultiplier,
     indicative: true,
   };
-  return { kind: "converted", currency: "NOK", amountMinor: convertMinorToNokKroner(minor, cur, rate), estimate: true, roundedTo: "krone", rate: info };
+  let amountMinor: number;
+  try {
+    amountMinor = convertMinorToNokKroner(minor, cur, rate);
+  } catch {
+    return { kind: "unavailable", reason: "invalid_amount" };
+  }
+  return { kind: "converted", currency: "NOK", amountMinor, estimate: true, roundedTo: "krone", rate: info };
 }

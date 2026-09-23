@@ -125,7 +125,8 @@ describe("mobil flights.search: NOK-sammenligning", () => {
     // Sortering: sammenlignbare stigende på NOK, THB til slutt.
     expect(res.offers.map((o) => o.offer.id)).toEqual(["sek_1", "usd_1", "eur_1", "nok_1", "thb_1"]);
     expect(res.offers.map((o) => o.comparable)).toEqual([true, true, true, true, false]);
-    expect(res.fx).toEqual({ status: "ok", source: "norges-bank", rateDate: osloDate(new Date()), indicative: true });
+    // EUR/USD/SEK omregnet, THB ikke: statusen sier «partial», ikke «ok».
+    expect(res.fx).toEqual({ status: "partial", unconvertedCount: 1, source: "norges-bank", rateDate: osloDate(new Date()), indicative: true });
 
     // Leverandørens tilbud er urørt: beløp, valuta og bestillingslenke.
     for (const original of provided.offers) {
@@ -143,8 +144,7 @@ describe("mobil flights.search: NOK-sammenligning", () => {
     });
     useProvider(providerResult());
     const res = await mobile(mobileCtx()).flights.search(INPUT);
-    expect(res.fx.status).toBe("unavailable");
-    expect(res.fx.rateDate).toBeNull();
+    expect(res.fx).toMatchObject({ status: "unavailable", unconvertedCount: 4, rateDate: null });
     expect(res.offers[0].offer.id).toBe("nok_1");
     expect(nok(res, "nok_1").kind).toBe("exact");
     for (const id of ["eur_1", "usd_1", "sek_1", "thb_1"]) {
@@ -160,7 +160,7 @@ describe("mobil flights.search: NOK-sammenligning", () => {
     setFxFetcher(async () => norgesBankFixture(TEST_RATES, old));
     useProvider(providerResult());
     const res = await mobile(mobileCtx()).flights.search(INPUT);
-    expect(res.fx.status).toBe("stale");
+    expect(res.fx).toMatchObject({ status: "stale", unconvertedCount: 4 });
     expect(nok(res, "eur_1")).toEqual({ kind: "unavailable", reason: "rate_stale" });
     expect(nok(res, "nok_1").kind).toBe("exact");
   });
@@ -170,12 +170,41 @@ describe("mobil flights.search: NOK-sammenligning", () => {
     setFxFetcher(fetcher);
     useProvider({ ...providerResult(), offers: [external("a", "900.00", "NOK"), external("b", "800.50", "NOK")] });
     const res = await mobile(mobileCtx()).flights.search(INPUT);
-    expect(res.fx).toMatchObject({ status: "not_needed", rateDate: null });
+    expect(res.fx).toMatchObject({ status: "not_needed", unconvertedCount: 0, rateDate: null });
     expect(res.offers.map((o) => [o.offer.id, o.price.nok])).toEqual([
       ["b", { kind: "exact", currency: "NOK", amountMinor: 80050, estimate: false }],
       ["a", { kind: "exact", currency: "NOK", amountMinor: 90000, estimate: false }],
     ]);
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("alle utenlandske tilbud omregnet: «ok»; bare valuta uten kurs: «unavailable», aldri «ok»", async () => {
+    useProvider({ ...providerResult(), offers: [external("e", "100.00", "EUR"), external("n", "900.00", "NOK")] });
+    expect((await mobile(mobileCtx()).flights.search(INPUT)).fx).toMatchObject({ status: "ok", unconvertedCount: 0 });
+    useProvider({ ...providerResult(), offers: [external("t", "3000.00", "THB"), external("n", "900.00", "NOK")] });
+    const onlyThb = await mobile(mobileCtx()).flights.search(INPUT);
+    expect(onlyThb.fx).toMatchObject({ status: "unavailable", unconvertedCount: 1 });
+    expect(onlyThb.offers.map((o) => o.offer.id)).toEqual(["n", "t"]);
+  });
+
+  it("enorme beløp velter ikke søket: tilbudet får ingen NOK-pris, resten er uberørt", async () => {
+    const huge = "90071992547409.91"; // 2^53 − 1 i minste enhet
+    useProvider({
+      ...providerResult(),
+      offers: [
+        { ...base(), id: "nok_fee_overflow", totalAmount: huge, totalCurrency: "NOK" }, // + gebyr > 2^53
+        external("eur_overflow", huge, "EUR"), // × 11.642 > 2^53 øre
+        external("garbage", "1e309", "EUR"),
+        external("ok", "100.00", "EUR"),
+      ],
+    });
+    const res = await mobile(mobileCtx()).flights.search(INPUT);
+    expect(res.offers.map((o) => o.offer.id)).toEqual(["ok", "nok_fee_overflow", "eur_overflow", "garbage"]);
+    for (const id of ["nok_fee_overflow", "eur_overflow", "garbage"]) {
+      expect(nok(res, id)).toEqual({ kind: "unavailable", reason: "invalid_amount" });
+    }
+    expect(res.offers.find((o) => o.offer.id === "eur_overflow")!.offer.totalAmount).toBe(huge);
+    expect(res.fx).toMatchObject({ status: "partial", unconvertedCount: 2 });
   });
 
   it("samme validering som nettet", async () => {

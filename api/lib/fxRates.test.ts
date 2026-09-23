@@ -97,6 +97,14 @@ describe("convertToNok", () => {
     expect(convertToNok("1234567.89", "EUR", odd, NOW)).toMatchObject({ amountMinor: 1376543200 }); // 13 765 431.9735 → 13 765 432
   });
 
+  it("for store beløp gir ingen NOK-pris i stedet for et unøyaktig tall", () => {
+    // 2^53 − 1 cent × 11.6420 overstiger 2^53 øre
+    expect(convertToNok("90071992547409.91", "EUR", t, NOW)).toEqual({ kind: "unavailable", reason: "invalid_amount" });
+    expect(convertToNok("99999999999999999999", "EUR", t, NOW)).toEqual({ kind: "unavailable", reason: "invalid_amount" });
+    // Stort, men trygt: eksakt heltallsresultat
+    expect(convertToNok("1000000000.00", "EUR", t, NOW)).toMatchObject({ kind: "converted", amountMinor: 1164200000000 });
+  });
+
   it("valuta uten kurs, ingen kurstabell og ugyldig beløp gir ingen NOK-pris", () => {
     expect(convertToNok("100.00", "THB", t, NOW)).toEqual({ kind: "unavailable", reason: "unsupported_currency" });
     expect(convertToNok("100.00", "EUR", null, NOW)).toEqual({ kind: "unavailable", reason: "rate_unavailable" });

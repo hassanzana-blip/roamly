@@ -20,6 +20,7 @@ import {
 import { issueCustomerSession, revokeAllCustomerSessions, revokeCustomerSession } from "./lib/customerSessions";
 import { clientIp } from "./lib/ratelimit";
 import { logAudit } from "./lib/audit";
+import type { CustomerProfile, MobileAuthResult, MobileSession, MobileSocialAuthResult } from "../contracts/mobileAuth";
 
 // ─── Kundeinnlogging for appen ───────────────────────────────────────────────
 // Samme innloggingsveier som nettet (customerAuth), men sesjonen leveres som
@@ -29,7 +30,7 @@ import { logAudit } from "./lib/audit";
 // 30 dagers levetid, og det kan tilbakekalles som alle andre kundesesjoner.
 // Ingen Set-Cookie herfra, og ingenting her gir staff-tilgang.
 
-export type MobileSession = { token: string; tokenType: "Bearer"; expiresAt: string };
+export type { MobileSession } from "../contracts/mobileAuth";
 
 function tokenIssuer(ctx: TrpcContext) {
   let issued: { token: string; expiresAt: Date } | null = null;
@@ -45,13 +46,13 @@ function tokenIssuer(ctx: TrpcContext) {
 }
 
 export const mobileAuthRouter = createRouter({
-  register: publicQuery.input(registerInput).mutation(async ({ input, ctx }) => {
+  register: publicQuery.input(registerInput).mutation(async ({ input, ctx }): Promise<MobileAuthResult> => {
     const t = tokenIssuer(ctx);
     const profile = await registerCustomer(input, ctx, t.issue);
     return { session: t.session(), profile };
   }),
 
-  login: publicQuery.input(loginInput).mutation(async ({ input, ctx }) => {
+  login: publicQuery.input(loginInput).mutation(async ({ input, ctx }): Promise<MobileAuthResult> => {
     const t = tokenIssuer(ctx);
     const profile = await passwordLogin(input, ctx, t.issue);
     return { session: t.session(), profile };
@@ -59,21 +60,21 @@ export const mobileAuthRouter = createRouter({
 
   requestLoginCode: publicQuery.input(loginCodeRequestInput).mutation(({ input, ctx }) => sendLoginCode(input, ctx)),
 
-  verifyLoginCode: publicQuery.input(loginCodeVerifyInput).mutation(async ({ input, ctx }) => {
+  verifyLoginCode: publicQuery.input(loginCodeVerifyInput).mutation(async ({ input, ctx }): Promise<MobileAuthResult> => {
     const t = tokenIssuer(ctx);
     const profile = await verifyLoginCodeLogin(input, ctx, t.issue);
     return { session: t.session(), profile };
   }),
 
   /** Clerk-token fra appens sosiale innlogging → HelloSky-sesjon (samme koblingsregler som nett). */
-  exchangeSocialToken: publicQuery.input(socialTokenInput).mutation(async ({ input, ctx }) => {
+  exchangeSocialToken: publicQuery.input(socialTokenInput).mutation(async ({ input, ctx }): Promise<MobileSocialAuthResult> => {
     const t = tokenIssuer(ctx);
     const result = await socialLogin(input, ctx, t.issue);
     return { session: t.session(), ...result };
   }),
 
   /** Hvem er innlogget med dette tokenet? null når tokenet mangler, er utløpt eller tilbakekalt. */
-  me: publicQuery.query(async ({ ctx }) => {
+  me: publicQuery.query(async ({ ctx }): Promise<CustomerProfile | null> => {
     if (!ctx.customer) return null;
     const [acc] = await getDb()
       .select()
@@ -84,13 +85,13 @@ export const mobileAuthRouter = createRouter({
   }),
 
   /** Tilbakekaller sesjonen tokenet tilhører. Idempotent: et allerede ugyldig token gir også ok. */
-  logout: publicQuery.mutation(async ({ ctx }) => {
+  logout: publicQuery.mutation(async ({ ctx }): Promise<{ ok: true }> => {
     if (ctx.customer) await revokeCustomerSession(ctx.customer.sessionId);
     return { ok: true };
   }),
 
   /** Logg ut alle enheter – app og nett. */
-  logoutAll: customerProcedure.mutation(async ({ ctx }) => {
+  logoutAll: customerProcedure.mutation(async ({ ctx }): Promise<{ ok: true }> => {
     await revokeAllCustomerSessions(ctx.customer.customerId);
     await logAudit({ actorType: "customer", actorId: ctx.customer.customerId, action: "customer.logout_all", targetType: "customer_account", targetId: ctx.customer.customerId, ip: clientIp(ctx.req), metadata: { via: "mobile" } });
     return { ok: true };

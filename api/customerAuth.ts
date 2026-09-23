@@ -24,6 +24,7 @@ import {
   supportMessages,
 } from "../db/schema";
 import type { Order } from "../contracts/types";
+import type { CustomerProfile } from "../contracts/mobileAuth";
 import type { TrpcContext } from "./context";
 import { hashPassword, verifyPassword } from "./lib/passwords";
 import { randomToken, sha256Hex } from "./lib/tokens";
@@ -127,7 +128,7 @@ function whereIdentifier(id: Identifier) {
 
 type AccountRow = typeof customerAccounts.$inferSelect;
 
-export function publicProfile(a: Partial<AccountRow> & { id: number; firstName: string; lastName: string }) {
+export function publicProfile(a: Partial<AccountRow> & { id: number; firstName: string; lastName: string }): CustomerProfile {
   return {
     id: a.id,
     email: a.email ?? null,

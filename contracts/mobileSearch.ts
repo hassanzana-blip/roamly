@@ -71,11 +71,13 @@ export interface MobileOffer {
 export type MobileFxStatus =
   /** Alle tilbud var i NOK; ingen kurs trengtes. */
   | "not_needed"
-  /** Kurser hentet og ferske nok. */
+  /** Alle utenlandske tilbud fikk en omregnet NOK-pris. */
   | "ok"
-  /** Nyeste kurs er for gammel; utenlandske tilbud har ingen NOK-pris. */
+  /** Noen utenlandske tilbud er omregnet, andre har ingen NOK-pris (se unconvertedCount og hvert tilbuds reason). */
+  | "partial"
+  /** Ingen utenlandske tilbud ble omregnet, og minst ett fordi kursen er for gammel. */
   | "stale"
-  /** Kursene kunne ikke hentes; utenlandske tilbud har ingen NOK-pris. */
+  /** Ingen utenlandske tilbud ble omregnet (kurser utilgjengelige, valuta uten kurs eller ugyldig beløp). */
   | "unavailable";
 
 export interface MobileSearchResult {
@@ -93,6 +95,8 @@ export interface MobileSearchResult {
   offers: MobileOffer[];
   fx: {
     status: MobileFxStatus;
+    /** Antall utenlandske tilbud uten NOK-pris. 0 når status er «ok» eller «not_needed». */
+    unconvertedCount: number;
     source: typeof NORGES_BANK_SOURCE;
     /** Nyeste kursdato som ble brukt, eller null. */
     rateDate: string | null;

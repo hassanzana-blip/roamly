@@ -29,10 +29,33 @@ function offerPrice(offer: Offer, overrides: PricingOverrides, table: FxTable | 
   }
   // Samme regel som nettets resultatliste: servicegebyr kun når HelloSky selger billetten.
   const external = offer.booking?.kind === "external";
-  const feeMinor = external || supplierMinor < 0 ? 0 : computeServiceFeeMinor(supplierMinor, currency, overrides);
-  const serviceFee = external ? null : { amount: fromMinor(feeMinor, currency), currency: offer.totalCurrency };
-  const total = { amount: fromMinor(supplierMinor + feeMinor, currency), currency: offer.totalCurrency };
-  return { original, serviceFee, total, nok: convertToNok(total.amount, currency, table, now) };
+  try {
+    if (supplierMinor < 0) throw new RangeError("negativt beløp");
+    const feeMinor = external ? 0 : computeServiceFeeMinor(supplierMinor, currency, overrides);
+    const totalMinor = supplierMinor + feeMinor;
+    if (!Number.isSafeInteger(totalMinor)) throw new RangeError("beløpet er for stort");
+    const serviceFee = external ? null : { amount: fromMinor(feeMinor, currency), currency: offer.totalCurrency };
+    const total = { amount: fromMinor(totalMinor, currency), currency: offer.totalCurrency };
+    return { original, serviceFee, total, nok: convertToNok(total.amount, currency, table, now) };
+  } catch {
+    // Et beløp vi ikke kan regne trygt med, velter ikke søket – tilbudet får bare ingen NOK-pris.
+    return { original, serviceFee: null, total: original, nok: { kind: "unavailable", reason: "invalid_amount" } };
+  }
+}
+
+/**
+ * Samlet valutastatus for svaret. «ok» betyr at ALLE utenlandske tilbud fikk en
+ * NOK-pris; er noen omregnet og noen ikke, er statusen «partial».
+ */
+export function fxStatusFor(offers: MobileOffer[], table: FxTable | null): { status: MobileFxStatus; unconvertedCount: number } {
+  const foreign = offers.filter((o) => o.offer.totalCurrency.trim().toUpperCase() !== "NOK");
+  const converted = foreign.filter((o) => o.price.nok.kind === "converted").length;
+  const unconvertedCount = foreign.length - converted;
+  if (foreign.length === 0) return { status: "not_needed", unconvertedCount: 0 };
+  if (unconvertedCount === 0) return { status: "ok", unconvertedCount };
+  if (converted > 0) return { status: "partial", unconvertedCount };
+  const stale = table && foreign.some((o) => o.price.nok.kind === "unavailable" && o.price.nok.reason === "rate_stale");
+  return { status: stale ? "stale" : "unavailable", unconvertedCount };
 }
 
 /** Sammenlignbare tilbud først, stigende NOK; like priser og ikke-sammenlignbare beholder leverandørens rekkefølge. */
@@ -51,7 +74,7 @@ export function sortByNok(offers: MobileOffer[]): MobileOffer[] {
 
 export async function mobileFlightSearch(input: (typeof mobileSearchSchema)["_output"], ctx: TrpcContext, now: Date = new Date()): Promise<MobileSearchResult> {
   const result = await runFlightSearch({ ...input, currency: "NOK" }, ctx);
-  const needsFx = result.offers.some((o) => o.totalCurrency.toUpperCase() !== "NOK");
+  const needsFx = result.offers.some((o) => o.totalCurrency.trim().toUpperCase() !== "NOK");
   const [overrides, table] = await Promise.all([loadPricingOverrides(), needsFx ? getNokRates(now) : Promise.resolve(null)]);
 
   const offers = sortByNok(
@@ -61,9 +84,7 @@ export async function mobileFlightSearch(input: (typeof mobileSearchSchema)["_ou
     }),
   );
 
-  const foreign = offers.filter((o) => o.offer.totalCurrency.toUpperCase() !== "NOK");
-  const reasons = new Set(foreign.map((o) => (o.price.nok.kind === "unavailable" ? o.price.nok.reason : o.price.nok.kind)));
-  const status: MobileFxStatus = !needsFx ? "not_needed" : !table ? "unavailable" : reasons.has("rate_stale") && !reasons.has("converted") ? "stale" : "ok";
+  const { status, unconvertedCount } = fxStatusFor(offers, table);
   const usedDates = offers.flatMap((o) => (o.price.nok.kind === "converted" ? [o.price.nok.rate.rateDate] : []));
 
   return {
@@ -78,7 +99,7 @@ export async function mobileFlightSearch(input: (typeof mobileSearchSchema)["_ou
     slices: result.slices,
     passengers: result.passengers,
     offers,
-    fx: { status, source: NORGES_BANK_SOURCE, rateDate: usedDates.length ? usedDates.sort().at(-1)! : null, indicative: true },
+    fx: { status, unconvertedCount, source: NORGES_BANK_SOURCE, rateDate: usedDates.length ? usedDates.sort().at(-1)! : null, indicative: true },
   };
 }
 
