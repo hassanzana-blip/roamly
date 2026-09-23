@@ -68,6 +68,18 @@ export async function checkMobileReadiness(
       path: "/api/mobile/trpc/adminOwner.summary",
       valid: (s, b) => s === 404 && errorCode(b) === "NOT_FOUND",
     },
+    {
+      name: "staff-session-api-not-exposed",
+      path: "/api/mobile/trpc/staffAuth.me",
+      // Even an anonymous null response means the staff router was mounted.
+      valid: (s, b) => s === 404 && errorCode(b) === "NOT_FOUND",
+    },
+    {
+      name: "admin-dashboard-not-exposed",
+      path: "/api/mobile/trpc/admin.dashboard",
+      // 401/403 is not enough: the procedure must be absent from mobile.
+      valid: (s, b) => s === 404 && errorCode(b) === "NOT_FOUND",
+    },
   ];
   const results = [];
   // Sequential, bounded probes avoid a burst against sleeping staging environments.
@@ -84,12 +96,23 @@ export async function checkMobileReadiness(
         response.headers.get("content-type") ?? ""
       );
       const body = isJson ? await response.json() : null;
+      const ok = isJson && check.valid(response.status, body);
+      const failure = ok
+        ? undefined
+        : response.status >= 300 && response.status < 400
+          ? "REDIRECT"
+          : !isJson
+            ? "NON_JSON_RESPONSE"
+            : response.status === 404 && errorCode(body) === "NOT_FOUND"
+              ? "ROUTE_NOT_FOUND"
+              : "CONTRACT_MISMATCH";
       results.push({
         check: check.name,
-        ok: isJson && check.valid(response.status, body),
+        ok,
         status: response.status,
         durationMs: Math.round(performance.now() - started),
         json: isJson,
+        ...(failure ? { error: failure } : {}),
       });
     } catch (error) {
       // Do not echo response bodies, exception messages or URLs that could contain secrets.
@@ -101,7 +124,9 @@ export async function checkMobileReadiness(
         error:
           error?.name === "TimeoutError" || error?.name === "AbortError"
             ? "TIMEOUT"
-            : "NETWORK_OR_INVALID_JSON",
+            : error instanceof SyntaxError
+              ? "INVALID_JSON"
+              : "NETWORK_ERROR",
       });
     }
   }

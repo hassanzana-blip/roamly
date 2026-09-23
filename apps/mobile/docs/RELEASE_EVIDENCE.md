@@ -81,3 +81,9 @@ Exact device build steps are in [README](../README.md) and [RELEASE](../RELEASE.
 - Editable Figma seller/baggage/banner components match the reviewed source; see FIGMA_SPECIFICATION.md.
 
 The public production search tested separately at `2a58d8c` returned KAYAK sandbox results, including TRF despite an OSL query. A mobile-only exact endpoint/date/leg boundary and live details-expiry guard are being implemented next. Production web and worker both auto-deploy main; merging PR 8 is therefore a production deployment and remains held. No production settings, data, deployments or credentials changed in this review.
+
+## Expanded deployment probe — 23 September, 23:42 UTC
+
+The read-only checker now also requires `staffAuth.me` and `admin.dashboard` to be absent from the mobile router. A protected 401/403 or an anonymous staff response is a failure, rather than evidence of customer/admin separation. Failure categories distinguish redirections, missing routes, non-JSON/invalid JSON, timeouts and contract mismatches without logging response bodies or redirect targets.
+
+Seven script tests **PASSED**; both added regression cases fail against the prior script. All eight actual HTTP probes **PASSED** against staging `18ad2ea`. No authenticated request, provider call, customer data, booking or mutation was involved. These selected route checks are not an exhaustive security audit and do not establish live inventory or native app behavior.

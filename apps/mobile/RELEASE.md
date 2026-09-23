@@ -32,7 +32,11 @@ node scripts/mobile-readiness.mjs https://your-verified-api-origin
 
 This credential-free checker verifies database readiness, both API surfaces,
 airport lookup, an empty anonymous customer session, and absence of the staff
-router on the mobile surface. It rejects HTML fallbacks masquerading as APIs.
+router on the mobile surface. It probes the existing owner-summary, staff-session
+and admin-dashboard procedures; all must return tRPC NOT_FOUND, not 401/403 or an
+anonymous staff response. It rejects HTML fallbacks masquerading as APIs and
+reports redacted failure categories for redirects, absent routes, invalid JSON,
+timeouts and contract mismatches. No response body or redirect target is logged.
 It makes no flight-provider request, login, booking, or data mutation.
 
 A green check is only the first gate. Using explicitly disposable **staging**
@@ -67,6 +71,6 @@ or by the checked-in EAS configuration. Apple review timing is outside our contr
 ## Rollout evidence
 
 Keep readiness JSON and test/build logs with the release record. Do not treat
-response latency from these six smoke probes as app performance, or sandbox
+response latency from these eight smoke probes as app performance, or sandbox
 fares as verified production inventory. Measure app startup, search duration and
 list responsiveness separately on the same device and network before/after.

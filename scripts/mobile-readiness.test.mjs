@@ -47,7 +47,7 @@ test("checks the public contracts without sending auth or following redirects", 
     },
   });
   assert.equal(report.ok, true);
-  assert.equal(seen.length, 6);
+  assert.equal(seen.length, 8);
   assert.match(report.scope, /not proof of live fares/);
 });
 
@@ -60,6 +60,7 @@ test("an HTTP 200 SPA fallback does not count as a working mobile API", async ()
   });
   assert.equal(report.ok, false);
   assert.ok(report.checks.every(c => !c.ok));
+  assert.ok(report.checks.every(c => c.error === "NON_JSON_RESPONSE"));
 });
 
 test("missing deployment, invalid airport data and exposed staff routes fail closed", async () => {
@@ -103,7 +104,67 @@ test("network failures are bounded/redacted and do not hide later check results"
     },
   });
   assert.equal(report.ok, false);
-  assert.equal(report.checks.length, 6);
+  assert.equal(report.checks.length, 8);
+  assert.equal(report.checks[0].error, "NETWORK_ERROR");
   assert.ok(report.checks.slice(1).every(c => c.ok));
   assert.ok(!JSON.stringify(report).includes("secret"));
+});
+
+test("staff session and dashboard procedures must be absent, not merely protected", async () => {
+  for (const path of ["staffAuth.me", "admin.dashboard"]) {
+    for (const response of [
+      () => rpc(null),
+      () => rpc({ authenticated: false }),
+      () => rpcError("UNAUTHORIZED", 401),
+      () => rpcError("FORBIDDEN", 403),
+    ]) {
+      const report = await checkMobileReadiness("https://example.test", {
+        fetchImpl: async url =>
+          url.endsWith(path) ? response() : healthy(url),
+      });
+      assert.equal(report.ok, false);
+      assert.equal(report.checks.filter(c => !c.ok).length, 1);
+      assert.equal(report.checks.find(c => !c.ok).error, "CONTRACT_MISMATCH");
+    }
+  }
+});
+
+test("redirect, missing route, invalid JSON and timeout have redacted actionable outcomes", async () => {
+  const failures = [
+    [
+      "REDIRECT",
+      () =>
+        new Response(null, {
+          status: 302,
+          headers: { location: "https://example.test/?secret=DO-NOT-LOG" },
+        }),
+    ],
+    ["ROUTE_NOT_FOUND", () => rpcError("NOT_FOUND", 404)],
+    [
+      "INVALID_JSON",
+      () =>
+        new Response("DO-NOT-LOG", {
+          headers: { "content-type": "application/json" },
+        }),
+    ],
+    [
+      "TIMEOUT",
+      () => {
+        throw new DOMException("DO-NOT-LOG", "TimeoutError");
+      },
+    ],
+  ];
+  for (const [expected, response] of failures) {
+    const report = await checkMobileReadiness("https://example.test", {
+      fetchImpl: async url =>
+        url.endsWith("/api/mobile/trpc/ping") ? response() : healthy(url),
+    });
+    assert.equal(report.ok, false);
+    assert.equal(
+      report.checks.find(c => c.check === "mobile-api").error,
+      expected
+    );
+    assert.equal(report.checks.filter(c => c.ok).length, 7);
+    assert.ok(!JSON.stringify(report).includes("DO-NOT-LOG"));
+  }
 });
