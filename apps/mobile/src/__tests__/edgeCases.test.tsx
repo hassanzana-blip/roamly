@@ -1,9 +1,10 @@
 import { useEffect, type ReactNode } from "react";
-import { StyleSheet } from "react-native";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
+import { Dimensions, StyleSheet } from "react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
+import { SAME_TRIP_OTHER_SELLER, SEARCH_RESULT, SEK_OFFER } from "../test/fixtures";
 import { EDGE_AGENCY, EDGE_AGENCY_2, EDGE_AIRLINE, EDGE_RESULT } from "../test/edgeFixtures";
 import SearchScreen from "../app/(tabs)/index";
 import ResultsScreen from "../app/resultater";
@@ -49,8 +50,8 @@ const COPY = {
   },
 } as const;
 
-function setup() {
-  const server = fakeServer({ "flights.search": () => ({ data: EDGE_RESULT }), "flights.trackProviderClick": () => ({ data: { clickRef: null } }) });
+function setup(result = EDGE_RESULT) {
+  const server = fakeServer({ "flights.search": () => ({ data: result }), "flights.trackProviderClick": () => ({ data: { clickRef: null } }) });
   const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
   return { server, factory };
 }
@@ -188,5 +189,128 @@ describe.each(["nb", "en"] as const)("fire reisende og lange navn (%s)", (locale
       expect(StyleSheet.flatten(tab.props.style)).toMatchObject({ flexGrow: 1, flexShrink: 0, flexBasis: "auto" });
     }
     expect(StyleSheet.flatten(hostWithRole("tablist")?.props.style)).toMatchObject({ flexDirection: "row", flexWrap: "wrap" });
+  });
+});
+
+// Selgerraden: prisen står til høyre så lenge teksten ved siden av har plass. Brytes navnet, eller blir tekstkolonnen
+// for smal for de faste ordene («Håndbagasje») ved denne tekststørrelsen, legger prisen seg under teksten – så ingen
+// ord deles («Testflyselska» / «p»). Korte navn med vanlig tekst beholder den kompakte raden.
+describe("selgerraden gir navn, bagasje og vilkår nok bredde", () => {
+  const baseWindow = Dimensions.get("window");
+  const base = baseWindow.fontScale;
+  const layout = (width: number, height: number) => ({ nativeEvent: { layout: { x: 0, y: 0, width, height } } });
+  const line = (scale: number) => 20 * scale; // type.calloutStrong.lineHeight ved tekststørrelsen
+  // Navnets bredde er stor nok til at målingen aldri kan utløse kolonneregelen (hendelsen bobler i testene).
+  const nameLines = (id: string, lines: number, scale = base) => fireEvent(screen.getByTestId(`sellername-${id}`), "layout", layout(400, lines * line(scale)));
+  const column = (id: string, width: number) => fireEvent(screen.getByTestId(`sellertext-${id}`), "layout", layout(width, 200));
+
+  /** Hvor prisen står: «right» = siste element i raden; «below» = siste element i tekstkolonnen, rett etter bagasjen. */
+  function placement(id: string): "right" | "below" | "other" {
+    const ids = (n: HostNode | null) => (n?.children ?? []).map((c) => (typeof c === "string" ? c : (c.props.testID as string | undefined)));
+    const row = ids(findHost((n) => n.props.testID === `seller-${id}`));
+    const col = ids(findHost((n) => n.props.testID === `sellertext-${id}`));
+    if (row.at(-1) === `sellerprice-${id}` && !col.includes(`sellerprice-${id}`)) return "right";
+    if (col.at(-1) === `sellerprice-${id}` && col.at(-2) === `sellerbags-${id}` && !row.includes(`sellerprice-${id}`)) return "below";
+    return "other";
+  }
+
+  // React Native sender ikke «change» første gang Dimensions.set kalles; marker dimensjonene som satt (uendret).
+  beforeAll(() => Dimensions.set({ window: Dimensions.get("window"), screen: Dimensions.get("screen") }));
+  async function setFontScale(fontScale: number) {
+    await act(async () => Dimensions.set({ window: { ...baseWindow, fontScale }, screen: { ...Dimensions.get("screen"), fontScale } }));
+  }
+  afterEach(async () => {
+    if (Dimensions.get("window").fontScale !== base) await setFontScale(base);
+  });
+
+  async function renderOffer(id: string, result: typeof EDGE_RESULT, locale: "nb" | "en" = "nb") {
+    const { factory } = setup(result);
+    setParams({ id });
+    await render(
+      <AppProvider initialLocale={locale} apiFactory={factory} initial={FAMILY_FORM}>
+        <SearchOnMount>
+          <OfferScreen />
+        </SearchOnMount>
+      </AppProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("sellers")).toBeOnTheScreen());
+  }
+  const shortNames = { ...SEARCH_RESULT, offers: [SEK_OFFER, SAME_TRIP_OTHER_SELLER] };
+
+  it("korte navn, vanlig tekst: navnet på én linje og en kolonne akkurat bred nok – prisen blir stående til høyre", async () => {
+    await renderOffer("sek_1", shortNames);
+    for (const id of ["sek_1", "gtg_1"]) {
+      await nameLines(id, 1);
+      await column(id, 80 * base);
+      expect(placement(id)).toBe("right");
+    }
+  });
+
+  it.each(["nb", "en"] as const)("et navn som brytes (%s): prisen under bagasjen, hele navnet og tilgjengelighetsnavnet uendret, valget virker", async (locale) => {
+    const c = COPY[locale];
+    await renderOffer("edge_agency", EDGE_RESULT, locale);
+    const airline = c.sellers[2];
+    const label = screen.getByTestId("seller-edge_airline").props.accessibilityLabel as string;
+    expect(placement("edge_airline")).toBe("right");
+    // To linjer er nok: det minste tilfellet der et ord kan deles («Testflyselska» / «p»).
+    await nameLines("edge_airline", 2);
+    expect(placement("edge_airline")).toBe("below");
+    expect(placement("edge_agency")).toBe("right");
+    const row = within(screen.getByTestId("seller-edge_airline"));
+    expect(row.getByText(EDGE_AIRLINE)).toBeOnTheScreen();
+    expect(screen.getByTestId("sellerprice-edge_airline")).toHaveTextContent(airline.price);
+    expect(screen.getByTestId("seller-edge_airline").props.accessibilityLabel).toBe(label);
+    expect(label).toContain(EDGE_AIRLINE);
+    for (const el of row.getAllByText(/./)) expect(el.props.numberOfLines).toBeUndefined();
+    // Valget: radioknappen, bunnlinjen, handlingen og bagasjen følger selgeren.
+    await fireEvent.press(screen.getByTestId("seller-edge_airline"));
+    expect(screen.getByTestId("seller-edge_airline").props.accessibilityState).toMatchObject({ selected: true });
+    expect(within(screen.getByTestId("bar-price")).getByText(airline.price)).toBeOnTheScreen();
+    expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe(c.action(EDGE_AIRLINE));
+    expect(placement("edge_airline")).toBe("below");
+    // Fanebytte: tilbake på Oversikt står prisen allerede under – ingen ny måling, ingen hopping.
+    await fireEvent.press(screen.getByTestId("tab-baggage"));
+    expect(screen.getByTestId("bag-checked")).toHaveTextContent(airline.checked);
+    await fireEvent.press(screen.getByTestId("tab-overview"));
+    expect(placement("edge_airline")).toBe("below");
+  });
+
+  it("kort navn, men for smal tekstkolonne (stor tekst): prisen under; den hopper ikke tilbake med samme tekststørrelse", async () => {
+    await renderOffer("sek_1", shortNames);
+    await nameLines("gtg_1", 1);
+    await column("gtg_1", 80 * base - 1);
+    expect(placement("gtg_1")).toBe("below");
+    expect(placement("sek_1")).toBe("right");
+    await column("gtg_1", 250);
+    await nameLines("gtg_1", 1);
+    expect(placement("gtg_1")).toBe("below");
+  });
+
+  it("endres tekststørrelsen, måles radene og beløpet i bunnlinjen på nytt med den nye skalaen – i begge retninger", async () => {
+    await renderOffer("sek_1", shortNames);
+    // På telefonen kommer en ny måling bare for nye elementer: raden og beløpet lages på nytt når størrelsen endres.
+    const [rowBefore, amountBefore] = [screen.getByTestId("sellertext-gtg_1"), screen.getByTestId("bar-amount")];
+    // Stor tekst: kolonnen er for smal, prisen under; beløpet brytes, prisen alene i bunnlinjen.
+    await setFontScale(1.786);
+    expect(screen.getByTestId("sellertext-gtg_1")).not.toBe(rowBefore);
+    expect(screen.getByTestId("bar-amount")).not.toBe(amountBefore);
+    await column("gtg_1", 126); // < 80 × 1,786
+    await fireEvent(screen.getByTestId("bar-amount"), "layout", layout(150, 2 * 30 * 1.786));
+    expect(placement("gtg_1")).toBe("below");
+    expect(StyleSheet.flatten(screen.getByTestId("bar-price").props.style).flexBasis).toBe("100%");
+    // Tilbake til vanlig tekst: nye noder, prisen til høyre til en ny måling sier noe annet.
+    await setFontScale(1);
+    expect(placement("gtg_1")).toBe("right");
+    expect(StyleSheet.flatten(screen.getByTestId("bar-price").props.style).flexBasis).toBe(120);
+    await column("gtg_1", 190);
+    await nameLines("gtg_1", 1, 1);
+    expect(placement("gtg_1")).toBe("right");
+    // Og opp igjen: den nye skalaen gjelder, ikke den gamle målingen (126 pt er for smalt ved 1,786, ikke ved 1,235).
+    await setFontScale(1.235);
+    await column("gtg_1", 126);
+    expect(placement("gtg_1")).toBe("right");
+    await setFontScale(1.786);
+    await column("gtg_1", 126);
+    expect(placement("gtg_1")).toBe("below");
   });
 });

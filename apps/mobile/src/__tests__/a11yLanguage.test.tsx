@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
+import { Dimensions } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
@@ -121,6 +122,10 @@ describe.each([
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("sellers")).toBeOnTheScreen());
+    expectAll(lang, 20);
+    // Også når prisen har lagt seg under teksten i en selgerrad (navnet brytes).
+    await fireEvent(screen.getByTestId("sellername-gtg_1"), "layout", { nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 2 * 20 * Dimensions.get("window").fontScale } } });
+    expect(within(screen.getByTestId("sellertext-gtg_1")).getByTestId("sellerprice-gtg_1")).toBeOnTheScreen();
     expectAll(lang, 20);
     for (const tab of ["tab-baggage", "tab-terms", "tab-itinerary"]) {
       await fireEvent.press(screen.getByTestId(tab));

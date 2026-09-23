@@ -213,8 +213,11 @@ function SliceTimeline({ slice, title }: { slice: OfferSlice; title: string }) {
   );
 }
 
+/** Det lengste faste ordet i en selgerrad («Håndbagasje», 12 pt) er ~74 pt bredt; en smalere tekstkolonne deler ord. */
+const SELLER_TEXT_MIN = 80;
+
 /** Én selger av reisen: pris, bagasje og vilkår hører til akkurat denne selgeren. */
-function SellerOfferRow({ item, selected, onPress }: { item: MobileOffer; selected: boolean; onPress: () => void }) {
+function SellerOfferRow({ item, selected, onPress, priceBelow, onNeedsRoom }: { item: MobileOffer; selected: boolean; onPress: () => void; priceBelow: boolean; onNeedsRoom: (fontScale: number) => void }) {
   const i18n = useI18n();
   const h = providerHandoff(item.offer);
   const d = priceDisplay(item.price, i18n);
@@ -222,6 +225,19 @@ function SellerOfferRow({ item, selected, onPress }: { item: MobileOffer; select
   const conds = conditionFacts(item.offer, i18n);
   const kind = h.kind === "external" ? sellerKindLabel(h.sellerKind, i18n) : i18n.t.offer.soldByHelloSky;
   const short = (b: (typeof bags)[number]) => baggageShort(b, i18n);
+  // Prisen står til høyre så lenge teksten ved siden av har plass. Brytes navnet (langt navn eller stor tekst), eller blir
+  // tekstkolonnen smalere enn de faste ordene ved denne tekststørrelsen, melder raden fra, og prisen legger seg under
+  // teksten: navn, bagasje og vilkår får hele bredden, og ingen ord deles. Beslutningen bor i skjermen (overlever
+  // fanebytte), og raden er nøklet på tekststørrelsen der, så den måles på nytt med riktig skala når størrelsen endres.
+  const { fontScale } = useWindowDimensions();
+  const moveBelow = () => {
+    if (!priceBelow) onNeedsRoom(fontScale);
+  };
+  const price = (
+    <Text style={[type.calloutStrong, type.tabular, { color: d.available ? colors.text : colors.textSecondary }, priceBelow && { marginTop: space.xs }]} testID={`sellerprice-${item.offer.id}`}>
+      {d.primary}
+    </Text>
+  );
   return (
     <Pressable
       onPress={onPress}
@@ -233,14 +249,29 @@ function SellerOfferRow({ item, selected, onPress }: { item: MobileOffer; select
     >
       <View style={[styles.radio, selected && styles.radioOn]}>{selected ? <Icon name="check" size={13} color={colors.white} strokeWidth={3} /> : null}</View>
       {/* Ingen linjegrense: det som skiller selgerne (bagasje, vilkår) skal aldri kuttes. */}
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={[type.calloutStrong, { color: colors.text }]}>{sellerLabel(item.offer)}</Text>
+      <View
+        style={{ flex: 1, gap: 2 }}
+        testID={`sellertext-${item.offer.id}`}
+        onLayout={(e) => {
+          if (e.nativeEvent.layout.width < SELLER_TEXT_MIN * fontScale) moveBelow();
+        }}
+      >
+        <Text
+          style={[type.calloutStrong, { color: colors.text }]}
+          testID={`sellername-${item.offer.id}`}
+          onLayout={(e) => {
+            if (e.nativeEvent.layout.height > type.calloutStrong.lineHeight * fontScale * 1.5) moveBelow();
+          }}
+        >
+          {sellerLabel(item.offer)}
+        </Text>
         <Text style={[type.caption, { color: colors.textSecondary }]}>{i18n.t.details.sellerDetail([kind, ...conds.map((c) => `${c.label}: ${c.value.toLowerCase()}`)])}</Text>
         <Text style={[type.caption, { color: colors.text }]} testID={`sellerbags-${item.offer.id}`}>
           {i18n.t.details.sellerDetail(bags.map(short))}
         </Text>
+        {priceBelow ? price : null}
       </View>
-      <Text style={[type.calloutStrong, type.tabular, { color: d.available ? colors.text : colors.textSecondary }]}>{d.primary}</Text>
+      {priceBelow ? null : price}
     </Pressable>
   );
 }
@@ -266,6 +297,11 @@ export default function OfferScreen() {
   const { fontScale } = useWindowDimensions();
   const [priceWrappedAt, setPriceWrappedAt] = useState<number | null>(null);
   const priceAlone = priceWrappedAt === fontScale;
+  // Selgerrader med prisen under teksten, for tekststørrelsen de ble målt med (se SellerOfferRow).
+  const [sellerPricesBelow, setSellerPricesBelow] = useState<{ fontScale: number; ids: ReadonlySet<string> }>({ fontScale, ids: new Set() });
+  const sellerPriceBelow = (id: string) => sellerPricesBelow.fontScale === fontScale && sellerPricesBelow.ids.has(id);
+  const moveSellerPriceBelow = (id: string, scale: number) =>
+    setSellerPricesBelow((p) => (p.fontScale !== scale ? { fontScale: scale, ids: new Set([id]) } : p.ids.has(id) ? p : { fontScale: scale, ids: new Set([...p.ids, id]) }));
   // Ett bevisst trykk = én måling og én nettleser, også ved raske dobbelttrykk.
   // Lenken og tilbudet sendes med hvert trykk (valgt tilbyder kan endres).
   const openOnce = useMemo(
@@ -396,7 +432,14 @@ export default function OfferScreen() {
                   <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.sellersIntro(journey.sellers.length)}</Text>
                   <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup">
                     {journey.sellers.map((s) => (
-                      <SellerOfferRow key={s.item.offer.id} item={s.item} selected={s.item.offer.id === offer.id} onPress={() => setChosen(s.item.offer.id)} />
+                      <SellerOfferRow
+                        key={`${s.item.offer.id}:${fontScale}`}
+                        item={s.item}
+                        selected={s.item.offer.id === offer.id}
+                        onPress={() => setChosen(s.item.offer.id)}
+                        priceBelow={sellerPriceBelow(s.item.offer.id)}
+                        onNeedsRoom={(scale) => moveSellerPriceBelow(s.item.offer.id, scale)}
+                      />
                     ))}
                   </View>
                 </InformationCard>
@@ -487,6 +530,8 @@ export default function OfferScreen() {
         <View style={styles.barRow}>
           <View accessibilityLanguage={lang} style={[styles.barPrice, priceAlone && styles.barPriceAlone]} accessible accessibilityLabel={`${d.accessibilityLabel}. ${basis}`} testID="bar-price">
             <Text
+              // Ny node når tekststørrelsen endres: da kommer en ny måling, med riktig skala.
+              key={`amount-${fontScale}`}
               style={[type.price, { color: d.available ? colors.onDark : colors.onDarkMuted }]}
               testID="bar-amount"
               onLayout={(e) => {
