@@ -2,7 +2,7 @@ import { deserialize, serialize } from "superjson";
 import type { Airport } from "@contracts/airports";
 import type { CabinClass, SearchPassengerInput, SearchSliceInput } from "@contracts/types";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
-import type { CustomerProfile, MobileAuthResult } from "@contracts/mobileAuth";
+import type { CustomerProfile, MobileAuthResult, MobileDeleteAccountInput, MobileLocale, MobileOkResult, MobileUpdateProfileInput } from "@contracts/mobileAuth";
 
 /**
  * Klient for appens API (/api/mobile/trpc).
@@ -50,6 +50,8 @@ export class ApiError extends Error {
     public readonly retryable: boolean,
     /** Feltet feilen gjelder, når serveren oppga det. */
     public readonly field?: string,
+    /** Serverens maskinlesbare grunn (f.eks. «reauth_required»), når den ble oppgitt. */
+    public readonly reason?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -76,7 +78,7 @@ type CallOptions = { auth?: boolean; timeoutMs?: number; signal?: AbortSignal };
 
 type ErrorEnvelope = {
   error?: {
-    json?: { message?: unknown; data?: { appCode?: unknown; retryable?: unknown; httpStatus?: unknown; details?: { field?: unknown } } };
+    json?: { message?: unknown; data?: { appCode?: unknown; retryable?: unknown; httpStatus?: unknown; details?: { field?: unknown; reason?: unknown } } };
   };
 };
 
@@ -86,7 +88,8 @@ function toApiError(status: number, body: unknown): ApiError {
   const code = typeof data?.appCode === "string" ? data.appCode : status >= 500 ? "INTERNAL" : "BAD_RESPONSE";
   const message = typeof json?.message === "string" && json.message.trim() && code !== "INTERNAL" ? json.message : GENERIC_MESSAGE;
   const field = typeof data?.details?.field === "string" ? data.details.field : undefined;
-  return new ApiError(message, code, status, data?.retryable === true, field);
+  const reason = typeof data?.details?.reason === "string" ? data.details.reason : undefined;
+  return new ApiError(message, code, status, data?.retryable === true, field, reason);
 }
 
 export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutMs = 15_000 }: ClientOptions) {
@@ -161,6 +164,11 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     register: (r: RegisterRequest) =>
       call<MobileAuthResult>("mutation", "mobileAuth.register", { identifier: r.email.trim(), password: r.password, firstName: r.firstName.trim(), lastName: r.lastName.trim(), locale: r.locale }),
     me: () => call<CustomerProfile | null>("query", "mobileAuth.me", undefined, { auth: true }),
+    /** Alltid samme nøytrale svar – sier ingenting om kontoen finnes. Lenken fullføres på nettet. */
+    requestPasswordReset: (identifier: string, locale: MobileLocale) => call<MobileOkResult>("mutation", "mobileAuth.requestPasswordReset", { identifier: identifier.trim(), locale }),
+    updateProfile: (input: MobileUpdateProfileInput) => call<CustomerProfile>("mutation", "mobileAuth.updateProfile", input, { auth: true }),
+    /** Bekreftes med passordet (eller «DELETE»/«SLETT» for kontoer uten passord). */
+    deleteAccount: (input: MobileDeleteAccountInput) => call<MobileOkResult>("mutation", "mobileAuth.deleteAccount", input, { auth: true }),
     logout: () => call<{ ok: true }>("mutation", "mobileAuth.logout", undefined, { auth: true }),
     /**
      * Nettets klikkmåling (flights.trackProviderClick) før kunden sendes til

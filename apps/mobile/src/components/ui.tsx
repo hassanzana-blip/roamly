@@ -290,6 +290,33 @@ export function InfoRow({ icon, title, subtitle, value, valueTone = "neutral", t
   );
 }
 
+/**
+ * Trykkbar rad i en innstillingsliste: ikon, tittel, ev. undertekst og en pil
+ * (eller et «åpnes utenfor appen»-ikon). `danger` for slett-rader.
+ */
+export function NavRow({ icon, title, subtitle, onPress, external, danger, testID, accessibilityHint }: { icon: IconName; title: string; subtitle?: string | null; onPress: () => void; external?: boolean; danger?: boolean; testID?: string; accessibilityHint?: string }) {
+  const fg = danger ? colors.danger : colors.text;
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      accessibilityRole={external ? "link" : "button"}
+      accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
+      accessibilityHint={accessibilityHint}
+      style={({ pressed }) => [styles.infoRow, styles.navRow, pressed && { backgroundColor: colors.inset }]}
+    >
+      <View style={styles.infoIcon}>
+        <Icon name={icon} size={20} color={fg} strokeWidth={1.75} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[type.callout, { color: fg }]}>{title}</Text>
+        {subtitle ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
+      </View>
+      <Icon name={external ? "external" : "chevronRight"} size={18} color={colors.textSecondary} />
+    </Pressable>
+  );
+}
+
 export function Banner({ tone, children, testID, dark }: { tone: "info" | "warning" | "error"; children: ReactNode; testID?: string; dark?: boolean }) {
   const light = { info: [colors.blueSoft, colors.blue], warning: [colors.warningSoft, colors.warning], error: [colors.dangerSoft, colors.danger] } as const;
   const onDark = { info: colors.onDarkMuted, warning: colors.warningOnDark, error: "#FFB4AB" } as const;
@@ -496,6 +523,7 @@ const styles = StyleSheet.create({
   infoIcon: { width: 28, alignItems: "center" },
 
   banner: { flexDirection: "row", gap: space.sm, alignItems: "flex-start", borderRadius: radius.input, paddingHorizontal: space.md, paddingVertical: 10 },
+  navRow: { minHeight: TOUCH + 8, borderRadius: radius.sm, marginHorizontal: -space.sm, paddingHorizontal: space.sm },
   notices: { backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.md, paddingVertical: 10, gap: space.sm },
   noticeLine: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
   noticeIcon: { paddingTop: 2 },

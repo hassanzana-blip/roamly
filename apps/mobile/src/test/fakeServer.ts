@@ -7,7 +7,7 @@ import { serialize } from "superjson";
  */
 export type Recorded = { method: string; path: string; url: string; headers: Record<string, string>; input: unknown };
 
-type Handler = (req: Recorded) => { status?: number; data?: unknown; error?: { message: string; appCode: string; field?: string } } | Promise<never>;
+type Handler = (req: Recorded) => { status?: number; data?: unknown; error?: { message: string; appCode: string; field?: string; reason?: string } } | Promise<never>;
 
 export function fakeServer(routes: Record<string, Handler>) {
   const calls: Recorded[] = [];
@@ -28,7 +28,7 @@ export function fakeServer(routes: Record<string, Handler>) {
     if (!handler) return new Response(JSON.stringify({ error: { json: { message: "No procedure", code: -32004, data: { code: "NOT_FOUND", httpStatus: 404 } } } }), { status: 404 });
     const out = await handler(rec);
     if (out.error) {
-      const body = { error: serialize({ message: out.error.message, code: -32001, data: { code: "X", httpStatus: out.status ?? 400, appCode: out.error.appCode, retryable: false, ...(out.error.field ? { details: { field: out.error.field } } : {}) } }) };
+      const body = { error: serialize({ message: out.error.message, code: -32001, data: { code: "X", httpStatus: out.status ?? 400, appCode: out.error.appCode, retryable: false, ...(out.error.field || out.error.reason ? { details: { ...(out.error.field ? { field: out.error.field } : {}), ...(out.error.reason ? { reason: out.error.reason } : {}) } } : {}) } }) };
       return new Response(JSON.stringify(body), { status: out.status ?? 400, headers: { "content-type": "application/json" } });
     }
     return new Response(JSON.stringify({ result: { data: serialize(out.data) } }), { status: 200, headers: { "content-type": "application/json" } });
