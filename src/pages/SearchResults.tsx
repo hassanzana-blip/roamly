@@ -44,6 +44,15 @@ import { useLocale, useT, type I18nKey } from "@/lib/i18n";
 import { searchSessionId } from "@/lib/kayakSession";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 import { PREFERENCES, isFamily, isPreference, rank, type Preference } from "@/lib/offers";
+import {
+  activeFilterCount,
+  applyFilters,
+  clearFilters,
+  filtersFromParams,
+  searchRequestKey,
+  type SearchFilters,
+  type StopsFilter,
+} from "@/lib/searchFilters";
 import { ConnectionProblemSpot, NoFlightsSpot, SkeletonFlightCard } from "@/components/graphics";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CHILD_AGE, DEFAULT_INFANT_AGE, passengersFromParams } from "@/components/search/searchQuery";
@@ -132,7 +141,7 @@ export default function SearchResults() {
   const t = useT();
   const feeConfig = useFeeConfig();
   const { currency: preferredCurrency } = useLocale();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -158,14 +167,10 @@ export default function SearchResults() {
   const sortParam = params.get("sort");
   const directOnly = params.get("direct") === "1";
   /**
-   * Budsjett og bagasjekrav kommer fra prisfinneren på forsiden. De er ekte
-   * filtre, ikke pynt: taket skjærer bort tilbud over beløpet, og bagasjekravet
-   * beholder bare billetter med innsjekket bagasje. Uten dem i lenken ville
-   * knappene på forsiden vært en løgn.
+   * Budsjett og bagasjekrav kommer fra prisfinneren på forsiden – «maxpris»
+   * og «bagasje» leses av filtermodellen sammen med resten, så lenkene fra
+   * forsiden fortsetter å virke uendret.
    */
-  const budgetParam = Number(params.get("maxpris"));
-  const budgetMinor = Number.isFinite(budgetParam) && budgetParam > 0 ? Math.round(budgetParam) * 100 : null;
-  const baggageRequired = params.get("bagasje") === "1";
   const requestedProvider = providerParam(params.get("provider"));
 
   const slices = useMemo<SearchSliceInput[]>(() => {
@@ -185,19 +190,39 @@ export default function SearchResults() {
 
   const search = trpc.flights.search.useMutation();
   const serviceStatus = trpc.flights.status.useQuery(undefined, { staleTime: 300_000, retry: false });
-  const [sort, setSort] = useState<SortKey>(() => (isPreference(sortParam) ? sortParam : "best"));
-  const [stopsFilter, setStopsFilter] = useState<"all" | "direct" | "max1">("all");
-  const [airlines, setAirlines] = useState<string[]>([]);
-  const [baggageOnly, setBaggageOnly] = useState(baggageRequired);
-  const [airlineDirectOnly, setAirlineDirectOnly] = useState(false);
-  const [refundableOnly, setRefundableOnly] = useState(false);
-  const [depTime, setDepTime] = useState<TimeBand>("all");
-  const [arrTime, setArrTime] = useState<TimeBand>("all");
-  const [maxDurationH, setMaxDurationH] = useState(0); // 0 = unlimited
-  const [maxLayoverH, setMaxLayoverH] = useState(0); // 0 = unlimited
-  const [priceMax, setPriceMax] = useState<number | null>(budgetMinor); // minor, null = ubegrenset
-  const [originAirports, setOriginAirports] = useState<string[]>([]);
-  const [destAirports, setDestAirports] = useState<string[]>([]);
+  /**
+   * Filtrene bor i lenken, ikke i komponenten.
+   *
+   * Det gir tilbake/fram, oppdatering, deling og bokmerke gratis, og det
+   * fjerner hele klassen av feil der komponenten og URL-en er uenige. Ett
+   * sted å lese fra, ett sted å skrive til.
+   */
+  const filters = useMemo(() => filtersFromParams(params), [params]);
+  const patchFilters = useCallback(
+    (patch: Partial<SearchFilters>) => {
+      // Vi leser forrige tilstand ut av forrige lenke, aldri av en variabel
+      // som kan være foreldet – to raske klikk skal ikke miste det første.
+      setParams((prev) => applyFilters(prev, { ...filtersFromParams(prev), ...patch }), { replace: false, preventScrollReset: true });
+    },
+    [setParams],
+  );
+
+  const { sort, stops: stopsFilter, airlines, baggageOnly, airlineDirectOnly, refundableOnly, depTime, arrTime, maxDurationH, maxLayoverH, originAirports, destAirports } = filters;
+  const priceMax = filters.priceMaxMinor;
+
+  const setSort = useCallback((v: SortKey) => patchFilters({ sort: v }), [patchFilters]);
+  const setStopsFilter = useCallback((v: StopsFilter) => patchFilters({ stops: v }), [patchFilters]);
+  const setAirlines = useCallback((v: string[]) => patchFilters({ airlines: v }), [patchFilters]);
+  const setBaggageOnly = useCallback((v: boolean) => patchFilters({ baggageOnly: v }), [patchFilters]);
+  const setAirlineDirectOnly = useCallback((v: boolean) => patchFilters({ airlineDirectOnly: v }), [patchFilters]);
+  const setRefundableOnly = useCallback((v: boolean) => patchFilters({ refundableOnly: v }), [patchFilters]);
+  const setDepTime = useCallback((v: TimeBand) => patchFilters({ depTime: v }), [patchFilters]);
+  const setArrTime = useCallback((v: TimeBand) => patchFilters({ arrTime: v }), [patchFilters]);
+  const setMaxDurationH = useCallback((v: number) => patchFilters({ maxDurationH: v }), [patchFilters]);
+  const setMaxLayoverH = useCallback((v: number) => patchFilters({ maxLayoverH: v }), [patchFilters]);
+  const setPriceMax = useCallback((v: number | null) => patchFilters({ priceMaxMinor: v }), [patchFilters]);
+  const setOriginAirports = useCallback((v: string[]) => patchFilters({ originAirports: v }), [patchFilters]);
+  const setDestAirports = useCallback((v: string[]) => patchFilters({ destAirports: v }), [patchFilters]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [calOpen, setCalOpen] = useState(() => params.get("flex") === "1");
   const [alertOpen, setAlertOpen] = useState(false);
@@ -218,8 +243,6 @@ export default function SearchResults() {
   const doSearch = () => {
     if (!slices.length) return;
     setVisible(PAGE_SIZE);
-    setPriceMax(budgetMinor);
-    setBaggageOnly(baggageRequired);
     search.mutate({
       slices,
       passengers,
@@ -242,12 +265,23 @@ export default function SearchResults() {
     });
   };
 
+  /**
+   * Søket lytter på søkeparameterne, ikke på hele lenken. Et filterklikk
+   * endrer URL-en, men ikke denne nøkkelen, så det koster ingen
+   * leverandørkall – filtrering skjer på svaret vi allerede har.
+   */
+  const requestKey = searchRequestKey(params);
   useEffect(() => {
     doSearch();
     setEditOpen(false);
-    if (isPreference(sortParam)) setSort(sortParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
+  }, [requestKey]);
+
+  // Nye filtre gir en ny liste; da skal man se toppen av den, ikke side tre.
+  const filterKey = useMemo(() => JSON.stringify(filters), [filters]);
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [filterKey]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
@@ -517,33 +551,10 @@ export default function SearchResults() {
   };
 
   const resetFilters = () => {
-    setStopsFilter("all");
-    setAirlines([]);
-    setBaggageOnly(false);
-    setAirlineDirectOnly(false);
-    setRefundableOnly(false);
-    setDepTime("all");
-    setArrTime("all");
-    setMaxDurationH(0);
-    setMaxLayoverH(0);
-    setPriceMax(null);
-    setOriginAirports([]);
-    setDestAirports([]);
+    setParams((prev) => clearFilters(prev), { replace: false, preventScrollReset: true });
   };
 
-  const activeFilters =
-    (stopsFilter !== "all" ? 1 : 0) +
-    airlines.length +
-    (baggageOnly ? 1 : 0) +
-    (airlineDirectOnly ? 1 : 0) +
-    (refundableOnly ? 1 : 0) +
-    (depTime !== "all" ? 1 : 0) +
-    (arrTime !== "all" ? 1 : 0) +
-    (maxDurationH > 0 ? 1 : 0) +
-    (maxLayoverH > 0 ? 1 : 0) +
-    (priceMax !== null ? 1 : 0) +
-    originAirports.length +
-    destAirports.length;
+  const activeFilters = activeFilterCount(filters);
 
   const toggleIn = (list: string[], set: (v: string[]) => void, code: string, on: boolean) => set(on ? [...list, code] : list.filter((x) => x !== code));
 
