@@ -46,7 +46,25 @@ Two randomly named `example.invalid` fixtures were created only in the separate 
 
 The transport checks use real staging customer services and database records. Flight screenshots and demo search results remain fixtures, not live inventory. Account verification-email delivery was intentionally not tested because staging has no configured transport.
 
-## Open gates
+## Mobile follow-up — 23 September, 22:41 UTC
+
+App code `00d18db`, evidence commit `0a9e78171d5996a964f97c901d557cda0fcd891a`:
+
+- Independent local suite: **PASSED**, 213 tests, 3 staging tests skipped, 21 suites, 24.074 seconds; typecheck passed.
+- Independently reviewed version-aware preference persistence, explicit accessibility language wrappers, and 375-point Home, grouped sellers and large-text price-bar captures.
+- **FAILED visual acceptance** for long seller names at 135% browser text scaling: words split within the name column. A focused correction is in progress. Capture header dates also need alignment with the static fixture dates.
+- This is browser/fixture evidence. VoiceOver, actual Dynamic Type and the native calendar remain NOT RUN.
+- Full CI for this candidate is tracked separately; the older server CI above is not proof of this newer app revision.
+
+## EAS upload scope
+
+Root `.easignore` retains the root and mobile ignore rules and excludes `apps/mobile/docs/evidence/` from the EAS working-tree upload. Screenshots remain versioned and available for review. The mobile native-folder exclusions are scoped to `apps/mobile/ios` and `apps/mobile/android`.
+
+The installed EAS CLI archive inspector completed locally without submitting a build. The generated evidence directory contained zero files. A rule audit at `0a9e781` retained every prior exclusion, all 27 mobile assets and eight checked configuration/entry/contract files; all 17 synthetic environment/credential/native/build canaries were excluded. Only the 48 evidence files (22,909,481 uncompressed bytes) were additionally excluded among tracked files. This is not a measurement of compressed upload savings: Git objects can still contain historical files.
+
+Keep `.easignore` synchronized when either `.gitignore` changes: EAS prioritizes it over gitignore files. See [Expo's official ignore-file documentation](https://docs.expo.dev/build-reference/easignore/).
+
+## Remaining release gates
 
 The next visual correction pass is in progress. Its code and screenshots must receive their own review and CI; the checks above do not certify future changes. The current native archive predates Bokmål-default and layout work. Real provider data, physical-device behavior, complete photo provenance, final policy/retention review, production deployment approval and store submission approval remain separate gates.
 
