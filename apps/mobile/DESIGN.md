@@ -9,7 +9,8 @@ Pro ga tekst uten bredde i koblingen; appen bruker iOS' systemskrift. Inntil skj
 og koden kilden.
 
 **Språk og marked:** norsk bokmål ved første oppstart; engelsk er et valg i Profil som lagres og beholdes. Priser
-alltid i NOK. Bare fly, fra Norge til hele verden. Søk krever ikke innlogging.
+alltid i NOK. Fly fra Norge til hele verden er kjernen, og søk krever ikke innlogging. Det finnes også
+hotellskjermer i utviklingsgrenen; de er ikke bekreftet med ekte bookbare leverandørtilbud.
 
 ## Prinsipper
 
@@ -20,7 +21,8 @@ alltid i NOK. Bare fly, fra Norge til hele verden. Søk krever ikke innlogging.
   telefonens innstilling. Klokkeslett og priser har tabellsifre (`fontVariant: tabular-nums`).
 - **Ekte data eller tydelig demo.** Testdata merkes «DEMO» i toppen og med en egen linje; ingenting vises som
   fakta når leverandøren ikke oppga det («Ikke oppgitt» er ikke det samme som «Ikke inkludert»).
-- **Bare fly.** Ingen hotell, leiebil, boardingkort, sete, gate eller bestilling i appen. Tilbudet åpnes hos
+- **Fly først.** Hotellskjermene er et eget, ennå ikke leverandørverifisert spor. Leiebil og cruise er ikke
+  implementert i iPhone-appen. Ingen boardingkort, sete, gate eller betaling i appen; flytilbudet åpnes hos
   tilbyderen («Bestillingen fullføres hos tilbyderen.»).
 
 ## Farger
@@ -32,7 +34,7 @@ alltid i NOK. Bare fly, fra Norge til hele verden. Søk krever ikke innlogging.
 | `darkBorder` | `#2B2D32` | Kanter på mørke flater |
 | `onDark` | `#F8F9FA` | Tekst på mørkt |
 | `onDarkMuted` | `#B2B5BC` | Sekundærtekst på mørkt |
-| `onDarkDim` | `#8E9199` | Tertiærtekst på mørkt (kreditering) |
+| `onDarkDim` | `#8E9199` | Tertiærtekst på mørkt |
 | `white` | `#FFFFFF` | Søkeark, kort, ark |
 | `inset` | `#F5F5F7` | Innfelte flater på hvitt (felt, segmenter) |
 | `lightBorder` | `#E6E7EB` | Kanter på lyse flater |
@@ -101,7 +103,7 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `SearchPanel`, `FormTile`, `DateField` | `SearchPanel.tsx`, `DateField.tsx` | Søkearket: turtype, fra/til med bytt, datoer, reisende, klasse |
 | `OfferCard`, `FlightLegRow`, `RouteLine`, `BaggageSummary` | `OfferCard.tsx` | Resultatkortet: ut- og hjemreise, bagasje, pris og prisgrunnlag |
 | `PriceTag` | `PriceTag.tsx` | Kronepris, «ca.»-pris med kurs, eller «Ingen pris i kroner» |
-| `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg og kreditering |
+| `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg; kildemetadata beholdes uten synlig kreditering over bildet |
 | `DestinationCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort, fanemeny, selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
 
 ## Skjermene
@@ -203,13 +205,14 @@ og 430 × 932, pluss Resultater ved 320 × 568.
 | F1 | Ingen vannrett rulling og ingen kuttet tekst | – | ingen |
 | F2 | Trykkflater ≥ 44 pt, uten `hitSlop` over naboer eller utenfor et klippende felt | alle synlige i første bilde | ja |
 
-**Bevisste avvik fra referansen** (produktkrav går foran bildet):
-- «Tur-retur / Én vei» i stedet for Fly/Hotell/Leiebil.
+**Bevisste avvik fra referansen** (produktkrav går foran bildet; listen er oppdatert 24.09):
+- Fly/hotell er et tjenestevalg; «Tur-retur / Én vei» er et eget valg i flyskjemaet. Leiebil vises ikke som en fungerende tjeneste.
 - Begge etapper på hvert kort.
-- Totalpris for alle reisende, ikke «per person».
+- Totalpris for alle reisende bare når leverandørens prismodus er bekreftet; ellers merkes beløpet som ubekreftet.
 - «Utforsk reisemål», ikke «Populære destinasjoner» (vi har ingen popularitetsdata).
-- Ingen «Kart», bjelle, hjerte, «Mine reiser», «Endre» bagasje, «Fleksible datoer», sete eller distanse, og ingen
-  «Fra … kr» på reisemål. Det finnes ingen fungerende funksjon eller verifisert data bak dem.
+- Utforsk har nå et kart over kuraterte flyplasser, men ingen prisnåler. Kartets brukbarhet på iPhone er under aktiv retting.
+- Ingen bjelle, hjerte, «Mine reiser», bagasjeendring, setevalg eller «Fra … kr» på reisemål uten fungerende funksjon
+  og verifisert data.
 - Flyselskapets kode i en sirkel til verifiserte logoer finnes; ingen halegrafikk.
 - Knappen er «Gå til tilbud» med valgt tilbyder rett under, ikke «Velg denne flyreisen».
 
