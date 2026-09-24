@@ -23,6 +23,32 @@ export function apiOrigin(value) {
 const payload = body => body?.result?.data?.json;
 const errorCode = body => body?.error?.json?.data?.code;
 
+function validAuthProviders(value) {
+  if (value?.password !== true || !Array.isArray(value.social)) return false;
+  if (value.social.length !== 2) return false;
+  const names = value.social.map(item => item?.provider);
+  if (
+    new Set(names).size !== 2 ||
+    !names.includes("google") ||
+    !names.includes("apple")
+  )
+    return false;
+  for (const item of value.social) {
+    if (typeof item.available !== "boolean") return false;
+    if (
+      item.available
+        ? item.reason !== null
+        : !["not_configured", "native_not_ready"].includes(item.reason)
+    )
+      return false;
+  }
+  const anyAvailable = value.social.some(item => item.available);
+  return anyAvailable
+    ? typeof value.clerkPublishableKey === "string" &&
+        /^pk_(test|live)_/.test(value.clerkPublishableKey)
+    : value.clerkPublishableKey === null;
+}
+
 export async function checkMobileReadiness(
   base,
   { fetchImpl = fetch, timeoutMs = 15000 } = {}
@@ -62,6 +88,11 @@ export async function checkMobileReadiness(
       name: "anonymous-customer-is-empty",
       path: "/api/mobile/trpc/mobileAuth.me",
       valid: (s, b) => s === 200 && payload(b) === null,
+    },
+    {
+      name: "customer-auth-providers",
+      path: "/api/mobile/trpc/mobileAuth.providers",
+      valid: (s, b) => s === 200 && validAuthProviders(payload(b)),
     },
     {
       name: "staff-api-not-exposed",

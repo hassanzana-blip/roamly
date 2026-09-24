@@ -18,6 +18,15 @@ function healthy(url) {
   if (path.endsWith("/flights.airports"))
     return rpc([{ iata: "OSL", name: "Oslo Airport" }]);
   if (path.endsWith("/mobileAuth.me")) return rpc(null);
+  if (path.endsWith("/mobileAuth.providers"))
+    return rpc({
+      password: true,
+      social: [
+        { provider: "google", available: false, reason: "not_configured" },
+        { provider: "apple", available: false, reason: "not_configured" },
+      ],
+      clerkPublishableKey: null,
+    });
   return rpcError("NOT_FOUND", 404);
 }
 
@@ -47,7 +56,7 @@ test("checks the public contracts without sending auth or following redirects", 
     },
   });
   assert.equal(report.ok, true);
-  assert.equal(seen.length, 8);
+  assert.equal(seen.length, 9);
   assert.match(report.scope, /not proof of live fares/);
 });
 
@@ -68,6 +77,7 @@ test("missing deployment, invalid airport data and exposed staff routes fail clo
     "mobile-api",
     "mobile-airports",
     "anonymous-customer-is-empty",
+    "customer-auth-providers",
     "staff-api-not-exposed",
   ]) {
     const report = await checkMobileReadiness("https://example.test", {
@@ -81,6 +91,15 @@ test("missing deployment, invalid airport data and exposed staff routes fail clo
           url.endsWith("mobileAuth.me")
         )
           return rpc({ email: "DO-NOT-LOG" });
+        if (
+          broken === "customer-auth-providers" &&
+          url.endsWith("mobileAuth.providers")
+        )
+          return rpc({
+            password: true,
+            social: [],
+            clerkPublishableKey: "DO-NOT-LOG",
+          });
         if (
           broken === "staff-api-not-exposed" &&
           url.endsWith("adminOwner.summary")
@@ -104,7 +123,7 @@ test("network failures are bounded/redacted and do not hide later check results"
     },
   });
   assert.equal(report.ok, false);
-  assert.equal(report.checks.length, 8);
+  assert.equal(report.checks.length, 9);
   assert.equal(report.checks[0].error, "NETWORK_ERROR");
   assert.ok(report.checks.slice(1).every(c => c.ok));
   assert.ok(!JSON.stringify(report).includes("secret"));
@@ -127,6 +146,28 @@ test("staff session and dashboard procedures must be absent, not merely protecte
       assert.equal(report.checks.find(c => !c.ok).error, "CONTRACT_MISMATCH");
     }
   }
+});
+
+test("auth provider capability accepts a public key only for an available method", async () => {
+  const report = await checkMobileReadiness("https://example.test", {
+    fetchImpl: async url =>
+      url.endsWith("mobileAuth.providers")
+        ? rpc({
+            password: true,
+            social: [
+              { provider: "google", available: true, reason: null },
+              {
+                provider: "apple",
+                available: false,
+                reason: "native_not_ready",
+              },
+            ],
+            clerkPublishableKey: "pk_test_public",
+          })
+        : healthy(url),
+  });
+  assert.equal(report.ok, true);
+  assert.ok(!JSON.stringify(report).includes("pk_test_public"));
 });
 
 test("redirect, missing route, invalid JSON and timeout have redacted actionable outcomes", async () => {
@@ -164,7 +205,7 @@ test("redirect, missing route, invalid JSON and timeout have redacted actionable
       report.checks.find(c => c.check === "mobile-api").error,
       expected
     );
-    assert.equal(report.checks.filter(c => c.ok).length, 7);
+    assert.equal(report.checks.filter(c => c.ok).length, 8);
     assert.ok(!JSON.stringify(report).includes("DO-NOT-LOG"));
   }
 });
