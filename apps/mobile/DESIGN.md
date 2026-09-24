@@ -122,15 +122,16 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
    Safari-visning, målt med nettets `flights.trackProviderClick`. VoiceOver hører «Gå til tilbud hos [tilbyder]».
 
 I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`) og Profil
-(`(tabs)/profil.tsx`, innlogging og fotokreditering).
+(`(tabs)/profil.tsx`, kundeinnlogging, språk, hjelp og konto).
 
 ## Foto
 
 - Bildene er HelloSkys egne, godkjente reisefoto fra nettets register (`public/destinations`, `public/photos`),
   kopiert inn av `scripts/make-photos.mjs` (1080 px brede). De følger med appen: ingen bildesøk ved visning,
   ingen Unsplash-nøkkel i appen.
-- Opphavet følger nettets register `src/content/photos.ts`: alle 25 er registrert som Unsplash. Fotografens navn
-  er ikke registrert der, så appen viser «Foto: Unsplash» på bildet og en liste i Profil – ingen navn er diktet opp.
+- Opphavet beholdes i nettets register `src/content/photos.ts` og appens `src/lib/destinations.ts`.
+  De lokalt medfølgende bildene dekker ikke appens skjermflater med kildeetiketter eller en kredittliste i Profil.
+  Nye API-leverte bilder krever en egen kontroll av leverandørens attribusjonsvilkår før visning.
 - Nye bilder legges først inn i nettets register med kilde (og helst fotograf), deretter i
   `src/lib/destinations.ts`.
 

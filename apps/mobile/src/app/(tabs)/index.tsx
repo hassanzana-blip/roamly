@@ -143,7 +143,6 @@ export default function HomeScreen() {
         <Text style={[type.footnote, styles.howItWorks]} testID="how-it-works-home">
           {t.home.howItWorks}
         </Text>
-        <Text style={[type.caption, styles.credit]}>{t.home.photoCredit}</Text>
       </ScrollView>
     </View>
   );
@@ -163,5 +162,4 @@ const styles = StyleSheet.create({
   railWrap: { backgroundColor: colors.white },
   rail: { paddingHorizontal: space.lg, gap: space.md },
   howItWorks: { color: colors.textSecondary, paddingHorizontal: space.lg, marginTop: space.lg },
-  credit: { color: colors.textSecondary, paddingHorizontal: space.lg, marginTop: space.sm },
 });

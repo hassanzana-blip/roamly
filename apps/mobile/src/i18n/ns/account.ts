@@ -1,4 +1,4 @@
-/** Profil, innlogging, språk og kreditering. */
+/** Profil, innlogging og språk. */
 const en = {
   language: "Language",
   languageHint: "Changes the app's language right away. Prices stay in Norwegian kroner (NOK).",
@@ -28,11 +28,6 @@ const en = {
   profileUnavailable: "We couldn't load your account right now. Check your connection.",
   logout: "Log out",
   loggingOut: "Logging out …",
-  creditsTitle: "Photo credits",
-  creditsIntro: "The pictures are real photographs from Unsplash, used under the Unsplash licence. The photographer's name is shown when it is recorded.",
-  creditLine: (caption: string, photographer: string | null, source: string) => `${caption} – ${photographer ? `${photographer}, ` : ""}${source}`,
-  showCredits: (n: number) => `Show all ${n} photo credits`,
-  hideCredits: "Hide photo credits",
   sessionExpired: "You were logged out because your session ended. Your search is still here – log in again to continue.",
   deleted: "Your account has been deleted. Thank you for using HelloSky.",
   phoneLabel: "Phone",
@@ -100,11 +95,6 @@ const nb: typeof en = {
   profileUnavailable: "Vi fikk ikke hentet kontoen din akkurat nå. Sjekk nettforbindelsen.",
   logout: "Logg ut",
   loggingOut: "Logger ut …",
-  creditsTitle: "Fotokreditering",
-  creditsIntro: "Bildene er ekte fotografier fra Unsplash, brukt under Unsplash-lisensen. Fotografens navn vises når det er registrert.",
-  creditLine: (caption, photographer, source) => `${caption} – ${photographer ? `${photographer}, ` : ""}${source}`,
-  showCredits: (n) => `Vis alle ${n} fotokrediteringer`,
-  hideCredits: "Skjul fotokreditering",
   sessionExpired: "Du ble logget ut fordi økten utløp. Søket ditt er fortsatt her – logg inn igjen for å fortsette.",
   deleted: "Kontoen din er slettet. Takk for at du brukte HelloSky.",
   phoneLabel: "Telefon",

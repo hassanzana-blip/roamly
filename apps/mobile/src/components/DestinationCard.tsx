@@ -20,7 +20,7 @@ export function DestinationCard({ destination, onPress, style, testID }: { desti
       accessibilityLabel={t.explore.seeFlightsTo(names.city, names.airport)}
       style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.85 }]}
     >
-      <PhotoBackdrop photo={destination.photo} scrim="light" credit={false} style={StyleSheet.absoluteFill}>
+      <PhotoBackdrop photo={destination.photo} scrim="light" style={StyleSheet.absoluteFill}>
         <BottomFade />
       </PhotoBackdrop>
       <View style={styles.text}>

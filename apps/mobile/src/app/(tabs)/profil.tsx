@@ -8,7 +8,6 @@ import type { CustomerProfile } from "@contracts/mobileAuth";
 import { useApp } from "../../lib/appState";
 import { ApiError } from "../../lib/api";
 import { errorText } from "../../lib/errorText";
-import { ALL_PHOTOS } from "../../lib/destinations";
 import { WEB_PAGES } from "../../lib/config";
 import { Banner, BottomSheet, Field, InfoRow, InformationCard, LinkButton, NavRow, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
 import { a11yLanguage, useI18n } from "../../i18n";
@@ -54,25 +53,6 @@ function HelpCard() {
       <NavRow icon="lock" title={a.privacy} subtitle={note} external onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" />
       <NavRow icon="info" title={a.terms} subtitle={note} external onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" />
       <NavRow icon="plane" title={a.about} subtitle={note} external onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" />
-    </InformationCard>
-  );
-}
-
-/** Kreditering for bildene appen har med seg. Nederst, og sammenslått til den åpnes. */
-function PhotoCredits() {
-  const { t, locale } = useI18n();
-  const [open, setOpen] = useState(false);
-  return (
-    <InformationCard title={t.account.creditsTitle} testID="photo-credits">
-      <Text style={[type.footnote, { color: colors.textSecondary }]}>{t.account.creditsIntro}</Text>
-      {open
-        ? ALL_PHOTOS.map((p) => (
-            <Text key={p.id} style={[type.footnote, { color: colors.text }]}>
-              {t.account.creditLine(p.credit.caption[locale], p.credit.photographer ?? null, p.credit.source)}
-            </Text>
-          ))
-        : null}
-      <LinkButton label={open ? t.account.hideCredits : t.account.showCredits(ALL_PHOTOS.length)} onPress={() => setOpen((o) => !o)} testID="toggle-credits" />
     </InformationCard>
   );
 }
@@ -316,7 +296,6 @@ export default function AccountScreen() {
             <NavRow icon="close" title={a.deleteRow} danger onPress={() => setSheet("delete")} testID="open-delete-account" />
           </InformationCard>
         ) : null}
-        <PhotoCredits />
         {p ? (
           <>
             <EditProfileSheet
@@ -424,7 +403,6 @@ export default function AccountScreen() {
         </InformationCard>
         <LanguageCard />
         <HelpCard />
-        <PhotoCredits />
         <ForgotPasswordSheet key={`forgot-${sheet === "forgot"}`} visible={sheet === "forgot"} onClose={() => setSheet(null)} initialEmail={email} />
       </ScrollView>
     </KeyboardAvoidingView>

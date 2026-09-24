@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import { Text } from "./a11y";
 import { Image } from "expo-image";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { Photo as PhotoData } from "../lib/destinations";
@@ -11,24 +10,22 @@ import { useReducedMotion } from "../lib/motion";
 /**
  * Foto med nøytralt svart overlegg for lesbar tekst. Bildet følger med appen;
  * lastes det likevel ikke, står en mørk flate igjen og innholdet er like
- * lesbart. Kreditering vises nede i hjørnet når `credit` er satt.
+ * lesbart. Kilde og lisens beholdes i bilderegisteret, uten å dekke fotoet med tekst.
  */
 export function PhotoBackdrop({
   photo,
   style,
   children,
   scrim = "medium",
-  credit = true,
   testID,
 }: {
   photo: PhotoData | null;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
   scrim?: "light" | "medium" | "strong";
-  credit?: boolean;
   testID?: string;
 }) {
-  const { t, locale } = useI18n();
+  const { locale } = useI18n();
   const lang = useA11yLanguage();
   const [failed, setFailed] = useState(false);
   const reduced = useReducedMotion();
@@ -49,11 +46,6 @@ export function PhotoBackdrop({
       ) : null}
       <View style={[StyleSheet.absoluteFill, scrim === "light" ? styles.scrimLight : scrim === "strong" ? styles.scrimStrong : styles.scrimMedium]} />
       {children}
-      {show && credit ? (
-        <Text style={styles.credit} accessibilityLabel={t.common.photoCreditLabel(photo.credit.photographer ?? null, photo.credit.source)}>
-          {t.common.photoCredit(photo.credit.photographer ?? null, photo.credit.source)}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -81,5 +73,4 @@ const styles = StyleSheet.create({
   scrimLight: { backgroundColor: "rgba(12, 13, 15, 0.25)" },
   scrimMedium: { backgroundColor: colors.scrim },
   scrimStrong: { backgroundColor: colors.scrimStrong },
-  credit: { position: "absolute", right: 10, bottom: 6, fontSize: 10, lineHeight: 12, color: "rgba(255, 255, 255, 0.72)" },
 });

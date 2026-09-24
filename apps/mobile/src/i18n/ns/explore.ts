@@ -6,7 +6,6 @@ const en = {
   seeFlights: "See flights",
   seeFlightsTo: (city: string, airport: string) => `See flights to ${city}, ${airport}`,
   countryCode: (country: string, iata: string) => `${country} · ${iata}`,
-  photoNote: "Photos: Unsplash. See Profile for credits.",
 };
 
 const nb: typeof en = {
@@ -16,7 +15,6 @@ const nb: typeof en = {
   seeFlights: "Se flyreiser",
   seeFlightsTo: (city, airport) => `Se flyreiser til ${city}, ${airport}`,
   countryCode: (country, iata) => `${country} · ${iata}`,
-  photoNote: "Foto: Unsplash. Se Profil for kreditering.",
 };
 
 export const explore = { en, nb };

@@ -59,7 +59,6 @@ export default function ExploreScreen() {
           </View>
         ))}
       </View>
-      <Text style={[type.caption, styles.credit]}>{t.explore.photoNote}</Text>
     </ScrollView>
   );
 }
@@ -68,5 +67,4 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   head: { paddingHorizontal: space.lg, gap: space.sm, marginBottom: space.xl },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, paddingHorizontal: space.lg, rowGap: space.lg },
-  credit: { color: colors.onDarkDim, paddingHorizontal: space.lg, marginTop: space.xl },
 });
