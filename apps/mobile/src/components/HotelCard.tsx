@@ -8,7 +8,7 @@ import { cheapestRate, ratePerNightNok, rateTotalNok } from "../lib/hotels";
 import { useI18n } from "../i18n";
 import { colors, radius, space, type } from "../lib/theme";
 
-/** Hotellets eget bilde (bare https fra leverandøren). Mangler det eller lastes ikke: en rolig flate med ord, aldri et lånt bilde. */
+/** Hotellets eget bilde (bare https fra leverandøren). Mangler det eller lastes ikke: en rolig flate som sier hvilket av delene, aldri et lånt bilde. */
 export function HotelPhoto({ image, height, testID }: { image: HotelImage | undefined; height: number; testID?: string }) {
   const { t } = useI18n();
   const [failed, setFailed] = useState(false);
@@ -17,7 +17,7 @@ export function HotelPhoto({ image, height, testID }: { image: HotelImage | unde
     return (
       <View style={[styles.noPhoto, { height }]} testID={testID ? `${testID}-none` : undefined}>
         <Icon name="bed" size={22} color={colors.textSecondary} />
-        <Text style={[type.caption, { color: colors.textSecondary }]}>{t.hotels.noPhoto}</Text>
+        <Text style={[type.caption, { color: colors.textSecondary }]}>{uri ? t.hotels.photoFailed : t.hotels.noPhoto}</Text>
       </View>
     );
   }

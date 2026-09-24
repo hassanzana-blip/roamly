@@ -66,7 +66,7 @@ const en = {
   sort: "Sort",
   sortRecommended: "Recommended",
   sortPrice: "Lowest total",
-  sortRating: "Guest rating",
+  sortRating: "Rating",
   multiRoom: (rooms: number) => `You searched for ${rooms} rooms. Check with the provider that the price covers all the rooms before you book.`,
   disclosure: "Photos, ratings and prices come from hotel partners via KAYAK. You book and pay with the provider – HelloSky takes no payment.",
   localFees: "Local taxes may be payable at the hotel.",
@@ -82,6 +82,7 @@ const en = {
   ratingLabel: (score: string, reviews: string) => `Guest rating ${score} out of 10, ${reviews}`,
   distance: (km: string) => `${km} km from the searched point`,
   noPhoto: "No photo from the hotel",
+  photoFailed: "The hotel's photo couldn't load",
   openHotelHint: "Shows rooms and prices from the providers",
   providers: (n: number) => (n === 1 ? "1 provider" : `${n} providers`),
 
@@ -173,7 +174,7 @@ const nb: typeof en = {
   sort: "Sortering",
   sortRecommended: "Anbefalt",
   sortPrice: "Lavest totalpris",
-  sortRating: "Gjestevurdering",
+  sortRating: "Vurdering",
   multiRoom: (rooms: number) => `Du søkte på ${rooms} rom. Sjekk hos leverandøren at prisen gjelder alle rommene før du bestiller.`,
   disclosure: "Bilder, vurderinger og priser kommer fra hotellpartnere via KAYAK. Du bestiller og betaler hos leverandøren – HelloSky tar ikke betaling.",
   localFees: "Lokale avgifter kan betales på hotellet.",
@@ -189,6 +190,7 @@ const nb: typeof en = {
   ratingLabel: (score: string, reviews: string) => `Gjestevurdering ${score} av 10, ${reviews}`,
   distance: (km: string) => `${km} km fra søkepunktet`,
   noPhoto: "Ingen bilder fra hotellet",
+  photoFailed: "Hotellets bilde kunne ikke lastes",
   openHotelHint: "Viser rom og priser fra leverandørene",
   providers: (n: number) => (n === 1 ? "1 leverandør" : `${n} leverandører`),
 
