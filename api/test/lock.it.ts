@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
 import { closeDb, expectAppCode, getDb, makeCtx, truncateAll, withCookie, callerFor } from "./setup";
 import { staffSessions, staffUsers } from "../../db/schema";
@@ -53,9 +53,12 @@ describe("staff: skjermlås", () => {
     await expectAppCode(caller.staffAuth.myPermissions(), "FORBIDDEN");
     await expectAppCode(caller.admin.dashboard(), "FORBIDDEN");
 
-    // Låsen er skrevet ned, ikke bare regnet ut i farten.
-    const [row] = await getDb().select().from(staffSessions).where(isNull(staffSessions.revokedAt)).limit(1);
-    expect(row?.lockedAt).not.toBeNull();
+    // Persistens skjer asynkront (best effort) etter avvisningen. Vent avgrenset
+    // på selve DB-skrivingen, fremfor å anta at den er ferdig neste tick.
+    await vi.waitFor(async () => {
+      const [row] = await getDb().select().from(staffSessions).where(isNull(staffSessions.revokedAt)).limit(1);
+      expect(row?.lockedAt).not.toBeNull();
+    }, { timeout: 2_000, interval: 25 });
   });
 
   it("sier fra at det er låsen, ikke noe annet, som stopper deg", async () => {
