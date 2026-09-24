@@ -613,3 +613,69 @@ Not checked here:
 - whether a multi-room `totalRate` covers every room. The app tells the customer to check this with the provider.
 - a device or simulator, and VoiceOver itself.
 - the hellosky.no/hotell-bil request form. That page is the existing website form, which is Norwegian only.
+
+
+## Utforsk: world map of destinations (12be988)
+
+**Native iOS status: NOT TESTED.** No Mac, Xcode or iOS simulator is available here, so Apple Maps (MapKit) has not been rendered, tapped or checked with VoiceOver.
+
+What is verified:
+- `expo export --platform ios` bundles the native map (`RNMapsMapView` and `RNMapsMarker` are in the Hermes bundle; the web fallback's marker `destination-map-fallback` is not).
+- Jest tests (`src/__tests__/exploreMap.test.tsx`, with react-native-maps replaced by Views) cover:
+  - the List/Map switch;
+  - one pin per destination, labelled «reisemål»;
+  - the fit to all pins;
+  - the pin card, and «Se flyreiser» calling runSearch with only the destination changed;
+  - the same-airport validation;
+  - English;
+  - that the web fallback never imports react-native-maps.
+
+Map and data sources:
+- **Map:** react-native-maps 1.27.2 (MIT), the version Expo SDK 57 bundles. On iOS it uses the default provider, Apple MapKit: no Google Maps, no API key, no third-party tiles, no location.
+- **Pin coordinates:** the exact airport of each destination's `iata`, copied from the repo's OurAirports register `api/data/airports-meta.json` (public domain). The test checks them against that file to 4 decimals.
+
+The images below are the **web fallback** (`DestinationMap.tsx`) rendered in Chromium. They show the switch, the note, the pin card and the layout at 375/390/430 pt in both languages, plus 375 pt at 135 % text (approximation). They are not a picture of the native map. On iOS the map takes the fallback list's place.
+
+| Check (from the capture report) | nb | en | Result |
+|---|---|---|---|
+| Pin card airport line | «Barcelona-El Prat (BCN)» | «Barcelona–El Prat (BCN)» | PASSED |
+| Card inside the width; horizontal overflow (375/390/430, and 375 at 135 %) | yes; 0 px | yes; 0 px | PASSED |
+| «Se flyreiser» / «See flights» above the tab bar | 693 ≤ 730 px | 693 ≤ 730 px | PASSED |
+| After the tap: route and API calls | `/resultater`; one `flights.search` | the same | PASSED |
+| Tab selection exposed as `aria-selected` in the web rendering | not set | not set | NOT SHOWN on web (the Jest test confirms the selected state) |
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `map-en-12be988-375-1-list.png` | `45213ccb000090a7…` | 750×1803 |
+| `map-en-12be988-375-2-map-fallback.png` | `6379951eda138001…` | 750×1803 |
+| `map-en-12be988-375-3-pin-card.png` | `a2088ab35f9df353…` | 750×1832 |
+| `map-en-12be988-375-4-pin-card-scrolled.png` | `a274b3e9d4bafa31…` | 750×1803 |
+| `map-en-12be988-390-1-list.png` | `73d043fa4c706d06…` | 780×1780 |
+| `map-en-12be988-390-2-map-fallback.png` | `5d9113d02d74112f…` | 780×1780 |
+| `map-en-12be988-390-3-pin-card.png` | `626984f221f29b93…` | 780×1780 |
+| `map-en-12be988-390-4-pin-card-scrolled.png` | `a01ecf00df77819b…` | 780×1780 |
+| `map-en-12be988-430-1-list.png` | `51bbeac676e6cc62…` | 860×1780 |
+| `map-en-12be988-430-2-map-fallback.png` | `b0dc75284b8c4523…` | 860×1780 |
+| `map-en-12be988-430-3-pin-card.png` | `80c0e6bff277e86f…` | 860×1780 |
+| `map-en-12be988-430-4-pin-card-scrolled.png` | `c1cf23ffd576ede1…` | 860×1780 |
+| `map-nb-12be988-375-1-list.png` | `e762d4a5b7f9c0f7…` | 750×1803 |
+| `map-nb-12be988-375-2-map-fallback.png` | `b44165aead4b3ece…` | 750×1803 |
+| `map-nb-12be988-375-3-pin-card.png` | `c9ddf4524125e586…` | 750×1832 |
+| `map-nb-12be988-375-4-pin-card-scrolled.png` | `a5a2beb1c4f4b118…` | 750×1803 |
+| `map-nb-12be988-375-large-1-list.png` | `e2c63ad128621905…` | 750×1803 |
+| `map-nb-12be988-375-large-2-map-fallback.png` | `29aa21117f4ffb76…` | 750×1832 |
+| `map-nb-12be988-375-large-3-pin-card.png` | `6598e9796db6548c…` | 750×1832 |
+| `map-nb-12be988-375-large-4-pin-card-scrolled.png` | `7acba070fe02246a…` | 750×1832 |
+| `map-nb-12be988-390-1-list.png` | `66c6fd4527e7b0e4…` | 780×1780 |
+| `map-nb-12be988-390-2-map-fallback.png` | `4663ab6c549ccb3f…` | 780×1780 |
+| `map-nb-12be988-390-3-pin-card.png` | `b3de6c06f5f7185c…` | 780×1780 |
+| `map-nb-12be988-390-4-pin-card-scrolled.png` | `0c57d0d29c7ffa16…` | 780×1780 |
+| `map-nb-12be988-430-1-list.png` | `9a9419e29bc4ba38…` | 860×1780 |
+| `map-nb-12be988-430-2-map-fallback.png` | `ada7b32885852cae…` | 860×1780 |
+| `map-nb-12be988-430-3-pin-card.png` | `c3f3f02c5c226e49…` | 860×1780 |
+| `map-nb-12be988-430-4-pin-card-scrolled.png` | `63322d4224535dd9…` | 860×1780 |
+
+Remaining:
+- the native MapKit rendering, pin taps, the fit-to-pins, dark style and VoiceOver on a device or simulator;
+- `expo-doctor` / `expo install --check` with react-native-maps (blocked by the proxy here; CI runs them);
+- an EAS development build (react-native-maps has native code, so Expo Go is not enough).
