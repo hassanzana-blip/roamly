@@ -120,8 +120,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   head: { paddingHorizontal: space.lg, gap: space.sm, marginBottom: space.xl },
   mapNote: { color: colors.onDarkMuted, paddingHorizontal: space.lg, marginTop: -space.md, marginBottom: space.sm },
-  mapArea: { flexGrow: 1, flexShrink: 1, minHeight: 160, backgroundColor: colors.bg },
-  cardWrap: { flexGrow: 0, flexShrink: 1, maxHeight: "70%", backgroundColor: colors.bg },
+  // Kartet (eller reservelisten) gir plass først; kortet får sin naturlige høyde, høyst 55 %, og ruller over det.
+  mapArea: { flexGrow: 1, flexShrink: 1, minHeight: 140, backgroundColor: colors.bg },
+  cardWrap: { flexGrow: 0, flexShrink: 0, maxHeight: "55%", backgroundColor: colors.bg },
   cardContent: { paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, paddingHorizontal: space.lg, rowGap: space.lg },
 });
