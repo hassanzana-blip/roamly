@@ -534,3 +534,31 @@ The app says «en strekning mangler» / «a missing leg», «en ekstra strekning
 flydata» / «incomplete flight data», without guessing which leg is missing. The images were not captured again;
 the tests pin the new wording.
 
+
+## Price basis: total only when KAYAK confirms it (d364212)
+
+Captured from a clean worktree at `d364212`, at 375 × 812 pt (safe area 50/34), in Bokmål and English. The test data is the fictional edge-case offers with 2 adults, 1 child and 1 infant, marked as a KAYAK sandbox response. The price basis is set in the test data as the mobile API sends it:
+- `{ kind: "unverified", reason: "per_person" }`: KAYAK answered perPerson for four travellers;
+- `{ kind: "total" }`: KAYAK answered total for exactly these four.
+
+The decision itself is proven by the server tests (`api/lib/priceBasis.test.ts`, `mobileFlights.it.ts`), not by these images. Source: KAYAK's current Flights Search API documentation, as reported by Codex from developers.kayak.com. This sandbox cannot reach that site.
+
+| Check | nb | en | Result |
+|---|---|---|---|
+| Unconfirmed: card amount and label | «18 450 kr» · «Tilbyderens pris, total ikke bekreftet · Tur-retur» | «NOK 18,450» · «Provider's price, total not confirmed · Return» | PASSED |
+| Unconfirmed: VoiceOver name of the card and the bar | «Pris 18 450 kroner, tilbyderens pris, total ikke bekreftet …» | «Price 18,450 Norwegian kroner, provider's price, total not confirmed …» | PASSED |
+| Unconfirmed: notice on Results and Details | «Tilbyderen bekreftet ikke at prisene gjelder alle reisende. Sjekk totalprisen hos tilbyderen før du bestiller.» | «The provider didn't confirm that these prices cover all travellers. Check the total with the provider before you book.» | PASSED |
+| Unconfirmed: sort label; price filter | «Laveste pris fra tilbyderen først»; no price filter | «Lowest provider price first»; no price filter | PASSED |
+| Unconfirmed: «Totalt for» / «Total for» anywhere on Details | 0 | 0 | PASSED |
+| Confirmed: same amount, «Totalt for …», no notice, price filter present | «18 450 kr» · «Totalt for 2 voksne, 1 barn, 1 spedbarn · Tur-retur» | «NOK 18,450» · «Total for 2 adults, 1 child, 1 infant · Return» | PASSED |
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `price-en-d364212-375-1-results-unconfirmed.png` | `f525c8299c266fac…` | 750×1832 |
+| `price-en-d364212-375-2-details-unconfirmed.png` | `9c73fb082d8f4a62…` | 750×3979 |
+| `price-en-d364212-375-3-results-confirmed.png` | `5e96f6c185a49581…` | 750×1803 |
+| `price-nb-d364212-375-1-results-unconfirmed.png` | `ca56d491fe0fa748…` | 750×1832 |
+| `price-nb-d364212-375-2-details-unconfirmed.png` | `2cf8154b917127d9…` | 750×3979 |
+| `price-nb-d364212-375-3-results-confirmed.png` | `28343d780612e5fd…` | 750×1803 |
+
+Not checked here: a live KAYAK response with several travellers, in sandbox or production (staging answers with demo data). A device or simulator. VoiceOver itself.
