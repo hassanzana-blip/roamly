@@ -104,6 +104,22 @@ describe("iOS-klienten mot /api/mobile/trpc", () => {
     expect((detail as ApiError).code).toBe("SUPPLIER_REJECTED");
   });
 
+  it("innloggingsmåter: appens klient leser mobileAuth.providers (uten Clerk i testmiljøet: bare e-post/passord)", async () => {
+    const p = await client().authProviders();
+    expect(p).toEqual({
+      password: true,
+      social: [
+        { provider: "google", available: false, reason: "not_configured" },
+        { provider: "apple", available: false, reason: "not_configured" },
+      ],
+      clerkPublishableKey: null,
+    });
+    // Et token som ikke kan verifiseres gir en tydelig feil, aldri en sesjon.
+    const err = await client().exchangeSocialToken("clerk-session-token-not-verifiable-xx", "nb").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).code).toBe("VALIDATION");
+  });
+
   it("feil kommer fram som ApiError med serverens kode og norske melding", async () => {
     const err = await client()
       .login("ingen@hellosky.test", "feil-passord-1")

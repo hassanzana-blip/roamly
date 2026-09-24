@@ -426,8 +426,12 @@ describe("kundekonto", () => {
     await waitFor(() => expect(screen.getByTestId("account-signed-in")).toBeOnTheScreen());
     expect(screen.getByText("Hei, Kari")).toBeOnTheScreen();
 
-    expect(server.calls[0]).toMatchObject({ path: "mobileAuth.login", input: { identifier: "kari@example.no", password: "passord-123456" } });
-    expect(server.calls[0]!.headers.authorization).toBeUndefined();
+    // Innloggingsmåtene (mobileAuth.providers) er et offentlig kall uten token; ellers er innloggingen det eneste.
+    const providers = server.calls.filter((c) => c.path === "mobileAuth.providers");
+    expect(providers.every((c) => c.headers.authorization === undefined)).toBe(true);
+    const calls = server.calls.filter((c) => c.path !== "mobileAuth.providers");
+    expect(calls[0]).toMatchObject({ path: "mobileAuth.login", input: { identifier: "kari@example.no", password: "passord-123456" } });
+    expect(calls[0]!.headers.authorization).toBeUndefined();
     expect(SecureStore.setItemAsync).toHaveBeenLastCalledWith("hellosky.customer-session", JSON.stringify({ token: TOKEN, expiresAt: AUTH_RESULT.session.expiresAt }), {
       keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
     });
@@ -475,7 +479,7 @@ describe("kundekonto", () => {
     await fireEvent.changeText(screen.getByTestId("password"), "kort");
     await fireEvent.press(screen.getByTestId("auth-submit"));
     expect(screen.getByTestId("auth-error")).toHaveTextContent("Passordet må være minst 10 tegn.");
-    expect(server.calls).toHaveLength(0);
+    expect(server.calls.filter((c) => c.path !== "mobileAuth.providers")).toHaveLength(0);
 
     await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
     await fireEvent.press(screen.getByTestId("auth-submit"));

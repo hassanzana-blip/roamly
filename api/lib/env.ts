@@ -46,6 +46,8 @@ const schema = z.object({
   CLERK_PUBLISHABLE_KEY: z.string().optional(),
   /** Hvilke sosiale leverandører som er slått på i Clerk-dashbordet, f.eks. «google,apple,facebook». */
   CLERK_SOCIAL_PROVIDERS: z.string().optional(),
+  /** Leverandører (google, apple) der appens native Clerk-flyt er satt opp og testet. Tom = ingen i appen. */
+  MOBILE_CLERK_NATIVE_PROVIDERS: z.string().optional(),
   TRAVELPORT_CONTENT_SOURCE: z.string().optional(),
 
   // ── KAYAK Affiliate Flights API (metasøk: kunden bestiller hos leverandøren) ──
@@ -205,6 +207,18 @@ export function clerkConfig(): { enabled: boolean; publishableKey: string | null
     .filter((s): s is ClerkSocial => (CLERK_SOCIALS as readonly string[]).includes(s));
   const enabled = Boolean(secretKey && publishableKey && providers.length > 0);
   return { enabled, publishableKey: enabled ? publishableKey : null, secretKey: enabled ? secretKey : null, providers: enabled ? providers : [] };
+}
+
+/**
+ * Leverandørene der appens native innlogging er bekreftet klar av en
+ * operatør (Clerk Native API på, mobil retur-URL tillatt, testet på iPhone).
+ * Brukes bare av appens mobileAuth.providers; nettet påvirkes ikke.
+ */
+export function mobileClerkNativeProviders(): string[] {
+  return (raw.MOBILE_CLERK_NATIVE_PROVIDERS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 /**

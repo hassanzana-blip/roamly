@@ -1154,6 +1154,13 @@ describe("ansatte og staff-sesjoner avvises på hver eneste prosedyre i appens A
         await expectAppCode(m.mobileAuth.exchangeSocialToken({ token: "clerk-session-token-staff-xx" }), "FORBIDDEN");
       },
       "mobileAuth.me": async (m) => expect(await m.mobileAuth.me()).toBeNull(),
+      // Offentlig og likt for alle: ingen staff-info, ingen hemmelig nøkkel.
+      "mobileAuth.providers": async (m) => {
+        const p = await m.mobileAuth.providers();
+        expect(p.password).toBe(true);
+        expect(p.social.map((s) => s.provider)).toEqual(["google", "apple"]);
+        expect(JSON.stringify(p)).not.toMatch(/sk_(live|test)_|staff|admin/i);
+      },
       "mobileAuth.logout": async (m) => expect(await m.mobileAuth.logout()).toEqual({ ok: true }),
       "mobileAuth.logoutAll": (m) => expectAppCode(m.mobileAuth.logoutAll(), "UNAUTHORIZED"),
       "mobileAuth.requestPasswordReset": async (m) => expect(await m.mobileAuth.requestPasswordReset({ identifier: "admin+kunde@hellosky.test" })).toEqual({ ok: true }),

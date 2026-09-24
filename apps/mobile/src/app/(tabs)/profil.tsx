@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../../components/a11y";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
-import type { CustomerProfile } from "@contracts/mobileAuth";
+import type { CustomerProfile, MobileSocialProvider } from "@contracts/mobileAuth";
 import { useApp } from "../../lib/appState";
 import { ApiError } from "../../lib/api";
 import { errorText } from "../../lib/errorText";
@@ -206,7 +206,9 @@ function ForgotPasswordSheet({ visible, onClose, initialEmail }: { visible: bool
 /** Profil og innstillinger. Vanlig kundeinnlogging; ingen andre roller finnes i appen. */
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
-  const { auth, login, register, logout } = useApp();
+  const { auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin } = useApp();
+  const [socialBusy, setSocialBusy] = useState<MobileSocialProvider | null>(null);
+  const [socialNote, setSocialNote] = useState<string | null>(null);
   const i18n = useI18n();
   const a = i18n.t.account;
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -227,6 +229,12 @@ export default function AccountScreen() {
     setSheet(null);
     setSaved(false);
   }
+
+  // Innloggingsmåtene (Google/Apple) hentes bare når innloggingen faktisk vises.
+  const signedOut = auth.status === "signedOut";
+  useEffect(() => {
+    if (signedOut) requestSocialProviders();
+  }, [signedOut, requestSocialProviders]);
 
   const top = { paddingTop: insets.top + space.lg };
 
@@ -316,7 +324,9 @@ export default function AccountScreen() {
   }
 
   const submit = async () => {
+    if (socialBusy) return;
     setError(null);
+    setSocialNote(null);
     if (!EMAIL.test(email.trim())) return setError(a.invalidEmail);
     if (mode === "register") {
       if (!firstName.trim() || !lastName.trim()) return setError(a.namesRequired);
@@ -333,6 +343,27 @@ export default function AccountScreen() {
       setError(errorText(e, i18n, mode === "login" ? { UNAUTHORIZED: a.wrongCredentials } : undefined));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const PROVIDER_NAME: Record<MobileSocialProvider, string> = { google: "Google", apple: "Apple" };
+  const social = async (provider: MobileSocialProvider) => {
+    if (socialBusy || busy) return;
+    setError(null);
+    setSocialNote(null);
+    setSocialBusy(provider);
+    try {
+      const outcome = await socialLogin(provider, i18n.locale);
+      if (outcome === "cancelled") setSocialNote(a.socialCancelled);
+    } catch (e) {
+      // Serverens egne svar (ansatts adresse, lookalike) på kundens språk; alt annet er en ærlig, generell feil.
+      const reason = e instanceof ApiError ? e.reason : undefined;
+      if (e instanceof ApiError && e.code === "FORBIDDEN") setError(a.socialBlocked);
+      else if (e instanceof ApiError && e.code === "CONFLICT" && reason === "email_lookalike") setError(a.socialLookalike);
+      else if (e instanceof ApiError && ["NETWORK", "TIMEOUT", "RATE_LIMITED"].includes(e.code)) setError(errorText(e, i18n));
+      else setError(a.socialFailed);
+    } finally {
+      setSocialBusy(null);
     }
   };
 
@@ -364,6 +395,26 @@ export default function AccountScreen() {
               setError(null);
             }}
           />
+          {socialProviders.length ? (
+            <View style={{ gap: space.sm }} testID="social-sign-in">
+              {socialProviders.map((p) => (
+                <SecondaryButton
+                  key={p}
+                  label={socialBusy === p ? a.socialBusy(PROVIDER_NAME[p]) : a.socialContinue(PROVIDER_NAME[p])}
+                  icon={socialBusy === p ? "refresh" : "user"}
+                  onPress={() => void social(p)}
+                  accessibilityHint={a.socialHint}
+                  testID={`social-${p}`}
+                />
+              ))}
+              {socialNote ? (
+                <Banner tone="info" testID="social-note">
+                  {socialNote}
+                </Banner>
+              ) : null}
+              <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{a.orEmail}</Text>
+            </View>
+          ) : null}
           {mode === "register" ? (
             <>
               <Field label={a.firstName} icon="user" value={firstName} onChangeText={setFirstName} textContentType="givenName" autoComplete="given-name" testID="first-name" />

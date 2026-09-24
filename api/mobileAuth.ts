@@ -32,7 +32,9 @@ import { issueCustomerSession, revokeAllCustomerSessions, revokeCustomerSession 
 import { clientIp } from "./lib/ratelimit";
 import { logAudit } from "./lib/audit";
 import { AppError } from "./lib/errors";
-import type { CustomerProfile, MobileAuthResult, MobileOkResult, MobileSession, MobileSocialAuthResult } from "../contracts/mobileAuth";
+import { clerkConfig, mobileClerkNativeProviders } from "./lib/env";
+import { mobileAuthProviders } from "./lib/mobileSocial";
+import type { CustomerProfile, MobileAuthProviders, MobileAuthResult, MobileOkResult, MobileSession, MobileSocialAuthResult } from "../contracts/mobileAuth";
 
 // ─── Kundeinnlogging for appen ───────────────────────────────────────────────
 // Samme innloggingsveier som nettet (customerAuth), men sesjonen leveres som
@@ -118,6 +120,13 @@ export const mobileAuthRouter = createRouter({
     const profile = await verifyLoginCodeLogin(input, ctx, t.issue);
     return { session: t.session(), profile };
   }),
+
+  /**
+   * Innloggingsmåtene appen kan vise (offentlig, bare for kunder): e-post/passord
+   * alltid; Google/Apple bare når de er satt opp i Clerk og appens native flyt
+   * er bekreftet klar. Ingen hemmelig nøkkel, ingenting om ansatte.
+   */
+  providers: publicQuery.query((): MobileAuthProviders => mobileAuthProviders(clerkConfig(), mobileClerkNativeProviders())),
 
   /** Clerk-token fra appens sosiale innlogging → HelloSky-sesjon (samme koblingsregler som nett). */
   exchangeSocialToken: publicQuery.input(socialTokenInput).mutation(async ({ input, ctx }): Promise<MobileSocialAuthResult> => {

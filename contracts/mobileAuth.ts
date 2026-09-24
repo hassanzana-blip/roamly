@@ -42,6 +42,26 @@ export interface MobileSocialAuthResult extends MobileAuthResult {
   linked: boolean;
 }
 
+/** Sosiale innlogginger appen kan vise. Andre Clerk-leverandører (facebook, x) finnes bare på nett. */
+export type MobileSocialProvider = "google" | "apple";
+
+/**
+ * Hvorfor en leverandør ikke kan brukes i appen:
+ * - `not_configured`: HelloSky har ikke leverandøren i Clerk (CLERK_SOCIAL_PROVIDERS).
+ * - `native_not_ready`: den finnes på nett, men appens native flyt er ikke
+ *   bekreftet klar (Clerk Native API + tillatt retur-URL, testet på en iPhone).
+ */
+export type MobileSocialUnavailableReason = "not_configured" | "native_not_ready";
+
+/** Svar fra mobileAuth.providers: hvilke innloggingsmåter appen faktisk kan vise. */
+export interface MobileAuthProviders {
+  /** E-post/passord er alltid mulig. */
+  password: true;
+  social: { provider: MobileSocialProvider; available: boolean; reason: MobileSocialUnavailableReason | null }[];
+  /** Clerks publiserbare nøkkel (offentlig av natur) – bare når minst én leverandør er tilgjengelig. */
+  clerkPublishableKey: string | null;
+}
+
 // ─── Inndata appen sender (mobileAuth på /api/mobile/trpc) ──────────────────
 // Serverens zod-skjemaer (api/mobileAuth.ts, api/customerAuth.ts) godtar disse
 // formene; api/test/mobileAccount.it.ts typesjekker at de fortsatt passer.

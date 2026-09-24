@@ -1,11 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppState } from "react-native";
 import * as Crypto from "expo-crypto";
-import type { CustomerProfile, MobileDeleteAccountInput, MobileUpdateProfileInput } from "@contracts/mobileAuth";
+import type { CustomerProfile, MobileAuthProviders, MobileDeleteAccountInput, MobileSocialProvider, MobileUpdateProfileInput } from "@contracts/mobileAuth";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
 import { ApiError, createApiClient, type ApiClient, type RegisterRequest } from "./api";
 import { API_BASE } from "./config";
 import { clearSession, loadSession, saveSession } from "./tokenStore";
+import { visibleSocialProviders, type NativeSocialSignIn } from "./socialAuth";
+import { nativeSocialSignIn } from "./nativeSocial";
 import { initialForm, toSearchRequest, validateForm, type AirportChoice, type SearchForm } from "./searchForm";
 import { DEFAULT_VIEW, type ResultsView } from "./resultsView";
 import { parseDraft } from "./draft";
@@ -39,6 +41,19 @@ type AppContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (r: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Google/Apple som Profil kan vise: bare når serveren (mobileAuth.providers)
+   * sier at leverandøren er klar OG denne builden har en native flyt. Tom liste
+   * ellers – også mens svaret hentes eller når det feiler.
+   */
+  socialProviders: MobileSocialProvider[];
+  /** Profil ber om innloggingsmåtene når den viser innloggingen – aldri ellers (et gjestesøk gjør ingen innloggingskall). */
+  requestSocialProviders: () => void;
+  /**
+   * Native innlogging → Clerk-token → exchangeSocialToken → HelloSky-sesjon i
+   * nøkkelringen. «cancelled» når kunden avbrøt; kaster ved feil (ApiError fra serveren).
+   */
+  socialLogin: (provider: MobileSocialProvider, locale: Locale) => Promise<"signedIn" | "cancelled">;
   /** Lagrer profilen (samme konto som nettet) og viser den nye med én gang. */
   updateProfile: (input: MobileUpdateProfileInput) => Promise<void>;
   /**
@@ -76,6 +91,9 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export type ApiFactory = (getToken: () => string | null) => ApiClient;
 
+/** For tester og forhåndsvisninger: et annet native adapter enn buildens (se lib/nativeSocial.ts). */
+export type { NativeSocialSignIn } from "./socialAuth";
+
 /** Tokenet i minnet. Et eget objekt (ikke React-state), så det aldri havner i render eller i devtools. */
 function createTokenHolder() {
   let token: string | null = null;
@@ -96,7 +114,7 @@ const defaultFactory: ApiFactory = (getToken) => {
  * Hele appens tilstand, pakket i språkvalget. `initialLocale` er for tester og
  * forhåndsvisninger; ellers leses det lagrede valget (norsk bokmål ved ny installasjon).
  */
-export function AppProvider({ children, initialLocale, ...rest }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm>; initialLocale?: Locale }) {
+export function AppProvider({ children, initialLocale, ...rest }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm>; initialLocale?: Locale; nativeSocial?: NativeSocialSignIn }) {
   return (
     <I18nProvider initialLocale={initialLocale}>
       <AppStateProvider {...rest}>{children}</AppStateProvider>
@@ -104,7 +122,7 @@ export function AppProvider({ children, initialLocale, ...rest }: { children: Re
   );
 }
 
-function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm> }) {
+function AppStateProvider({ children, apiFactory = defaultFactory, initial, nativeSocial = nativeSocialSignIn }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm>; nativeSocial?: NativeSocialSignIn }) {
   // Tokenet ligger i minnet (for kall) og i nøkkelringen (mellom oppstarter). Ingen andre steder.
   const [tokens] = useState(createTokenHolder);
   const api = useMemo(() => apiFactory(tokens.get), [apiFactory, tokens]);
@@ -258,6 +276,44 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
     }
   }, [api, tokens]);
 
+  // Innloggingsmåtene hentes når Profil viser innloggingen (der knappene er). Feil = ingen sosiale knapper.
+  const [authCaps, setAuthCaps] = useState<MobileAuthProviders | null>(null);
+  const [capsWanted, setCapsWanted] = useState(false);
+  const requestSocialProviders = useCallback(() => setCapsWanted(true), []);
+  const signedOut = auth.status === "signedOut";
+  useEffect(() => {
+    if (!signedOut || !capsWanted) return;
+    let cancelled = false;
+    // Promise.resolve().then: også et kall som kaster med én gang ender i catch (= ingen sosiale knapper).
+    Promise.resolve()
+      .then(() => api.authProviders())
+      .then((caps) => {
+        if (!cancelled) setAuthCaps(caps);
+      })
+      .catch(() => {
+        if (!cancelled) setAuthCaps(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, signedOut, capsWanted]);
+  const socialProviders = useMemo(() => visibleSocialProviders(authCaps, nativeSocial), [authCaps, nativeSocial]);
+
+  const socialLogin = useCallback(
+    async (provider: MobileSocialProvider, locale: Locale): Promise<"signedIn" | "cancelled"> => {
+      const key = authCaps?.clerkPublishableKey;
+      if (!key || !socialProviders.includes(provider)) throw new Error(`social provider ${provider} is not available`);
+      const native = await nativeSocial.signIn(provider, key);
+      if (native.kind === "cancelled") return "cancelled";
+      const res = await api.exchangeSocialToken(native.token, locale);
+      await saveSession(res.session);
+      tokens.set(res.session.token);
+      setAuth({ status: "signedIn", profile: res.profile });
+      return "signedIn";
+    },
+    [api, tokens, authCaps, socialProviders, nativeSocial],
+  );
+
   const setForm = useCallback((update: (f: SearchForm) => SearchForm) => setFormState((f) => update(f)), []);
 
   const runSearch = useCallback((patch?: Partial<SearchForm>): FormErrorCode | null => {
@@ -305,8 +361,8 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
   );
 
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId }),
-    [api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId],
+    () => ({ api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId }),
+    [api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

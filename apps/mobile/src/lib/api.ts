@@ -3,7 +3,7 @@ import type { Airport } from "@contracts/airports";
 import type { CabinClass, SearchPassengerInput, SearchSliceInput } from "@contracts/types";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
 import type { HotelDetailResult, HotelPlace, HotelSearchResult, HotelsStatus } from "@contracts/hotels";
-import type { CustomerProfile, MobileAuthResult, MobileDeleteAccountInput, MobileLocale, MobileOkResult, MobileUpdateProfileInput } from "@contracts/mobileAuth";
+import type { CustomerProfile, MobileAuthProviders, MobileAuthResult, MobileSocialAuthResult, MobileDeleteAccountInput, MobileLocale, MobileOkResult, MobileUpdateProfileInput } from "@contracts/mobileAuth";
 
 /**
  * Klient for appens API (/api/mobile/trpc).
@@ -176,6 +176,10 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     login: (email: string, password: string) => call<MobileAuthResult>("mutation", "mobileAuth.login", { identifier: email.trim(), password }),
     register: (r: RegisterRequest) =>
       call<MobileAuthResult>("mutation", "mobileAuth.register", { identifier: r.email.trim(), password: r.password, firstName: r.firstName.trim(), lastName: r.lastName.trim(), locale: r.locale }),
+    /** Hvilke innloggingsmåter appen kan vise (offentlig; uten token). */
+    authProviders: () => call<MobileAuthProviders>("query", "mobileAuth.providers", undefined, { timeoutMs: 10_000 }),
+    /** Et verifisert Clerk-sesjonstoken fra appens native innlogging → HelloSky-sesjon. Clerk-tokenet lagres aldri. */
+    exchangeSocialToken: (token: string, locale: MobileLocale) => call<MobileSocialAuthResult>("mutation", "mobileAuth.exchangeSocialToken", { token, locale }),
     me: () => call<CustomerProfile | null>("query", "mobileAuth.me", undefined, { auth: true }),
     /** Alltid samme nøytrale svar – sier ingenting om kontoen finnes. Lenken fullføres på nettet. */
     requestPasswordReset: (identifier: string, locale: MobileLocale) => call<MobileOkResult>("mutation", "mobileAuth.requestPasswordReset", { identifier: identifier.trim(), locale }),
