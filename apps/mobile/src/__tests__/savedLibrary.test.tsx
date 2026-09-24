@@ -87,7 +87,17 @@ describe("lagre reisemål fra Utforsk", () => {
 describe("Lagret-fanen", () => {
   it("tom: forklarer at alt bare ligger på telefonen og ikke er bestillinger, priser, varsler eller synket", async () => {
     await renderApp(<SavedScreen />);
-    expect(screen.getByTestId("saved-note")).toHaveTextContent(/bare på denne telefonen.*ikke bestillinger, holdte priser eller prisvarsler.*synkroniseres ikke med kontoen/);
+    // Én kort, sann setning øverst; hele forklaringen bak «Om Lagret».
+    expect(screen.getByTestId("saved-note")).toHaveTextContent("Bare på denne telefonen – ikke bestillinger eller priser.");
+    expect(screen.queryByTestId("saved-note-detail")).toBeNull();
+    const info = screen.getByTestId("saved-info");
+    expect(info).toHaveProp("accessibilityLabel", "Om Lagret");
+    expect(info).toHaveProp("accessibilityState", { expanded: false });
+    await fireEvent.press(info);
+    expect(screen.getByTestId("saved-info")).toHaveProp("accessibilityState", { expanded: true });
+    expect(screen.getByTestId("saved-note-detail")).toHaveTextContent(/bare på denne telefonen.*ikke bestillinger, holdte priser eller prisvarsler.*synkroniseres ikke med kontoen/);
+    await fireEvent.press(screen.getByTestId("saved-info"));
+    expect(screen.queryByTestId("saved-note-detail")).toBeNull();
     expect(screen.getByTestId("saved-destinations-empty")).toHaveTextContent(/^Ingen lagrede reisemål ennå. Lagre et fra Utforsk./);
     await fireEvent.press(screen.getByTestId("saved-to-explore"));
     expect(router.navigate).toHaveBeenCalledWith("/utforsk");
@@ -145,7 +155,7 @@ describe("Lagret-fanen", () => {
     const { server } = await renderApp(<SavedScreen />);
     const id = `OSL-BCN-${day(20)}`;
     expect(screen.getByTestId(`recent-${id}`)).toHaveTextContent(/Oslo → Barcelona/);
-    expect(screen.getByTestId(`recent-${id}`)).toHaveTextContent(/OSL → BCN/);
+    expect(screen.getByTestId(`recent-${id}`)).toHaveTextContent(/OSL\u2011BCN · /);
     expect(screen.queryByTestId(`recent-past-${id}`)).toBeNull();
     await fireEvent.press(screen.getByTestId(`recent-again-${id}`));
     expect(router.push).toHaveBeenCalledWith("/resultater");
@@ -192,6 +202,40 @@ describe("Lagret-fanen", () => {
     expect(readPref("recent", (v) => v)).toBeNull();
   });
 
+  it("radene: hele raden er én knapp med full etikett; «Fjern» er en egen 44 pt-knapp ved siden av – ingen knapp inni en knapp", async () => {
+    writePref("saved", [{ id: "london", iata: "LHR" }]);
+    writePref("recent", [
+      { ...initialForm(), origin: OSL, destination: BCN, departDate: day(-10), returnDate: day(-3) },
+      { ...initialForm(), origin: BGO, destination: LHR, departDate: day(30), returnDate: day(37) },
+    ]);
+    __resetLocalStoreForTests();
+    await renderApp(<SavedScreen />);
+
+    const use = screen.getByTestId("saved-use-london");
+    expect(use).toHaveProp("accessibilityRole", "button");
+    expect(use).toHaveProp("accessibilityLabel", "Bruk London, London Heathrow Airport (LHR) som reisemål");
+    expect(within(use).getByText("Bruk i søket")).toBeOnTheScreen();
+    expect(within(use).queryAllByRole("button")).toHaveLength(0);
+    // «Fjern» ligger ved siden av radens knapp, ikke inni den.
+    expect(within(use).queryByTestId("saved-remove-london")).toBeNull();
+    expect(within(screen.getByTestId("saved-london")).getByTestId("saved-remove-london")).toHaveProp("accessibilityLabel", "Fjern London (LHR)");
+
+    const past = `OSL-BCN-${day(-10)}`;
+    const newDates = screen.getByTestId(`recent-newdates-${past}`);
+    expect(newDates).toHaveProp("accessibilityLabel", expect.stringMatching(/^Velg nye datoer for Oslo → Barcelona\. Datoene har passert: \S+\u00A0\d+\.\u00A0\S+ – \S+\u00A0\d+\.\u00A0\S+$/));
+    expect(newDates).toHaveProp("accessibilityHint", "Fyller inn ruten på Hjem med nye datoer. Søker ikke.");
+    expect(within(newDates).getByTestId(`recent-past-${past}`)).toHaveTextContent("Datoene har passert");
+    expect(within(newDates).queryAllByRole("button")).toHaveLength(0);
+    const again = screen.getByTestId(`recent-again-BGO-LHR-${day(30)}`);
+    expect(again).toHaveProp("accessibilityLabel", expect.stringMatching(/^Søk igjen: Bergen → London, .+ · 1 voksen · Økonomi$/));
+    expect(within(again).queryAllByRole("button")).toHaveLength(0);
+
+    // Seksjonsoverskriftene er overskrifter med antall.
+    expect(screen.getByTestId("saved-destinations-title")).toHaveProp("accessibilityLabel", "Reisemål, 1");
+    expect(screen.getByTestId("recent-title")).toHaveProp("accessibilityLabel", "Nylige søk, 2");
+    expect(screen.getByTestId("recent-title")).toHaveProp("accessibilityRole", "header");
+  });
+
   it("handlingene er ekte 44 pt-knapper", async () => {
     writePref("saved", [{ id: "barcelona", iata: "BCN" }]);
     writePref("recent", [{ ...initialForm(), origin: OSL, destination: BCN, departDate: day(10), returnDate: day(17) }]);
@@ -204,6 +248,10 @@ describe("Lagret-fanen", () => {
     for (const id of ["saved-use-barcelona", `recent-again-OSL-BCN-${day(10)}`]) {
       expect(StyleSheet.flatten(screen.getByTestId(id).props.style).minHeight).toBeGreaterThanOrEqual(44);
     }
+    const info = StyleSheet.flatten(screen.getByTestId("saved-info").props.style);
+    expect(Math.min(info.width, info.height)).toBeGreaterThanOrEqual(44);
+    // Ingen tekst i Lagret har skrudd av Dynamic Type.
+    for (const t of screen.getAllByText(/.+/)) expect(t.props.allowFontScaling).not.toBe(false);
   });
 });
 

@@ -952,3 +952,35 @@ After the change, a search adds nothing to Home; recent searches are listed in L
 | `saved-before-390-home-after-one-search.jpg` | `459ba7b37922eb8b…` | 780×1862 |
 | `saved-before-390-large-home-after-one-search.jpg` | `9e8b81f6c93cf353…` | 780×1862 |
 | `saved-before-430-home-after-one-search.jpg` | `5f9993f82b6d4014…` | 860×2038 |
+
+## Lagret, compacted (browser preview)
+
+**NON-NATIVE: not an iPhone.** These are Chromium renderings of Expo web, measured with the same flow as the saved-* set: save Tromsø and Barcelona in Explore, run one search from Home, then open Lagret. Positions are the top–bottom edge in pt from the top of the screen.
+
+- **Before** is `a784b68`.
+- **After** is the commit that adds this section.
+- Images are JPEG (quality 82).
+
+| Viewport | Note before → after | Saved row height before → after | First recent row before → after | Tab bar top |
+|---|---|---|---|---|
+| 375×812 | 102–200 (boxed) → 108–126 (one line) | 124 → 74–75 | 572–706 → 395–506 | 726 |
+| 390×844 | 99–197 → 105–123 | 124 → 74–75 | 569–703 → 392–503 | 758 |
+| 430×932 | 111–209 → 117–135 | 124 → 74–75 | 581–715 → 404–497 | 846 |
+| 390×844, 135 % | 99–246 → 105–154 | 130 → 93–95 | 629–783 (cut by tab bar) → 462–605 (fully visible) | 758 |
+
+With «Om Lagret» open (the full explanation), the first recent row is still fully visible: 470–581 at 390 pt and 591–734 at 135 %.
+
+Every control is at least 44 pt (the row buttons are ≥ 74 pt tall). No outbound request left the preview.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `lagret-after-375.jpg` | `29fbed2bc8210e8d…` | 750×1823 |
+| `lagret-after-390-info-open.jpg` | `7e1e3527e5190643…` | 780×1862 |
+| `lagret-after-390-large-info-open.jpg` | `382ae3cc0a3b07a6…` | 780×1887 |
+| `lagret-after-390-large.jpg` | `37a657c9873f3b32…` | 780×1862 |
+| `lagret-after-390.jpg` | `72b84edd1a29a69b…` | 780×1862 |
+| `lagret-after-430.jpg` | `4da2e575c051eb17…` | 860×2038 |
+| `lagret-before-375.jpg` | `cc65bc4e6426d884…` | 750×1823 |
+| `lagret-before-390-large.jpg` | `9fd02724168b099d…` | 780×1887 |
+| `lagret-before-390.jpg` | `4bd00eb69c3178e4…` | 780×1862 |
+| `lagret-before-430.jpg` | `691b1ead8bb8ed18…` | 860×2038 |

@@ -1,6 +1,8 @@
 /** Lagret-fanen: reisemål og nylige søk, bare på denne telefonen. Ingen priser, bestillinger eller varsler. */
 const en = {
   title: "Saved",
+  shortNote: "Only on this phone – not bookings or prices.",
+  infoLabel: "About Saved",
   deviceNote: "Saved only on this phone. These are not bookings, held prices or price alerts, and they are not synced to your account. Prices appear only after you search.",
   destinationsTitle: "Destinations",
   destinationsEmpty: "No saved destinations yet. Save one from Explore.",
@@ -9,6 +11,7 @@ const en = {
   useInSearchLabel: (city: string, airport: string) => `Use ${city}, ${airport} as destination`,
   useInSearchHint: "Fills in the destination on Home. Does not search.",
   remove: "Remove",
+  sectionCount: (title: string, n: number) => `${title}, ${n}`,
   removeLabel: (what: string) => `Remove ${what}`,
   recentTitle: "Recent searches",
   recentEmpty: "Searches you run appear here.",
@@ -23,6 +26,8 @@ const en = {
 
 const nb: typeof en = {
   title: "Lagret",
+  shortNote: "Bare på denne telefonen – ikke bestillinger eller priser.",
+  infoLabel: "Om Lagret",
   deviceNote: "Lagres bare på denne telefonen. Dette er ikke bestillinger, holdte priser eller prisvarsler, og det synkroniseres ikke med kontoen din. Priser ser du først etter et søk.",
   destinationsTitle: "Reisemål",
   destinationsEmpty: "Ingen lagrede reisemål ennå. Lagre et fra Utforsk.",
@@ -31,6 +36,7 @@ const nb: typeof en = {
   useInSearchLabel: (city, airport) => `Bruk ${city}, ${airport} som reisemål`,
   useInSearchHint: "Fyller inn reisemålet på Hjem. Søker ikke.",
   remove: "Fjern",
+  sectionCount: (title, n) => `${title}, ${n}`,
   removeLabel: (what) => `Fjern ${what}`,
   recentTitle: "Nylige søk",
   recentEmpty: "Søk du kjører, vises her.",
