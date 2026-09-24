@@ -87,6 +87,29 @@ jest.mock("react-native-maps", () => {
   return { __esModule: true, default: MapView, Marker, __fitToCoordinates: fitToCoordinates };
 });
 
+// Clerk (@clerk/expo): ingen nettverk og ingen native kode i Jest. ClerkProvider registrerer
+// nøkkelen og props den fikk; useSSO/useClerk styres per test via __clerk.
+jest.mock("@clerk/expo", () => {
+  const clerk = {
+    providers: [] as Record<string, unknown>[],
+    startSSOFlow: jest.fn(),
+    getToken: jest.fn(),
+    signOut: jest.fn(async () => undefined),
+  };
+  const ClerkProvider = (props: Record<string, unknown> & { children?: unknown }) => {
+    const { children, ...rest } = props;
+    clerk.providers.push(rest);
+    return children;
+  };
+  return {
+    __esModule: true,
+    __clerk: clerk,
+    ClerkProvider,
+    useSSO: () => ({ startSSOFlow: clerk.startSSOFlow }),
+    useClerk: () => ({ session: { getToken: clerk.getToken }, signOut: clerk.signOut }),
+  };
+});
+
 jest.mock("expo-crypto", () => ({
   randomUUID: () => "11111111-2222-4333-8444-555555555555",
 }));

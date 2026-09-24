@@ -50,10 +50,10 @@ async function renderProfile({ providers, routes = {}, native, locale = "nb" }: 
 beforeEach(() => keychain.clear());
 
 describe("hvilke knapper Profil viser", () => {
-  it("denne builden (uten native Clerk-flyt): ingen Google/Apple – selv når serveren sier Google er klar", async () => {
-    expect(nativeSocialSignIn.supports("google")).toBe(false);
+  it("iOS-builden (ekte adapter): Google kan vises, Apple aldri – og ingenting når serveren sier nei", async () => {
+    expect(nativeSocialSignIn.supports("google")).toBe(true);
     expect(nativeSocialSignIn.supports("apple")).toBe(false);
-    await renderProfile({ providers: BOTH });
+    await renderProfile({ providers: PROD_TODAY });
     expect(screen.queryByTestId("social-sign-in")).toBeNull();
     // E-post og passord er uendret.
     expect(screen.getByTestId("email")).toBeOnTheScreen();

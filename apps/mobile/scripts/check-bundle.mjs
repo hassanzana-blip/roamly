@@ -28,13 +28,18 @@ const forbidden = [
   // Hemmelighetsnavn og nøkkelprefikser fra serverens miljø (api/lib/env.ts)
   "DUFFEL_API_KEY", "KAYAK_API_KEY", "KAYAK_SANDBOX_API_KEY", "TRAVELPORT_", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
   "CLERK_SECRET_KEY", "DATABASE_URL", "PII_ENCRYPTION_KEY", "SMTP_PASS", "TWILIO_AUTH_TOKEN", "AVIATIONSTACK_API_KEY",
-  "METRICS_TOKEN", "BOOTSTRAP_OWNER", "BOOTSTRAP_ADMIN", "duffel_live_", "duffel_test_", "sk_live_", "sk_test_", "whsec_",
+  "METRICS_TOKEN", "BOOTSTRAP_OWNER", "BOOTSTRAP_ADMIN", "duffel_live_", "duffel_test_", "whsec_",
   // Serverkode
   "drizzle-orm", "mysql2", "@hono/node-server", "api/lib/", "staffAuth", "adminOwner",
   // Lagring som ikke er nøkkelringen
   "@react-native-async-storage", "AsyncStorage",
 ];
 const hits = forbidden.filter((s) => text.includes(s));
+// Hemmelige nøkler (Clerk, Stripe): prefikset FULGT AV en nøkkel. Clerks eget bibliotek inneholder
+// prefiksene alene (apiKey.startsWith("sk_test_") i @clerk/shared) – det er ikke en nøkkel.
+for (const [name, re] of [["sk_live_…", /sk_live_[A-Za-z0-9]{16,}/], ["sk_test_…", /sk_test_[A-Za-z0-9]{16,}/]]) {
+  if (re.test(text)) hits.push(name);
+}
 
 const base = process.env.EXPO_PUBLIC_API_BASE_URL;
 const problems = [];

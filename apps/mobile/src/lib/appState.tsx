@@ -299,20 +299,37 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
   }, [api, signedOut, capsWanted]);
   const socialProviders = useMemo(() => visibleSocialProviders(authCaps, nativeSocial), [authCaps, nativeSocial]);
 
+  // Én sosial innlogging om gangen, uansett hvor mange trykk.
+  const socialInFlight = useRef<Promise<"signedIn" | "cancelled"> | null>(null);
   const socialLogin = useCallback(
-    async (provider: MobileSocialProvider, locale: Locale): Promise<"signedIn" | "cancelled"> => {
-      const key = authCaps?.clerkPublishableKey;
-      if (!key || !socialProviders.includes(provider)) throw new Error(`social provider ${provider} is not available`);
-      const native = await nativeSocial.signIn(provider, key);
-      if (native.kind === "cancelled") return "cancelled";
-      const res = await api.exchangeSocialToken(native.token, locale);
-      await saveSession(res.session);
-      tokens.set(res.session.token);
-      setAuth({ status: "signedIn", profile: res.profile });
-      return "signedIn";
+    (provider: MobileSocialProvider, locale: Locale): Promise<"signedIn" | "cancelled"> => {
+      if (socialInFlight.current) return socialInFlight.current;
+      const run = async (): Promise<"signedIn" | "cancelled"> => {
+        const key = authCaps?.clerkPublishableKey;
+        if (!key || !socialProviders.includes(provider)) throw new Error(`social provider ${provider} is not available`);
+        const native = await nativeSocial.signIn(provider, key);
+        if (native.kind === "cancelled") return "cancelled";
+        try {
+          const res = await api.exchangeSocialToken(native.token, locale);
+          await saveSession(res.session);
+          tokens.set(res.session.token);
+          setAuth({ status: "signedIn", profile: res.profile });
+          return "signedIn";
+        } finally {
+          // Clerk-økten trengs ikke lenger – verken etter en HelloSky-sesjon eller et avvist bytte.
+          await native.release?.().catch(() => undefined);
+        }
+      };
+      const p = run().finally(() => {
+        socialInFlight.current = null;
+      });
+      socialInFlight.current = p;
+      return p;
     },
     [api, tokens, authCaps, socialProviders, nativeSocial],
   );
+  const SocialHost = nativeSocial.Host;
+  const hostKey = socialProviders.length ? authCaps?.clerkPublishableKey : null;
 
   const setForm = useCallback((update: (f: SearchForm) => SearchForm) => setFormState((f) => update(f)), []);
 
@@ -364,7 +381,13 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
     () => ({ api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId }),
     [api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId],
   );
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+      {/* Clerk monteres bare når en leverandør faktisk kan vises (se lib/nativeSocial.ios.tsx). */}
+      {SocialHost && hostKey ? <SocialHost publishableKey={hostKey} /> : null}
+    </AppContext.Provider>
+  );
 }
 
 export function useApp(): AppContextValue {
