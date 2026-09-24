@@ -562,3 +562,54 @@ The decision itself is proven by the server tests (`api/lib/priceBasis.test.ts`,
 | `price-nb-d364212-375-3-results-confirmed.png` | `28343d780612e5fd…` | 750×1803 |
 
 Not checked here: a live KAYAK response with several travellers, in sandbox or production (staging answers with demo data). A device or simulator. VoiceOver itself.
+
+
+## Hotels: status, search, results, details (4ffbea1)
+
+Captured from a clean worktree at `4ffbea1`. Sizes: 375 × 812 pt and 390 × 812 pt (safe area 50/34). Languages: Bokmål (fresh install) and English (the saved choice). The test data is fictional: hotels, names, amounts and links come from `src/test/hotelFixtures.ts`, served by a fake `/api/mobile/trpc`. All other network traffic is blocked, including the fixture's hotel photo URL, so the photo placeholder reads «couldn't load». Loading, error and sandbox states are captured at 375 pt only.
+
+| Check (from the capture run's report) | nb | en | Result |
+|---|---|---|---|
+| Home switch | «Fly Hotell» | «Flights Hotels» | PASSED |
+| Search request (both widths) | no `currency`; `language: "nb"`; `rooms: [{adults: 2}]` | the same with `language: "en"` | PASSED |
+| Results card (cheapest of two providers) | «Fra 3 639 kr» · «Totalt for oppholdet · 3 netter» | «From NOK 3,639» · «Total for the stay · 3 nights» | PASSED |
+| Live production detail: «Gå til/Go to» buttons | 2 | 2 | PASSED |
+| Sandbox detail: booking buttons / blocked rows | 0 / 2 | 0 / 2 | PASSED |
+| Disabled: form shown / API calls made | 0 / `hotels.status` only | 0 / `hotels.status` only | PASSED |
+
+These images do not prove the behaviour; the tests do: `api/test/mobileHotels.it.ts`, `mobileClient.it.ts`, `mobileAccount.it.ts`, `src/__tests__/hotels.test.tsx` and `src/lib/__tests__/hotels.test.ts`.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `hotel-en-4ffbea1-375-1-home.png` | `46e7242eb7518291…` | 750×1780 |
+| `hotel-en-4ffbea1-375-2-form.png` | `86a35db917827225…` | 750×1809 |
+| `hotel-en-4ffbea1-375-3-results.png` | `b02d452dcf4353c3…` | 750×1809 |
+| `hotel-en-4ffbea1-375-4-detail.png` | `47e81e70ea2d2a26…` | 750×3185 |
+| `hotel-en-4ffbea1-375-5-disabled.png` | `715f1bc8da5a5308…` | 750×1809 |
+| `hotel-en-4ffbea1-375-6-loading.png` | `45e7b3e4ffdf6998…` | 750×1780 |
+| `hotel-en-4ffbea1-375-7-error.png` | `00f4b5a95335d928…` | 750×1780 |
+| `hotel-en-4ffbea1-375-8-sandbox-detail.png` | `3f212c35805adc0d…` | 750×3156 |
+| `hotel-en-4ffbea1-390-1-home.png` | `13ee6703d26196e2…` | 780×1780 |
+| `hotel-en-4ffbea1-390-2-form.png` | `9847d662c08a6c1f…` | 780×1809 |
+| `hotel-en-4ffbea1-390-3-results.png` | `b6eb22e94820f99a…` | 780×1809 |
+| `hotel-en-4ffbea1-390-4-detail.png` | `94481c47e20d44d0…` | 780×3185 |
+| `hotel-en-4ffbea1-390-5-disabled.png` | `6138b097eebeca04…` | 780×1809 |
+| `hotel-nb-4ffbea1-375-1-home.png` | `6ef0bb644051683f…` | 750×1780 |
+| `hotel-nb-4ffbea1-375-2-form.png` | `458192b0d50e4fda…` | 750×1809 |
+| `hotel-nb-4ffbea1-375-3-results.png` | `b83b7e2778db76cc…` | 750×1809 |
+| `hotel-nb-4ffbea1-375-4-detail.png` | `34a1add1c70a34b0…` | 750×3185 |
+| `hotel-nb-4ffbea1-375-5-disabled.png` | `1220f2906bf08bec…` | 750×1809 |
+| `hotel-nb-4ffbea1-375-6-loading.png` | `76ebb33257fdc686…` | 750×1780 |
+| `hotel-nb-4ffbea1-375-7-error.png` | `5b5885c2927d7789…` | 750×1780 |
+| `hotel-nb-4ffbea1-375-8-sandbox-detail.png` | `cd9d9942907c995b…` | 750×3156 |
+| `hotel-nb-4ffbea1-390-1-home.png` | `95b55bc5d1ae0ad6…` | 780×1780 |
+| `hotel-nb-4ffbea1-390-2-form.png` | `399bc332a79a1c30…` | 780×1809 |
+| `hotel-nb-4ffbea1-390-3-results.png` | `56e9784c6eca68d1…` | 780×1809 |
+| `hotel-nb-4ffbea1-390-4-detail.png` | `c75c5f3adb553a19…` | 780×3185 |
+| `hotel-nb-4ffbea1-390-5-disabled.png` | `1b61ed9b9fcec3d9…` | 780×1809 |
+
+Not checked here:
+- real KAYAK Hotels data, in sandbox or production. Hotel search is not enabled in this environment, and KAYAK's hotel documentation was not reachable from this sandbox.
+- whether a multi-room `totalRate` covers every room. The app tells the customer to check this with the provider.
+- a device or simulator, and VoiceOver itself.
+- the hellosky.no/hotell-bil request form. That page is the existing website form, which is Norwegian only.
