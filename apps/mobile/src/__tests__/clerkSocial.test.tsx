@@ -72,6 +72,11 @@ describe("iOS-builden: hva som vises, og når Clerk lastes", () => {
     for (const shadow of ["nativeSocial.ts", "nativeSocial.ios.ts", "nativeSocial.native.ts", "nativeSocial.native.tsx"]) expect(fs.existsSync(path.join(lib, shadow))).toBe(false);
   });
 
+  it("Clerks native iOS-modul er utelatt fra autolinking (ellers feiler «pod install»: ClerkExpo-podspecen legger til SPM-produktene ClerkKit/ClerkKitUI)", () => {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../package.json"), "utf8")) as { expo?: { autolinking?: { ios?: { exclude?: string[] } } } };
+    expect(pkg.expo?.autolinking?.ios?.exclude).toContain("@clerk/expo");
+  });
+
   it("retur-URL-en er appens eget skjema fra app.json + /sso-callback", () => {
     const app = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../app.json"), "utf8")) as { expo: { scheme: string } };
     expect(SSO_REDIRECT_URL).toBe(`${app.expo.scheme}://sso-callback`);

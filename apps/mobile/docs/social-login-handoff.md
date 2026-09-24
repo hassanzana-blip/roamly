@@ -35,7 +35,20 @@ It returns the publishable key only in that case, and never the secret key.
   - Apple configured as a provider in Clerk.
 - **Everywhere else** (browser preview, Android): `src/lib/nativeSocial.tsx`, no social sign-in, and Clerk is not loaded.
 
-**Clerk's native iOS module is not linked.** `@clerk/expo` 4.6.9 ships a native pod (`ClerkExpo`) that requires iOS 17.0, while Expo SDK 57 targets iOS 16.4. Expo's autolinking skips that pod ("was not linked: requires iOS 17.0 but app targets 16.4"), and `@clerk/expo` loads it with `requireOptionalNativeModule`. The browser-based `useSSO` flow does not use it. Raising the deployment target is owner-managed config and was not done.
+**Clerk's native iOS module is excluded from iOS autolinking** (`apps/mobile/package.json` → `expo.autolinking.ios.exclude: ["@clerk/expo"]`).
+
+- **Observed failure.** The owner's EAS iOS simulator build of `eac3e73` (build `9ad8c800-1d51-44ff-9d37-bf61e6f7b645`) failed in *Install pods*:
+  - Expo logged "@clerk/expo was not linked: requires iOS 17.0 but app targets 16.4";
+  - but `ClerkExpo.podspec` calls `spm_dependency(… products: ['ClerkKit', 'ClerkKitUI'])` while it is evaluated, so React Native's SPM step still added those products;
+  - it then crashed in `react-native/scripts/cocoapods/spm.rb:98` (`undefined method package_product_dependencies for nil:NilClass`).
+  
+  My earlier claim that Expo skipping the pod was safe was wrong.
+- **Correction.** Expo's autolinking in SDK 57 (`expo-modules-autolinking` 57.0.13) reads `expo.autolinking.<platform>.exclude` from the app's `package.json`. The iOS/`apple` platform falls back to the `ios` key. The exclude list is applied to both Expo modules and React Native community modules, so the Clerk podspec is never read and no SPM product is added.
+  - Verified with the SDK's own CLI: before the change, `npx expo-modules-autolinking resolve --platform apple` listed `@clerk/expo` (pod `ClerkExpo`); after it, it does not.
+  - Also after the change: `react-native-config --platform ios` has no Clerk entry, and every other module (maps, web-browser, crypto, secure-store …) is still linked.
+  - Not verified here: `pod install` itself (no macOS/CocoaPods in this environment). The owner's next EAS build is the check.
+- **Why this is safe for the flow.** Google sign-in uses Clerk's browser-based `useSSO` (JS, `expo-auth-session` + `expo-web-browser`). `@clerk/expo` loads its native module with `requireOptionalNativeModule`, which returns null when it is not linked. The native Clerk views are never rendered, and Clerk is only loaded when a provider is shown. Neither the iOS deployment target (16.4) nor any Clerk setting was changed.
+- **Trade-off.** Clerk's native components, native Google sign-in, passkeys and native client sync stay unavailable. Using them would need the iOS target raised to 17.0 and the exclude removed; that is an owner decision.
 
 ## Steps to go live (owner, in order; none of this was done)
 

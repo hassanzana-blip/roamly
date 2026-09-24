@@ -65,5 +65,14 @@
       "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|superjson|copy-anything|is-what))",
       "/node_modules/@react-native/babel-preset/"
     ]
+  },
+  "expo": {
+    "autolinking": {
+      "ios": {
+        "exclude": [
+          "@clerk/expo"
+        ]
+      }
+    }
   }
 }
