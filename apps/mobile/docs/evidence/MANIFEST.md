@@ -785,3 +785,29 @@ The images below are **non-native browser renderings** at 375/390/430 pt in Bokm
 | `clerk-nb-eac3e73-430-fixture-google-2-busy.png` | `e46db9e861981c8e…` | 860×1780 |
 | `clerk-nb-eac3e73-430-fixture-google-3-cancelled.png` | `d5a9a23067034d9a…` | 860×1780 |
 | `clerk-nb-eac3e73-430-real-1-signed-out.png` | `07a58bf6777d377d…` | 860×1803 |
+
+## Airport picker with the keyboard open (browser approximation)
+
+**NON-NATIVE.** These are Chromium renderings of Expo web, not an iPhone.
+The keyboard is simulated by cutting the viewport to 476 pt, which is 812 pt minus a typical keyboard of about 336 pt.
+The images cannot show iOS keyboard insets (`automaticallyAdjustKeyboardInsets`); that prop has no effect on web.
+They show only the layout that decides what can be scrolled into view above the keyboard.
+
+- **Code.** "Before" is `flyplass.tsx` at `736ec7e`. "After" is the working tree committed with this section (blob `a5261f21`).
+- **Data.** Demo data served by an in-browser fake API. The query `no` returns 12 real Norwegian airports; `zzz` returns none.
+- **Checks passed at 375, 390 and 430 pt, and at 375 pt with 135 % text.** The capture script checked each of these in every run (after mode):
+  - the last suggestion and the last result can be scrolled into view above the simulated keyboard and clicked;
+  - "Tøm søket" can be reached and clicked;
+  - choosing TRF puts TRF (not OSL) in the origin field.
+- **The difference, at 375 pt with 135 % text.**
+  - Before: the caption and the "Husk" row stay pinned under the search field, so one result row fits above the simulated keyboard.
+  - After: they scroll away with the list, so about three rows fit.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `kbd-after-375-large-results-end.png` | `497c3440265b0ce1…` | 750×1076 |
+| `kbd-after-375-large-suggestions.png` | `24c5055c04f3606d…` | 750×1076 |
+| `kbd-after-375-no-results.png` | `df7b11f040b1688e…` | 750×1076 |
+| `kbd-after-390-results-end.png` | `6fc27cf6b0f66e93…` | 780×1076 |
+| `kbd-after-430-suggestions-end.png` | `85c8d1f9fcf662a8…` | 860×1076 |
+| `kbd-before-736ec7e-375-large-results-end.png` | `57d01e1595296567…` | 750×1076 |

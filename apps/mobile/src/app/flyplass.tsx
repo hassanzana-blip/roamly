@@ -155,40 +155,55 @@ export default function AirportPicker() {
           clearButtonMode="while-editing"
           testID="airport-query"
         />
-        <Text style={[type.caption, { color: colors.textSecondary }]}>{a.exactOnly}</Text>
-        {field === "origin" ? (
-          <View style={{ gap: space.xs }}>
-            {homeAirport ? (
-              <View style={styles.homeRow} testID="home-airport">
-                <Text style={[type.footnote, { color: colors.text, flex: 1 }]}>{a.usual(homeAirport.city, homeAirport.iata)}</Text>
-                <LinkButton label={a.forget} onPress={() => setHomeAirport(null)} testID="forget-home-airport" />
-              </View>
-            ) : null}
-            <View style={styles.homeRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[type.footnote, { color: colors.text }]}>{a.remember}</Text>
-                <Text style={[type.caption, { color: colors.textSecondary }]}>{a.rememberHint}</Text>
-              </View>
-              <Switch testID="remember-home-airport" accessibilityLabel={a.remember} value={remember} onValueChange={setRemember} trackColor={{ true: colors.blue, false: colors.lightBorder }} />
-            </View>
-          </View>
-        ) : null}
-        {shownError ? (
-          <Banner tone="error" testID="airport-error">
-            {errorText(shownError, i18n, { BAD_RESPONSE: a.error })}
-          </Banner>
-        ) : null}
-        {loading ? (
-          <View style={styles.loading}>
-            <ActivityIndicator color={colors.text} testID="airport-loading" />
-            <Text style={[type.footnote, { color: colors.textSecondary }]}>{a.searching}</Text>
-          </View>
-        ) : null}
+        {/*
+          Tastaturet: bare søkefeltet står fast. Alt annet – forklaringen, «vanlig
+          flyplass», feil, lasting, treff, forslag og «Tøm søket» – ligger i listen, som
+          på iOS slutter der tastaturet begynner (automaticallyAdjustKeyboardInsets). Da
+          kan hver rad rulles fram og trykkes med tastaturet oppe, også med stor tekst;
+          første trykk velger (keyboardShouldPersistTaps), og et drag legger bort tastaturet.
+        */}
         <FlatList
+          style={styles.list}
           data={shown}
           keyExtractor={(a) => a.iata}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          testID="airport-list"
           contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }}
+          ListHeaderComponent={
+            <View style={styles.listHead} testID="airport-list-head">
+              <Text style={[type.caption, { color: colors.textSecondary }]}>{a.exactOnly}</Text>
+              {field === "origin" ? (
+                <View style={{ gap: space.xs }}>
+                  {homeAirport ? (
+                    <View style={styles.homeRow} testID="home-airport">
+                      <Text style={[type.footnote, { color: colors.text, flex: 1 }]}>{a.usual(homeAirport.city, homeAirport.iata)}</Text>
+                      <LinkButton label={a.forget} onPress={() => setHomeAirport(null)} testID="forget-home-airport" />
+                    </View>
+                  ) : null}
+                  <View style={styles.homeRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[type.footnote, { color: colors.text }]}>{a.remember}</Text>
+                      <Text style={[type.caption, { color: colors.textSecondary }]}>{a.rememberHint}</Text>
+                    </View>
+                    <Switch testID="remember-home-airport" accessibilityLabel={a.remember} value={remember} onValueChange={setRemember} trackColor={{ true: colors.blue, false: colors.lightBorder }} />
+                  </View>
+                </View>
+              ) : null}
+              {shownError ? (
+                <Banner tone="error" testID="airport-error">
+                  {errorText(shownError, i18n, { BAD_RESPONSE: a.error })}
+                </Banner>
+              ) : null}
+              {loading ? (
+                <View style={styles.loading}>
+                  <ActivityIndicator color={colors.text} testID="airport-loading" />
+                  <Text style={[type.footnote, { color: colors.textSecondary }]}>{a.searching}</Text>
+                </View>
+              ) : null}
+            </View>
+          }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             !active ? (
@@ -210,7 +225,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
   head: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.md },
   title: { flex: 1, textAlign: "center", color: colors.text },
-  body: { flex: 1, paddingHorizontal: space.lg, gap: space.md },
+  body: { flex: 1, paddingHorizontal: space.lg, gap: space.sm },
+  list: { flex: 1 },
+  listHead: { gap: space.md, paddingBottom: space.sm },
   loading: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.xs },
   row: { flexDirection: "row", alignItems: "center", minHeight: 64, paddingVertical: space.sm, paddingHorizontal: space.xs, borderRadius: radius.input, gap: space.md },
   codeBox: { width: 52, height: 40, borderRadius: radius.sm, backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
