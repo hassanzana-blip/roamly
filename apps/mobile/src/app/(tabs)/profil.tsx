@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../../components/a11y";
+import { StatusBarShield } from "../../components/StatusBarShield";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -28,7 +29,7 @@ function openWeb(url: string) {
 function LanguageCard() {
   const { t, locale, setLocale } = useI18n();
   return (
-    <InformationCard title={t.account.language} testID="language-card">
+    <InformationCard title={t.account.language} testID="language-card" style={styles.compactCard}>
       {/* Hvert språk står på sitt eget språk, og VoiceOver leser det med den stemmen. */}
       <Segmented<Locale> label={t.account.language} value={locale} options={LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l], lang: a11yLanguage(l) }))} onChange={setLocale} />
       <Text style={[type.footnote, { color: colors.textSecondary }]}>{t.account.languageHint}</Text>
@@ -40,19 +41,14 @@ function LanguageCard() {
 function HelpCard() {
   const { t, locale } = useI18n();
   const a = t.account;
-  const note = locale === "en" ? a.webNorwegian : a.webOpens;
+  const note = locale === "en" ? a.webNorwegian : null;
   return (
-    <InformationCard title={a.helpTitle} testID="help-card">
-      <View style={{ gap: space.xs }}>
-        <Text style={[type.calloutStrong, { color: colors.text }]}>{a.howItWorks}</Text>
-        <Text style={[type.footnote, { color: colors.textSecondary }]} testID="how-it-works">
-          {a.howItWorksBody}
-        </Text>
-      </View>
-      <NavRow icon="help" title={a.helpCentre} subtitle={note} external onPress={() => openWeb(WEB_PAGES.help)} testID="link-help" />
-      <NavRow icon="lock" title={a.privacy} subtitle={note} external onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" />
-      <NavRow icon="info" title={a.terms} subtitle={note} external onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" />
-      <NavRow icon="plane" title={a.about} subtitle={note} external onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" />
+    <InformationCard title={a.helpTitle} testID="help-card" style={styles.compactCard}>
+      <NavRow icon="help" title={a.helpCentre} external onPress={() => openWeb(WEB_PAGES.help)} testID="link-help" accessibilityHint={a.webOpens} />
+      <NavRow icon="lock" title={a.privacy} external onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" accessibilityHint={a.webOpens} />
+      <NavRow icon="info" title={a.terms} external onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" accessibilityHint={a.webOpens} />
+      <NavRow icon="plane" title={a.about} external onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" accessibilityHint={a.webOpens} />
+      {note ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{note}</Text> : null}
     </InformationCard>
   );
 }
@@ -250,8 +246,9 @@ export default function AccountScreen() {
     const p = auth.profile;
     const initials = p ? `${p.firstName.slice(0, 1)}${p.lastName.slice(0, 1)}`.toUpperCase() : "";
     return (
-      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-in">
+      <View style={styles.screen}>
         <StatusBar style="light" />
+        <ScrollView style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-in">
         <View style={styles.hello}>
           <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Text style={styles.avatarText}>{initials}</Text>
@@ -266,7 +263,7 @@ export default function AccountScreen() {
           </Banner>
         ) : null}
         {p ? (
-          <InformationCard title={a.accountSection} testID="account-card">
+          <InformationCard title={a.accountSection} testID="account-card" style={styles.compactCard}>
             <InfoRow icon="user" title={`${p.firstName} ${p.lastName}`.trim()} subtitle={a.nameLabel} />
             {p.email ? <InfoRow icon="mail" title={p.email} subtitle={a.emailLabel} /> : null}
             {p.phone ? <InfoRow icon="user" title={p.phone} subtitle={a.phoneLabel} /> : null}
@@ -300,7 +297,7 @@ export default function AccountScreen() {
           }}
         />
         {p ? (
-          <InformationCard>
+          <InformationCard style={styles.compactCard}>
             <NavRow icon="close" title={a.deleteRow} danger onPress={() => setSheet("delete")} testID="open-delete-account" />
           </InformationCard>
         ) : null}
@@ -319,7 +316,9 @@ export default function AccountScreen() {
             <DeleteAccountSheet key={`delete-${sheet === "delete"}`} profile={p} visible={sheet === "delete"} onClose={() => setSheet(null)} />
           </>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+        <StatusBarShield />
+      </View>
     );
   }
 
@@ -456,6 +455,7 @@ export default function AccountScreen() {
         <HelpCard />
         <ForgotPasswordSheet key={`forgot-${sheet === "forgot"}`} visible={sheet === "forgot"} onClose={() => setSheet(null)} initialEmail={email} />
       </ScrollView>
+      <StatusBarShield />
     </KeyboardAvoidingView>
   );
 }
@@ -464,6 +464,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: "center", justifyContent: "center" },
   content: { paddingHorizontal: space.lg, gap: space.lg, paddingBottom: space.xxxl },
+  compactCard: { padding: space.lg, gap: space.md },
   hello: { flexDirection: "row", alignItems: "center", gap: space.md },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 18, fontWeight: "700", color: colors.white },

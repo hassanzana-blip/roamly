@@ -3,6 +3,7 @@ import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from "rea
 import { Pressable, Text } from "../../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { StatusBarShield } from "../../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
 import { DESTINATIONS, destinationChoice, type Destination } from "../../lib/destinations";
@@ -124,6 +125,7 @@ export default function ExploreScreen() {
     return (
       <View style={[styles.screen, { paddingTop: insets.top + space.lg }]} testID="explore-screen">
         <StatusBar style="light" />
+        <StatusBarShield />
         {head}
         <Text style={[type.caption, styles.mapNote]} testID="map-note">
           {t.explore.mapNote}
@@ -179,6 +181,7 @@ export default function ExploreScreen() {
   }
 
   return (
+    <View style={styles.screen}>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={{ paddingTop: insets.top + space.lg, paddingBottom: space.xxxl }}
@@ -211,6 +214,8 @@ export default function ExploreScreen() {
         ))}
       </View>
     </ScrollView>
+    <StatusBarShield />
+    </View>
   );
 }
 

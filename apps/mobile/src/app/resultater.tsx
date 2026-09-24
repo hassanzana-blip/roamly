@@ -3,6 +3,7 @@ import { AccessibilityInfo, FlatList, Platform, ScrollView, StyleSheet, View } f
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { StatusBarShield } from "../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useApp } from "../lib/appState";
@@ -147,6 +148,7 @@ export default function ResultsScreen() {
   const shell = (children: ReactNode) => (
     <View style={styles.screen}>
       <StatusBar style="light" />
+      <StatusBarShield />
       {header}
       {children}
     </View>
@@ -330,6 +332,7 @@ export default function ResultsScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
+      <StatusBarShield />
       <FlatList
         testID="results-list"
         style={styles.screen}

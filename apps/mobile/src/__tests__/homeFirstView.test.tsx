@@ -1,5 +1,6 @@
 import { Text as RNText, StyleSheet } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import * as SafeArea from "react-native-safe-area-context";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
@@ -54,6 +55,20 @@ const flat = (testID: string) => StyleSheet.flatten(screen.getByTestId(testID).p
 beforeEach(() => keychain.clear());
 
 describe("Hjem: første bilde", () => {
+  it("dekker statuslinjen når fotohodet rulles under den", async () => {
+    const inset = jest.spyOn(SafeArea, "useSafeAreaInsets").mockReturnValue({ top: 59, bottom: 34, left: 0, right: 0 });
+    try {
+      await renderHome();
+      expect(screen.queryByTestId("status-bar-shield")).toBeNull();
+      fireEvent.scroll(screen.getByTestId("home-scroll"), { nativeEvent: { contentOffset: { y: 90 } } });
+      await waitFor(() => expect(flat("status-bar-shield").height).toBe(59));
+      fireEvent.scroll(screen.getByTestId("home-scroll"), { nativeEvent: { contentOffset: { y: 0 } } });
+      await waitFor(() => expect(screen.queryByTestId("status-bar-shield")).toBeNull());
+    } finally {
+      inset.mockReturnValue({ top: 0, bottom: 0, left: 0, right: 0 });
+    }
+  });
+
   it("rekkefølgen: fotohode → Fly/Hotell → reisetype → rute → datoer → reisende/klasse → «Søk fly» → gjestelinje → reisemål → forklaring", async () => {
     await renderHome();
     const o = order();

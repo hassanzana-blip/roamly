@@ -249,7 +249,6 @@ describe("utløpt økt og hjelp", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    expect(screen.getByTestId("how-it-works")).toHaveTextContent(/bestiller og betaler du på tilbyderens egen nettside/);
     for (const [id, url] of [
       ["link-help", WEB_PAGES.help],
       ["link-privacy", WEB_PAGES.privacy],
@@ -260,7 +259,10 @@ describe("utløpt økt og hjelp", () => {
       expect(WebBrowser.openBrowserAsync).toHaveBeenLastCalledWith(url, expect.anything());
     }
     expect(Object.values(WEB_PAGES).every((u) => u.startsWith("https://hellosky.no/"))).toBe(true);
-    expect(screen.getAllByText("Åpner hellosky.no").length).toBe(4);
+    for (const id of ["link-help", "link-privacy", "link-terms", "link-about"]) {
+      expect(screen.getByTestId(id).props.accessibilityHint).toBe("Åpner hellosky.no");
+    }
+    expect(screen.queryByText("Åpner hellosky.no")).toBeNull();
   });
 
   it("med engelsk som lagret valg får kunden vite at nettsidene er på norsk", async () => {
@@ -272,8 +274,7 @@ describe("utløpt økt og hjelp", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    expect(screen.getByTestId("how-it-works")).toHaveTextContent(/you book and pay on that provider's own website/);
-    expect(screen.getAllByText("Opens hellosky.no (in Norwegian)").length).toBe(4);
+    expect(screen.getAllByText("Opens hellosky.no (in Norwegian)")).toHaveLength(1);
   });
 });
 

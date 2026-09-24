@@ -14,6 +14,7 @@ import { PhotoBackdrop } from "../../components/Photo";
 import { SearchPanel } from "../../components/SearchPanel";
 import { ServiceSwitch } from "../../components/ServiceSwitch";
 import { DestinationCard } from "../../components/DestinationCard";
+import { StatusBarShield } from "../../components/StatusBarShield";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
 /** Kundens initialer, eller ingenting (gjest). Aldri et oppdiktet navn eller bilde. */
@@ -36,6 +37,7 @@ export default function HomeScreen() {
   const i18n = useI18n();
   const { t, f, locale } = i18n;
   const [cardProblem, setCardProblem] = useState<FormErrorCode | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   const profile = auth.status === "signedIn" ? auth.profile : null;
   const name = profile?.firstName?.trim();
@@ -50,7 +52,14 @@ export default function HomeScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: space.xxxl }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        testID="home-scroll"
+        style={styles.screen}
+        contentContainerStyle={{ paddingBottom: space.xxxl }}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={(event) => setScrolled(event.nativeEvent.contentOffset.y > 24)}
+      >
         <PhotoBackdrop photo={HEADER_PHOTO} scrim="medium" style={[styles.hero, { paddingTop: insets.top + space.xs }]} testID="home-hero">
           <View style={styles.heroTop}>
             <Wordmark />
@@ -102,6 +111,7 @@ export default function HomeScreen() {
           {t.home.howItWorks}
         </Text>
       </ScrollView>
+      <StatusBarShield visible={scrolled} />
     </View>
   );
 }

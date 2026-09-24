@@ -4,6 +4,7 @@ import { Pressable, Text } from "../../components/a11y";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { StatusBarShield } from "../../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
 import { destinationChoice, type Destination } from "../../lib/destinations";
@@ -55,8 +56,9 @@ export default function SavedScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + space.md, paddingBottom: space.xxxl, paddingHorizontal: space.lg, gap: space.md }} testID="saved-screen">
+    <View style={styles.screen}>
       <StatusBar style="light" />
+      <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + space.md, paddingBottom: space.xxxl, paddingHorizontal: space.lg, gap: space.md }} testID="saved-screen">
       <View style={{ gap: 2 }}>
         <View style={styles.titleRow}>
           <Text style={[type.title, { color: colors.onDark, flex: 1 }]} accessibilityRole="header" testID="saved-title">
@@ -191,7 +193,9 @@ export default function SavedScreen() {
           </Text>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+      <StatusBarShield />
+    </View>
   );
 }
 
