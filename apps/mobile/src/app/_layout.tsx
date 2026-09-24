@@ -33,6 +33,9 @@ function AppStack() {
         <Stack.Screen name="(tabs)" options={{ title: t.common.tabs.home }} />
         <Stack.Screen name="resultater" options={{ title: t.results.screen.fallbackTitle }} />
         <Stack.Screen name="tilbud/[id]" options={{ title: t.details.title }} />
+        <Stack.Screen name="hotell/index" options={{ title: t.hotels.title }} />
+        <Stack.Screen name="hotell/resultater" options={{ title: t.hotels.resultsTitle }} />
+        <Stack.Screen name="hotell/detaljer" options={{ title: t.hotels.detailTitle }} />
         <Stack.Screen name="flyplass" options={{ presentation: "modal", title: t.airport.title, contentStyle: { backgroundColor: colors.white } }} />
       </Stack>
     </View>
@@ -41,7 +44,7 @@ function AppStack() {
 
 /**
  * Roten: fanene (Hjem, Utforsk, Profil) nederst i stacken; resultater,
- * flydetaljer og flyplassøk legges oppå. Systemskriften (SF Pro) brukes
+ * flydetaljer, flyplassøk og hotellsøket (hotell/…) legges oppå. Systemskriften (SF Pro) brukes
  * overalt, så ingen skrift skal lastes før appen vises.
  */
 export default function RootLayout() {

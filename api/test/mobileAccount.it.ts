@@ -1164,6 +1164,11 @@ describe("ansatte og staff-sesjoner avvises på hver eneste prosedyre i appens A
       "flights.airports": async (m) => expect(Array.isArray(await m.flights.airports({ query: "OSL" }))).toBe(true),
       "flights.search": async (m) => expect((await m.flights.search({ slices: [{ origin: "OSL", destination: "BGO", departureDate: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10) }], passengers: [{ type: "adult" }], cabinClass: "economy" })).offers.length).toBeGreaterThan(0),
       "flights.trackProviderClick": async (m) => expect(await m.flights.trackProviderClick({ offerId: "finnes-ikke" })).toEqual({ clickRef: null }),
+      // Hotellsøk er avslått i testmiljøet: status sier det, stedsøk er tomt, søk og detaljer avvises – for alle.
+      "hotels.status": async (m) => expect(await m.hotels.status()).toMatchObject({ enabled: false, externalBooking: true }),
+      "hotels.places": async (m) => expect(await m.hotels.places({ query: "Oslo" })).toEqual([]),
+      "hotels.search": (m) => expectAppCode(m.hotels.search({ destination: "kplace:58075", checkin: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10), checkout: new Date(Date.now() + 32 * 86_400_000).toISOString().slice(0, 10), rooms: [{ adults: 2 }] }), "SUPPLIER_REJECTED"),
+      "hotels.detail": (m) => expectAppCode(m.hotels.detail({ hotelKey: "khotel:2589314", checkin: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10), checkout: new Date(Date.now() + 32 * 86_400_000).toISOString().slice(0, 10), rooms: [{ adults: 2 }] }), "SUPPLIER_REJECTED"),
     };
     // Legges det til en prosedyre i appens API, må den få en staff-sjekk her.
     expect(Object.keys(mobileAppRouter._def.procedures).sort()).toEqual(Object.keys(checks).sort());

@@ -88,6 +88,22 @@ describe("iOS-klienten mot /api/mobile/trpc", () => {
     expect(await api.me()).toMatchObject({ id: reg.profile.id });
   });
 
+  it("hotell: appens klient leser status, stedsøk og avvisning når hotellsøk er slått av", async () => {
+    const c = client();
+    expect(await c.hotelsStatus()).toMatchObject({ enabled: false, externalBooking: true });
+    expect(await c.hotelPlaces("Oslo")).toEqual([]);
+    const stay = { destination: "kplace:58075", checkin: TOMORROW_PLUS(30), checkout: TOMORROW_PLUS(33), rooms: [{ adults: 2 }], language: "nb" as const };
+    const err = await c.hotelSearch(stay).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).code).toBe("SUPPLIER_REJECTED");
+    expect((err as ApiError).message).toBe("Hotellsøk er ikke slått på.");
+    const bad = await c.hotelSearch({ ...stay, checkout: stay.checkin }).catch((e: unknown) => e);
+    expect((bad as ApiError).code).toBe("VALIDATION");
+    expect((bad as ApiError).field).toBe("checkout");
+    const detail = await c.hotelDetail({ ...stay, hotelKey: "khotel:1" }).catch((e: unknown) => e);
+    expect((detail as ApiError).code).toBe("SUPPLIER_REJECTED");
+  });
+
   it("feil kommer fram som ApiError med serverens kode og norske melding", async () => {
     const err = await client()
       .login("ingen@hellosky.test", "feil-passord-1")

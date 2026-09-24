@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { readPref, writePref } from "../lib/localStore";
 import {
   formatDay,
+  formatInt,
   formatDuration,
   formatMonthYear,
   formatNok,
@@ -25,6 +26,7 @@ import { explore } from "./ns/explore";
 import { account } from "./ns/account";
 import { details } from "./ns/details";
 import { airport } from "./ns/airport";
+import { hotels } from "./ns/hotels";
 
 /**
  * Oversettelser. Hvert område har én fil med engelsk og norsk side om side;
@@ -33,8 +35,8 @@ import { airport } from "./ns/airport";
  * flertall bøyes riktig på begge språk.
  */
 const dictionaries = {
-  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en },
-  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb },
+  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en, hotels: hotels.en },
+  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb, hotels: hotels.nb },
 } satisfies Record<Locale, unknown>;
 
 export type Dictionary = typeof dictionaries.en;
@@ -57,6 +59,9 @@ export function formattersFor(locale: Locale) {
     stops: (n: number) => formatStops(n, locale),
     stopsSummary: (slices: readonly { stops: number }[]) => stopsSummary(slices, locale),
     greeting: (now?: Date) => greeting(locale, now),
+    int: (n: number) => formatInt(n, locale),
+    /** Et desimaltall med én desimal (vurdering 8,6 / 8.6, avstand). */
+    decimal1: (n: number) => (Math.round(n * 10) / 10).toFixed(1).replace(".", locale === "nb" ? "," : "."),
   };
 }
 

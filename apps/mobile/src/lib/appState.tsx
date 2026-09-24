@@ -68,6 +68,8 @@ type AppContextValue = {
   /** Foretrukket avreiseflyplass – bare når kunden selv har valgt det. Brukes som «Fra» i et nytt skjema. */
   homeAirport: AirportChoice | null;
   setHomeAirport: (a: AirportChoice | null) => void;
+  /** Anonym UUID for denne app-økten (KAYAKs userTrackId), delt av fly- og hotellsøk. Aldri knyttet til konto. */
+  sessionId: string;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -303,8 +305,8 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial }: { 
   );
 
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport }),
-    [api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport],
+    () => ({ api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId }),
+    [api, auth, login, register, logout, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

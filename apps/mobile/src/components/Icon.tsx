@@ -49,9 +49,11 @@ export type IconName =
   | "share"
   | "luggage"
   | "help"
-  | "route";
+  | "route"
+  | "bed";
 
 const PATHS: Record<IconName, (string | { circle: [number, number, number] } | { rect: [number, number, number, number, number] })[]> = {
+  bed: ["M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8", "M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4", "M12 4v6", "M2 18h20"],
   plane: ["M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L11 8 2.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"],
   swap: ["m21 16-4 4-4-4", "M17 20V4", "m3 8 4-4 4 4", "M7 4v16"],
   calendar: [{ rect: [3, 4, 18, 18, 2] }, "M16 2v4", "M8 2v4", "M3 10h18"],

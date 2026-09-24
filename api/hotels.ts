@@ -5,6 +5,7 @@ import { assertRateLimit, clientIp } from "./lib/ratelimit";
 import { kayakConfig } from "./lib/kayak";
 import { kayakHotelDetail, kayakHotelPlaces, kayakHotelSearch, kayakHotelsConfig } from "./lib/kayakHotels";
 import type { HotelsStatus } from "../contracts/hotels";
+import type { TrpcContext } from "./context";
 
 /**
  * Hotellsøk (metasøk). Alle data kommer fra KAYAK Hotels API og bestillingen
@@ -28,55 +29,55 @@ export function hotelsStatus(): HotelsStatus {
   return { enabled: kayakHotelsConfig.enabled, mode: kayakConfig.mode, externalBooking: true };
 }
 
+/** Stedsøk (KAYAK-steder). Deles med appen (api/mobileHotels.ts). */
+export const hotelPlacesSchema = z.object({ query: z.string().trim().min(2).max(60) });
+export async function runHotelPlaces(input: z.infer<typeof hotelPlacesSchema>, ctx: TrpcContext) {
+  assertRateLimit("hotel-places", clientIp(ctx.req), 40, 60_000);
+  return kayakHotelPlaces(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
+}
+
+export const hotelSearchSchema = z.object({
+  destination: z.string().min(6).max(220),
+  checkin: dateSchema,
+  checkout: dateSchema,
+  rooms: z.array(roomSchema).min(1).max(4),
+  currency: currencySchema,
+  language: z.string().regex(/^[a-zA-Z]{2}$/).optional(),
+  sort: z.enum(["popularity", "minRate", "rating", "distance", "consumerRating"]).optional(),
+  sessionId: z.string().uuid().optional(),
+});
+/** Samme validering, rategrenser og leverandørkall for nettet og appen. */
+export async function runHotelSearch(input: z.infer<typeof hotelSearchSchema>, ctx: TrpcContext) {
+  assertRateLimit("hotel-search", clientIp(ctx.req), 20, 60_000);
+  assertRateLimit("hotel-search-hourly", clientIp(ctx.req), 120, 60 * 60_000);
+  assertStay(input.checkin, input.checkout);
+  return kayakHotelSearch(
+    { destination: input.destination, checkin: input.checkin, checkout: input.checkout, rooms: input.rooms, currency: input.currency, language: input.language, sort: input.sort },
+    { userTrackId: input.sessionId, userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) },
+  );
+}
+
+export const hotelDetailSchema = z.object({
+  hotelKey: z.string().regex(/^khotel:\d{1,12}$/),
+  checkin: dateSchema,
+  checkout: dateSchema,
+  rooms: z.array(roomSchema).min(1).max(4),
+  currency: currencySchema,
+  language: z.string().regex(/^[a-zA-Z]{2}$/).optional(),
+  sessionId: z.string().uuid().optional(),
+});
+export async function runHotelDetail(input: z.infer<typeof hotelDetailSchema>, ctx: TrpcContext) {
+  assertRateLimit("hotel-detail", clientIp(ctx.req), 30, 60_000);
+  assertStay(input.checkin, input.checkout);
+  return kayakHotelDetail(
+    { hotelKey: input.hotelKey, checkin: input.checkin, checkout: input.checkout, rooms: input.rooms, currency: input.currency, language: input.language },
+    { userTrackId: input.sessionId, userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) },
+  );
+}
+
 export const hotelsRouter = createRouter({
   status: publicQuery.query(() => hotelsStatus()),
-
-  places: publicQuery.input(z.object({ query: z.string().trim().min(2).max(60) })).query(async ({ input, ctx }) => {
-    assertRateLimit("hotel-places", clientIp(ctx.req), 40, 60_000);
-    return kayakHotelPlaces(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
-  }),
-
-  search: publicQuery
-    .input(
-      z.object({
-        destination: z.string().min(6).max(220),
-        checkin: dateSchema,
-        checkout: dateSchema,
-        rooms: z.array(roomSchema).min(1).max(4),
-        currency: currencySchema,
-        language: z.string().regex(/^[a-zA-Z]{2}$/).optional(),
-        sort: z.enum(["popularity", "minRate", "rating", "distance", "consumerRating"]).optional(),
-        sessionId: z.string().uuid().optional(),
-      }),
-    )
-    .query(async ({ input, ctx }) => {
-      assertRateLimit("hotel-search", clientIp(ctx.req), 20, 60_000);
-      assertRateLimit("hotel-search-hourly", clientIp(ctx.req), 120, 60 * 60_000);
-      assertStay(input.checkin, input.checkout);
-      return kayakHotelSearch(
-        { destination: input.destination, checkin: input.checkin, checkout: input.checkout, rooms: input.rooms, currency: input.currency, language: input.language, sort: input.sort },
-        { userTrackId: input.sessionId, userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) },
-      );
-    }),
-
-  detail: publicQuery
-    .input(
-      z.object({
-        hotelKey: z.string().regex(/^khotel:\d{1,12}$/),
-        checkin: dateSchema,
-        checkout: dateSchema,
-        rooms: z.array(roomSchema).min(1).max(4),
-        currency: currencySchema,
-        language: z.string().regex(/^[a-zA-Z]{2}$/).optional(),
-        sessionId: z.string().uuid().optional(),
-      }),
-    )
-    .query(async ({ input, ctx }) => {
-      assertRateLimit("hotel-detail", clientIp(ctx.req), 30, 60_000);
-      assertStay(input.checkin, input.checkout);
-      return kayakHotelDetail(
-        { hotelKey: input.hotelKey, checkin: input.checkin, checkout: input.checkout, rooms: input.rooms, currency: input.currency, language: input.language },
-        { userTrackId: input.sessionId, userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) },
-      );
-    }),
+  places: publicQuery.input(hotelPlacesSchema).query(({ input, ctx }) => runHotelPlaces(input, ctx)),
+  search: publicQuery.input(hotelSearchSchema).query(({ input, ctx }) => runHotelSearch(input, ctx)),
+  detail: publicQuery.input(hotelDetailSchema).query(({ input, ctx }) => runHotelDetail(input, ctx)),
 });

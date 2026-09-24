@@ -2,6 +2,7 @@ import { deserialize, serialize } from "superjson";
 import type { Airport } from "@contracts/airports";
 import type { CabinClass, SearchPassengerInput, SearchSliceInput } from "@contracts/types";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
+import type { HotelDetailResult, HotelPlace, HotelSearchResult, HotelsStatus } from "@contracts/hotels";
 import type { CustomerProfile, MobileAuthResult, MobileDeleteAccountInput, MobileLocale, MobileOkResult, MobileUpdateProfileInput } from "@contracts/mobileAuth";
 
 /**
@@ -26,6 +27,18 @@ export type SearchRequest = {
   /** Anonym UUID per app-økt (KAYAKs userTrackId). Aldri knyttet til konto. */
   sessionId?: string;
 };
+
+/** Hotellsøk: valuta velges ikke – serveren ber alltid om NOK. */
+export type HotelSearchRequest = {
+  destination: string;
+  checkin: string;
+  checkout: string;
+  rooms: { adults: number; childAges?: number[] }[];
+  language: "nb" | "en";
+  sessionId?: string;
+};
+
+export type HotelDetailRequest = Omit<HotelSearchRequest, "destination"> & { hotelKey: string };
 
 export type RegisterRequest = {
   email: string;
@@ -170,6 +183,11 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
     /** Bekreftes med passordet (eller «DELETE»/«SLETT» for kontoer uten passord). */
     deleteAccount: (input: MobileDeleteAccountInput) => call<MobileOkResult>("mutation", "mobileAuth.deleteAccount", input, { auth: true }),
     logout: () => call<{ ok: true }>("mutation", "mobileAuth.logout", undefined, { auth: true }),
+    hotelsStatus: () => call<HotelsStatus>("query", "hotels.status", undefined, { timeoutMs: 10_000 }),
+    hotelPlaces: (query: string) => call<HotelPlace[]>("query", "hotels.places", { query }),
+    /** KAYAK Hotels kan bruke opptil ~20 s. */
+    hotelSearch: (input: HotelSearchRequest, signal?: AbortSignal) => call<HotelSearchResult>("query", "hotels.search", input, { timeoutMs: 45_000, signal }),
+    hotelDetail: (input: HotelDetailRequest, signal?: AbortSignal) => call<HotelDetailResult>("query", "hotels.detail", input, { timeoutMs: 45_000, signal }),
     /**
      * Nettets klikkmåling (flights.trackProviderClick) før kunden sendes til
      * leverandøren: bare tilbuds-id og den anonyme søkeøkten, uten token.

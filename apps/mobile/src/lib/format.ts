@@ -24,6 +24,12 @@ export function formatNok(amountMinor: number, locale: Locale): string {
   return `${sign}${group(String(kroner), NBSP)}${ore ? `,${String(ore).padStart(2, "0")}` : ""}${NBSP}kr`;
 }
 
+/** Et heltall med tusenskille: nb «3 118», en «3,118». */
+export function formatInt(n: number, locale: Locale): string {
+  const abs = String(Math.abs(Math.trunc(n)));
+  return `${n < 0 ? "−" : ""}${group(abs, locale === "nb" ? NBSP : ",")}`;
+}
+
 /** Til skjermleser: nb «1 234 kroner», en «1,234 Norwegian kroner». */
 export function spokenNok(amountMinor: number, locale: Locale): string {
   const abs = Math.abs(Math.trunc(amountMinor));

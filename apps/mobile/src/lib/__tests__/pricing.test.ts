@@ -134,8 +134,14 @@ describe("kildekoden viser aldri leverandørens beløp", () => {
 
   it("ingen bruk av totalAmount, totalCurrency, price.total, price.original, publishedRate eller baseCurrency", () => {
     const forbidden = /\b(totalAmount|totalCurrency|baseAmount|taxAmount|publishedRate|baseCurrency|quotedPerUnits|penaltyAmount|extraBagPrice|baggageFees)\b|price\.(total|original)\b/;
-    const offenders = files(root).filter((f) => forbidden.test(fs.readFileSync(f, "utf8")));
+    // Ett unntak: hotellbeløpene leses bare i lib/hotels.ts, som gir dem ut som kroner (øre) eller null.
+    const HOTEL_AMOUNTS = path.join("lib", "hotels.ts");
+    const offenders = files(root).filter((f) => forbidden.test(fs.readFileSync(f, "utf8")) && path.relative(root, f) !== HOTEL_AMOUNTS);
     expect(offenders.map((f) => path.relative(root, f))).toEqual([]);
+    // … og der bare ett sted, rett inn i NOK-sjekken.
+    const hotels = fs.readFileSync(path.join(root, HOTEL_AMOUNTS), "utf8");
+    expect(hotels.match(/\btotalAmount\b/g)).toHaveLength(1);
+    expect(hotels).toContain("return nokMinor(rate.totalAmount, rate.currency);");
   });
 });
 

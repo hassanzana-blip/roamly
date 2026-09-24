@@ -14,6 +14,7 @@ import { Banner, IconButton, LinkButton, Wordmark } from "../../components/ui";
 import { Icon } from "../../components/Icon";
 import { PhotoBackdrop } from "../../components/Photo";
 import { SearchPanel } from "../../components/SearchPanel";
+import { ServiceSwitch } from "../../components/ServiceSwitch";
 import { DestinationCard } from "../../components/DestinationCard";
 import { colors, radius, space, type } from "../../lib/theme";
 
@@ -115,6 +116,7 @@ export default function HomeScreen() {
         </PhotoBackdrop>
 
         <View style={styles.sheet}>
+          <ServiceSwitch active="flights" onSelect={() => router.push("/hotell")} />
           <SearchPanel footer={<Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>} />
 
           <RecentSearches onSearch={searchAgain} />
