@@ -1,6 +1,8 @@
 import type { ComponentType } from "react";
+import type { MobileSocialProvider } from "@contracts/mobileAuth";
 import type { NativeSocialSignIn } from "./socialAuth";
 import { waitForSsoRunner } from "./clerkBridge";
+import { appleBuildReady } from "./appleSupport";
 
 /**
  * Sosial innlogging på iPhone via Clerks Expo-SDK (@clerk/expo).
@@ -8,11 +10,11 @@ import { waitForSsoRunner } from "./clerkBridge";
  * Google: Clerks nettleserbaserte flyt (useSSO, «oauth_google») i
  * ASWebAuthenticationSession, med retur til SSO_REDIRECT_URL.
  *
- * Apple: IKKE i denne builden. Clerks Apple-flyt på iOS bruker Apples native
- * innlogging (expo-apple-authentication), som krever «Sign in with Apple»-
- * rettigheten i app.json (ios.usesAppleSignIn) og i Apple Developer, og Apple
- * satt opp som leverandør i Clerk. Ingen av delene finnes; app.json eies ikke
- * av denne endringen. supports("apple") er derfor false.
+ * Apple: Clerks useSignInWithApple (@clerk/expo/apple) – Apples egen
+ * innlogging via expo-apple-authentication, identitetstokenet byttes hos Clerk
+ * («oauth_token_apple»). Bruker ingen native Clerk-modul, så den virker med
+ * @clerk/expo utelatt fra autolinking og iOS 16.4. Støttes bare når builden
+ * faktisk kan (lib/appleSupport.ts); i dag er den ikke det.
  *
  * Clerk-koden (lib/clerkSocial.ios.tsx) lastes først når Host monteres – det
  * skjer bare når mobileAuth.providers har gitt en publiserbar nøkkel. Et
@@ -25,12 +27,18 @@ function Host({ publishableKey }: { publishableKey: string }) {
   return <ClerkSocialHost publishableKey={publishableKey} />;
 }
 
-export const nativeSocialSignIn: NativeSocialSignIn = {
-  supports: (provider) => provider === "google",
-  signIn: async (provider) => {
-    if (provider !== "google") throw new Error(`social provider ${provider} is not supported in this build`);
-    const run = await waitForSsoRunner();
-    return run(provider);
-  },
-  Host,
-};
+/** For tester: samme adapter med en annen sjekk av Apple-støtten. */
+export function createNativeSocial(appleReady: () => boolean = appleBuildReady): NativeSocialSignIn {
+  const supports = (provider: MobileSocialProvider) => provider === "google" || (provider === "apple" && appleReady());
+  return {
+    supports,
+    signIn: async (provider) => {
+      if (!supports(provider)) throw new Error(`social provider ${provider} is not supported in this build`);
+      const run = await waitForSsoRunner();
+      return run(provider);
+    },
+    Host,
+  };
+}
+
+export const nativeSocialSignIn: NativeSocialSignIn = createNativeSocial();

@@ -93,9 +93,12 @@ jest.mock("@clerk/expo", () => {
   const clerk = {
     providers: [] as Record<string, unknown>[],
     startSSOFlow: jest.fn(),
+    startAppleAuthenticationFlow: jest.fn(),
+    loaded: true,
     getToken: jest.fn(),
     signOut: jest.fn(async () => undefined),
   };
+  (globalThis as unknown as { __clerkMock: typeof clerk }).__clerkMock = clerk;
   const ClerkProvider = (props: Record<string, unknown> & { children?: unknown }) => {
     const { children, ...rest } = props;
     clerk.providers.push(rest);
@@ -106,9 +109,16 @@ jest.mock("@clerk/expo", () => {
     __clerk: clerk,
     ClerkProvider,
     useSSO: () => ({ startSSOFlow: clerk.startSSOFlow }),
-    useClerk: () => ({ session: { getToken: clerk.getToken }, signOut: clerk.signOut }),
+    useClerk: () => ({ loaded: clerk.loaded, session: { getToken: clerk.getToken }, signOut: clerk.signOut }),
   };
 });
+jest.mock("@clerk/expo/apple", () => ({
+  __esModule: true,
+  useSignInWithApple: () => ({
+    startAppleAuthenticationFlow: (...args: unknown[]) =>
+      (globalThis as unknown as { __clerkMock: { startAppleAuthenticationFlow: (...a: unknown[]) => unknown } }).__clerkMock.startAppleAuthenticationFlow(...args),
+  }),
+}));
 
 jest.mock("expo-crypto", () => ({
   randomUUID: () => "11111111-2222-4333-8444-555555555555",
