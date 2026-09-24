@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
-import { Text } from "../../components/a11y";
+import { Pressable, Text } from "../../components/a11y";
 import { StatusBarShield } from "../../components/StatusBarShield";
+import { Icon, type IconName } from "../../components/Icon";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -13,7 +14,7 @@ import { WEB_PAGES } from "../../lib/config";
 import { Banner, BottomSheet, Field, InfoRow, InformationCard, LinkButton, NavRow, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
 import { a11yLanguage, useI18n } from "../../i18n";
 import { LOCALES, LOCALE_NAMES, type Locale } from "../../i18n/types";
-import { colors, space, type } from "../../lib/theme";
+import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -37,19 +38,41 @@ function LanguageCard() {
   );
 }
 
-/** Hva HelloSky er, og HelloSkys egne sider for hjelp, kontakt, personvern og vilkår. */
+/** Tett innstillingsrad på mørk flate; hele raden er én stor trykkflate. */
+function DarkLinkRow({ icon, title, onPress, external, danger, testID, accessibilityHint, separated }: { icon: IconName; title: string; onPress: () => void; external?: boolean; danger?: boolean; testID: string; accessibilityHint?: string; separated?: boolean }) {
+  const fg = danger ? "#FFB4AB" : colors.onDark;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={external ? "link" : "button"}
+      accessibilityLabel={title}
+      accessibilityHint={accessibilityHint}
+      testID={testID}
+      style={({ pressed }) => [styles.darkLink, separated && styles.darkLinkBorder, pressed && { backgroundColor: colors.darkBorder }]}
+    >
+      <Icon name={icon} size={20} color={danger ? fg : colors.onDarkMuted} strokeWidth={1.75} />
+      <Text style={[type.callout, { color: fg, flex: 1 }]}>{title}</Text>
+      <Icon name={external ? "external" : "chevronRight"} size={18} color={danger ? fg : colors.onDarkMuted} />
+    </Pressable>
+  );
+}
+
+/** HelloSkys egne sider for hjelp, kontakt, personvern og vilkår. */
 function HelpCard() {
   const { t, locale } = useI18n();
   const a = t.account;
   const note = locale === "en" ? a.webNorwegian : null;
   return (
-    <InformationCard title={a.helpTitle} testID="help-card" style={styles.compactCard}>
-      <NavRow icon="help" title={a.helpCentre} external onPress={() => openWeb(WEB_PAGES.help)} testID="link-help" accessibilityHint={a.webOpens} />
-      <NavRow icon="lock" title={a.privacy} external onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" accessibilityHint={a.webOpens} />
-      <NavRow icon="info" title={a.terms} external onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" accessibilityHint={a.webOpens} />
-      <NavRow icon="plane" title={a.about} external onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" accessibilityHint={a.webOpens} />
-      {note ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{note}</Text> : null}
-    </InformationCard>
+    <View style={styles.darkSection} testID="help-card">
+      <Text style={[type.section, { color: colors.onDark }]} accessibilityRole="header">{a.helpTitle}</Text>
+      <View style={styles.darkList}>
+        <DarkLinkRow icon="help" title={a.helpCentre} external onPress={() => openWeb(WEB_PAGES.help)} testID="link-help" accessibilityHint={a.webOpens} />
+        <DarkLinkRow icon="lock" title={a.privacy} external separated onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" accessibilityHint={a.webOpens} />
+        <DarkLinkRow icon="info" title={a.terms} external separated onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" accessibilityHint={a.webOpens} />
+        <DarkLinkRow icon="plane" title={a.about} external separated onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" accessibilityHint={a.webOpens} />
+      </View>
+      {note ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{note}</Text> : null}
+    </View>
   );
 }
 
@@ -297,9 +320,9 @@ export default function AccountScreen() {
           }}
         />
         {p ? (
-          <InformationCard style={styles.compactCard}>
-            <NavRow icon="close" title={a.deleteRow} danger onPress={() => setSheet("delete")} testID="open-delete-account" />
-          </InformationCard>
+          <View style={styles.darkList}>
+            <DarkLinkRow icon="close" title={a.deleteRow} danger onPress={() => setSheet("delete")} testID="open-delete-account" />
+          </View>
         ) : null}
         {p ? (
           <>
@@ -465,6 +488,10 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center" },
   content: { paddingHorizontal: space.lg, gap: space.lg, paddingBottom: space.xxxl },
   compactCard: { padding: space.lg, gap: space.md },
+  darkSection: { gap: space.md },
+  darkList: { backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.lg, overflow: "hidden" },
+  darkLink: { minHeight: TOUCH + 8, flexDirection: "row", alignItems: "center", gap: space.md },
+  darkLinkBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.darkBorder },
   hello: { flexDirection: "row", alignItems: "center", gap: space.md },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 18, fontWeight: "700", color: colors.white },
