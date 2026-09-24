@@ -732,3 +732,56 @@ Two sets of images, all web renderings (Chromium) at 375/390/430 pt in both lang
 | `auth-nb-44493f5-430-fixture-google-2-busy.png` | `1f016e99aa23dc87…` | 860×1780 |
 | `auth-nb-44493f5-430-fixture-google-3-cancelled.png` | `db45b5c49edd83bb…` | 860×1780 |
 | `auth-nb-44493f5-430-real-1-signed-out.png` | `eddad57211743ad8…` | 860×1780 |
+
+
+## Clerk Google sign-in adapter (eac3e73): gated off, NOT live-tested
+
+| Level | Status |
+|---|---|
+| Code | Google via `@clerk/expo` 4.6.9 `useSSO` (`oauth_google`, redirect `hellosky://sso-callback`) → `getToken` → `exchangeSocialToken` → HelloSky session in SecureStore → `clerk.signOut`. Apple is unsupported in this build (Sign in with Apple entitlement not present). |
+| Bundle | `expo export --platform ios` contains the Clerk flow (`oauth_google`, `hellosky://sso-callback`, `clerk_not_ready`, `sso_incomplete`); the web fallback string is absent. `check:bundle` passes with the tightened key check (a key-shaped `sk_live_`/`sk_test_` value still fails it). |
+| Jest (Clerk mocked) | `src/__tests__/clerkSocial.test.tsx` (11) and `socialAuth.test.tsx` (10): gating, lazy Clerk loading, file resolution, redirect URI, success, cancel, incomplete, refused exchange (Clerk still signed out), duplicate taps. |
+| Real Clerk / Google | **NOT TESTED.** No Clerk instance has the redirect allowlisted, staging has no Clerk configuration, and `MOBILE_CLERK_NATIVE_PROVIDERS` is unset everywhere. |
+| Native iPhone | **NOT TESTED.** No device or simulator, and no EAS development build. |
+
+The images below are **non-native browser renderings** at 375/390/430 pt in Bokmål and English.
+- **Green captions:** the browser build does not show Google even when the fixture server says Google is available.
+- **Amber captions:** a scratch-only fake adapter (not Clerk) shows the gated layout, busy state and cancel message.
+- Neither set shows the iOS Clerk flow.
+
+| Check (capture reports) | browser build | fixture | Result |
+|---|---|---|---|
+| Social buttons with server = Google available | none | Google | PASSED |
+| Email/password form present | yes | yes | PASSED |
+| `mobileAuth.providers` before Profile opens / token on it | 0 / none | 0 / none | PASSED |
+| Requests to hosts other than the fake API | 0 | 0 | PASSED |
+| Exchange calls after cancel | – | 0 | PASSED |
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `clerk-en-eac3e73-375-fixture-both-1-signed-out.png` | `4de35aca42b8761c…` | 750×1832 |
+| `clerk-en-eac3e73-375-fixture-google-1-signed-out.png` | `122a1e6869dbace2…` | 750×1803 |
+| `clerk-en-eac3e73-375-fixture-google-2-busy.png` | `6576ad1db4ff5877…` | 750×1803 |
+| `clerk-en-eac3e73-375-fixture-google-3-cancelled.png` | `aaa5641bccc2806d…` | 750×1803 |
+| `clerk-en-eac3e73-375-real-1-signed-out.png` | `87880d69eb3d9d02…` | 750×1803 |
+| `clerk-en-eac3e73-390-fixture-google-1-signed-out.png` | `0264c6290d03923f…` | 780×1803 |
+| `clerk-en-eac3e73-390-fixture-google-2-busy.png` | `c54c1d57b237033a…` | 780×1803 |
+| `clerk-en-eac3e73-390-fixture-google-3-cancelled.png` | `80cc1f5837c0ecd4…` | 780×1803 |
+| `clerk-en-eac3e73-390-real-1-signed-out.png` | `65e28e2148d95cb5…` | 780×1803 |
+| `clerk-en-eac3e73-430-fixture-google-1-signed-out.png` | `058cc6130085bc2a…` | 860×1780 |
+| `clerk-en-eac3e73-430-fixture-google-2-busy.png` | `01c527b01c00ad29…` | 860×1780 |
+| `clerk-en-eac3e73-430-fixture-google-3-cancelled.png` | `cc346cc60c86d467…` | 860×1780 |
+| `clerk-en-eac3e73-430-real-1-signed-out.png` | `831e368ea538939b…` | 860×1803 |
+| `clerk-nb-eac3e73-375-fixture-both-1-signed-out.png` | `72894f97b55ff1dd…` | 750×1803 |
+| `clerk-nb-eac3e73-375-fixture-google-1-signed-out.png` | `65f48b6c7fea2964…` | 750×1803 |
+| `clerk-nb-eac3e73-375-fixture-google-2-busy.png` | `e4bb2033469b49f0…` | 750×1803 |
+| `clerk-nb-eac3e73-375-fixture-google-3-cancelled.png` | `52dbae1e08969129…` | 750×1803 |
+| `clerk-nb-eac3e73-375-real-1-signed-out.png` | `b56bf9d1095c4df0…` | 750×1803 |
+| `clerk-nb-eac3e73-390-fixture-google-1-signed-out.png` | `2ee7f61652c54d86…` | 780×1803 |
+| `clerk-nb-eac3e73-390-fixture-google-2-busy.png` | `bf5cf469eeae6056…` | 780×1803 |
+| `clerk-nb-eac3e73-390-fixture-google-3-cancelled.png` | `4c4cda18ec65f992…` | 780×1803 |
+| `clerk-nb-eac3e73-390-real-1-signed-out.png` | `abd7625e8988ece1…` | 780×1803 |
+| `clerk-nb-eac3e73-430-fixture-google-1-signed-out.png` | `e7577f7eb469b6e6…` | 860×1780 |
+| `clerk-nb-eac3e73-430-fixture-google-2-busy.png` | `e46db9e861981c8e…` | 860×1780 |
+| `clerk-nb-eac3e73-430-fixture-google-3-cancelled.png` | `d5a9a23067034d9a…` | 860×1780 |
+| `clerk-nb-eac3e73-430-real-1-signed-out.png` | `07a58bf6777d377d…` | 860×1803 |
