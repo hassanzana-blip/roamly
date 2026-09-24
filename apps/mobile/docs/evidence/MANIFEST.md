@@ -679,3 +679,56 @@ Remaining:
 - the native MapKit rendering, pin taps, the fit-to-pins, dark style and VoiceOver on a device or simulator;
 - `expo-doctor` / `expo install --check` with react-native-maps (blocked by the proxy here; CI runs them);
 - a native iPhone check. Expo SDK 57 includes `react-native-maps` 1.27.2 in a matching Expo Go app, so Expo Go is a possible test route for this map; an EAS development build is another route. Neither has been run for this stage.
+
+
+## Profile: Google/Apple sign-in readiness (44493f5), live sign-in BLOCKED
+
+| Level | Status |
+|---|---|
+| Code-only | provider capabilities (`mobileAuth.providers`); gated Profile buttons; token → `exchangeSocialToken` → SecureStore wiring; handoff in `docs/social-login-handoff.md` |
+| Fixture-tested | unit and env tests (`api/lib/mobileSocial.test.ts`, `api/test/mobileSocialEnv.test.ts`); the staff check and app client contract against the real server with no Clerk (`mobileAccount.it.ts`, `mobileClient.it.ts`); app state and UI with a fake adapter (`src/__tests__/socialAuth.test.tsx`); the screenshots below |
+| Real-provider-tested | **NO.** Clerk's Expo SDK needs Native API and the mobile SSO redirect allowlist in the Clerk Dashboard. Neither has been changed, so no Clerk token was ever produced by the app. |
+| Native-device-tested | **NO.** No iPhone or simulator; this build has no native sign-in flow. |
+
+Two sets of images, all web renderings (Chromium) at 375/390/430 pt in both languages:
+- **REAL BUILD GATE** (green caption): this commit's code, with the server answering like production today. No Google/Apple buttons.
+- **FIXTURE ONLY** (amber caption): a scratch-only preview shim (not committed, not Clerk) replaces the native adapter so the gated UI can be seen. It shows the Google button, the busy state and cancellation. Two 375 pt images show Google and Apple together, as a layout check only.
+
+| Check (from the capture reports) | real | fixture | Result |
+|---|---|---|---|
+| Social buttons shown | none | Google (and Apple in «both») | PASSED |
+| Email/password form present | yes | yes | PASSED |
+| `mobileAuth.providers` called before Profile opens | 0 | 0 | PASSED |
+| Authorization header on `mobileAuth.providers` | none | none | PASSED |
+| Busy label / cancel note (nb) | – | «Logger inn med Google …» / «Innloggingen ble avbrutt. Ingenting er endret.» | PASSED |
+| Busy label / cancel note (en) | – | «Signing in with Google …» / «Sign-in was cancelled. Nothing was changed.» | PASSED |
+| `exchangeSocialToken` calls after cancel | – | 0 | PASSED |
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `auth-en-44493f5-375-fixture-both-1-signed-out.png` | `68dc7850b8111902…` | 750×1832 |
+| `auth-en-44493f5-375-fixture-google-1-signed-out.png` | `f4d082db84fa4041…` | 750×1803 |
+| `auth-en-44493f5-375-fixture-google-2-busy.png` | `c2bdbef4c7c2cbd0…` | 750×1803 |
+| `auth-en-44493f5-375-fixture-google-3-cancelled.png` | `2034e18220dba7e9…` | 750×1803 |
+| `auth-en-44493f5-375-real-1-signed-out.png` | `90e9ef06808f47ff…` | 750×1803 |
+| `auth-en-44493f5-390-fixture-google-1-signed-out.png` | `109dc2e1ac9640c5…` | 780×1803 |
+| `auth-en-44493f5-390-fixture-google-2-busy.png` | `aaa2d0e4e83d38ea…` | 780×1803 |
+| `auth-en-44493f5-390-fixture-google-3-cancelled.png` | `5da954c73aaf2e3d…` | 780×1803 |
+| `auth-en-44493f5-390-real-1-signed-out.png` | `e538073e6145ded7…` | 780×1803 |
+| `auth-en-44493f5-430-fixture-google-1-signed-out.png` | `63594d54ad371231…` | 860×1780 |
+| `auth-en-44493f5-430-fixture-google-2-busy.png` | `e0c653dd9d4ae107…` | 860×1780 |
+| `auth-en-44493f5-430-fixture-google-3-cancelled.png` | `437d99924b1be207…` | 860×1780 |
+| `auth-en-44493f5-430-real-1-signed-out.png` | `bffda6eead6276c4…` | 860×1780 |
+| `auth-nb-44493f5-375-fixture-both-1-signed-out.png` | `e56263d2d5198130…` | 750×1832 |
+| `auth-nb-44493f5-375-fixture-google-1-signed-out.png` | `328da14949aa6ea5…` | 750×1803 |
+| `auth-nb-44493f5-375-fixture-google-2-busy.png` | `6702e8a5d5a02c02…` | 750×1803 |
+| `auth-nb-44493f5-375-fixture-google-3-cancelled.png` | `86e70f9a2402c35f…` | 750×1803 |
+| `auth-nb-44493f5-375-real-1-signed-out.png` | `27771aa75f9a50a6…` | 750×1803 |
+| `auth-nb-44493f5-390-fixture-google-1-signed-out.png` | `ca89b7e7899d5e3e…` | 780×1803 |
+| `auth-nb-44493f5-390-fixture-google-2-busy.png` | `f3e42f0989f30d15…` | 780×1803 |
+| `auth-nb-44493f5-390-fixture-google-3-cancelled.png` | `599faa8e83c2d56f…` | 780×1803 |
+| `auth-nb-44493f5-390-real-1-signed-out.png` | `2ba13cad859cf77b…` | 780×1803 |
+| `auth-nb-44493f5-430-fixture-google-1-signed-out.png` | `1e7a7ea854569ebc…` | 860×1780 |
+| `auth-nb-44493f5-430-fixture-google-2-busy.png` | `1f016e99aa23dc87…` | 860×1780 |
+| `auth-nb-44493f5-430-fixture-google-3-cancelled.png` | `db45b5c49edd83bb…` | 860×1780 |
+| `auth-nb-44493f5-430-real-1-signed-out.png` | `eddad57211743ad8…` | 860×1780 |
