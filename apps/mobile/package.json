@@ -71,8 +71,7 @@
     "autolinking": {
       "ios": {
         "exclude": [
-          "@clerk/expo",
-          "expo-apple-authentication"
+          "@clerk/expo"
         ]
       }
     }

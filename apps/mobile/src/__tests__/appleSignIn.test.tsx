@@ -5,7 +5,7 @@ import * as SecureStore from "expo-secure-store";
 import type { MobileAuthProviders } from "@contracts/mobileAuth";
 import { AppProvider, type ApiFactory, type NativeSocialSignIn } from "../lib/appState";
 import { createApiClient } from "../lib/api";
-import { createNativeSocial, nativeSocialSignIn } from "../lib/nativeSocial.ios";
+import { createNativeSocial } from "../lib/nativeSocial.ios";
 import { appleBuildReady } from "../lib/appleSupport";
 import { __resetSsoRunnerForTests } from "../lib/clerkBridge";
 import { fakeServer } from "../test/fakeServer";
@@ -78,18 +78,17 @@ describe("når builden kan kjøre Sign in with Apple", () => {
     ).toBe(false);
   });
 
-  it("denne builden: Apple-modulen er utelatt fra iOS-autolinking og app.json ber ikke om Apple → Apple støttes ikke", () => {
+  it("iOS-konfigurasjonen lenker Apple-modulen og ber om rettigheten, men beholder Clerk JS uten native Clerk-modul", () => {
     const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../package.json"), "utf8")) as { expo: { autolinking: { ios: { exclude: string[] } } } };
-    expect(pkg.expo.autolinking.ios.exclude).toEqual(expect.arrayContaining(["@clerk/expo", "expo-apple-authentication"]));
-    const app = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../app.json"), "utf8")) as { expo: { ios?: { usesAppleSignIn?: boolean } } };
-    expect(app.expo.ios?.usesAppleSignIn).not.toBe(true);
-    expect(appleBuildReady()).toBe(false);
-    expect(nativeSocialSignIn.supports("apple")).toBe(false);
-    expect(nativeSocialSignIn.supports("google")).toBe(true);
+    expect(pkg.expo.autolinking.ios.exclude).toContain("@clerk/expo");
+    expect(pkg.expo.autolinking.ios.exclude).not.toContain("expo-apple-authentication");
+    const app = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../app.json"), "utf8")) as { expo: { ios?: { usesAppleSignIn?: boolean }; plugins?: unknown[] } };
+    expect(app.expo.ios?.usesAppleSignIn).toBe(true);
+    expect(app.expo.plugins).toContain("expo-apple-authentication");
   });
 
-  it("denne builden + serveren sier Apple er klar: ingen Apple-knapp (ingen død knapp)", async () => {
-    await renderProfile(caps(false, true), nativeSocialSignIn);
+  it("manglende native Apple-modul + serveren sier klar: ingen død Apple-knapp", async () => {
+    await renderProfile(caps(false, true), createNativeSocial(() => false));
     expect(screen.queryByTestId("social-apple")).toBeNull();
     expect(screen.queryByTestId("social-sign-in")).toBeNull();
     expect(clerk.providers).toHaveLength(0);
