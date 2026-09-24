@@ -1,5 +1,6 @@
 import { parseDraft } from "./draft";
-import type { AirportChoice, SearchForm } from "./searchForm";
+import { toIsoDate } from "./format";
+import { initialForm, type AirportChoice, type SearchForm } from "./searchForm";
 
 /**
  * Nylige søk, bare på telefonen (localStore «recent»): skjemaet for søk som
@@ -16,13 +17,16 @@ export function recentKey(f: SearchForm): string {
   return [f.origin?.iata, f.destination?.iata, f.tripType, f.departDate, ret, f.adults, f.childAges.join("."), f.infantAges.join("."), f.cabinClass, f.directOnly ? "d" : ""].join("|");
 }
 
-/** Lagret liste → gyldige søk. Hver post sjekkes som søkeutkastet; passerte datoer rulles fram. */
+/**
+ * Lagret liste → gyldige søk. Hver post sjekkes som søkeutkastet, men datoene
+ * beholdes: et søk med passerte datoer vises som det, aldri flyttet i det stille.
+ */
 export function parseRecent(raw: unknown, today: Date = new Date()): RecentSearch[] {
   if (!Array.isArray(raw)) return [];
   const out: RecentSearch[] = [];
   const seen = new Set<string>();
   for (const item of raw.slice(0, MAX_RECENT * 2)) {
-    const f = parseDraft(item, today);
+    const f = parseDraft(item, today, { keepPastDates: true });
     if (!f || !f.origin || !f.destination || f.origin.iata === f.destination.iata) continue;
     const key = recentKey(f);
     if (seen.has(key)) continue;
@@ -55,4 +59,19 @@ export function recentAirports(list: RecentSearch[], field: "origin" | "destinat
 export function parseHomeAirport(raw: unknown): AirportChoice | null {
   const f = parseDraft({ tripType: "oneway", origin: raw, destination: null, adults: 1, childAges: [], infantAges: [], cabinClass: "economy" });
   return f?.origin ?? null;
+}
+
+/** Har avreisen passert? Da kan søket ikke kjøres på nytt med disse datoene. */
+export function recentIsPast(r: SearchForm, today: Date = new Date()): boolean {
+  return r.departDate < toIsoDate(today);
+}
+
+/**
+ * Et nylig søk med passerte datoer som nytt utkast: samme rute, reisetype,
+ * reisende, klasse og direktevalg, men dagens standarddatoer – som kunden ser
+ * og kan endre før hun søker. Søker ikke.
+ */
+export function withFreshDates(r: RecentSearch, today: Date = new Date()): SearchForm {
+  const base = initialForm(today);
+  return { ...r, departDate: base.departDate, returnDate: base.returnDate };
 }

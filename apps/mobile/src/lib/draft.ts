@@ -21,8 +21,12 @@ function airport(v: unknown): AirportChoice | null {
 const ints = (v: unknown, allowed: readonly number[]): number[] | null =>
   Array.isArray(v) && v.every((n) => typeof n === "number" && allowed.includes(n)) ? (v as number[]) : null;
 
-/** Et gyldig, oppdatert utkast – eller null (da brukes standardskjemaet). */
-export function parseDraft(raw: unknown, today: Date = new Date()): SearchForm | null {
+/**
+ * Et gyldig, oppdatert utkast – eller null (da brukes standardskjemaet).
+ * `keepPastDates`: behold datoene som de var (nylige søk viser da at de har
+ * passert, i stedet for å flytte reisen i det stille).
+ */
+export function parseDraft(raw: unknown, today: Date = new Date(), { keepPastDates = false }: { keepPastDates?: boolean } = {}): SearchForm | null {
   if (!raw || typeof raw !== "object") return null;
   const d = raw as Record<string, unknown>;
   const base = initialForm(today);
@@ -37,7 +41,7 @@ export function parseDraft(raw: unknown, today: Date = new Date()): SearchForm |
   let departDate = typeof d.departDate === "string" && ISO.test(d.departDate) ? d.departDate : base.departDate;
   let returnDate = typeof d.returnDate === "string" && ISO.test(d.returnDate) ? d.returnDate : addDays(departDate, 7);
   const todayIso = toIsoDate(today);
-  if (departDate < todayIso) {
+  if (departDate < todayIso && !keepPastDates) {
     // Datoen har passert: flytt reisen fram til standarddatoen, med samme lengde.
     const length = Math.max(0, Math.round((fromIsoDate(returnDate).getTime() - fromIsoDate(departDate).getTime()) / 86_400_000));
     departDate = base.departDate;

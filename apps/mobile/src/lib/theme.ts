@@ -29,6 +29,8 @@ export const colors = {
   blue: "#0754F8",
   bluePressed: "#0544CC",
   blueOnDark: "#4C8DFF",
+  /** Valgt fane: svak blå pille bak ikonet på kull. */
+  blueOnDarkTint: "rgba(76, 141, 255, 0.18)",
   blueSoft: "#EAF0FF",
 
   // Tilstander (alltid sammen med tekst eller ikon – aldri farge alene)

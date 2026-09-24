@@ -1,0 +1,46 @@
+/** Lagret-fanen: reisemål og nylige søk, bare på denne telefonen. Ingen priser, bestillinger eller varsler. */
+const en = {
+  title: "Saved",
+  deviceNote: "Saved only on this phone. These are not bookings, held prices or price alerts, and they are not synced to your account. Prices appear only after you search.",
+  destinationsTitle: "Destinations",
+  destinationsEmpty: "No saved destinations yet. Save one from Explore.",
+  toExplore: "Go to Explore",
+  useInSearch: "Use in search",
+  useInSearchLabel: (city: string, airport: string) => `Use ${city}, ${airport} as destination`,
+  useInSearchHint: "Fills in the destination on Home. Does not search.",
+  remove: "Remove",
+  removeLabel: (what: string) => `Remove ${what}`,
+  recentTitle: "Recent searches",
+  recentEmpty: "Searches you run appear here.",
+  clearRecent: "Clear all",
+  searchAgain: "Search again",
+  searchAgainLabel: (route: string, detail: string) => `Search again: ${route}, ${detail}`,
+  datesPassed: "These dates have passed",
+  chooseNewDates: "Choose new dates",
+  chooseNewDatesLabel: (route: string) => `Choose new dates for ${route}`,
+  chooseNewDatesHint: "Fills in the route on Home with new dates. Does not search.",
+};
+
+const nb: typeof en = {
+  title: "Lagret",
+  deviceNote: "Lagres bare på denne telefonen. Dette er ikke bestillinger, holdte priser eller prisvarsler, og det synkroniseres ikke med kontoen din. Priser ser du først etter et søk.",
+  destinationsTitle: "Reisemål",
+  destinationsEmpty: "Ingen lagrede reisemål ennå. Lagre et fra Utforsk.",
+  toExplore: "Gå til Utforsk",
+  useInSearch: "Bruk i søket",
+  useInSearchLabel: (city, airport) => `Bruk ${city}, ${airport} som reisemål`,
+  useInSearchHint: "Fyller inn reisemålet på Hjem. Søker ikke.",
+  remove: "Fjern",
+  removeLabel: (what) => `Fjern ${what}`,
+  recentTitle: "Nylige søk",
+  recentEmpty: "Søk du kjører, vises her.",
+  clearRecent: "Tøm alle",
+  searchAgain: "Søk igjen",
+  searchAgainLabel: (route, detail) => `Søk igjen: ${route}, ${detail}`,
+  datesPassed: "Datoene har passert",
+  chooseNewDates: "Velg nye datoer",
+  chooseNewDatesLabel: (route) => `Velg nye datoer for ${route}`,
+  chooseNewDatesHint: "Fyller inn ruten på Hjem med nye datoer. Søker ikke.",
+};
+
+export const saved = { en, nb };

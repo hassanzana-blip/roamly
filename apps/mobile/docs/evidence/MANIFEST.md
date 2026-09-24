@@ -901,3 +901,54 @@ After the change:
 | `home-first-view-before-390-large.png` | `1f460fb3fc8d8808…` | 780×1862 |
 | `home-first-view-before-390.png` | `0b6c4eff4d509fdb…` | 780×1862 |
 | `home-first-view-before-430.png` | `b2205cf5cbf7cf89…` | 860×2013 |
+
+## Lagret (Saved) tab and four-tab navigation (browser preview)
+
+**NON-NATIVE: not an iPhone.** These are Chromium renderings of Expo web:
+- safe areas are simulated (375×812 → 50/34, 390×844 → 47/34, 430×932 → 59/34);
+- Inter replaces the system font;
+- large text is a 135 % browser zoom of text only;
+- offers are not fetched (the preview API answers 503), and no prices appear.
+
+**Versions:** before is `6971bbe`; after is the commit that adds this section. Images are JPEG (quality 82).
+
+**Flow captured at each size:**
+1. Home.
+2. Explore: save Barcelona (BCN) and Tromsø (TOS).
+3. Lagret.
+4. Home → tap the Barcelona card (one search) → back to Home.
+5. Lagret again.
+
+**Measured in every after run (375, 390, 430 and 390 at 135 %):**
+- **Tabs:** four tabs, each 48 pt tall (94 / 98 / 108 pt wide), with no clipped labels.
+- **Safe area:** the bar ends 34 pt above the screen bottom, above the simulated home indicator.
+- **Selected tab:** exactly one, matching the screen (Hjem, Utforsk, Lagret).
+- **Nothing sent:** no blocked outbound request.
+
+| Viewport | One recent search on Home, before | Destination card visible after one search, before | Home first view after (card visible) |
+|---|---|---|---|
+| 375×812 | 122 pt block | 7 of 132 | 92 of 132 (unchanged) |
+| 390×844 | 122 pt block | 7 of 132 | 127 of 132 (unchanged) |
+| 430×932 | 122 pt block | 73 of 132 | 132 of 132 |
+| 390×844, 135 % | 141 pt block | 0 of 132 | 77 of 132 |
+
+After the change, a search adds nothing to Home; recent searches are listed in Lagret.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `saved-after-375-1-home.jpg` | `199d3d17f7575eff…` | 750×1823 |
+| `saved-after-375-2-explore.jpg` | `2c5d9bc6369721e3…` | 750×1798 |
+| `saved-after-375-3-lagret.jpg` | `5271fd98d9140ceb…` | 750×1798 |
+| `saved-after-390-1-home.jpg` | `1a713317919c391c…` | 780×1887 |
+| `saved-after-390-2-explore.jpg` | `5470eaf5de52cb65…` | 780×1862 |
+| `saved-after-390-3-lagret.jpg` | `bb48e45454d76d83…` | 780×1862 |
+| `saved-after-390-large-1-home.jpg` | `ed471d81f30393c3…` | 780×1887 |
+| `saved-after-390-large-2-explore.jpg` | `b80d25fe6ac4b2be…` | 780×1862 |
+| `saved-after-390-large-3-lagret.jpg` | `36f4451e238d0d34…` | 780×1862 |
+| `saved-after-430-1-home.jpg` | `e459e4b35a95d98c…` | 860×2038 |
+| `saved-after-430-2-explore.jpg` | `b9ca6cabf6de409b…` | 860×2038 |
+| `saved-after-430-3-lagret.jpg` | `e7b6b886703dabe5…` | 860×2038 |
+| `saved-before-375-home-after-one-search.jpg` | `aea8dc9bafcfdafd…` | 750×1798 |
+| `saved-before-390-home-after-one-search.jpg` | `459ba7b37922eb8b…` | 780×1862 |
+| `saved-before-390-large-home-after-one-search.jpg` | `9e8b81f6c93cf353…` | 780×1862 |
+| `saved-before-430-home-after-one-search.jpg` | `5f9993f82b6d4014…` | 860×2038 |

@@ -11,20 +11,26 @@ type TabBarProps = {
   navigation: { navigate: (name: string) => void; emit: (e: { type: "tabPress"; target: string; canPreventDefault: true }) => { defaultPrevented: boolean } };
 };
 
-/** Bare fanene som faktisk virker. «Lagret» kommer når lagring finnes. */
-const TABS: Record<string, { key: "home" | "explore" | "profile"; icon: IconName }> = {
+/** Bare fanene som faktisk virker. «Lagret» er reisemål og nylige søk på denne telefonen. */
+const TABS: Record<string, { key: "home" | "explore" | "saved" | "profile"; icon: IconName }> = {
   index: { key: "home", icon: "home" },
   utforsk: { key: "explore", icon: "compass" },
+  lagret: { key: "saved", icon: "bookmark" },
   profil: { key: "profile", icon: "user" },
 };
 
-/** Mørk fanelinje med blått aktivt valg, som i referansen. */
+/**
+ * Mørk fanelinje med fire faner. Valgt fane: en kompakt blå pille bak ikonet og
+ * blå, halvfet etikett (prinsippet fra navigasjonsskissen – ingen kode derfra).
+ * Hele fanen er trykkflaten (minst 48 pt høy), og etiketten vokser med stor tekst
+ * opptil 1,3× så fire faner alltid får plass.
+ */
 export function BottomNavigation({ state, navigation }: TabBarProps) {
   const lang = useA11yLanguage();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   return (
-    <View accessibilityLanguage={lang} style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]} accessibilityRole="tablist">
+    <View accessibilityLanguage={lang} style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]} accessibilityRole="tablist" testID="bottom-navigation">
       {state.routes.map((route, i) => {
         const tab = TABS[route.name];
         if (!tab) return null;
@@ -44,8 +50,12 @@ export function BottomNavigation({ state, navigation }: TabBarProps) {
             }}
             style={({ pressed }) => [styles.item, pressed && { opacity: 0.7 }]}
           >
-            <Icon name={tab.icon} size={24} color={color} strokeWidth={focused ? 2 : 1.75} />
-            <Text style={[styles.label, { color }]}>{label}</Text>
+            <View style={[styles.pill, focused && styles.pillOn]} testID={focused ? `tab-${route.name}-selected` : undefined}>
+              <Icon name={tab.icon} size={22} color={color} strokeWidth={focused ? 2 : 1.75} />
+            </View>
+            <Text style={[styles.label, { color }, focused && styles.labelOn]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}
@@ -55,6 +65,9 @@ export function BottomNavigation({ state, navigation }: TabBarProps) {
 
 const styles = StyleSheet.create({
   bar: { flexDirection: "row", backgroundColor: colors.bg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.darkBorder, paddingTop: space.sm },
-  item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 3, minHeight: 48 },
+  item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 48, paddingHorizontal: 2 },
+  pill: { width: 52, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  pillOn: { backgroundColor: colors.blueOnDarkTint },
   label: { fontSize: 11, lineHeight: 13, fontWeight: "500" },
+  labelOn: { fontWeight: "600" },
 });

@@ -1,4 +1,4 @@
-import { addRecent, MAX_RECENT, parseHomeAirport, parseRecent, recentAirports, recentKey, type RecentSearch } from "../recent";
+import { addRecent, MAX_RECENT, parseHomeAirport, parseRecent, recentAirports, recentIsPast, recentKey, withFreshDates, type RecentSearch } from "../recent";
 import { initialForm } from "../searchForm";
 
 const today = new Date(2026, 8, 23);
@@ -24,12 +24,24 @@ describe("nylige søk (bare på telefonen)", () => {
     expect(addRecent([], { ...initialForm(today), destination: null })).toEqual([]);
   });
 
-  it("lagret liste sjekkes post for post; passerte datoer rulles fram; ugyldige og like forkastes", () => {
+  it("lagret liste sjekkes post for post; passerte datoer beholdes (aldri flyttet i det stille); ugyldige og like forkastes", () => {
     const raw = [trip(OSL, BCN, "2026-09-01"), { ...trip(OSL, BCN, "2026-09-01") }, { junk: true }, trip(OSL, OSL), trip(BGO, LHR)];
     const list = parseRecent(raw, today);
     expect(list.map((r) => `${r.origin.iata}-${r.destination.iata}`)).toEqual(["OSL-BCN", "BGO-LHR"]);
-    expect(list[0]!.departDate).toBe("2026-10-07");
+    expect(list[0]!.departDate).toBe("2026-09-01");
+    expect(list[0]!.returnDate).toBe("2026-10-30");
+    expect(recentIsPast(list[0]!, today)).toBe(true);
+    expect(recentIsPast(list[1]!, today)).toBe(false);
     expect(parseRecent("nonsense", today)).toEqual([]);
+  });
+
+  it("nye datoer for et passert søk: samme rute, reisende og klasse; dagens standarddatoer – ikke et søk", () => {
+    const old = { ...trip(OSL, BCN, "2026-09-01"), adults: 2, cabinClass: "business" as const, directOnly: true };
+    const fresh = withFreshDates(old, today);
+    expect(fresh).toMatchObject({ origin: OSL, destination: BCN, adults: 2, cabinClass: "business", directOnly: true, tripType: old.tripType });
+    expect(fresh.departDate).toBe(initialForm(today).departDate);
+    expect(fresh.returnDate).toBe(initialForm(today).returnDate);
+    expect(recentIsPast(fresh, today)).toBe(false);
   });
 
   it("flyplasser fra nylige søk per felt, nyeste først, uten duplikater", () => {

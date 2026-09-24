@@ -24,6 +24,10 @@ const en = {
   clusterHint: "Zooms in so you can choose one",
   selectedWithNeighbours: (pin: string, others: string) => `${pin}, selected. Close by: ${others}`,
   offMapLabel: (city: string, iata: string) => `${city}, ${iata}, destination outside the map`,
+  save: "Save",
+  savedState: "Saved",
+  saveLabel: (city: string, iata: string) => `Save ${city} (${iata}) on this phone`,
+  unsaveLabel: (city: string, iata: string) => `Saved: ${city} (${iata}). Remove from Saved`,
 };
 
 const nb: typeof en = {
@@ -51,6 +55,10 @@ const nb: typeof en = {
   clusterHint: "Zoomer inn så du kan velge ett",
   selectedWithNeighbours: (pin, others) => `${pin}, valgt. Tett ved: ${others}`,
   offMapLabel: (city, iata) => `${city}, ${iata}, reisemål utenfor kartet`,
+  save: "Lagre",
+  savedState: "Lagret",
+  saveLabel: (city, iata) => `Lagre ${city} (${iata}) på denne telefonen`,
+  unsaveLabel: (city, iata) => `Lagret: ${city} (${iata}). Fjern fra Lagret`,
 };
 
 export const explore = { en, nb };

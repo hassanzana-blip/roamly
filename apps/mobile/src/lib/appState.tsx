@@ -13,6 +13,8 @@ import { DEFAULT_VIEW, type ResultsView } from "./resultsView";
 import { parseDraft } from "./draft";
 import { readPref, writePref } from "./localStore";
 import { addRecent, parseHomeAirport, parseRecent, recentKey, type RecentSearch } from "./recent";
+import { parseSaved, toggleSaved as toggleSavedList, type SavedDestination } from "./saved";
+import type { Destination } from "./destinations";
 import { I18nProvider } from "../i18n";
 import type { Locale } from "../i18n/types";
 import type { FormErrorCode } from "../i18n/ns/search";
@@ -80,6 +82,9 @@ type AppContextValue = {
   recent: RecentSearch[];
   removeRecent: (key: string) => void;
   clearRecent: () => void;
+  /** Lagrede reisemål, bare på denne telefonen. */
+  saved: SavedDestination[];
+  toggleSaved: (d: Destination) => void;
   /** Foretrukket avreiseflyplass – bare når kunden selv har valgt det. Brukes som «Fra» i et nytt skjema. */
   homeAirport: AirportChoice | null;
   setHomeAirport: (a: AirportChoice | null) => void;
@@ -144,6 +149,14 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
   }, []);
   const removeRecent = useCallback((key: string) => saveRecent(recent.filter((r) => recentKey(r) !== key)), [recent, saveRecent]);
   const clearRecent = useCallback(() => saveRecent([]), [saveRecent]);
+  const [saved, setSaved] = useState<SavedDestination[]>(() => readPref("saved", parseSaved) ?? []);
+  const toggleSaved = useCallback((d: Destination) => {
+    setSaved((list) => {
+      const next = toggleSavedList(list, d);
+      writePref("saved", next.length ? next : null);
+      return next;
+    });
+  }, []);
   const setHomeAirport = useCallback((a: AirportChoice | null) => {
     setHomeAirportState(a);
     writePref("homeAirport", a);
@@ -378,8 +391,8 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
   );
 
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId }),
-    [api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, homeAirport, setHomeAirport, sessionId],
+    () => ({ api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId }),
+    [api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId],
   );
   return (
     <AppContext.Provider value={value}>

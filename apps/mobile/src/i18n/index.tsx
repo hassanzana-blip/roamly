@@ -27,6 +27,7 @@ import { account } from "./ns/account";
 import { details } from "./ns/details";
 import { airport } from "./ns/airport";
 import { hotels } from "./ns/hotels";
+import { saved } from "./ns/saved";
 
 /**
  * Oversettelser. Hvert område har én fil med engelsk og norsk side om side;
@@ -35,8 +36,8 @@ import { hotels } from "./ns/hotels";
  * flertall bøyes riktig på begge språk.
  */
 const dictionaries = {
-  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en, hotels: hotels.en },
-  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb, hotels: hotels.nb },
+  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en, hotels: hotels.en, saved: saved.en },
+  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb, hotels: hotels.nb, saved: saved.nb },
 } satisfies Record<Locale, unknown>;
 
 export type Dictionary = typeof dictionaries.en;

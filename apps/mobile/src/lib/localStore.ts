@@ -2,7 +2,7 @@ import { File, Paths } from "expo-file-system";
 
 /**
  * Innstillinger som ikke er hemmelige, bare på denne telefonen: språk,
- * søkeutkastet, siste søk, foretrukket avreiseflyplass og huskelisten.
+ * søkeutkastet, siste søk, foretrukket avreiseflyplass og lagrede reisemål.
  *
  * Én liten JSON-fil i appens dokumentmappe. Den forsvinner når appen slettes
  * (i motsetning til nøkkelringen), synkroniseres aldri og inneholder aldri

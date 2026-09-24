@@ -14,6 +14,7 @@ import { DestinationMap } from "../../components/DestinationMap";
 import { DestinationPinCard } from "../../components/DestinationPinCard";
 import { MAP_AREAS, MAP_POINTS, areaOfDestination, initialArea, pointsIn, type MapArea } from "../../lib/destinationMap";
 import { DestinationCard } from "../../components/DestinationCard";
+import { SaveButton } from "../../components/SaveButton";
 import { colors, radius, space, type } from "../../lib/theme";
 
 type ExploreView = "list" | "map";
@@ -144,7 +145,13 @@ export default function ExploreScreen() {
       <View style={styles.grid}>
         {DESTINATIONS.map((d) => (
           <View key={d.id} style={{ width: cardWidth, gap: space.xs }}>
-            <DestinationCard destination={d} onPress={() => searchTo(d)} style={{ width: cardWidth, height: cardWidth * 0.9 }} testID={`explore-${d.id}`} />
+            <View>
+              <DestinationCard destination={d} onPress={() => searchTo(d)} style={{ width: cardWidth, height: cardWidth * 0.9 }} testID={`explore-${d.id}`} />
+              {/* Egen knapp ved siden av kortets knapp (ikke inni den), så skjermleseren får to tydelige valg. */}
+              <View style={styles.save}>
+                <SaveButton destination={d} />
+              </View>
+            </View>
             <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>{t.explore.countryCode(d.names[locale].country, d.iata)}</Text>
           </View>
         ))}
@@ -165,5 +172,6 @@ const styles = StyleSheet.create({
   mapArea: { flex: 1, minHeight: 200, backgroundColor: colors.bg },
   cardWrap: { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "55%" },
   cardContent: { paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.md },
+  save: { position: "absolute", top: space.xs, right: space.xs },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, paddingHorizontal: space.lg, rowGap: space.lg },
 });

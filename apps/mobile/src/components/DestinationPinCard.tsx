@@ -4,6 +4,7 @@ import { Text } from "./a11y";
 import type { Destination } from "../lib/destinations";
 import { useI18n } from "../i18n";
 import { IconButton, PrimaryButton } from "./ui";
+import { SaveButton } from "./SaveButton";
 import { colors, radius, space, type } from "../lib/theme";
 
 /**
@@ -28,7 +29,10 @@ export function DestinationPinCard({ destination, onSearch, onClose }: { destina
             {e.airportLine(n.airport, destination.iata)}
           </Text>
         </View>
-        <IconButton icon="close" label={e.close} variant="light" size={36} onPress={onClose} testID="map-pin-close" />
+        <View style={styles.actions}>
+          <SaveButton destination={destination} variant="light" testID="map-pin-save" />
+          <IconButton icon="close" label={e.close} variant="light" size={36} onPress={onClose} testID="map-pin-close" />
+        </View>
       </View>
       <Text style={[type.caption, { color: colors.textSecondary }]}>{e.noPrice}</Text>
       <PrimaryButton label={e.seeFlights} accessibilityLabel={e.seeFlightsTo(n.city, `${n.airport} (${destination.iata})`)} icon="arrowRight" onPress={onSearch} testID="map-pin-search" />
@@ -40,5 +44,6 @@ const styles = StyleSheet.create({
   // Kompakt: kortet ligger over kartet, så det skal ta så lite av kartet som mulig.
   card: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.md, gap: space.sm, shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 4 } },
   top: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
+  actions: { flexDirection: "row", alignItems: "center", gap: space.xs },
   thumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.inset },
 });
