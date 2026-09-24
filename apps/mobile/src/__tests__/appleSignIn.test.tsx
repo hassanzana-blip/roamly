@@ -168,6 +168,25 @@ describe("Apple via Clerk → exchangeSocialToken → HelloSky-sesjon (Apple-kla
     expect(clerk.signOut).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["getToken kaster", () => clerk.getToken.mockRejectedValue(new Error("network"))],
+    ["getToken gir ingen token", () => clerk.getToken.mockResolvedValue(null)],
+  ])("Apple: økten er aktivert, men %s – Clerk-økten avsluttes før feilen, ingen bytte, ingen sesjon", async (_label, arrange) => {
+    const res = APPLE_SESSION();
+    clerk.startAppleAuthenticationFlow.mockResolvedValue(res);
+    arrange();
+    const server = await renderProfile(caps(false, true));
+    await waitFor(() => expect(screen.getByTestId("social-apple")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("social-apple"));
+    await waitFor(() => expect(screen.getByTestId("auth-error")).toHaveTextContent("Vi fikk ikke logget deg inn. Prøv igjen, eller bruk e-post og passord."));
+    expect(res.setActive).toHaveBeenCalledWith({ session: "sess_apple" });
+    expect(clerk.signOut).toHaveBeenCalledTimes(1);
+    expect(clerk.signOut.mock.invocationCallOrder[0]).toBeGreaterThan(res.setActive.mock.invocationCallOrder[0]!);
+    expect(server.calls.some((c) => c.path === "mobileAuth.exchangeSocialToken")).toBe(false);
+    expect(keychain.has(SESSION_KEY)).toBe(false);
+    expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen();
+  });
+
   it("dobbeltrykk, og Google trykket mens Apple-arket er åpent: én flyt, ett bytte", async () => {
     let finish!: (v: unknown) => void;
     clerk.startAppleAuthenticationFlow.mockImplementation(() => new Promise((r) => (finish = r)));

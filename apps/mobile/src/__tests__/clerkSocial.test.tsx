@@ -166,6 +166,25 @@ describe("Google via Clerk → exchangeSocialToken → HelloSky-sesjon", () => {
     expect(clerk.signOut).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["getToken kaster", () => clerk.getToken.mockRejectedValue(new Error("network"))],
+    ["getToken gir ingen token", () => clerk.getToken.mockResolvedValue(null)],
+  ])("Google: økten er aktivert, men %s – Clerk-økten avsluttes før feilen, ingen bytte, ingen sesjon", async (_label, arrange) => {
+    const flow = SUCCESS();
+    clerk.startSSOFlow.mockResolvedValue(flow);
+    arrange();
+    const server = await renderProfile(caps(true, false), {}, "en");
+    await waitFor(() => expect(screen.getByTestId("social-google")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("social-google"));
+    await waitFor(() => expect(screen.getByTestId("auth-error")).toHaveTextContent("We couldn't sign you in. Try again, or use e-mail and password."));
+    expect(flow.setActive).toHaveBeenCalledWith({ session: "sess_1" });
+    expect(clerk.signOut).toHaveBeenCalledTimes(1);
+    expect(clerk.signOut.mock.invocationCallOrder[0]).toBeGreaterThan(flow.setActive.mock.invocationCallOrder[0]!);
+    expect(server.calls.some((c) => c.path === "mobileAuth.exchangeSocialToken")).toBe(false);
+    expect(keychain.has(SESSION_KEY)).toBe(false);
+    expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen();
+  });
+
   it("dobbeltrykk mens Google-vinduet er åpent: én flyt, ett bytte", async () => {
     let finish!: (v: unknown) => void;
     clerk.startSSOFlow.mockImplementation(() => new Promise((r) => (finish = r)));

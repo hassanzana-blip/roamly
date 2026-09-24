@@ -23,16 +23,24 @@ function Bridge() {
   useEffect(() => {
     /** Aktiver Clerk-økten og hent tokenet serveren skal verifisere. */
     const activate = async (res: Created): Promise<NativeSocialResult> => {
-      await res.setActive!({ session: res.createdSessionId! });
-      const token = await clerk.session?.getToken();
-      if (!token) throw new Error("clerk_token_missing");
-      return {
-        kind: "token",
-        token,
-        release: async () => {
-          await clerk.signOut().catch(() => undefined);
-        },
+      const release = async () => {
+        await clerk.signOut().catch(() => undefined);
       };
+      await res.setActive!({ session: res.createdSessionId! });
+      // Clerk-økten er nå aktiv. Feiler tokenet, avsluttes økten før feilen går videre –
+      // ellers ville en halvferdig Clerk-innlogging bli liggende i minnet.
+      let token: string | null | undefined;
+      try {
+        token = await clerk.session?.getToken();
+      } catch (err) {
+        await release();
+        throw err;
+      }
+      if (!token) {
+        await release();
+        throw new Error("clerk_token_missing");
+      }
+      return { kind: "token", token, release };
     };
     return registerSsoRunner(async (provider) => {
       if (provider === "apple") {
