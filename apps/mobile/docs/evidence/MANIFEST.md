@@ -984,3 +984,61 @@ Every control is at least 44 pt (the row buttons are ≥ 74 pt tall). No outboun
 | `lagret-before-390-large.jpg` | `9fd02724168b099d…` | 780×1887 |
 | `lagret-before-390.jpg` | `4bd00eb69c3178e4…` | 780×1862 |
 | `lagret-before-430.jpg` | `691b1ead8bb8ed18…` | 860×2038 |
+
+## Explore: destination search (browser preview)
+
+**NON-NATIVE: not an iPhone.** These are Chromium renderings of Expo web:
+- no keyboard is shown, and the orange ring is Chromium's focus outline;
+- Inter replaces the system font, and large text is a 135 % browser zoom;
+- the browser shows the map as its list fallback, so pin clustering and fitting are covered by Jest only.
+
+**Versions:** before is `d0c01e9`; after is the commit that adds this section. Images are JPEG (quality 82).
+
+**Search scope:** only the 24 curated destinations, never other places, prices or availability. A query matches:
+- the city, country and exact airport name, in Bokmål and English;
+- the destination's own IATA code.
+
+| Viewport | First card before → after | Cards fully visible before → after | Search input / clear |
+|---|---|---|---|
+| 375×812 | 192 → 248 | 6 → 4 | 303×44 / 44×44 |
+| 390×844 | 189 → 245 | 6 → 4 | 318×44 / 44×44 |
+| 430×932 | 201 → 257 | 6 → 4 | 358×44 / 44×44 |
+| 390×844, 135 % | 195 → 251 | 6 → 4 | 318×44 / 44×44 |
+
+**Measured searches (same at every size):**
+- «tromso» → 1 of 24 (Tromsø);
+- «lhr» → 1 of 24 (London Heathrow Airport (LHR));
+- «spain» in the Bokmål UI → 2 of 24 (Barcelona BCN, Málaga AGP);
+- «zzz» → 0 of 24, with an empty state and a 44 pt «Tøm søket» that brings back all 24;
+- map view «kurd» → 2 of 24 (Erbil, Sulaymaniyah).
+
+The List/Kart buttons stay 44 pt tall. No outbound request left the preview.
+
+**Tradeoff:** the search field costs 56 pt above the unsearched grid. The first view shows 4 full cards instead of 6, and 3 rows are still started.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `explore-search-after-375-1-list.jpg` | `0da768195617600a…` | 750×1823 |
+| `explore-search-after-375-2-lhr.jpg` | `b2dd6409d46e845b…` | 750×1798 |
+| `explore-search-after-375-3-spain.jpg` | `18a5c13abc1a7875…` | 750×1798 |
+| `explore-search-after-375-4-empty.jpg` | `8e95f7687772594e…` | 750×1798 |
+| `explore-search-after-375-5-map-kurd.jpg` | `d7959e7322688f01…` | 750×1823 |
+| `explore-search-after-390-1-list.jpg` | `cf9eb587b52397b7…` | 780×1862 |
+| `explore-search-after-390-2-lhr.jpg` | `f41efc4df615e4b0…` | 780×1862 |
+| `explore-search-after-390-3-spain.jpg` | `2bbae2153f378593…` | 780×1862 |
+| `explore-search-after-390-4-empty.jpg` | `ac90ceb472fff594…` | 780×1862 |
+| `explore-search-after-390-5-map-kurd.jpg` | `b4c3c0b7f1d53b81…` | 780×1887 |
+| `explore-search-after-390-large-1-list.jpg` | `94dd80f8976c97bc…` | 780×1887 |
+| `explore-search-after-390-large-2-lhr.jpg` | `b4ac7f2d114feb7c…` | 780×1887 |
+| `explore-search-after-390-large-3-spain.jpg` | `c72c3d833eb75a96…` | 780×1887 |
+| `explore-search-after-390-large-4-empty.jpg` | `b69c383f7a188674…` | 780×1862 |
+| `explore-search-after-390-large-5-map-kurd.jpg` | `8c97e7b2a638a790…` | 780×1912 |
+| `explore-search-after-430-1-list.jpg` | `f524f780be937e7b…` | 860×2013 |
+| `explore-search-after-430-2-lhr.jpg` | `a8d1e2bc7eb1400f…` | 860×2013 |
+| `explore-search-after-430-3-spain.jpg` | `abd2898fd4b7b696…` | 860×2013 |
+| `explore-search-after-430-4-empty.jpg` | `c16ed0a77bae40d6…` | 860×2013 |
+| `explore-search-after-430-5-map-kurd.jpg` | `92fe49c3a585e242…` | 860×2038 |
+| `explore-search-before-375-list.jpg` | `c6452de5387654d7…` | 750×1823 |
+| `explore-search-before-390-large-list.jpg` | `40c9506e4d3f646a…` | 780×1887 |
+| `explore-search-before-390-list.jpg` | `aa4414dc670ee4b2…` | 780×1862 |
+| `explore-search-before-430-list.jpg` | `946442e161d41246…` | 860×2013 |

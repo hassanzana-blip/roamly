@@ -9,7 +9,9 @@ import { DESTINATIONS, destinationChoice, type Destination } from "../../lib/des
 import { formErrorText, passengerSummary } from "../../lib/searchForm";
 import { useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
-import { Banner, DarkTabs } from "../../components/ui";
+import { Banner, DarkTabs, SecondaryButton } from "../../components/ui";
+import { DestinationSearch } from "../../components/DestinationSearch";
+import { normalizeSearch, searchDestinations } from "../../lib/destinationSearch";
 import { DestinationMap } from "../../components/DestinationMap";
 import { DestinationPinCard } from "../../components/DestinationPinCard";
 import { MAP_AREAS, MAP_POINTS, areaOfDestination, initialArea, pointsIn, type MapArea } from "../../lib/destinationMap";
@@ -20,7 +22,8 @@ import { colors, radius, space, type } from "../../lib/theme";
 type ExploreView = "list" | "map";
 
 /**
- * Alle reisemålene HelloSky har godkjente bilder av, som liste eller kart.
+ * Alle reisemålene HelloSky har godkjente bilder av, som liste eller kart, med
+ * et søk som filtrerer begge likt (by, land, flyplass, IATA – bare de 24).
  * Et trykk (kort i listen, «Se flyreiser» på kartet) søker til reisemålets
  * flyplass med skjemaets fra-flyplass, datoer og reisende. Kartets nåler er
  * reisemål – aldri priser eller ledige plasser. Listen er alltid tilgjengelig.
@@ -39,7 +42,23 @@ export default function ExploreScreen() {
   const [area, setArea] = useState<MapArea | null>("europe");
   const [areaRequest, setAreaRequest] = useState(0);
   const [cardHeight, setCardHeight] = useState(0);
-  const selected = MAP_POINTS.find((p) => p.destination.id === selectedId)?.destination ?? null;
+  const [query, setQuery] = useState("");
+  const matches = searchDestinations(query);
+  const searching = normalizeSearch(query) !== "";
+  const shownIds = new Set(matches.map((m) => m.destination.id));
+  const shownPoints = searching ? MAP_POINTS.filter((p) => shownIds.has(p.destination.id)) : MAP_POINTS;
+  const selected = shownPoints.find((p) => p.destination.id === selectedId)?.destination ?? null;
+  const changeQuery = (q: string) => {
+    setQuery(q);
+    setProblem(null);
+    // Det valgte reisemålet står bare så lenge det passer søket.
+    if (selectedId && !searchDestinations(q).some((m) => m.destination.id === selectedId)) setSelectedId(null);
+    // Søket tømt på kartet: tilbake til et område.
+    if (!normalizeSearch(q) && searching && view === "map") {
+      setArea(initialArea(selectedId));
+      setAreaRequest((n) => n + 1);
+    }
+  };
   const cardWidth = (width - space.lg * 2 - space.md) / 2;
 
   const searchTo = (d: Destination) => {
@@ -58,6 +77,12 @@ export default function ExploreScreen() {
       <Text style={[type.footnote, { color: colors.onDarkMuted }]} testID="explore-summary">
         {form.origin ? t.explore.fromSummary(form.origin.city, form.origin.iata, dates, passengerSummary(form, i18n)) : t.explore.chooseOrigin}
       </Text>
+      <DestinationSearch value={query} onChange={changeQuery} />
+      {searching ? (
+        <Text style={[type.footnoteStrong, { color: colors.onDarkMuted }]} accessibilityLiveRegion="polite" testID="explore-count">
+          {t.explore.searchCount(matches.length, DESTINATIONS.length)}
+        </Text>
+      ) : null}
       <DarkTabs
         value={view}
         onChange={(v) => {
@@ -78,6 +103,15 @@ export default function ExploreScreen() {
     </View>
   );
 
+  // Ingen treff: si det, og gi én knapp for å tømme søket (samme i liste og kart).
+  const empty = searching && !matches.length ? (
+    <View style={styles.empty} testID="explore-empty">
+      <Text style={[type.calloutStrong, { color: colors.onDark }]}>{t.explore.searchEmpty(query.trim(), DESTINATIONS.length)}</Text>
+      <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{t.explore.searchEmptyHint}</Text>
+      <SecondaryButton dark label={t.explore.searchClear} icon="close" onPress={() => changeQuery("")} testID="explore-empty-clear" />
+    </View>
+  ) : null;
+
   if (view === "map") {
     const native = Platform.OS === "ios";
     const chooseArea = (a: MapArea) => {
@@ -86,7 +120,7 @@ export default function ExploreScreen() {
       // Et valgt reisemål utenfor det nye området ville stå utenfor kartet.
       if (selectedId && a !== "world" && areaOfDestination(selectedId) !== a) setSelectedId(null);
     };
-    const mapProps = { points: MAP_POINTS, selectedId, onSelect: setSelectedId, bottomInset: selected ? cardHeight : 0, area, areaRequest, onLeaveArea: () => setArea(null) };
+    const mapProps = { points: shownPoints, selectedId: selected ? selectedId : null, onSelect: setSelectedId, bottomInset: selected ? cardHeight : 0, area: searching ? null : area, areaRequest, onLeaveArea: () => setArea(null), fitToPoints: searching };
     return (
       <View style={[styles.screen, { paddingTop: insets.top + space.lg }]} testID="explore-screen">
         <StatusBar style="light" />
@@ -94,6 +128,7 @@ export default function ExploreScreen() {
         <Text style={[type.caption, styles.mapNote]} testID="map-note">
           {t.explore.mapNote}
         </Text>
+        {searching ? null : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.areas} contentContainerStyle={styles.areasContent} accessibilityLabel={t.explore.areasLabel} testID="map-areas">
           {MAP_AREAS.map((a) => {
             const on = a === area;
@@ -113,7 +148,11 @@ export default function ExploreScreen() {
             );
           })}
         </ScrollView>
+        )}
         {/* Kartet fyller resten; kortet ligger over bunnen av kartet i stedet for å krympe det. */}
+        {empty ? (
+          <View style={styles.mapArea}>{empty}</View>
+        ) : (
         <View style={styles.mapArea}>
           {native ? (
             <DestinationMap {...mapProps} />
@@ -134,16 +173,25 @@ export default function ExploreScreen() {
             </ScrollView>
           ) : null}
         </View>
+        )}
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + space.lg, paddingBottom: space.xxxl }} testID="explore-screen">
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{ paddingTop: insets.top + space.lg, paddingBottom: space.xxxl }}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      automaticallyAdjustKeyboardInsets
+      testID="explore-screen"
+    >
       <StatusBar style="light" />
       {head}
+      {empty}
       <View style={styles.grid}>
-        {DESTINATIONS.map((d) => (
+        {matches.map(({ destination: d }) => (
           <View key={d.id} style={{ width: cardWidth, gap: space.xs }}>
             <View>
               <DestinationCard destination={d} onPress={() => searchTo(d)} style={{ width: cardWidth, height: cardWidth * 0.9 }} testID={`explore-${d.id}`} />
@@ -153,6 +201,12 @@ export default function ExploreScreen() {
               </View>
             </View>
             <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>{t.explore.countryCode(d.names[locale].country, d.iata)}</Text>
+            {/* Under et søk: den nøyaktige flyplassen søket bruker, så det er tydelig hvilken flyplass kortet gjelder. */}
+            {searching ? (
+              <Text style={[type.caption, { color: colors.onDarkMuted }]} testID={`explore-airport-${d.id}`}>
+                {t.explore.airportLine(d.names[locale].airport, d.iata)}
+              </Text>
+            ) : null}
           </View>
         ))}
       </View>
@@ -173,5 +227,6 @@ const styles = StyleSheet.create({
   cardWrap: { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "55%" },
   cardContent: { paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.md },
   save: { position: "absolute", top: space.xs, right: space.xs },
+  empty: { gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.md },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, paddingHorizontal: space.lg, rowGap: space.lg },
 });

@@ -4,7 +4,7 @@ import MapView, { Marker } from "react-native-maps";
 import { Pressable, Text } from "./a11y";
 import type { DestinationMapProps } from "./DestinationMap";
 import { areaRegion, initialArea, offMapAirports, placeOffMapButtons } from "../lib/destinationMap";
-import { MAX_PIN_SCALE, clusterPoints, fitAspect, focusOn, leftArea, zoomInOn, type Cluster, type Region, type Size } from "../lib/mapGeometry";
+import { MAX_PIN_SCALE, clusterPoints, fitAspect, fitRegion, focusOn, leftArea, zoomInOn, type Cluster, type Region, type Size } from "../lib/mapGeometry";
 import { useA11yLanguage, useI18n } from "../i18n";
 import { colors, radius, space } from "../lib/theme";
 
@@ -38,11 +38,12 @@ export function DestinationMap(props: DestinationMapProps) {
   );
 }
 
-function AppleMap({ points, selectedId, onSelect, bottomInset, area, areaRequest, onLeaveArea, size }: DestinationMapProps & { size: Size }) {
+function AppleMap({ points, selectedId, onSelect, bottomInset, area, areaRequest, onLeaveArea, fitToPoints, size }: DestinationMapProps & { size: Size }) {
   const { t, locale } = useI18n();
   const lang = useA11yLanguage();
   const map = useRef<MapView>(null);
-  const [initial] = useState<Region>(() => areaRegion(area ?? "world", size));
+  // Med et aktivt søk åpner kartet på treffene; ellers på området.
+  const [initial] = useState<Region>(() => (fitToPoints && points.length ? fitRegion(points, size) : areaRegion(area ?? "world", size)));
   const [region, setRegion] = useState<Region>(initial);
   // Kartets egne flyttinger (områdeknapp, nål over kortet) skal ikke regnes som at kunden dro kartet bort.
   const ownMove = useRef(false);
@@ -59,6 +60,16 @@ function AppleMap({ points, selectedId, onSelect, bottomInset, area, areaRequest
     moveTo(areaRegion(area, size), 450);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaRequest]);
+
+  // Søket endret treffene: tilpass kartet til dem (minst 12° bredt, så ett treff ikke gir gatenivå).
+  const pointsKey = points.map((p) => p.destination.id).join(",");
+  const firstPoints = useRef(pointsKey);
+  useEffect(() => {
+    if (!fitToPoints || !points.length || pointsKey === firstPoints.current) return;
+    firstPoints.current = pointsKey;
+    moveTo(fitRegion(points, size), 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pointsKey, fitToPoints]);
 
   // Større tekst gir større nåler; da ryddes det mer (høyst 1,4×, som nålenes tekst).
   const fontScale = PixelRatio.getFontScale();

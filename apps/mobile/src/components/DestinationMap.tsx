@@ -17,6 +17,8 @@ export type DestinationMapProps = {
   areaRequest: number;
   /** Kartet har forlatt området (kunden dro eller zoomet, eller trykket på en gruppe). */
   onLeaveArea: () => void;
+  /** Et søk er aktivt: kartet viser bare treffene (`points`) og tilpasses dem. */
+  fitToPoints?: boolean;
 };
 
 /**
