@@ -1,19 +1,19 @@
 # Google/Apple sign-in in the iPhone app: status and handoff
 
-**Status: code and Apple iOS entitlement configuration are in the app; live sign-in NOT enabled and NOT tested.** No environment shows a Google or Apple button today. Apple Developer's `no.hellosky.app` App ID still has Sign In with Apple OFF.
+**Status (24 September 2026): code and Apple iOS entitlement configuration are in the app; live sign-in is NOT enabled or tested.** No environment shows a Google or Apple button today. Apple Developer's `no.hellosky.app` App ID now has Sign In with Apple ON. The Apple-linked iOS simulator build compiles, but no provider flow has run on a device.
 
 ## Known state (checked by the owner in the Clerk dashboard and Railway)
 
 | | Development instance | Production instance |
 |---|---|---|
 | Native API | **ON** | **OFF** |
-| iOS application registered | no | no |
-| Mobile SSO redirect allowlisted | no | no |
+| iOS application registered | **yes**, `45867953Z4` / `no.hellosky.app` | no |
+| Mobile SSO redirect allowlisted | Clerk automatically added `no.hellosky.app://callback`; required `hellosky://sso-callback` is **not** added | no |
 
 - Railway staging: no Clerk configuration.
 - Production website: advertises Clerk with Google, not Apple.
 
-The iOS source configuration below touched none of these remote settings. Apple Team ID `45867953Z4` and explicit bundle ID `no.hellosky.app` were verified in Apple Developer on 24 September 2026.
+The Apple capability and Clerk Development iOS registration were completed after the source configuration, with the owner's specific approval. Apple Team ID `45867953Z4` and explicit bundle ID `no.hellosky.app` were verified in Apple Developer. Apple warned that enabling the capability can invalidate existing provisioning profiles. Railway staging and Clerk Production remain unchanged.
 
 ## What the app does now (code; tested with mocks, not with Clerk)
 
@@ -34,7 +34,7 @@ It returns the publishable key only in that case, and never the secret key.
   - After Clerk creates a session the path is the same as Google's: `setActive` → `getToken()` → `exchangeSocialToken` (staff and lookalike protection on the server) → HelloSky session in SecureStore → `clerk.signOut()`.
   - Cancelling the Apple sheet counts as "cancelled". An incomplete Clerk sign-up (`missing_requirements`) is an error, and so is Clerk not being loaded yet (the hook would otherwise report that as "no session").
   - **Gate:** `supports("apple")` is true only when BOTH hold (`src/lib/appleSupport.ts`): Apple's native module `ExpoAppleAuthentication` is linked, and the embedded app config has `ios.usesAppleSignIn: true`. Source configuration now requests both; a signed native build and provider setup are still required. The public `mobileAuth.providers` contract is an additional server gate.
-  - `app.json` explicitly sets `ios.usesAppleSignIn: true` and includes the `expo-apple-authentication` plugin. `package.json` autolinks that Apple module while still excluding `@clerk/expo`'s unused native module. Expo config introspection confirms `com.apple.developer.applesignin = ["Default"]`; autolinking resolution includes Apple and excludes ClerkExpo. This is source configuration only; the Apple Developer App ID was not changed. Official Expo documentation says EAS Build can synchronize the entitlement to Apple Developer during a signed build. Do not run a normal signed build until that remote change is approved.
+  - `app.json` explicitly sets `ios.usesAppleSignIn: true` and includes the `expo-apple-authentication` plugin. `package.json` autolinks that Apple module while still excluding `@clerk/expo`'s unused native module. Expo config introspection confirms `com.apple.developer.applesignin = ["Default"]`; autolinking resolution includes Apple and excludes ClerkExpo. The matching Apple Developer App ID capability is now ON. A signed device build may need refreshed provisioning profiles and has not been made.
 - **Everywhere else** (browser preview, Android): `src/lib/nativeSocial.tsx`, no social sign-in, and Clerk is not loaded.
 
 **Clerk's native iOS module is excluded from iOS autolinking** (`apps/mobile/package.json` → `expo.autolinking.ios.exclude: ["@clerk/expo"]`).
@@ -52,11 +52,10 @@ It returns the publishable key only in that case, and never the secret key.
 - **Why this is safe for the flow.** Google sign-in uses Clerk's browser-based `useSSO` (JS, `expo-auth-session` + `expo-web-browser`). `@clerk/expo` loads its native module with `requireOptionalNativeModule`, which returns null when it is not linked. The native Clerk views are never rendered, and Clerk is only loaded when a provider is shown. Neither the iOS deployment target (16.4) nor any Clerk setting was changed.
 - **Trade-off.** Clerk's native components, native Google sign-in, passkeys and native client sync stay unavailable. Using them would need the iOS target raised to 17.0 and the exclude removed; that is an owner decision.
 
-## Steps to go live (owner, in order; none of this was done)
+## Remaining steps to go live (owner, in order)
 
 1. **Development/staging first.** Give Railway staging the Clerk *development* keys (`CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`) and `CLERK_SOCIAL_PROVIDERS=google`. Native API is already ON in development.
-2. In the Clerk **development** instance (Native applications page), add **`hellosky://sso-callback`** to *Allowlist for mobile SSO redirect*.
-   - Register the iOS application with Team ID `45867953Z4` and bundle ID `no.hellosky.app` on Clerk's Native applications page; Clerk's current Expo Google and Apple guides require it.
+2. In the Clerk **development** instance (Native applications page), add **`hellosky://sso-callback`** to *Allowlist for mobile SSO redirect*. Clerk's automatically created `no.hellosky.app://callback` does not match the app's Google redirect. The iOS application registration is already complete.
 3. Make an EAS development build (the flow cannot run in Expo Go or a browser).
 4. On staging, set `MOBILE_CLERK_NATIVE_PROVIDERS=google`. The Google button appears only now, and only on staging.
 5. Test on a physical iPhone:
@@ -70,10 +69,10 @@ It returns the publishable key only in that case, and never the secret key.
    - turn on Native API (currently OFF);
    - allowlist `hellosky://sso-callback`;
    - set `MOBILE_CLERK_NATIVE_PROVIDERS=google`.
-7. **Apple** (source configuration completed; remote setup and real tests pending):
-   1. The native module, config plugin, and `ios.usesAppleSignIn` are in the source. Verify the entitlement and native linkage in the next EAS iOS compile. Expo can sync Apple capabilities during a signed build, so obtain action-time approval before a normal signed build or manual portal change.
-   2. Apple Developer: enable **Sign in with Apple** on App ID `no.hellosky.app` (currently OFF).
-   3. Clerk development instance: register the iOS native app with Team ID `45867953Z4` / bundle ID `no.hellosky.app`. Verify its existing Apple social connection is enabled for sign-up and sign-in with the required native settings before exposing the button. Follow [Clerk's current native Apple guide](https://clerk.com/docs/expo/guides/configure/auth-strategies/sign-in-with-apple).
+7. **Apple** (source configuration, native simulator compile, Apple Developer capability and Clerk Development iOS registration completed; real tests pending):
+   1. Verify the entitlement and native linkage in a **signed device build**. The compile-only EAS simulator build `e6a883fd-fa96-4269-bb6e-80ffdfd63657` of `145bb83` succeeded with `EXPO_NO_CAPABILITY_SYNC=1`; it does not establish signing or runtime behavior.
+   2. Apple Developer's **Sign in with Apple** capability on App ID `no.hellosky.app` is ON. Refresh provisioning profiles if signing requires it.
+   3. Clerk Development iOS native app is registered. Verify its existing Apple social connection supports native sign-up and sign-in before exposing the button. Follow [Clerk's current native Apple guide](https://clerk.com/docs/expo/guides/configure/auth-strategies/sign-in-with-apple).
    4. Server: add `apple` to `CLERK_SOCIAL_PROVIDERS` and to `MOBILE_CLERK_NATIVE_PROVIDERS` on that environment. The Apple button appears only after this and a signed build with the capability.
    5. Test on a **physical iPhone** signed into an Apple ID:
       - a new customer, including "Hide My Email";
@@ -83,8 +82,9 @@ It returns the publishable key only in that case, and never the secret key.
       - a lookalike address (must be refused).
 
       The simulator can show the sheet, but it is not a substitute for a device test.
+   6. Only after development/device validation, register the iOS app and configure Apple sign-in separately in Clerk Production, then enable the production server gate and verify it end to end. Development registration does not configure Production.
 
-Until step 4, no environment shows a Google button. Until remote Apple setup, a signed build, and the server gate are verified, no environment shows an Apple button.
+Until step 4, no environment shows a Google button. Until the remaining Clerk/server configuration, a signed build, and real flow tests are verified, no environment shows an Apple button.
 
 ## What is tested where
 
@@ -93,6 +93,6 @@ Until step 4, no environment shows a Google button. Until remote Apple setup, a 
 | Code in the app | yes | yes |
 | Jest with Clerk mocked (gating, token → exchange → SecureStore, cancel, incomplete, refused exchange, duplicate taps) | yes (`clerkSocial.test.tsx`, `socialAuth.test.tsx`) | yes (`appleSignIn.test.tsx`) |
 | In the iOS bundle (`expo export`) | yes (`oauth_google`) | yes (`oauth_token_apple`) |
-| Native build compiles | owner's EAS simulator build of `c487a47` finished | not yet built with the Apple module linked |
+| Native build compiles | EAS simulator build of `145bb83` finished | EAS simulator build of `145bb83` finished with the Apple module linked |
 | Real Clerk / real provider | **NO** | **NO** |
 | Physical iPhone | **NO** | **NO** |
