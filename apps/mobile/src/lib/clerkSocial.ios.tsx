@@ -14,6 +14,11 @@ import { SSO_REDIRECT_URL } from "./socialAuth";
  * - Etter flyten hentes et kortlivet sesjonstoken (getToken) som serveren
  *   verifiserer i exchangeSocialToken; deretter logges Clerk-økten ut (release).
  */
+/** Apples egen avbruddskode (expo-apple-authentication), slik den kommer når kunden lukker arket. */
+function isAppleCancel(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === "ERR_REQUEST_CANCELED";
+}
+
 type Created = { createdSessionId: string | null; setActive?: (p: { session: string }) => Promise<void> };
 
 function Bridge() {
@@ -46,9 +51,17 @@ function Bridge() {
       if (provider === "apple") {
         // Clerks hook gir også «ingen økt» når Clerk ikke er lastet – det er ikke et avbrudd.
         if (!clerk.loaded) throw new Error("clerk_not_ready");
-        const res = await startAppleAuthenticationFlow();
+        let res: Awaited<ReturnType<typeof startAppleAuthenticationFlow>>;
+        try {
+          res = await startAppleAuthenticationFlow();
+        } catch (err) {
+          // Kunden trykket Avbryt i Apple-arket: Apple avviser med ERR_REQUEST_CANCELED (som i Clerks
+          // eget Expo-eksempel). Bare akkurat den koden er et avbrudd; alt annet er en feil.
+          if (isAppleCancel(err)) return { kind: "cancelled" };
+          throw err;
+        }
         if (!res.createdSessionId || !res.setActive) {
-          // Apple-arket lukket (ERR_REQUEST_CANCELED) → avbrutt. En ufullstendig registrering hos Clerk er en feil.
+          // Clerks hook (4.6.9) fanger selv ERR_REQUEST_CANCELED og svarer tomt → avbrutt. En ufullstendig registrering hos Clerk er en feil.
           if (res.signUp?.status === "missing_requirements") throw new Error("apple_incomplete");
           return { kind: "cancelled" };
         }

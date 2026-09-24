@@ -137,6 +137,34 @@ describe("Apple via Clerk → exchangeSocialToken → HelloSky-sesjon (Apple-kla
     expect(keychain.has(SESSION_KEY)).toBe(false);
   });
 
+  it("Avbryt i Apple-arket som AVVIST løfte (code ERR_REQUEST_CANCELED, som i Clerks Expo-eksempel): stille avbrudd, ingen feil, ingen bytte", async () => {
+    clerk.startAppleAuthenticationFlow.mockRejectedValue(Object.assign(new Error("The user canceled the authorization attempt"), { code: "ERR_REQUEST_CANCELED" }));
+    const server = await renderProfile(caps(false, true));
+    await waitFor(() => expect(screen.getByTestId("social-apple")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("social-apple"));
+    await waitFor(() => expect(screen.getByTestId("social-note")).toHaveTextContent("Innloggingen ble avbrutt. Ingenting er endret."));
+    expect(screen.queryByTestId("auth-error")).toBeNull();
+    expect(server.calls.some((c) => c.path === "mobileAuth.exchangeSocialToken")).toBe(false);
+    expect(clerk.getToken).not.toHaveBeenCalled();
+    expect(clerk.signOut).not.toHaveBeenCalled();
+    expect(keychain.has(SESSION_KEY)).toBe(false);
+    expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen();
+  });
+
+  it.each([
+    ["annen Apple-kode (ERR_REQUEST_FAILED)", Object.assign(new Error("failed"), { code: "ERR_REQUEST_FAILED" })],
+    ["feil uten kode", new Error("boom")],
+  ])("en annen avvisning (%s) er fortsatt en feil – ikke et avbrudd", async (_label, err) => {
+    clerk.startAppleAuthenticationFlow.mockRejectedValue(err);
+    const server = await renderProfile(caps(false, true), APPLE_READY, {}, "en");
+    await waitFor(() => expect(screen.getByTestId("social-apple")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("social-apple"));
+    await waitFor(() => expect(screen.getByTestId("auth-error")).toHaveTextContent("We couldn't sign you in. Try again, or use e-mail and password."));
+    expect(screen.queryByTestId("social-note")).toBeNull();
+    expect(server.calls.some((c) => c.path === "mobileAuth.exchangeSocialToken")).toBe(false);
+    expect(keychain.has(SESSION_KEY)).toBe(false);
+  });
+
   it("ufullstendig registrering hos Clerk (missing_requirements) er en feil, ikke et avbrudd", async () => {
     clerk.startAppleAuthenticationFlow.mockResolvedValue({ createdSessionId: null, signUp: { status: "missing_requirements" } });
     const server = await renderProfile(caps(false, true), APPLE_READY, {}, "en");
