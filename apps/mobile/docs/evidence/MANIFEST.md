@@ -860,3 +860,44 @@ What the capture measured in every after run (375, 390 and 430 pt in Norwegian, 
 | `map-after-430-2-selected-bcn.png` | `6b2944dd39fa445d…` | 860×1773 |
 | `map-after-430-3-tromso.png` | `62e104f375082841…` | 860×1773 |
 | `map-after-en-390-1-europe.png` | `eb1346265b638501…` | 780×1773 |
+
+## Home first view: compact photo header (browser preview)
+
+**NON-NATIVE: not an iPhone.** These are Chromium renderings of Expo web. Safe areas are simulated (top/bottom pt: 375×812 → 50/34, 390×844 → 47/34, 430×932 → 59/34), system fonts are replaced by Inter, and large text is a 135 % browser zoom of text only. The "Hjem" tab bar is measured from its top edge. Nothing is fetched and there are no prices.
+
+- **Before** is `20e3cc8`.
+- **After** is the commit that adds this section.
+
+| Viewport | Hero before → after | «Søk fly» bottom before → after | Tab bar top | First destination card visible before → after |
+|---|---|---|---|---|
+| 375×812 | 252 → 198 | 610 → 556 | 726 | 34 → 92 of 132 |
+| 390×844 | 249 → 195 | 607 → 553 | 758 | 69 → 127 of 132 |
+| 430×932 | 261 → 207 | 619 → 565 | 846 | 132 → 132 (fully visible) |
+| 390×844, text 135 % | 255 → 195 | 657 → 597 | 758 | 13 → 77 of 132 |
+
+In every capture, route, dates, travellers/class and «Søk fly» are fully above the tab bar, both before and after.
+
+After the change:
+- no touch target in the first view is under 44 pt;
+- the smallest text is 11 pt, as before (the caption style);
+- no network call leaves the preview.
+
+**What changed:**
+- the photo header is lower;
+- the headline uses the 22 pt title style instead of 28 pt;
+- the generic time-of-day greeting is shown only with a name (signed in);
+- the white sheet has tighter spacing;
+- the account button and the Fly/Hotell chips are a full 44 pt.
+
+**Tradeoff:** the full-size Fly/Hotell chips cost 8 pt of the destination teaser (135 → 127 pt at 390).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `home-first-view-after-375.png` | `d9bc142e84bc29aa…` | 750×1798 |
+| `home-first-view-after-390-large.png` | `c3dfce217521d464…` | 780×1862 |
+| `home-first-view-after-390.png` | `b75d1e4435e02148…` | 780×1862 |
+| `home-first-view-after-430.png` | `58c7cebebd21b2a4…` | 860×2013 |
+| `home-first-view-before-375.png` | `d487c85c02147e55…` | 750×1798 |
+| `home-first-view-before-390-large.png` | `1f460fb3fc8d8808…` | 780×1862 |
+| `home-first-view-before-390.png` | `0b6c4eff4d509fdb…` | 780×1862 |
+| `home-first-view-before-430.png` | `b2205cf5cbf7cf89…` | 860×2013 |

@@ -33,7 +33,6 @@ export function ServiceSwitch({ active, onSelect }: { active: Service; onSelect:
             accessibilityLabel={it.label}
             accessibilityHint={selected ? undefined : it.hint}
             testID={`service-${it.value}`}
-            hitSlop={4}
             style={({ pressed }) => [styles.item, selected ? styles.selected : styles.idle, pressed && !selected && { opacity: 0.7 }]}
           >
             <Icon name={it.icon} size={16} color={selected ? colors.white : colors.text} rotate={it.icon === "plane" ? 45 : undefined} />
@@ -47,7 +46,8 @@ export function ServiceSwitch({ active, onSelect }: { active: Service; onSelect:
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  item: { minHeight: TOUCH - 8, minWidth: TOUCH, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1 },
+  // Hele 44 pt synlig, ikke bare med hitSlop.
+  item: { minHeight: TOUCH, minWidth: TOUCH, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1 },
   selected: { backgroundColor: colors.blue, borderColor: colors.blue },
   idle: { backgroundColor: colors.inset, borderColor: colors.lightBorder },
 });

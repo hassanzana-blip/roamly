@@ -16,7 +16,7 @@ import { PhotoBackdrop } from "../../components/Photo";
 import { SearchPanel } from "../../components/SearchPanel";
 import { ServiceSwitch } from "../../components/ServiceSwitch";
 import { DestinationCard } from "../../components/DestinationCard";
-import { colors, radius, space, type } from "../../lib/theme";
+import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
 /** Kundens initialer, eller ingenting (gjest). Aldri et oppdiktet navn eller bilde. */
 function initialsOf(first?: string | null, last?: string | null): string {
@@ -67,7 +67,11 @@ function RecentSearches({ onSearch }: { onSearch: (r: RecentSearch) => void }) {
   );
 }
 
-/** Forsiden: fotohode, hvitt søkeark, nylige søk, reisemål. */
+/**
+ * Forsiden: et lavt fotohode, hvitt søkeark, nylige søk, reisemål. Første bilde
+ * (390×844) skal vise rute, datoer, reisende/klasse og «Søk fly» – og begynnelsen
+ * på reisemålene; forklaringen om hvordan HelloSky virker står under dem.
+ */
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -96,7 +100,7 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <StatusBar style="light" />
       <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: space.xxxl }} keyboardShouldPersistTaps="handled">
-        <PhotoBackdrop photo={HEADER_PHOTO} scrim="medium" style={[styles.hero, { paddingTop: insets.top + space.sm }]} testID="home-hero">
+        <PhotoBackdrop photo={HEADER_PHOTO} scrim="medium" style={[styles.hero, { paddingTop: insets.top + space.xs }]} testID="home-hero">
           <View style={styles.heroTop}>
             <Wordmark />
             {auth.status === "signedIn" ? (
@@ -104,18 +108,23 @@ export default function HomeScreen() {
                 {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
               </Pressable>
             ) : (
-              <IconButton icon="user" label={t.home.loginButton} variant="glass" onPress={() => router.push("/profil")} testID="account-button" />
+              <IconButton icon="user" label={t.home.loginButton} variant="glass" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
             )}
           </View>
           <View style={styles.heroText}>
-            <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{name ? t.home.greetingName(f.greeting(), name) : f.greeting()}</Text>
-            <Text style={[type.hero, { color: colors.onDark }]} accessibilityRole="header">
+            {/* Hilsen bare med navn (innlogget); en generell «God ettermiddag» tar bare plass fra søket. */}
+            {name ? (
+              <Text style={[type.footnote, { color: colors.onDarkMuted }]} testID="home-greeting">
+                {t.home.greetingName(f.greeting(), name)}
+              </Text>
+            ) : null}
+            <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header" testID="home-title">
               {t.home.heroTitle}
             </Text>
           </View>
         </PhotoBackdrop>
 
-        <View style={styles.sheet}>
+        <View style={styles.sheet} testID="home-sheet">
           <ServiceSwitch active="flights" onSelect={() => router.push("/hotell")} />
           <SearchPanel footer={<Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>} />
 
@@ -150,12 +159,13 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.white },
-  hero: { paddingHorizontal: space.xl, paddingBottom: 44, gap: space.lg },
+  // Lavt fotohode: logo og konto på én linje, tittelen under. Arket overlapper bunnen med 28 pt.
+  hero: { paddingHorizontal: space.xl, paddingBottom: 36, gap: space.sm },
   heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
-  heroText: { gap: space.xs },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.85)" },
+  heroText: { gap: 2 },
+  avatar: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.85)" },
   avatarText: { fontSize: 15, fontWeight: "700", color: colors.white },
-  sheet: { marginTop: -28, backgroundColor: colors.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.md },
+  sheet: { marginTop: -28, backgroundColor: colors.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm },
   recentRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
   recentMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingVertical: space.xs },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
