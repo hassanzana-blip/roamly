@@ -181,4 +181,44 @@ describe("liste og kart viser de samme treffene", () => {
     await act(() => mapProps().onRegionChangeComplete(areaRegion("europe", SIZE)));
     expect(shownAirports().sort()).toEqual(DESTINATIONS.map((d) => d.id).sort());
   });
+
+  // Regresjon (4e04680): etter tømt søk må et nytt søk – også det samme – flytte kartet til treffene igjen.
+  const fitOf = (...ids: string[]) => fitRegion(MAP_POINTS.filter((p) => ids.includes(p.destination.id)), SIZE);
+  const calls = () => animateToRegion.mock.calls.map((c) => c as [unknown, number]);
+
+  it("søk → tøm → samme søk: kartet går til London, tilbake til området, og til London igjen", async () => {
+    await renderExplore();
+    await openMap();
+    await type("lhr");
+    expect(calls().at(-1)).toEqual([fitOf("london"), 400]);
+    await type("");
+    expect(calls().at(-1)).toEqual([areaRegion("europe", SIZE), 450]);
+    await act(() => mapProps().onRegionChangeComplete(areaRegion("europe", SIZE)));
+    await type("lhr");
+    expect(calls().at(-1)).toEqual([fitOf("london"), 400]);
+    expect(calls().filter(([r]) => JSON.stringify(r) === JSON.stringify(fitOf("london")))).toHaveLength(2);
+    expect(shownAirports()).toEqual(["london"]);
+  });
+
+  it("søk → tøm → et annet søk: kartet går til de nye treffene", async () => {
+    await renderExplore();
+    await openMap();
+    await type("lhr");
+    await type("");
+    await type("dubai");
+    expect(calls().at(-1)).toEqual([fitOf("dubai"), 400]);
+    expect(calls().map(([, ms]) => ms)).toEqual([400, 450, 400]);
+  });
+
+  it("kartet åpnet midt i et søk starter på treffene og flytter seg ikke unødig; tøm og samme søk flytter igjen", async () => {
+    await renderExplore();
+    await type("lhr");
+    await openMap();
+    expect(mapProps().initialRegion).toEqual(fitOf("london"));
+    expect(calls()).toEqual([]);
+    await type("");
+    await type("lhr");
+    expect(calls().at(-1)).toEqual([fitOf("london"), 400]);
+  });
 });
+

@@ -62,11 +62,18 @@ function AppleMap({ points, selectedId, onSelect, bottomInset, area, areaRequest
   }, [areaRequest]);
 
   // Søket endret treffene: tilpass kartet til dem (minst 12° bredt, så ett treff ikke gir gatenivå).
+  // Husker hvilke treff kartet sist ble tilpasset, men bare mens søket står: når søket tømmes,
+  // glemmes det, så et nytt søk – også det samme som før – alltid flytter kartet til treffene.
+  // Åpnet midt i et søk starter kartet allerede på treffene (initial), så da flyttes det ikke.
   const pointsKey = points.map((p) => p.destination.id).join(",");
-  const firstPoints = useRef(pointsKey);
+  const fittedKey = useRef<string | null>(fitToPoints ? pointsKey : null);
   useEffect(() => {
-    if (!fitToPoints || !points.length || pointsKey === firstPoints.current) return;
-    firstPoints.current = pointsKey;
+    if (!fitToPoints) {
+      fittedKey.current = null;
+      return;
+    }
+    if (!points.length || pointsKey === fittedKey.current) return;
+    fittedKey.current = pointsKey;
     moveTo(fitRegion(points, size), 400);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pointsKey, fitToPoints]);
