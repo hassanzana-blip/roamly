@@ -471,7 +471,7 @@ describe("mobil flights.search: bare tilbud som gjelder kundens flyplasser og da
     useProvider(providedResult);
     const res = await mobile(mobileCtx()).flights.search(RT);
     expect(res.offers.map((o) => o.offer.id)).toEqual(["kyk_s.layover", "kyk_s.ok_1", "kyk_s.ok_2"]);
-    expect(res.excluded).toEqual({ count: 7, reasons: { origin: 2, destination: 2, date: 2, slices: 1 } });
+    expect(res.excluded).toEqual({ count: 7, reasons: { origin: 2, destination: 2, date: 2, missing_leg: 1 } });
     // Det som vises er leverandørens tilbud, urørt: beløp, lenke og begge strekninger.
     const ok1 = res.offers.find((o) => o.offer.id === "kyk_s.ok_1")!;
     expect(ok1.offer).toEqual(providedResult.offers[1]);
@@ -498,14 +498,28 @@ describe("mobil flights.search: bare tilbud som gjelder kundens flyplasser og da
     });
     const res = await mobile(mobileCtx()).flights.search(oneWay);
     expect(res.offers.map((o) => o.offer.id)).toEqual(["kyk_s.ow"]);
-    expect(res.excluded).toEqual({ count: 2, reasons: { slices: 1, origin: 1 } });
+    expect(res.excluded).toEqual({ count: 2, reasons: { extra_leg: 1, origin: 1 } });
+  });
+
+  it("en strekning uten flyvninger og en ekstra strekning på tur-retur holdes utenfor med hver sin grunn", async () => {
+    useProvider({
+      ...mixedResult(),
+      offers: [
+        roundTrip("kyk_s.empty_home", "600.00", (o) => void (o.slices[1].segments = [])),
+        roundTrip("kyk_s.three_legs", "650.00", (o) => void o.slices.push(structuredClone(o.slices[1]))),
+        roundTrip("kyk_s.ok_3", "2400.00"),
+      ],
+    });
+    const res = await mobile(mobileCtx()).flights.search(RT);
+    expect(res.offers.map((o) => o.offer.id)).toEqual(["kyk_s.ok_3"]);
+    expect(res.excluded).toEqual({ count: 2, reasons: { incomplete: 1, extra_leg: 1 } });
   });
 
   it("alt holdes utenfor: tom liste med antall og grunner, ingen demopriser i stedet", async () => {
     useProvider({ ...mixedResult(), offers: mixedResult().offers.filter((o) => !["kyk_s.ok_1", "kyk_s.ok_2", "kyk_s.layover"].includes(o.id)) });
     const res = await mobile(mobileCtx()).flights.search(RT);
     expect(res.offers).toEqual([]);
-    expect(res.excluded).toEqual({ count: 7, reasons: { origin: 2, destination: 2, date: 2, slices: 1 } });
+    expect(res.excluded).toEqual({ count: 7, reasons: { origin: 2, destination: 2, date: 2, missing_leg: 1 } });
     expect(res).toMatchObject({ provider: "kayak", sandbox: true, demoMode: false });
   });
 

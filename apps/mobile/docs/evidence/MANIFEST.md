@@ -526,3 +526,11 @@ Covered by tests only, not by these images:
 | `state-nb-ad92afc-375-3-expired-while-open.png` | `e619ff8560d36820…` | 750×3185 |
 
 Not checked here: a device or simulator, real iOS backgrounding, VoiceOver, and real KAYAK data (staging answers with demo data). The response's `priceMode` metadata is still not checked (documented follow-up).
+
+**Correction after review (next commit after `3be6295`).** The server's single «slices» reason covered a missing
+leg, an extra leg and a leg with no flights. So «uten hjemreise» / «no return flight» in the notice above (and in the
+`state-*-ad92afc-*` images) was not always true. It is now split into `missing_leg`, `extra_leg` and `incomplete`.
+The app says «en strekning mangler» / «a missing leg», «en ekstra strekning» / «an extra leg» and «ufullstendige
+flydata» / «incomplete flight data», without guessing which leg is missing. The images were not captured again;
+the tests pin the new wording.
+

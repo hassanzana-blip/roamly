@@ -39,15 +39,17 @@ export function pricesStale(at: number, now: number = Date.now()): boolean {
  * Tilbud serveren holdt utenfor fordi de ikke gjaldt søket (se MobileSearchResult.excluded): antall og en kort,
  * sann grunn på kundens språk. null når ingenting ble holdt utenfor (eller serveren er eldre og ikke sier det).
  */
-export function exclusionSummary(r: Pick<MobileSearchResult, "excluded" | "slices">, { t }: Pick<I18n, "t">): { count: number; why: string } | null {
+export function exclusionSummary(r: Pick<MobileSearchResult, "excluded">, { t }: Pick<I18n, "t">): { count: number; why: string } | null {
   const ex = r.excluded;
   if (!ex || ex.count <= 0) return null;
   const w = t.results.screen.status.excludedWhy;
   const why: string[] = [];
   if (ex.reasons.origin || ex.reasons.destination) why.push(w.airport);
   if (ex.reasons.date) why.push(w.date);
-  // Feil antall strekninger: ved tur-retur mangler hjemreisen; ved en vei har tilbudet en strekning for mye.
-  if (ex.reasons.slices) why.push(r.slices.length > 1 ? w.noReturn : w.extraLeg);
+  // Strekningene: vi sier bare det serveren vet (ikke hvilken strekning som mangler).
+  if (ex.reasons.missing_leg) why.push(w.missingLeg);
+  if (ex.reasons.extra_leg) why.push(w.extraLeg);
+  if (ex.reasons.incomplete) why.push(w.incomplete);
   return { count: ex.count, why: why.join(", ") };
 }
 

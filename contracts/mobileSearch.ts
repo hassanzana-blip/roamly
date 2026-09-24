@@ -82,10 +82,11 @@ export type MobileFxStatus =
 
 /**
  * Hvorfor et tilbud fra leverandøren ikke gjaldt søket og ble holdt utenfor:
- * «slices» = feil antall strekninger (f.eks. manglende retur), «origin»/«destination» =
- * reisen starter eller slutter på en annen flyplass enn den kunden valgte, «date» = en annen avreisedag.
+ * «missing_leg» = færre strekninger enn søket (hvilken som mangler, vet vi ikke), «extra_leg» = flere strekninger enn
+ * søket, «incomplete» = en strekning uten flyvninger, «origin»/«destination» = reisen starter eller slutter på en annen
+ * flyplass enn den kunden valgte, «date» = en annen avreisedag.
  */
-export type MobileExclusionReason = "slices" | "origin" | "destination" | "date";
+export type MobileExclusionReason = "missing_leg" | "extra_leg" | "incomplete" | "origin" | "destination" | "date";
 
 export interface MobileSearchResult {
   offerRequestId: string;

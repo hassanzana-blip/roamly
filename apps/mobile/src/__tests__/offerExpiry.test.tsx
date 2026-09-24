@@ -152,7 +152,7 @@ describe("utløp i Flydetaljer", () => {
     const { view } = await openDetails();
     expect(jest.getTimerCount()).toBeGreaterThan(0);
     expect(removes.length).toBeGreaterThan(0);
-    await act(async () => view.unmount());
+    await view.unmount();
     expect(jest.getTimerCount()).toBe(0);
     for (const r of removes) expect(r).toHaveBeenCalled();
   });

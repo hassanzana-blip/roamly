@@ -17,16 +17,17 @@ const localDate = (iso: string | undefined) => (iso ?? "").slice(0, 10);
 
 /**
  * null når tilbudet gjelder søket; ellers den første grunnen til at det ikke gjør det.
- * Rekkefølge: antall strekninger, avreiseflyplass, ankomstflyplass, dato.
+ * Rekkefølge: antall strekninger, tomme strekninger, avreiseflyplass, ankomstflyplass, dato.
  */
 export function requestMismatch(offer: Offer, requested: readonly SearchSliceInput[]): MobileExclusionReason | null {
-  if (offer.slices.length !== requested.length) return "slices";
+  if (offer.slices.length < requested.length) return "missing_leg";
+  if (offer.slices.length > requested.length) return "extra_leg";
   for (let i = 0; i < requested.length; i++) {
     const want = requested[i]!;
     const slice = offer.slices[i]!;
     const first = slice.segments[0];
     const last = slice.segments[slice.segments.length - 1];
-    if (!first || !last) return "slices";
+    if (!first || !last) return "incomplete";
     // Både oppsummeringen og selve flyvningene må starte og slutte der kunden søkte.
     if (code(first.origin.iata) !== code(want.origin) || code(slice.origin.iata) !== code(want.origin)) return "origin";
     if (code(last.destination.iata) !== code(want.destination) || code(slice.destination.iata) !== code(want.destination)) return "destination";

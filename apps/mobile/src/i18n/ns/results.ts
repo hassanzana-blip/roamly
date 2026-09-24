@@ -80,7 +80,7 @@ const en = {
       refresh: "Refresh prices",
       /** Tilbud serveren holdt utenfor fordi de ikke gjaldt søket (annen flyplass, dato, manglende retur). */
       excluded: (n: number, why: string) => (n === 1 ? `1 offer from the provider didn't match your search (${why}) and isn't shown.` : `${n} offers from the provider didn't match your search (${why}) and aren't shown.`),
-      excludedWhy: { airport: "different airport", date: "different date", noReturn: "no return flight", extraLeg: "an extra flight" },
+      excludedWhy: { airport: "different airport", date: "different date", missingLeg: "a missing leg", extraLeg: "an extra leg", incomplete: "incomplete flight data" },
       excludedEmptyTitle: "No journeys matched your search",
       excludedEmptyBody: (n: number, why: string) =>
         n === 1
@@ -168,7 +168,7 @@ const nb: typeof en = {
       stale: (time) => `Prisene fra kl. ${time} kan ha endret seg.`,
       refresh: "Oppdater prisene",
       excluded: (n, why) => `${n} tilbud fra tilbyderen gjaldt ikke søket ditt (${why}) og vises ikke.`,
-      excludedWhy: { airport: "annen flyplass", date: "annen dato", noReturn: "uten hjemreise", extraLeg: "en ekstra strekning" },
+      excludedWhy: { airport: "annen flyplass", date: "annen dato", missingLeg: "en strekning mangler", extraLeg: "en ekstra strekning", incomplete: "ufullstendige flydata" },
       excludedEmptyTitle: "Ingen reiser passet søket",
       excludedEmptyBody: (n, why) =>
         n === 1

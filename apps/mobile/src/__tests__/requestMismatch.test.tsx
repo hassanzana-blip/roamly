@@ -20,11 +20,11 @@ function SearchOnMount({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-async function renderResults(result: object, locale: "nb" | "en" = "nb", tripType: "roundtrip" | "oneway" = "roundtrip") {
+async function renderResults(result: object, locale: "nb" | "en" = "nb") {
   const server = fakeServer({ "flights.search": () => ({ data: result }) });
   const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
   await render(
-    <AppProvider initialLocale={locale} apiFactory={factory} initial={{ destination: BCN, tripType }}>
+    <AppProvider initialLocale={locale} apiFactory={factory} initial={{ destination: BCN }}>
       <SearchOnMount>
         <ResultsScreen />
       </SearchOnMount>
@@ -32,13 +32,13 @@ async function renderResults(result: object, locale: "nb" | "en" = "nb", tripTyp
   );
 }
 
-const MIXED = { ...SEARCH_RESULT, provider: "kayak", sandbox: true, offers: [SEK_OFFER], excluded: { count: 7, reasons: { origin: 2, destination: 2, date: 2, slices: 1 } } };
+const MIXED = { ...SEARCH_RESULT, provider: "kayak", sandbox: true, offers: [SEK_OFFER], excluded: { count: 7, reasons: { origin: 2, destination: 2, date: 2, missing_leg: 1 } } };
 const NONE_LEFT = { ...MIXED, offers: [] };
 
 describe("tilbud som ikke gjaldt søket", () => {
   it.each([
-    ["nb", "7 tilbud fra tilbyderen gjaldt ikke søket ditt (annen flyplass, annen dato, uten hjemreise) og vises ikke."],
-    ["en", "7 offers from the provider didn't match your search (different airport, different date, no return flight) and aren't shown."],
+    ["nb", "7 tilbud fra tilbyderen gjaldt ikke søket ditt (annen flyplass, annen dato, en strekning mangler) og vises ikke."],
+    ["en", "7 offers from the provider didn't match your search (different airport, different date, a missing leg) and aren't shown."],
   ] as const)("noen vises (%s): en linje sier hvor mange som er holdt utenfor og hvorfor", async (locale, text) => {
     await renderResults(MIXED, locale);
     await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
@@ -47,8 +47,8 @@ describe("tilbud som ikke gjaldt søket", () => {
   });
 
   it.each([
-    ["nb", "Ingen reiser passet søket", "Tilbyderen svarte, men ingen av de 7 tilbudene gjaldt flyplassene og datoene du valgte (annen flyplass, annen dato, uten hjemreise). Prøv andre datoer eller en annen flyplass."],
-    ["en", "No journeys matched your search", "The provider answered, but none of its 7 offers were for your airports and dates (different airport, different date, no return flight). Try other dates or another airport."],
+    ["nb", "Ingen reiser passet søket", "Tilbyderen svarte, men ingen av de 7 tilbudene gjaldt flyplassene og datoene du valgte (annen flyplass, annen dato, en strekning mangler). Prøv andre datoer eller en annen flyplass."],
+    ["en", "No journeys matched your search", "The provider answered, but none of its 7 offers were for your airports and dates (different airport, different date, a missing leg). Try other dates or another airport."],
   ] as const)("alle holdt utenfor (%s): en sann tom tilstand, ingen kort og ingen erstatningspriser", async (locale, title, body) => {
     await renderResults(NONE_LEFT, locale);
     await waitFor(() => expect(screen.getByTestId("results-excluded-empty")).toBeOnTheScreen());
@@ -59,17 +59,29 @@ describe("tilbud som ikke gjaldt søket", () => {
     expect(screen.getByTestId("edit-search-state")).toBeOnTheScreen();
   });
 
-  it("en vei: et tilbud med en ekstra strekning forklares som det", async () => {
-    await renderResults({ ...NONE_LEFT, slices: SEARCH_RESULT.slices.slice(0, 1), excluded: { count: 1, reasons: { slices: 1 } } }, "nb", "oneway");
+  it.each([
+    ["extra_leg", "en ekstra strekning"],
+    ["incomplete", "ufullstendige flydata"],
+    ["missing_leg", "en strekning mangler"],
+  ] as const)("strekningene (%s) forklares nøyaktig, uten å gjette hvilken", async (reason, why) => {
+    await renderResults({ ...NONE_LEFT, excluded: { count: 1, reasons: { [reason]: 1 } } });
     await waitFor(() => expect(screen.getByTestId("results-excluded-empty")).toBeOnTheScreen());
-    expect(screen.getByText("Tilbyderen svarte, men det ene tilbudet gjaldt ikke flyplassene og datoene du valgte (en ekstra strekning). Prøv andre datoer eller en annen flyplass.")).toBeOnTheScreen();
+    expect(screen.getByText(`Tilbyderen svarte, men det ene tilbudet gjaldt ikke flyplassene og datoene du valgte (${why}). Prøv andre datoer eller en annen flyplass.`)).toBeOnTheScreen();
   });
 
-  it("eldre server uten feltet, eller ingenting holdt utenfor: ingen linje, vanlig tom tilstand", async () => {
+  it("flere strekningsgrunner samtidig, på engelsk", async () => {
+    await renderResults({ ...NONE_LEFT, excluded: { count: 3, reasons: { missing_leg: 1, extra_leg: 1, incomplete: 1 } } }, "en");
+    await waitFor(() => expect(screen.getByTestId("results-excluded-empty")).toBeOnTheScreen());
+    expect(screen.getByText("The provider answered, but none of its 3 offers were for your airports and dates (a missing leg, an extra leg, incomplete flight data). Try other dates or another airport.")).toBeOnTheScreen();
+  });
+
+  it("eldre server uten feltet: vanlig tom tilstand", async () => {
     await renderResults({ ...SEARCH_RESULT, offers: [] });
     await waitFor(() => expect(screen.getByText("Ingen fly funnet")).toBeOnTheScreen());
     expect(screen.queryByTestId("results-excluded-empty")).toBeNull();
-    screen.unmount();
+  });
+
+  it("ingenting holdt utenfor: ingen linje", async () => {
     await renderResults({ ...MIXED, excluded: { count: 0, reasons: {} } });
     await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
     expect(screen.queryByTestId("excluded-notice")).toBeNull();
