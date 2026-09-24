@@ -1,5 +1,5 @@
 import { DESTINATIONS, type Destination } from "./destinations";
-import { fitRegion, type Region, type Size } from "./mapGeometry";
+import { MAX_PIN_SCALE, fitRegion, pinBox, project, fitAspect, type Cluster, type Region, type Size } from "./mapGeometry";
 
 /**
  * Hvor hvert reisemål står på kartet: flyplassen søket faktisk bruker
@@ -68,8 +68,87 @@ export const areaOfDestination = (id: string): Exclude<MapArea, "world"> | null 
   return p ? (AREA_OF_AIRPORT[p.destination.iata] ?? null) : null;
 };
 
-/** Utsnittet for et område i et kart på `size`: alle områdets flyplasser med luft rundt (minst 12° bredt – ett reisemål gir ikke gatenivå). */
-export const areaRegion = (area: MapArea, size: Size): Region => fitRegion(pointsIn(area), size);
+/**
+ * Flyplasser langt fra resten av sitt område. Tatt med i utsnittet ville de
+ * gjort alt det andre smått: Tromsø strekker Europa-utsnittet 1,5× i høyden
+ * (et tomt midtfelt, resten presset ned), Tokyo Asia-utsnittet 2,2× i bredden.
+ * De skjules ikke: når de er utenfor kartet, har de en egen knapp med navn
+ * øverst på kartet («↑ Tromsø (TOS)»), og de er i «Hele verden» og i listen.
+ */
+export const EDGE_AIRPORTS: Partial<Record<MapArea, string[]>> = { europe: ["TOS"], asia: ["HND"] };
+const isEdge = (area: MapArea, p: MapPoint) => (EDGE_AIRPORTS[area] ?? []).includes(p.destination.iata);
+/** Plass øverst i kartet til knappene for flyplasser utenfor kartet. */
+export const EDGE_BAND = 60;
+
+/**
+ * Utsnittet for et område i et kart på `size`: områdets flyplasser (uten de
+ * fjerne, se EDGE_AIRPORTS) med luft rundt – minst 12° bredt, ett reisemål gir
+ * ikke gatenivå – og plass øverst til knappene for dem som er utenfor.
+ */
+export const areaRegion = (area: MapArea, size: Size): Region => {
+  const core = pointsIn(area).filter((p) => !isEdge(area, p));
+  return fitRegion(core, size, EDGE_AIRPORTS[area] ? { top: EDGE_BAND } : {});
+};
+
+export type OffMapAirport = { point: MapPoint; arrow: string; side: "left" | "right" };
+/**
+ * Områdets fjerne flyplasser som ikke er på kartet nå, med en pil som peker
+ * dit de er. Vises som knapper med navn; et trykk velger reisemålet.
+ */
+export function offMapAirports(area: MapArea | null, r: Region, size: Size): OffMapAirport[] {
+  if (!area) return [];
+  const shown = fitAspect(r, size);
+  return pointsIn(area)
+    .filter((p) => isEdge(area, p))
+    .flatMap((point) => {
+      const { x, y } = project(point, shown, size);
+      if (x >= 0 && x <= size.width && y >= 0 && y <= size.height) return [];
+      const dx = x < 0 ? -1 : x > size.width ? 1 : 0;
+      const dy = y < 0 ? -1 : y > size.height ? 1 : 0;
+      const arrows: Record<string, string> = { "0,-1": "↑", "0,1": "↓", "-1,0": "←", "1,0": "→", "-1,-1": "↖", "1,-1": "↗", "-1,1": "↙", "1,1": "↘" };
+      const arrow = arrows[`${dx},${dy}`]!;
+      return [{ point, arrow, side: x > size.width / 2 ? ("right" as const) : ("left" as const) }];
+    });
+}
 
 /** Området kartet åpner i: området til det valgte reisemålet, ellers Europa (der HelloSkys avreiseflyplasser er). */
 export const initialArea = (selectedId: string | null): MapArea => (selectedId ? areaOfDestination(selectedId) : null) ?? "europe";
+
+/** Omtrent hvor stor en knapp for en flyplass utenfor kartet er (pt): «↑ Tromsø (TOS)». */
+export function offMapButtonSize(text: string, fontScale = 1) {
+  const k = Math.min(Math.max(fontScale, 1), MAX_PIN_SCALE);
+  return { width: (text.length * 9 + 30) * k, height: 44 * k };
+}
+
+/**
+ * Hvor knappene for flyplasser utenfor kartet står: øverst, på siden flyplassen
+ * er, men aldri over en nål (eller under kortet). Er plassen tatt, prøves den
+ * andre siden og midten, og så litt lenger ned.
+ */
+export function placeOffMapButtons(items: { side: "left" | "right"; text: string }[], clusters: Cluster[], r: Region, size: Size, coveredBottom: number, fontScale = 1): { left: number; top: number; width: number; height: number }[] {
+  const shown = fitAspect(r, size);
+  const taken = clusters.map((c) => {
+    const at = project(c.lead, shown, size);
+    const b = pinBox(c.members.length, fontScale, c.selected);
+    return { x: at.x - b.width / 2, y: at.y - b.height / 2, r: at.x + b.width / 2, b: at.y + b.height / 2 };
+  });
+  const placed: { left: number; top: number; width: number; height: number }[] = [];
+  const free = (x: number, y: number, w: number, h: number) =>
+    [...taken, ...placed.map((p) => ({ x: p.left, y: p.top, r: p.left + p.width, b: p.top + p.height }))].every((t) => x + w <= t.x || t.r <= x || y + h <= t.y || t.b <= y);
+  for (const it of items) {
+    const { width, height } = offMapButtonSize(it.text, fontScale);
+    const pad = 12;
+    // Først helt til siden flyplassen er, så den andre siden og midten, så hver 8. pt bortover.
+    const across = Array.from({ length: Math.max(0, Math.floor((size.width - 2 * pad - width) / 8)) + 1 }, (_, i) => pad + i * 8);
+    const xs = [...(it.side === "right" ? [size.width - pad - width, pad] : [pad, size.width - pad - width]), (size.width - width) / 2, ...(it.side === "right" ? across.reverse() : across)];
+    let spot: { left: number; top: number } | null = null;
+    for (let top = 8; !spot && top + height <= size.height - coveredBottom - 8; top += 8)
+      for (const left of xs)
+        if (free(left, top, width, height)) {
+          spot = { left, top };
+          break;
+        }
+    placed.push({ ...(spot ?? { left: xs[0]!, top: 8 }), width, height });
+  }
+  return placed;
+}

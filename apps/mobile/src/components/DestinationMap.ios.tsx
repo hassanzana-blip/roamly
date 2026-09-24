@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PixelRatio, StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { Text } from "./a11y";
+import { Pressable, Text } from "./a11y";
 import type { DestinationMapProps } from "./DestinationMap";
-import { areaRegion } from "../lib/destinationMap";
-import { MAX_PIN_SCALE, clusterPoints, fitAspect, leftArea, revealAbove, zoomInOn, type Region, type Size } from "../lib/mapGeometry";
+import { areaRegion, initialArea, offMapAirports, placeOffMapButtons } from "../lib/destinationMap";
+import { MAX_PIN_SCALE, clusterPoints, fitAspect, focusOn, leftArea, zoomInOn, type Cluster, type Region, type Size } from "../lib/mapGeometry";
 import { useA11yLanguage, useI18n } from "../i18n";
 import { colors, radius, space } from "../lib/theme";
 
@@ -60,21 +60,128 @@ function AppleMap({ points, selectedId, onSelect, bottomInset, area, areaRequest
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaRequest]);
 
-  // Valgt reisemål: flytt kartet bare hvis nålen ellers er skjult under kortet (eller utenfor kartet).
+  // Større tekst gir større nåler; da ryddes det mer (høyst 1,4×, som nålenes tekst).
+  const fontScale = PixelRatio.getFontScale();
+
+  // Valgt reisemål: zoom inn til den valgte nålen og naboene som dekket den, er egne nåler,
+  // og flytt kartet så nålen står over kortet. Står stille hvis ingenting må endres.
   useEffect(() => {
-    const p = points.find((x) => x.destination.id === selectedId);
-    if (!p || bottomInset <= 0) return;
-    const next = revealAbove(p, region, size, bottomInset);
+    if (!selectedId || bottomInset <= 0) return;
+    const next = focusOn(selectedId, points, region, size, bottomInset, fontScale, areaRegion(initialArea(selectedId), size));
     if (next) moveTo(next, 350);
     // Bare når valget eller kortets høyde endres – ikke for hver kartbevegelse.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, bottomInset]);
 
-  // Større tekst gir større nåler; da ryddes det mer (høyst 1,4×, som nålenes tekst).
-  const fontScale = PixelRatio.getFontScale();
   const clusters = useMemo(() => clusterPoints(points, region, size, selectedId, fontScale), [points, region, size, selectedId, fontScale]);
 
+  const cityOf = (c: Cluster) => c.lead.destination.names[locale].city;
+  const placesOf = (ms: Cluster["members"]) => ms.map((m) => `${m.destination.names[locale].city} (${m.destination.iata})`).join(", ");
+  const coordinateOf = (c: Cluster) => ({ latitude: c.lead.latitude, longitude: c.lead.longitude });
+  const zoomTo = (c: Cluster) => {
+    const next = zoomInOn(c.members, fitAspect(region, size), size);
+    setRegion(next);
+    map.current?.animateToRegion(next, 400);
+    onLeaveArea();
+  };
+
+  const pinMarker = (c: Cluster) => (
+    <Marker
+      key={`${c.lead.destination.id}-off`}
+      identifier={c.lead.destination.id}
+      coordinate={coordinateOf(c)}
+      tracksViewChanges={false}
+      stopPropagation
+      zIndex={2}
+      onPress={() => onSelect(c.lead.destination.id)}
+      accessibilityRole="button"
+      accessibilityState={{ selected: false }}
+      accessibilityLabel={t.explore.pinLabel(cityOf(c), c.lead.destination.iata)}
+      accessibilityHint={t.explore.pinHint}
+      testID={`map-pin-${c.lead.destination.id}`}
+    >
+      <View style={styles.hit}>
+        <View style={styles.pin}>
+          <Text style={styles.code} maxFontSizeMultiplier={MAX_PIN_SCALE}>{c.lead.destination.iata}</Text>
+        </View>
+      </View>
+    </Marker>
+  );
+
+  const groupMarker = (c: Cluster) => (
+    <Marker
+      key={`group-${c.id}`}
+      identifier={`group-${c.id}`}
+      coordinate={coordinateOf(c)}
+      tracksViewChanges={false}
+      stopPropagation
+      zIndex={1}
+      onPress={() => zoomTo(c)}
+      accessibilityRole="button"
+      accessibilityLabel={t.explore.clusterLabel(c.members.length, placesOf(c.members))}
+      accessibilityHint={t.explore.clusterHint}
+      testID={`map-group-${c.id}`}
+    >
+      <View style={styles.hit}>
+        <View style={[styles.pin, styles.group]}>
+          <Text style={[styles.code, { color: colors.white }]} maxFontSizeMultiplier={MAX_PIN_SCALE}>{c.lead.destination.iata}</Text>
+          <View style={styles.count}>
+            <Text style={styles.countText} maxFontSizeMultiplier={MAX_PIN_SCALE}>{`+${c.members.length - 1}`}</Text>
+          </View>
+        </View>
+      </View>
+    </Marker>
+  );
+
+  // Den valgte nålen er alltid synlig og øverst. Har den naboer tett inntil (før kartet har
+  // zoomet inn), viser den «+N», og et trykk zoomer til de er egne nåler.
+  const selectedMarker = (c: Cluster) => {
+    const others = c.members.slice(1);
+    const label = t.explore.pinLabel(cityOf(c), c.lead.destination.iata);
+    return (
+      <Marker
+        // Ny nøkkel ved valg og ved endret gruppe: egendefinerte nåler tegnes ikke på nytt når tracksViewChanges er av.
+        key={`${c.id}-on`}
+        identifier={c.lead.destination.id}
+        coordinate={coordinateOf(c)}
+        tracksViewChanges={false}
+        stopPropagation
+        zIndex={3}
+        onPress={() => {
+          if (others.length) zoomTo(c);
+        }}
+        accessibilityRole="button"
+        accessibilityState={{ selected: true }}
+        accessibilityLabel={others.length ? t.explore.selectedWithNeighbours(label, placesOf(others)) : label}
+        accessibilityHint={others.length ? t.explore.clusterHint : undefined}
+        testID={others.length ? `map-group-${c.id}` : `map-pin-${c.lead.destination.id}`}
+      >
+        <View style={styles.hit}>
+          <View style={[styles.pin, styles.pinSelected]}>
+            <Text style={[styles.code, { color: colors.white }]} maxFontSizeMultiplier={MAX_PIN_SCALE}>{c.lead.destination.iata}</Text>
+            {others.length ? (
+              <View style={styles.count}>
+                <Text style={styles.countText} maxFontSizeMultiplier={MAX_PIN_SCALE}>{`+${others.length}`}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </Marker>
+    );
+  };
+
+  // Fjerne flyplasser i området som ikke er på kartet (Tromsø fra Europa, Tokyo fra Asia): en knapp med navn.
+  // Bare når ingen reisemål er valgt: med kortet åpent er det for lite kart til en knapp til
+  // (særlig med stor tekst). Lukkes kortet, er knappen der igjen.
+  const offMap = (selectedId ? [] : offMapAirports(area, region, size)).map((o) => {
+    const n = o.point.destination.names[locale];
+    return { ...o, city: n.city, text: `${o.arrow} ${n.city} (${o.point.destination.iata})` };
+  });
+  // Aldri over en nål: knappen flyttes til en ledig plass øverst.
+  const offMapSpots = placeOffMapButtons(offMap, clusters, region, size, bottomInset, fontScale);
+
   return (
+    <>
     <MapView
       ref={map}
       style={StyleSheet.absoluteFill}
@@ -104,66 +211,22 @@ function AppleMap({ points, selectedId, onSelect, bottomInset, area, areaRequest
       }}
       testID="destination-map"
     >
-      {clusters.map((c) => {
-        const p = c.lead;
-        if (c.members.length > 1) {
-          const places = c.members.map((m) => `${m.destination.names[locale].city} (${m.destination.iata})`).join(", ");
-          return (
-            <Marker
-              key={`group-${c.id}`}
-              identifier={`group-${c.id}`}
-              coordinate={{ latitude: p.latitude, longitude: p.longitude }}
-              tracksViewChanges={false}
-              stopPropagation
-              zIndex={1}
-              onPress={() => {
-                const next = zoomInOn(c.members, fitAspect(region, size), size);
-                setRegion(next);
-                map.current?.animateToRegion(next, 400);
-                onLeaveArea();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={t.explore.clusterLabel(c.members.length, places)}
-              accessibilityHint={t.explore.clusterHint}
-              testID={`map-group-${c.id}`}
-            >
-              <View style={styles.hit}>
-                <View style={[styles.pin, styles.group]}>
-                  <Text style={[styles.code, { color: colors.white }]} maxFontSizeMultiplier={MAX_PIN_SCALE}>{p.destination.iata}</Text>
-                  <View style={styles.count}>
-                    <Text style={styles.countText} maxFontSizeMultiplier={MAX_PIN_SCALE}>{`+${c.members.length - 1}`}</Text>
-                  </View>
-                </View>
-              </View>
-            </Marker>
-          );
-        }
-        const selected = p.destination.id === selectedId;
-        return (
-          <Marker
-            // Ny nøkkel ved valg: egendefinerte nåler tegnes ikke på nytt når tracksViewChanges er av.
-            key={`${p.destination.id}-${selected ? "on" : "off"}`}
-            identifier={p.destination.id}
-            coordinate={{ latitude: p.latitude, longitude: p.longitude }}
-            tracksViewChanges={false}
-            stopPropagation
-            zIndex={selected ? 3 : 2}
-            onPress={() => onSelect(p.destination.id)}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            accessibilityLabel={t.explore.pinLabel(p.destination.names[locale].city, p.destination.iata)}
-            accessibilityHint={t.explore.pinHint}
-            testID={`map-pin-${p.destination.id}`}
-          >
-            <View style={styles.hit}>
-              <View style={[styles.pin, selected && styles.pinSelected]}>
-                <Text style={[styles.code, selected && { color: colors.white }]} maxFontSizeMultiplier={MAX_PIN_SCALE}>{p.destination.iata}</Text>
-              </View>
-            </View>
-          </Marker>
-        );
-      })}
+      {clusters.map((c) => (c.selected ? selectedMarker(c) : c.members.length > 1 ? groupMarker(c) : pinMarker(c)))}
     </MapView>
+    {offMap.map((o, i) => (
+      <Pressable
+        key={o.point.destination.id}
+        onPress={() => onSelect(o.point.destination.id)}
+        accessibilityRole="button"
+        accessibilityLabel={t.explore.offMapLabel(o.city, o.point.destination.iata)}
+        accessibilityHint={t.explore.pinHint}
+        testID={`map-off-${o.point.destination.id}`}
+        style={({ pressed }) => [styles.edgeButton, { left: offMapSpots[i]!.left, top: offMapSpots[i]!.top }, pressed && { opacity: 0.7 }]}
+      >
+        <Text style={styles.edgeText} maxFontSizeMultiplier={MAX_PIN_SCALE} numberOfLines={1}>{o.text}</Text>
+      </Pressable>
+    ))}
+    </>
   );
 }
 
@@ -176,6 +239,9 @@ const styles = StyleSheet.create({
   group: { backgroundColor: colors.raised, borderColor: colors.white, paddingRight: space.lg },
   // Antallet som et lite merke i hjørnet, så en gruppe er nesten like smal som en enkelt nål.
   count: { position: "absolute", top: -10, right: -10, minWidth: 22, paddingHorizontal: 4, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.bg, alignItems: "center" },
+  // Knapp for en flyplass utenfor kartet; plassen velges så den aldri dekker en nål (placeOffMapButtons).
+  edgeButton: { position: "absolute", minHeight: 44, justifyContent: "center", paddingHorizontal: space.md, borderRadius: radius.pill, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.onDarkMuted },
+  edgeText: { fontSize: 14, lineHeight: 18, fontWeight: "700", color: colors.white },
   code: { fontSize: 14, lineHeight: 18, fontWeight: "700", letterSpacing: 0.4, color: colors.text, fontVariant: ["tabular-nums"] },
   countText: { fontSize: 12, lineHeight: 16, fontWeight: "700", color: colors.text, fontVariant: ["tabular-nums"] },
 });

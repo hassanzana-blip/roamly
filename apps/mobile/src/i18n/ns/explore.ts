@@ -22,6 +22,8 @@ const en = {
   areaLabel: (name: string, n: number) => `${name}, ${n === 1 ? "1 destination" : `${n} destinations`}`,
   clusterLabel: (n: number, places: string) => `${n} destinations close together: ${places}`,
   clusterHint: "Zooms in so you can choose one",
+  selectedWithNeighbours: (pin: string, others: string) => `${pin}, selected. Close by: ${others}`,
+  offMapLabel: (city: string, iata: string) => `${city}, ${iata}, destination outside the map`,
 };
 
 const nb: typeof en = {
@@ -47,6 +49,8 @@ const nb: typeof en = {
   areaLabel: (name, n) => `${name}, ${n} reisemål`,
   clusterLabel: (n, places) => `${n} reisemål tett sammen: ${places}`,
   clusterHint: "Zoomer inn så du kan velge ett",
+  selectedWithNeighbours: (pin, others) => `${pin}, valgt. Tett ved: ${others}`,
+  offMapLabel: (city, iata) => `${city}, ${iata}, reisemål utenfor kartet`,
 };
 
 export const explore = { en, nb };

@@ -219,6 +219,50 @@ describe("Utforsk: liste og kart", () => {
     expect(screen.queryAllByTestId(/^map-group-/).length).toBeLessThanOrEqual(large);
   });
 
+  it("Tromsø er ikke borte: en knapp med navn øverst på kartet velger nøyaktig Tromsø lufthavn, og kartet flyttes dit", async () => {
+    await renderExplore();
+    const draft = screen.getByTestId("probe").props.children as string;
+    await openMap();
+    // Europa åpner på resten av Europa; Tromsø har en egen knapp.
+    const tos = screen.getByTestId("map-off-tromso");
+    expect(tos).toHaveTextContent("↑ Tromsø (TOS)");
+    expect(tos).toHaveProp("accessibilityLabel", "Tromsø, TOS, reisemål utenfor kartet");
+    expect(tos).toHaveProp("accessibilityRole", "button");
+    await fireEvent.press(tos);
+    expect(screen.getByTestId("map-pin-airport")).toHaveTextContent("Tromsø lufthavn (TOS)");
+    // Med kortet åpent er knappen borte (for lite plass); den kommer tilbake når kortet lukkes.
+    expect(screen.queryByTestId("map-off-tromso")).toBeNull();
+    await fireEvent(screen.getByTestId("map-pin-card-scroll"), "layout", { nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 190 } } });
+    const moved = animateToRegion.mock.calls.at(-1)![0] as { longitude: number };
+    expect(moved.longitude).toBeCloseTo(AIRPORT_COORDINATES.TOS!.longitude, 4);
+    // Området er fortsatt Europa (kartets egen flytting), og utkastet er urørt.
+    await act(() => mapProps().onRegionChangeComplete(moved));
+    expect(screen.getByTestId("map-area-europe")).toBeSelected();
+    expect(screen.getByTestId("probe").props.children).toBe(draft);
+    await fireEvent.press(screen.getByTestId("map-pin-close"));
+    await fireEvent.press(screen.getByTestId("map-area-europe"));
+    await act(() => mapProps().onRegionChangeComplete(areaRegion("europe", SIZE)));
+    expect(screen.getByTestId("map-off-tromso")).toBeOnTheScreen();
+  });
+
+  it("den valgte nålen dekkes aldri: zoomer kunden ut, tar den naboene inn («BCN +N», valgt), og et trykk zoomer inn igjen", async () => {
+    await renderExplore();
+    await openMap();
+    await fireEvent.press(screen.getByTestId("map-pin-barcelona"));
+    await act(() => mapProps().onRegionChangeComplete(areaRegion("world", SIZE)));
+    const sel = screen.getAllByTestId(/^map-group-barcelona\+/);
+    expect(sel).toHaveLength(1);
+    expect(sel[0]).toBeSelected();
+    expect(sel[0]).toHaveProp("accessibilityLabel", expect.stringMatching(/^Barcelona, BCN, reisemål, valgt\. Tett ved: .*London \(LHR\)/));
+    expect(sel[0]).toHaveProp("accessibilityHint", "Zoomer inn så du kan velge ett");
+    // Ingen annen nål eller gruppe inneholder Barcelona.
+    expect(shownAirports().filter((id) => id === "barcelona")).toHaveLength(1);
+    const before = animateToRegion.mock.calls.length;
+    await fireEvent.press(sel[0]!);
+    expect((animateToRegion.mock.calls[before]![0] as { longitudeDelta: number }).longitudeDelta).toBeLessThanOrEqual(areaRegion("world", SIZE).longitudeDelta / 3 + 1e-9);
+    expect(screen.getByTestId("map-pin-card")).toBeOnTheScreen();
+  });
+
   it("bytte område lukker et valgt reisemål som ville havnet utenfor; innenfor blir det stående", async () => {
     await renderExplore();
     await openMap();

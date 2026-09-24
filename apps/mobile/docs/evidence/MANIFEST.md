@@ -822,14 +822,16 @@ They show only the layout that decides what can be scrolled into view above the 
 The stand-in, the web switch to the iPhone branch and the preview text scale exist only in the scratch copy, not in the repository. Real MapKit rendering, gestures, animation and VoiceOver on a device are **not** shown here.
 
 - **Before** is the map code at `fa4066c`, which the user installed.
-- **After** is the commit that adds this section.
+- **After** is the commit that adds this section. It corrects `1883e5c`: that commit let pins overlap the selected pin, and Tromsø stretched its Europe view.
 - Destinations come from the app's own data. Nothing is fetched and there are no prices.
 
-What the capture measured in every after run (375, 390 and 430 pt in Norwegian, 390 pt in English, 375 pt at 135 % text):
-- **No overlaps:** no two visible pins or groups overlap, in any of the five states (opened, selected, Midtøsten, group tapped, whole world).
-- **Card:** the map frame keeps the same height when the card opens (445/445/461/445/400 pt), and the selected pin stays above the card.
-- **Area button:** it stays selected after a pin is chosen and clears after a group tap zooms in.
+What the capture measured in every after run (375, 390 and 430 pt in Norwegian, 390 pt in English, 375 pt at 135 % text). Each run covers seven states: opened, Barcelona selected, Tromsø via its button, London selected, Midtøsten, group tapped, and whole world.
+- **No overlaps:** no two visible pins, groups or buttons overlap; 0 across 35 states.
+- **Card:** the map frame keeps its height when the card opens (445/445/461/445/400 pt), and the selected pin stays above the card.
+- **Tromsø:** tapping "↑ Tromsø (TOS)" opens the card for Tromsø lufthavn (TOS).
 - **Nothing sent:** no search or other network call is made.
+
+**Known limit (375 pt, 135 % text):** London is reached through its group; after that zoom, Paris is already a separate pin. Once London is selected, Paris sits behind the card. It is a separate pin and appears when the card closes.
 
 **Before (`fa4066c`, 390 pt):**
 - all 24 airports are fitted into one view;
@@ -840,15 +842,21 @@ What the capture measured in every after run (375, 390 and 430 pt in Norwegian, 
 |---|---|---|
 | `map-before-fa4066c-390-1-all-24.png` | `3bc8e28e28a15a29…` | 780×1773 |
 | `map-before-fa4066c-390-2-click-bcn-selects-agp.png` | `21f84594b7833958…` | 780×1798 |
-| `map-after-375-1-europe.png` | `c39a002299521e9c…` | 750×1773 |
-| `map-after-375-2-selected-bcn.png` | `6e7f59e32ea646df…` | 750×1798 |
-| `map-after-375-large-1-europe.png` | `96d31991a91b03d0…` | 750×1798 |
-| `map-after-375-large-2-selected-bcn.png` | `a93a2ade8abe1cc4…` | 750×1798 |
-| `map-after-390-1-europe.png` | `e9b1dcef16d7e32f…` | 780×1773 |
-| `map-after-390-2-selected-bcn.png` | `f0b847293247b979…` | 780×1798 |
-| `map-after-390-3-middle-east.png` | `0e6b4a5234d86450…` | 780×1773 |
-| `map-after-390-4-group-tapped.png` | `031bb4e78e9bd98a…` | 780×1798 |
-| `map-after-390-5-world.png` | `8c306f624a7e8118…` | 780×1773 |
-| `map-after-430-1-europe.png` | `46ef529d373be7de…` | 860×1773 |
-| `map-after-430-2-selected-bcn.png` | `211f18d8c40463fc…` | 860×1773 |
-| `map-after-en-390-1-europe.png` | `c91282ff912b30ac…` | 780×1773 |
+| `map-after-375-1-europe.png` | `d76ff9d77bbb8c72…` | 750×1798 |
+| `map-after-375-2-selected-bcn.png` | `53a889576926fb94…` | 750×1798 |
+| `map-after-375-3-tromso.png` | `218751307a90d447…` | 750×1798 |
+| `map-after-375-4-selected-lhr.png` | `1231dbe2fe0d5f20…` | 750×1798 |
+| `map-after-375-large-1-europe.png` | `7ae81539f54965f4…` | 750×1798 |
+| `map-after-375-large-2-selected-bcn.png` | `2a8d74e0c34af7b8…` | 750×1773 |
+| `map-after-375-large-4-selected-lhr.png` | `0838573d56cd2bd0…` | 750×1798 |
+| `map-after-390-1-europe.png` | `98250deb2a0c82f2…` | 780×1798 |
+| `map-after-390-2-selected-bcn.png` | `5c35f56879c86a7e…` | 780×1798 |
+| `map-after-390-3-tromso.png` | `d4b1c2e3b701eb59…` | 780×1773 |
+| `map-after-390-4-selected-lhr.png` | `3cc40609a569913d…` | 780×1773 |
+| `map-after-390-5-middle-east.png` | `e01788d3c150b21b…` | 780×1773 |
+| `map-after-390-6-group-tapped.png` | `6399dbf53f0b08c9…` | 780×1773 |
+| `map-after-390-7-world.png` | `502fc8b53887d167…` | 780×1773 |
+| `map-after-430-1-europe.png` | `ca74685bb82ddf23…` | 860×1798 |
+| `map-after-430-2-selected-bcn.png` | `6b2944dd39fa445d…` | 860×1773 |
+| `map-after-430-3-tromso.png` | `62e104f375082841…` | 860×1773 |
+| `map-after-en-390-1-europe.png` | `eb1346265b638501…` | 780×1773 |
