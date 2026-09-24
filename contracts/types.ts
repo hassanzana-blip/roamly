@@ -178,6 +178,18 @@ export interface SearchResult {
   bookingMode?: "hellosky" | "external";
   /** Sant når leverandøren ikke rakk å bli ferdig innen tidsbudsjettet (delvise resultater). */
   partial?: boolean;
+  /**
+   * Hva prisene gjelder, slik leverandøren selv oppga det i svaret (bare KAYAK setter dette; ren metadata, ingen
+   * beløp endres). Nettet bruker det ikke; appens API avgjør ut fra dette om prisen kan kalles en total for alle.
+   */
+  priceBasis?: ProviderPriceBasis;
+}
+
+export interface ProviderPriceBasis {
+  /** `priceMode` fra svaret, uendret («total», «perPerson» …); null når det manglet. */
+  mode: string | null;
+  /** Reisende leverandøren oppga å ha priset (antall per KAYAK-nøkkel); null når feltet manglet eller ikke kunne leses. */
+  passengers: Record<string, number> | null;
 }
 
 // ─── Booking / orders ───────────────────────────────────────────────────────

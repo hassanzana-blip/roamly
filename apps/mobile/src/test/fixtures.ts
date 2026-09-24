@@ -136,6 +136,8 @@ export const SEARCH_RESULT: MobileSearchResult = {
   passengers: [{ type: "adult" }],
   offers: [SEK_OFFER, EUR_HS_OFFER, NOK_OFFER, UNSAFE_LINK_OFFER, THB_OFFER],
   fx: { status: "partial", unconvertedCount: 1, source: "norges-bank", rateDate: RATE_DATE, indicative: true },
+  // Serveren bekreftet totalen for alle reisende (KAYAK svarte «total» for nøyaktig de reisende det ble søkt for).
+  priceBasis: { kind: "total" },
 };
 
 export const PROFILE: CustomerProfile = {

@@ -162,9 +162,9 @@ export function tripKindLabel(offer: Offer, { t }: Pick<I18n, "t">): string {
 }
 
 /**
- * Prisen er totalen for alle reisende (KAYAK spørres med priceMode=total;
- * Duffel oppgir total_amount). Aldri «per person».
+ * «Totalt for …» bare når serveren har bekreftet at prisen gjelder alle reisende (se totalConfirmed); ellers
+ * «Tilbyderens pris, total ikke bekreftet». Beløpet er det samme – det ganges aldri opp.
  */
-export function priceBasis(offer: Offer, i18n: Pick<I18n, "t">): string {
-  return i18n.t.offer.priceBasis(travellersOf(offer, i18n), tripKindLabel(offer, i18n));
+export function priceBasis(offer: Offer, i18n: Pick<I18n, "t">, totalConfirmed = true): string {
+  return totalConfirmed ? i18n.t.offer.priceBasis(travellersOf(offer, i18n), tripKindLabel(offer, i18n)) : i18n.t.offer.priceBasisUnverified(tripKindLabel(offer, i18n));
 }

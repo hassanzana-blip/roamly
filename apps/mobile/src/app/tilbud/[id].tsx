@@ -17,7 +17,7 @@ import { journeyWarnings, type JourneyWarning } from "../../lib/warnings";
 import { singleFlight } from "../../lib/singleFlight";
 import { useExpiryClock } from "../../lib/useExpiryClock";
 import { webSearchUrl } from "../../lib/webLinks";
-import { providerDisplayName, resultKind } from "../../lib/resultStatus";
+import { providerDisplayName, resultKind, totalConfirmed } from "../../lib/resultStatus";
 import { useA11yLanguage, useI18n, type I18n } from "../../i18n";
 import { cabinLabel } from "../../lib/searchForm";
 import { photoForAirport } from "../../lib/destinations";
@@ -361,7 +361,10 @@ export default function OfferScreen() {
   const disclosure = handoff.kind === "external" ? handoff.disclosure : null;
   const hasTerms = conds.length > 0 || Boolean(disclosure);
   const d = priceDisplay(price, i18n);
-  const basis = priceBasis(offer, i18n);
+  // «Totalt for …» bare når serveren bekreftet det; ellers «Tilbyderens pris, total ikke bekreftet» – også i
+  // bunnlinjen, prisfeltet, delingsteksten og for VoiceOver.
+  const confirmed = totalConfirmed(result);
+  const basis = priceBasis(offer, i18n, confirmed);
   const flightNumbers = [...new Set(offer.slices.flatMap((s) => s.segments.map((g) => `${g.carrier.iata}${g.flightNumber}`)))].join(", ");
   const operators = [...new Set(offer.slices.flatMap((s) => s.segments.filter((g) => g.operatingCarrier && g.operatingCarrier.iata !== g.carrier.iata).map((g) => g.operatingCarrier!.name)))];
   const aircraft = [...new Set(offer.slices.flatMap((s) => s.segments.map((g) => g.aircraft).filter(Boolean)))];
@@ -420,7 +423,14 @@ export default function OfferScreen() {
         <JourneySummary item={selected} />
 
         <View style={styles.body}>
-          {statusNotice ? <Notices items={[{ key: "demo", tone: "warning", text: statusNotice, testID: "demo-banner" }]} /> : null}
+          {statusNotice || !confirmed ? (
+            <Notices
+              items={[
+                ...(statusNotice ? [{ key: "demo", tone: "warning" as const, text: statusNotice, testID: "demo-banner" }] : []),
+                ...(!confirmed ? [{ key: "basis", tone: "warning" as const, text: t.offer.priceUnverifiedExplained, testID: "price-basis-notice" }] : []),
+              ]}
+            />
+          ) : null}
           {warnings.length ? (
             <View accessibilityLanguage={lang} style={styles.warnings} testID="journey-warnings" accessibilityRole="summary">
               <Text style={[type.footnoteStrong, { color: colors.warningOnDark }]}>{dt.warningsTitle}</Text>

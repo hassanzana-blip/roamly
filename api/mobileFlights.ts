@@ -6,6 +6,7 @@ import { computeServiceFeeMinor, loadPricingOverrides, type PricingOverrides } f
 import { fromMinor, toMinor } from "./lib/money";
 import { convertToNok, getNokRates, type FxTable } from "./lib/fxRates";
 import { requestMismatch } from "./lib/requestMatch";
+import { priceBasisFor } from "./lib/priceBasis";
 import type { Offer } from "../contracts/types";
 import { NORGES_BANK_SOURCE, type MobileExclusionReason, type MobileFxStatus, type MobileOffer, type MobileOfferPrice, type MobileSearchResult } from "../contracts/mobileSearch";
 
@@ -110,6 +111,7 @@ export async function mobileFlightSearch(input: (typeof mobileSearchSchema)["_ou
     passengers: result.passengers,
     offers,
     excluded: { count: excludedCount, reasons },
+    priceBasis: priceBasisFor(result, input.passengers),
     fx: { status, unconvertedCount, source: NORGES_BANK_SOURCE, rateDate: usedDates.length ? usedDates.sort().at(-1)! : null, indicative: true },
   };
 }

@@ -28,6 +28,9 @@ const en = {
   children: (n: number) => `${n} ${n === 1 ? "child" : "children"}`,
   infants: (n: number) => `${n} ${n === 1 ? "infant" : "infants"}`,
   priceBasis: (travellers: string, trip: string) => `Total for ${travellers} · ${trip}`,
+  /** Leverandøren bekreftet ikke at prisen gjelder alle reisende: aldri «Total for …». */
+  priceBasisUnverified: (trip: string) => `Provider's price, total not confirmed · ${trip}`,
+  priceUnverifiedExplained: "The provider didn't confirm that these prices cover all travellers. Check the total with the provider before you book.",
   sellerKinds: { airline: "Airline", agency: "Travel agency", unknown: "Provider" } satisfies Record<SellerKind, string>,
   /** Knappens fulle navn (VoiceOver): handlingen og hvilken tilbyder den går til. */
   handoff: (provider: string) => `Go to offer at ${provider}`,
@@ -61,6 +64,8 @@ const nb: typeof en = {
   children: (n) => `${n} barn`,
   infants: (n) => `${n} spedbarn`,
   priceBasis: (travellers, trip) => `Totalt for ${travellers} · ${trip}`,
+  priceBasisUnverified: (trip) => `Tilbyderens pris, total ikke bekreftet · ${trip}`,
+  priceUnverifiedExplained: "Tilbyderen bekreftet ikke at prisene gjelder alle reisende. Sjekk totalprisen hos tilbyderen før du bestiller.",
   sellerKinds: { airline: "Flyselskap", agency: "Reisebyrå", unknown: "Tilbyder" },
   handoff: (provider) => `Gå til tilbud hos ${provider}`,
   handoffShort: "Gå til tilbud",

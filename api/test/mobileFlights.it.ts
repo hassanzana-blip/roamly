@@ -540,3 +540,58 @@ describe("mobil flights.search: bare tilbud som gjelder kundens flyplasser og da
     expect(res).not.toHaveProperty("excluded");
   });
 });
+
+// ─── Prisgrunnlaget: total for alle bare med bekreftelse fra svaret ───────────
+
+describe("mobil flights.search: prisgrunnlaget", () => {
+  const FAMILY_INPUT = { ...INPUT, passengers: [{ type: "adult" as const }, { type: "adult" as const }, { type: "child" as const, age: 8 }, { type: "infant_without_seat" as const, age: 1 }] };
+  const FAMILY_COUNTS = { adults: 2, children: 1, infants: 1, infantsInSeat: 0, seniors: 0, students: 0, youth: 0 };
+  const withBasis = (priceBasis: SearchResult["priceBasis"]): SearchResult => ({ ...providerResult(), passengers: FAMILY_INPUT.passengers, ...(priceBasis === undefined ? {} : { priceBasis }) });
+
+  beforeEach(async () => {
+    await truncateAll();
+    resetFxCache();
+    setFxFetcher(async () => norgesBankFixture(TEST_RATES, osloDate(new Date())));
+  });
+  afterAll(async () => {
+    setFxFetcher(null);
+    await closeDb();
+  });
+
+  it.each([
+    ["total, samme reisende", { mode: "total", passengers: FAMILY_COUNTS }, { kind: "total" }],
+    ["perPerson for fire reisende", { mode: "perPerson", passengers: FAMILY_COUNTS }, { kind: "unverified", reason: "per_person" }],
+    ["total, men ett spedbarn for lite", { mode: "total", passengers: { ...FAMILY_COUNTS, infants: 0 } }, { kind: "unverified", reason: "party_mismatch" }],
+    ["total uten antall", { mode: "total", passengers: null }, { kind: "unverified", reason: "party_missing" }],
+    ["uten priceMode", { mode: null, passengers: FAMILY_COUNTS }, { kind: "unverified", reason: "mode_missing" }],
+    ["ukjent priceMode", { mode: "perGroup", passengers: FAMILY_COUNTS }, { kind: "unverified", reason: "mode_unknown" }],
+    ["ingen metadata (eldre adapter)", undefined, { kind: "unverified", reason: "mode_missing" }],
+  ] as const)("%s", async (_name, basis, expected) => {
+    const provided = withBasis(basis as SearchResult["priceBasis"]);
+    useProvider(provided);
+    const res = await mobile(mobileCtx()).flights.search(FAMILY_INPUT);
+    expect(res.priceBasis).toEqual(expected);
+    // Beløp og lenker er leverandørens, uansett grunnlag – aldri ganget med antall reisende.
+    const byId = new Map(provided.offers.map((o) => [o.id, o]));
+    for (const o of res.offers) {
+      const src = byId.get(o.offer.id)!;
+      expect([o.offer.totalAmount, o.offer.totalCurrency, o.price.original]).toEqual([src.totalAmount, src.totalCurrency, { amount: src.totalAmount, currency: src.totalCurrency }]);
+      expect(o.offer.booking).toEqual(src.booking);
+    }
+    expect(nok(res, "nok_1")).toEqual({ kind: "exact", currency: "NOK", amountMinor: 210000, estimate: false });
+  });
+
+  it("nettets søk er uendret: samme beløp, lenker og rekkefølge (metadataen følger bare med)", async () => {
+    const provided = withBasis({ mode: "perPerson", passengers: FAMILY_COUNTS });
+    useProvider(provided);
+    const res = await web(makeCtx()).flights.search(FAMILY_INPUT);
+    expect(res.offers).toEqual(provided.offers);
+    expect(res.priceBasis).toEqual({ mode: "perPerson", passengers: FAMILY_COUNTS });
+  });
+
+  it("demo: en kjent total for alle, uten KAYAK-metadata", async () => {
+    useProvider({ ...providerResult(), provider: "demo", passengers: FAMILY_INPUT.passengers });
+    const res = await mobile(mobileCtx()).flights.search(FAMILY_INPUT);
+    expect(res.priceBasis).toEqual({ kind: "total" });
+  });
+});

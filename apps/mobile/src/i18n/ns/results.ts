@@ -69,6 +69,8 @@ const en = {
     returnDate: (day: string) => `Return · ${day}`,
     searchAgain: "Search again",
     chips: { all: "All", direct: "Direct", max1: "Max 1 stop", bags: "Bags included" },
+    /** Prissorteringen når totalen for alle reisende ikke er bekreftet (ikke «total»). */
+    sortPriceUnconfirmed: "Lowest provider price first",
     status: {
       demo: "Demo data: these are not real flights or prices.",
       sandbox: (provider: string) => `Test data from ${provider}'s test environment: prices are not real.`,
@@ -158,6 +160,7 @@ const nb: typeof en = {
     returnDate: (day) => `Retur · ${day}`,
     searchAgain: "Søk på nytt",
     chips: { all: "Alle", direct: "Direkte", max1: "Maks 1 mellomlanding", bags: "Bagasje inkludert" },
+    sortPriceUnconfirmed: "Laveste pris fra tilbyderen først",
     status: {
       demo: "Demo: testdata, ikke ekte fly eller priser.",
       sandbox: (provider) => `Testdata fra ${provider}s testmiljø: prisene er ikke ekte.`,

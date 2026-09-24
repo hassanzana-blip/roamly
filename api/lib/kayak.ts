@@ -16,6 +16,7 @@ import type {
   Offer,
   OfferConditions,
   OfferSlice,
+  ProviderPriceBasis,
   SearchPassengerInput,
   SearchResult,
   SearchSliceInput,
@@ -387,6 +388,8 @@ export const pollResponseSchema = z.object({
   totalCount: z.number().optional(),
   currency: z.string().optional(),
   priceMode: z.string().optional(),
+  // Tolerant: et uleselig antall skal ikke velte søket, bare gjøre prisgrunnlaget ubekreftet (se priceBasisOf).
+  passengers: z.unknown().optional(),
   results: z.array(resultItemSchema).default([]),
   legs: z.record(z.string(), legSchema).default({}),
   segments: z.record(z.string(), segmentSchema).default({}),
@@ -403,6 +406,20 @@ export function parsePollResponse(json: unknown): KayakPollResponse {
     throw new KayakError("Søkemotoren ga et svar vi ikke kunne lese.", { retryable: true });
   }
   return parsed.data;
+}
+
+/**
+ * Prisgrunnlaget slik KAYAK oppga det: `priceMode` og antall reisende per type, uendret. Et antall som ikke er et
+ * ikke-negativt heltall (eller et felt som ikke er et objekt) gir `passengers: null` – vi gjetter ikke.
+ */
+export function priceBasisOf(body: Pick<KayakPollResponse, "priceMode" | "passengers">): ProviderPriceBasis {
+  const raw = body.passengers;
+  let passengers: Record<string, number> | null = null;
+  if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+    const entries = Object.entries(raw as Record<string, unknown>);
+    if (entries.every(([, v]) => typeof v === "number" && Number.isInteger(v) && v >= 0)) passengers = Object.fromEntries(entries) as Record<string, number>;
+  }
+  return { mode: typeof body.priceMode === "string" ? body.priceMode : null, passengers };
 }
 
 // ─── Kartlegging til HelloSkys Offer ─────────────────────────────────────────
@@ -753,6 +770,8 @@ export async function kayakSearch(input: KayakSearchInput, opts: KayakSearchOpti
     sandbox: kayakConfig.sandbox,
     bookingMode: "external",
     ...(partial ? { partial: true } : {}),
+    // Ren metadata: hva KAYAK sa at prisene gjelder. Beløpene over er urørt.
+    priceBasis: priceBasisOf(snapshot),
   };
 }
 

@@ -53,3 +53,12 @@ export function exclusionSummary(r: Pick<MobileSearchResult, "excluded">, { t }:
   return { count: ex.count, why: why.join(", ") };
 }
 
+/**
+ * Kan prisene kalles en total for alle reisende? Serveren sier det (priceBasis). En eldre server sier det ikke: da
+ * gjelder det bare leverandører som oppgir totaler i sin egen kontrakt (Duffel, Travelport, demo) – aldri KAYAK.
+ */
+export function totalConfirmed(r: Pick<MobileSearchResult, "priceBasis" | "provider">): boolean {
+  if (r.priceBasis) return r.priceBasis.kind === "total";
+  return r.provider !== "kayak";
+}
+

@@ -86,6 +86,15 @@ export type MobileFxStatus =
  * søket, «incomplete» = en strekning uten flyvninger, «origin»/«destination» = reisen starter eller slutter på en annen
  * flyplass enn den kunden valgte, «date» = en annen avreisedag.
  */
+/**
+ * Kan prisene kalles en total for alle reisende? «total»: leverandørens kontrakt sier det (Duffel, Travelport,
+ * demo), eller KAYAK-svaret sa «total» og hadde priset nøyaktig de reisende det ble søkt for. «unverified»: ikke
+ * bekreftet – beløpet vises som tilbyderens pris, aldri som en total og aldri ganget opp.
+ */
+export type MobilePriceBasis =
+  | { kind: "total" }
+  | { kind: "unverified"; reason: "mode_missing" | "mode_unknown" | "per_person" | "party_missing" | "party_mismatch" };
+
 export type MobileExclusionReason = "missing_leg" | "extra_leg" | "incomplete" | "origin" | "destination" | "date";
 
 export interface MobileSearchResult {
@@ -106,6 +115,8 @@ export interface MobileSearchResult {
    * og blir aldri erstattet av andre priser. Antall per grunn (første grunn per tilbud). Mangler fra eldre servere.
    */
   excluded?: { count: number; reasons: Partial<Record<MobileExclusionReason, number>> };
+  /** Gjelder prisene alle reisende? Mangler fra eldre servere (appen avgjør da ut fra leverandøren). */
+  priceBasis?: MobilePriceBasis;
   fx: {
     status: MobileFxStatus;
     /** Antall utenlandske tilbud uten NOK-pris. 0 når status er «ok» eller «not_needed». */

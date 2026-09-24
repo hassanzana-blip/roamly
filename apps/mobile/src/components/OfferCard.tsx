@@ -78,7 +78,7 @@ function CompactLeg({ slice, label }: { slice: OfferSlice; label?: string }) {
  * hjemreise, så prisen aldri står ved bare halve reisen. VoiceOver leser
  * alt (se accessibilityLabel).
  */
-export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () => void }) {
+export function OfferCard({ journey, onPress, totalConfirmed = true }: { journey: Journey; onPress: () => void; totalConfirmed?: boolean }) {
   const item = journey.best;
   const { offer, price } = item;
   const i18n = useI18n();
@@ -96,7 +96,7 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${offer.owner.name}. ${legs}. ${facts.map((b) => baggageShort(b, i18n)).join(". ")}. ${d.accessibilityLabel}, ${priceBasis(offer, i18n).toLowerCase()}.${sellers > 1 ? t.results.card.providersSpoken(sellers) : ""}`}
+      accessibilityLabel={`${offer.owner.name}. ${legs}. ${facts.map((b) => baggageShort(b, i18n)).join(". ")}. ${d.accessibilityLabel}, ${priceBasis(offer, i18n, totalConfirmed).toLowerCase()}.${sellers > 1 ? t.results.card.providersSpoken(sellers) : ""}`}
       accessibilityHint={t.results.card.detailsHint}
       style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
       testID={`offer-${offer.id}`}
@@ -125,7 +125,7 @@ export function OfferCard({ journey, onPress }: { journey: Journey; onPress: () 
       <View style={[styles.footer, narrow && { gap: space.sm }]}>
         <View style={{ flex: 1, gap: 2 }}>
           <PriceTag price={price} compact testID={`price-${offer.id}`} />
-          <Text style={[type.caption, { color: colors.textSecondary }]}>{priceBasis(offer, i18n)}</Text>
+          <Text style={[type.caption, { color: colors.textSecondary }]}>{priceBasis(offer, i18n, totalConfirmed)}</Text>
         </View>
         <View style={[styles.details, narrow && styles.detailsNarrow]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Text style={[type.calloutStrong, { color: colors.text }]}>{t.results.card.details}</Text>

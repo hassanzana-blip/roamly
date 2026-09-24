@@ -27,8 +27,9 @@ import {
 import { AppError } from "./errors";
 
 /**
- * Fixturen er KAYAKs eget dokumenterte PollResponse-eksempel (developers.kayak.com,
- * Flights Search API → /poll → Response), ikke et gjettet skjema. Feltnavnene
+ * Fixturen bygger på KAYAKs dokumenterte PollResponse-eksempel (developers.kayak.com,
+ * Flights Search API → /poll → Response), men er ikke en nøyaktig kopi av dagens eksempel:
+ * dagens eksempel har priceMode «perPerson», her er det «total» (det vi ber om). Feltnavnene
  * her er dermed de API-et faktisk sender.
  */
 const POLL_COMPLETE = {

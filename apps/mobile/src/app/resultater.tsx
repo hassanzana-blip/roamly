@@ -10,7 +10,7 @@ import { fxNotice } from "../lib/price";
 import { addDays, formatClock, fromIsoDate, toIsoDate } from "../lib/format";
 import { ApiError } from "../lib/api";
 import { errorText } from "../lib/errorText";
-import { exclusionSummary, pricesStale, providerDisplayName, resultKind } from "../lib/resultStatus";
+import { exclusionSummary, pricesStale, providerDisplayName, resultKind, totalConfirmed } from "../lib/resultStatus";
 import { useA11yLanguage, useI18n } from "../i18n";
 import { cabinLabel, passengerSummary } from "../lib/searchForm";
 import { activeFilterCount, airlineOptions, applyView, clearedFilters, countWith, legThresholds, priceThresholds, SORTS, STOPS, TIME_BANDS, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
@@ -102,6 +102,11 @@ export default function ResultsScreen() {
   const slow = search.status === "loading" && slowSearch === search;
 
   const offers = search.status === "done" ? search.result.offers : null;
+  // Ubekreftet total: et prisfilter («Opptil 3 000 kr») ville vært et løfte om en total. Det tas bort.
+  const unconfirmedTotal = search.status === "done" && !totalConfirmed(search.result);
+  useEffect(() => {
+    if (unconfirmedTotal && view.maxPriceMinor !== null) setView((v) => ({ ...v, maxPriceMinor: null }));
+  }, [unconfirmedTotal, view.maxPriceMinor, setView]);
   const shown = useMemo(() => (offers ? applyView(offers, view) : []), [offers, view]);
   const journeys = useMemo(() => groupJourneys(shown), [shown]);
 
@@ -202,6 +207,8 @@ export default function ResultsScreen() {
   const notice = fxNotice(result, i18n);
   // Tilbud som ikke gjaldt søket (annen flyplass eller dato, manglende retur): sagt rett ut, aldri erstattet.
   const excluded = exclusionSummary(result, i18n);
+  // Er totalen for alle reisende ikke bekreftet, sies det rett ut, og prisfilteret («Opptil …») vises ikke.
+  const confirmed = totalConfirmed(result);
   const checkedAt = formatClock(new Date(at));
   const stale = pricesStale(at, now);
   // Korte linjer, så første reise står høyt oppe; valutaforklaringen kan åpnes.
@@ -211,6 +218,7 @@ export default function ResultsScreen() {
     ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
     ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
     ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: r.status.partial, testID: "partial-banner" }] : []),
+    ...(!confirmed && all.length ? [{ key: "basis", tone: "warning" as const, text: t.offer.priceUnverifiedExplained, testID: "price-basis-notice" }] : []),
     ...(excluded && all.length ? [{ key: "excluded", tone: "info" as const, text: r.status.excluded(excluded.count, excluded.why), testID: "excluded-notice" }] : []),
     // Alt omregnet (bare en opplysning): lukket bak «Om «ca.»-priser»; kortene har «ca.» og kilden.
     // Mangler kronepriser (en advarsel): alltid åpen.
@@ -220,7 +228,7 @@ export default function ResultsScreen() {
         : [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }]
       : []),
   ];
-  const sortLabel = t.results.sorts[view.sort].summary;
+  const sortLabel = view.sort === "price" && !confirmed ? r.sortPriceUnconfirmed : t.results.sorts[view.sort].summary;
   const clearFilters = () => setView(clearedFilters);
   const toggleStops = (value: "direct" | "max1") => setView((v) => ({ ...v, stops: v.stops === value ? "any" : value }));
 
@@ -347,7 +355,7 @@ export default function ResultsScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <OfferCard journey={item} onPress={() => router.push({ pathname: "/tilbud/[id]", params: { id: item.best.offer.id } })} />
+            <OfferCard journey={item} totalConfirmed={confirmed} onPress={() => router.push({ pathname: "/tilbud/[id]", params: { id: item.best.offer.id } })} />
           </View>
         )}
       />
@@ -423,7 +431,7 @@ export default function ResultsScreen() {
               })}
             </View>
           ) : null}
-          {prices.length ? (
+          {prices.length && confirmed ? (
             <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.priceTitle}>
               <Text style={[type.bodyStrong, { color: colors.text }]}>{r.priceTitle}</Text>
               <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.priceHint}</Text>
@@ -457,7 +465,7 @@ export default function ResultsScreen() {
               key={value}
               testID={`sort-${value}`}
               label={t.results.sorts[value].label}
-              detail={t.results.sorts[value].summary}
+              detail={value === "price" && !confirmed ? r.sortPriceUnconfirmed : t.results.sorts[value].summary}
               selected={view.sort === value}
               onPress={() => {
                 setView((v) => ({ ...v, sort: value as SortKey }));
