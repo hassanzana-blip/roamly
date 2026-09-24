@@ -91,9 +91,10 @@ export default function ExploreScreen() {
           </ScrollView>
         )}
         {selected ? (
-          <View style={styles.cardWrap}>
+          // Kortet kan bli høyere enn plassen (stor tekst): da ruller det, og «Se flyreiser» er alltid til å nå.
+          <ScrollView style={styles.cardWrap} contentContainerStyle={styles.cardContent} testID="map-pin-card-scroll">
             <DestinationPinCard destination={selected} onSearch={() => searchTo(selected)} onClose={() => setSelectedId(null)} />
-          </View>
+          </ScrollView>
         ) : null}
       </View>
     );
@@ -119,7 +120,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   head: { paddingHorizontal: space.lg, gap: space.sm, marginBottom: space.xl },
   mapNote: { color: colors.onDarkMuted, paddingHorizontal: space.lg, marginTop: -space.md, marginBottom: space.sm },
-  mapArea: { flex: 1, minHeight: 220, backgroundColor: colors.bg },
-  cardWrap: { paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md, backgroundColor: colors.bg },
+  mapArea: { flexGrow: 1, flexShrink: 1, minHeight: 160, backgroundColor: colors.bg },
+  cardWrap: { flexGrow: 0, flexShrink: 1, maxHeight: "70%", backgroundColor: colors.bg },
+  cardContent: { paddingHorizontal: space.lg, paddingTop: space.md, paddingBottom: space.md },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: space.md, paddingHorizontal: space.lg, rowGap: space.lg },
 });
