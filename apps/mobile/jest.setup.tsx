@@ -67,6 +67,26 @@ jest.mock("expo-image", () => {
   return { __esModule: true, Image };
 });
 
+// Apple Maps (react-native-maps): ingen native kart i Jest. MapView og Marker blir View-er som
+// beholder testID, tilgjengelighet og trykk, og fitToCoordinates registreres.
+jest.mock("react-native-maps", () => {
+  const React = require("react");
+  const { View, Pressable } = require("react-native");
+  const fitToCoordinates = jest.fn();
+  const MapView = React.forwardRef(function MapView(props: Record<string, unknown> & { children?: unknown; onMapReady?: () => void }, ref: unknown) {
+    const { onMapReady } = props;
+    React.useImperativeHandle(ref, () => ({ fitToCoordinates }));
+    React.useEffect(() => onMapReady?.(), [onMapReady]);
+    return <View testID={props.testID} accessibilityLabel={props.accessibilityLabel} {...({ mapProps: props } as object)}>{props.children}</View>;
+  });
+  const Marker = (props: { testID?: string; accessibilityLabel?: string; accessibilityHint?: string; onPress?: () => void; children?: unknown }) => (
+    <Pressable testID={props.testID} accessibilityRole="button" accessibilityLabel={props.accessibilityLabel} accessibilityHint={props.accessibilityHint} onPress={props.onPress}>
+      {props.children}
+    </Pressable>
+  );
+  return { __esModule: true, default: MapView, Marker, __fitToCoordinates: fitToCoordinates };
+});
+
 jest.mock("expo-crypto", () => ({
   randomUUID: () => "11111111-2222-4333-8444-555555555555",
 }));
