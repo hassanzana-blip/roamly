@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { Pressable, Text } from "./a11y";
-import type { MapPoint } from "../lib/destinationMap";
+import { AREA_OF_AIRPORT, type MapArea, type MapPoint } from "../lib/destinationMap";
 import { useI18n } from "../i18n";
 import { Icon } from "./Icon";
 import { colors, radius, space, type } from "../lib/theme";
@@ -9,8 +9,14 @@ export type DestinationMapProps = {
   points: MapPoint[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  /** Luft rundt nålene når kartet tilpasses (f.eks. over kortet nederst). */
+  /** Hvor mange pt nederst på kartet kortet for det valgte reisemålet dekker. */
   bottomInset: number;
+  /** Sist valgte område; `null` når kunden har flyttet kartet bort fra det. */
+  area: MapArea | null;
+  /** Øker for hvert trykk på en områdeknapp, så også samme område flytter kartet tilbake. */
+  areaRequest: number;
+  /** Kartet har forlatt området (kunden dro eller zoomet, eller trykket på en gruppe). */
+  onLeaveArea: () => void;
 };
 
 /**
@@ -19,15 +25,17 @@ export type DestinationMapProps = {
  * vises i iPhone-appen, og lar kunden velge det samme reisemålet fra en
  * liste. iOS bruker DestinationMap.ios.tsx.
  */
-export function DestinationMap({ points, selectedId, onSelect }: DestinationMapProps) {
+export function DestinationMap({ points, selectedId, onSelect, area }: DestinationMapProps) {
   const { t, locale } = useI18n();
+  // Samme områdeknapper som på iPhone: her viser de områdets reisemål i listen.
+  const shown = !area || area === "world" ? points : points.filter((p) => AREA_OF_AIRPORT[p.destination.iata] === area);
   return (
     <View style={styles.root} testID="destination-map-fallback">
       <View style={styles.note}>
         <Icon name="info" size={16} color={colors.onDarkMuted} />
         <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{t.explore.webOnly}</Text>
       </View>
-      {points.map((p) => {
+      {shown.map((p) => {
         const n = p.destination.names[locale];
         const selected = p.destination.id === selectedId;
         return (

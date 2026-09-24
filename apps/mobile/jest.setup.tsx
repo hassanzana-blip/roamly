@@ -68,23 +68,24 @@ jest.mock("expo-image", () => {
 });
 
 // Apple Maps (react-native-maps): ingen native kart i Jest. MapView og Marker blir View-er som
-// beholder testID, tilgjengelighet og trykk, og fitToCoordinates registreres.
+// beholder testID, tilgjengelighet og trykk, og kartets flyttinger (fitToCoordinates, animateToRegion) registreres.
 jest.mock("react-native-maps", () => {
   const React = require("react");
   const { View, Pressable } = require("react-native");
   const fitToCoordinates = jest.fn();
+  const animateToRegion = jest.fn();
   const MapView = React.forwardRef(function MapView(props: Record<string, unknown> & { children?: unknown; onMapReady?: () => void }, ref: unknown) {
     const { onMapReady } = props;
-    React.useImperativeHandle(ref, () => ({ fitToCoordinates }));
+    React.useImperativeHandle(ref, () => ({ fitToCoordinates, animateToRegion }));
     React.useEffect(() => onMapReady?.(), [onMapReady]);
     return <View testID={props.testID} accessibilityLabel={props.accessibilityLabel} {...({ mapProps: props } as object)}>{props.children}</View>;
   });
-  const Marker = (props: { testID?: string; accessibilityLabel?: string; accessibilityHint?: string; onPress?: () => void; children?: unknown }) => (
-    <Pressable testID={props.testID} accessibilityRole="button" accessibilityLabel={props.accessibilityLabel} accessibilityHint={props.accessibilityHint} onPress={props.onPress}>
+  const Marker = (props: { testID?: string; accessibilityLabel?: string; accessibilityHint?: string; accessibilityState?: object; coordinate?: object; onPress?: () => void; children?: unknown }) => (
+    <Pressable testID={props.testID} accessibilityRole="button" accessibilityLabel={props.accessibilityLabel} accessibilityHint={props.accessibilityHint} accessibilityState={props.accessibilityState} onPress={props.onPress} {...({ coordinate: props.coordinate } as object)}>
       {props.children}
     </Pressable>
   );
-  return { __esModule: true, default: MapView, Marker, __fitToCoordinates: fitToCoordinates };
+  return { __esModule: true, default: MapView, Marker, __fitToCoordinates: fitToCoordinates, __animateToRegion: animateToRegion };
 });
 
 // Clerk (@clerk/expo): ingen nettverk og ingen native kode i Jest. ClerkProvider registrerer

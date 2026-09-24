@@ -22,9 +22,8 @@ export function DestinationPinCard({ destination, onSearch, onClose }: { destina
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={[type.caption, { color: colors.textSecondary }]}>{e.destination}</Text>
           <Text style={[type.section, { color: colors.text }]} accessibilityRole="header" testID="map-pin-city">
-            {n.city}
+            {n.city} <Text style={[type.footnote, { color: colors.textSecondary }]}>{n.country}</Text>
           </Text>
-          <Text style={[type.footnote, { color: colors.textSecondary }]}>{n.country}</Text>
           <Text style={[type.footnoteStrong, { color: colors.text }]} testID="map-pin-airport">
             {e.airportLine(n.airport, destination.iata)}
           </Text>
@@ -38,7 +37,8 @@ export function DestinationPinCard({ destination, onSearch, onClose }: { destina
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.lg, gap: space.md },
+  // Kompakt: kortet ligger over kartet, så det skal ta så lite av kartet som mulig.
+  card: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.md, gap: space.sm, shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 4 } },
   top: { flexDirection: "row", gap: space.md, alignItems: "flex-start" },
-  thumb: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: colors.inset },
+  thumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.inset },
 });

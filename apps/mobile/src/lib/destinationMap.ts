@@ -1,4 +1,5 @@
 import { DESTINATIONS, type Destination } from "./destinations";
+import { fitRegion, type Region, type Size } from "./mapGeometry";
 
 /**
  * Hvor hvert reisemål står på kartet: flyplassen søket faktisk bruker
@@ -47,3 +48,28 @@ export const MAP_POINTS: MapPoint[] = DESTINATIONS.flatMap((destination) => {
   const c = AIRPORT_COORDINATES[destination.iata];
   return c ? [{ destination, ...c }] : [];
 });
+
+/** Kartets områder – knapper over kartet. «world» viser alle reisemålene. */
+export const MAP_AREAS = ["europe", "middleEast", "asia", "americas", "world"] as const;
+export type MapArea = (typeof MAP_AREAS)[number];
+
+/** Hvilket område hver flyplass hører til (geografisk; ingen priser eller rangering). */
+export const AREA_OF_AIRPORT: Record<string, Exclude<MapArea, "world">> = {
+  // Marrakech ligger i Europa-utsnittet (rett sør for Málaga); med i Midtøsten ville det gjort det utsnittet dobbelt så bredt.
+  BCN: "europe", LHR: "europe", FCO: "europe", CDG: "europe", LIS: "europe", ATH: "europe", AGP: "europe", WAW: "europe", TOS: "europe", IST: "europe", RAK: "europe",
+  DXB: "middleEast", BEY: "middleEast", EBL: "middleEast", ISU: "middleEast", JED: "middleEast",
+  BKK: "asia", HND: "asia", CMB: "asia", DEL: "asia", DAC: "asia", ISB: "asia", KBL: "asia",
+  JFK: "americas",
+};
+
+export const pointsIn = (area: MapArea): MapPoint[] => (area === "world" ? MAP_POINTS : MAP_POINTS.filter((p) => AREA_OF_AIRPORT[p.destination.iata] === area));
+export const areaOfDestination = (id: string): Exclude<MapArea, "world"> | null => {
+  const p = MAP_POINTS.find((x) => x.destination.id === id);
+  return p ? (AREA_OF_AIRPORT[p.destination.iata] ?? null) : null;
+};
+
+/** Utsnittet for et område i et kart på `size`: alle områdets flyplasser med luft rundt (minst 12° bredt – ett reisemål gir ikke gatenivå). */
+export const areaRegion = (area: MapArea, size: Size): Region => fitRegion(pointsIn(area), size);
+
+/** Området kartet åpner i: området til det valgte reisemålet, ellers Europa (der HelloSkys avreiseflyplasser er). */
+export const initialArea = (selectedId: string | null): MapArea => (selectedId ? areaOfDestination(selectedId) : null) ?? "europe";

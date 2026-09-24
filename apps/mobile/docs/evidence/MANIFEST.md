@@ -811,3 +811,44 @@ They show only the layout that decides what can be scrolled into view above the 
 | `kbd-after-390-results-end.png` | `6fc27cf6b0f66e93…` | 780×1076 |
 | `kbd-after-430-suggestions-end.png` | `85c8d1f9fcf662a8…` | 860×1076 |
 | `kbd-before-736ec7e-375-large-results-end.png` | `57d01e1595296567…` | 750×1076 |
+
+## Explore map on iPhone: areas, decluttered pins, card over the map (browser approximation)
+
+**NON-NATIVE: not Apple Maps and not an iPhone.** The iPhone component (`DestinationMap.ios.tsx`) runs in Chromium (Expo web). A scratch-only stand-in replaces `react-native-maps`:
+- a dark 10° grid, with no map tiles, coastlines or Apple branding;
+- pins placed by the app's own `src/lib/mapGeometry.ts` (Web Mercator);
+- a line of text showing where Apple's logo and "Juridisk" (Legal) label would sit.
+
+The stand-in, the web switch to the iPhone branch and the preview text scale exist only in the scratch copy, not in the repository. Real MapKit rendering, gestures, animation and VoiceOver on a device are **not** shown here.
+
+- **Before** is the map code at `fa4066c`, which the user installed.
+- **After** is the commit that adds this section.
+- Destinations come from the app's own data. Nothing is fetched and there are no prices.
+
+What the capture measured in every after run (375, 390 and 430 pt in Norwegian, 390 pt in English, 375 pt at 135 % text):
+- **No overlaps:** no two visible pins or groups overlap, in any of the five states (opened, selected, Midtøsten, group tapped, whole world).
+- **Card:** the map frame keeps the same height when the card opens (445/445/461/445/400 pt), and the selected pin stays above the card.
+- **Area button:** it stays selected after a pin is chosen and clears after a group tap zooms in.
+- **Nothing sent:** no search or other network call is made.
+
+**Before (`fa4066c`, 390 pt):**
+- all 24 airports are fitted into one view;
+- a click at the centre of the Barcelona pin selected **Málaga**, because another pin covered it;
+- the card shrank the map from 501 to 271 pt.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `map-before-fa4066c-390-1-all-24.png` | `3bc8e28e28a15a29…` | 780×1773 |
+| `map-before-fa4066c-390-2-click-bcn-selects-agp.png` | `21f84594b7833958…` | 780×1798 |
+| `map-after-375-1-europe.png` | `c39a002299521e9c…` | 750×1773 |
+| `map-after-375-2-selected-bcn.png` | `6e7f59e32ea646df…` | 750×1798 |
+| `map-after-375-large-1-europe.png` | `96d31991a91b03d0…` | 750×1798 |
+| `map-after-375-large-2-selected-bcn.png` | `a93a2ade8abe1cc4…` | 750×1798 |
+| `map-after-390-1-europe.png` | `e9b1dcef16d7e32f…` | 780×1773 |
+| `map-after-390-2-selected-bcn.png` | `f0b847293247b979…` | 780×1798 |
+| `map-after-390-3-middle-east.png` | `0e6b4a5234d86450…` | 780×1773 |
+| `map-after-390-4-group-tapped.png` | `031bb4e78e9bd98a…` | 780×1798 |
+| `map-after-390-5-world.png` | `8c306f624a7e8118…` | 780×1773 |
+| `map-after-430-1-europe.png` | `46ef529d373be7de…` | 860×1773 |
+| `map-after-430-2-selected-bcn.png` | `211f18d8c40463fc…` | 860×1773 |
+| `map-after-en-390-1-europe.png` | `c91282ff912b30ac…` | 780×1773 |

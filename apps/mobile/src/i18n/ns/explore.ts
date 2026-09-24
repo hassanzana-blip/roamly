@@ -17,6 +17,11 @@ const en = {
   noPrice: "No price shown before you search with your dates and travellers.",
   close: "Close",
   webOnly: "The map is shown in the iPhone app. Choose a destination here instead.",
+  areas: { europe: "Europe & North Africa", middleEast: "Middle East", asia: "Asia", americas: "North America", world: "Whole world" },
+  areasLabel: "Show on the map",
+  areaLabel: (name: string, n: number) => `${name}, ${n === 1 ? "1 destination" : `${n} destinations`}`,
+  clusterLabel: (n: number, places: string) => `${n} destinations close together: ${places}`,
+  clusterHint: "Zooms in so you can choose one",
 };
 
 const nb: typeof en = {
@@ -37,6 +42,11 @@ const nb: typeof en = {
   noPrice: "Ingen pris før du søker med dine datoer og reisende.",
   close: "Lukk",
   webOnly: "Kartet vises i iPhone-appen. Velg et reisemål her i stedet.",
+  areas: { europe: "Europa og Nord-Afrika", middleEast: "Midtøsten", asia: "Asia", americas: "Nord-Amerika", world: "Hele verden" },
+  areasLabel: "Vis på kartet",
+  areaLabel: (name, n) => `${name}, ${n} reisemål`,
+  clusterLabel: (n, places) => `${n} reisemål tett sammen: ${places}`,
+  clusterHint: "Zoomer inn så du kan velge ett",
 };
 
 export const explore = { en, nb };
