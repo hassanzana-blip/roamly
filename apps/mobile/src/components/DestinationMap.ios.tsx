@@ -52,6 +52,7 @@ export function DestinationMap({ points, selectedId, onSelect, bottomInset }: De
             identifier={p.destination.id}
             coordinate={{ latitude: p.latitude, longitude: p.longitude }}
             tracksViewChanges={false}
+            stopPropagation
             zIndex={selected ? 2 : 1}
             onPress={() => onSelect(p.destination.id)}
             accessibilityRole="button"

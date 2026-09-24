@@ -678,4 +678,4 @@ The images below are the **web fallback** (`DestinationMap.tsx`) rendered in Chr
 Remaining:
 - the native MapKit rendering, pin taps, the fit-to-pins, dark style and VoiceOver on a device or simulator;
 - `expo-doctor` / `expo install --check` with react-native-maps (blocked by the proxy here; CI runs them);
-- an EAS development build (react-native-maps has native code, so Expo Go is not enough).
+- a native iPhone check. Expo SDK 57 includes `react-native-maps` 1.27.2 in a matching Expo Go app, so Expo Go is a possible test route for this map; an EAS development build is another route. Neither has been run for this stage.
