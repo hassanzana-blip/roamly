@@ -46,27 +46,40 @@ export function BaggageSummary({ facts }: { facts: BagFact[] }) {
   );
 }
 
-/**
- * Én strekning på to tette linjer: klokkeslett og reisetid øverst, flyplasser,
- * mellomlandinger og dag under. Ingen faste bredder: lang tekst og stor
- * skrift bryter linjen i stedet for å bli kuttet.
- */
+/** Each leg has a scan-friendly route: local times at the ends, duration and
+ * stops in the middle. At large text sizes it returns to a stacked layout. */
 function CompactLeg({ slice, label }: { slice: OfferSlice; label?: string }) {
   const { f } = useI18n();
+  const { fontScale, width } = useWindowDimensions();
   const plus = dayOffset(slice.departingAt, slice.arrivingAt);
+  const stacked = fontScale > 1.35 || width < 360;
   return (
-    <View style={styles.legRow}>
-      <View style={styles.legMain}>
-        <Text style={[type.time, { color: colors.text }]}>
-          {`${formatTime(slice.departingAt)} – ${formatTime(slice.arrivingAt)}`}
-          {plus > 0 ? <Text style={styles.plusDay}>{` +${plus}`}</Text> : null}
-        </Text>
-        <Text style={[type.caption, { color: colors.textSecondary }]}>{`${slice.origin.iata} → ${slice.destination.iata} · ${f.stops(slice.stops)}`}</Text>
-      </View>
-      <View style={styles.legSide}>
-        <Text style={[type.footnote, type.tabular, { color: colors.text }]}>{f.duration(slice.durationMinutes)}</Text>
-        {label ? <Text style={styles.legLabel}>{label}</Text> : null}
-      </View>
+    <View style={styles.leg}>
+      {label ? <Text style={styles.legLabel}>{label}</Text> : null}
+      {stacked ? (
+        <View style={styles.stackedLeg}>
+          <Text style={[type.time, { color: colors.text }]}>
+            {`${formatTime(slice.departingAt)} – ${formatTime(slice.arrivingAt)}`}
+            {plus > 0 ? <Text style={styles.plusDay}>{` +${plus}`}</Text> : null}
+          </Text>
+          <Text style={[type.caption, { color: colors.textSecondary }]}>{`${slice.origin.iata} → ${slice.destination.iata} · ${f.duration(slice.durationMinutes)} · ${f.stops(slice.stops)}`}</Text>
+        </View>
+      ) : (
+        <View style={styles.routeGrid}>
+          <View style={styles.endpoint}>
+            <Text style={[type.time, type.tabular, { color: colors.text }]}>{formatTime(slice.departingAt)}</Text>
+            <Text style={[type.caption, styles.airportCode]}>{slice.origin.iata}</Text>
+          </View>
+          <RouteLine top={f.duration(slice.durationMinutes)} bottom={f.stops(slice.stops)} />
+          <View style={[styles.endpoint, styles.arrival]}>
+            <Text style={[type.time, type.tabular, { color: colors.text }]}>
+              {formatTime(slice.arrivingAt)}
+              {plus > 0 ? <Text style={styles.plusDay}>{` +${plus}`}</Text> : null}
+            </Text>
+            <Text style={[type.caption, styles.airportCode]}>{slice.destination.iata}</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -114,7 +127,7 @@ export function OfferCard({ journey, onPress, totalConfirmed = true }: { journey
         ) : null}
       </View>
 
-      <View style={{ gap: space.sm }}>
+      <View style={styles.legs}>
         {offer.slices.map((s, i) => (
           <CompactLeg key={s.id || i} slice={s} label={roundTrip ? (i === 0 ? t.results.card.out(f.shortDay(s.departingAt)) : t.results.card.back(f.shortDay(s.departingAt))) : undefined} />
         ))}
@@ -140,9 +153,13 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.white, borderRadius: radius.input, paddingHorizontal: space.lg, paddingVertical: 10, gap: space.sm },
   top: { flexDirection: "row", alignItems: "center", gap: space.sm },
   sellers: { backgroundColor: colors.inset, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
-  legRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space.md, rowGap: 2 },
-  legMain: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 1 },
-  legSide: { alignItems: "flex-end", gap: 1, marginLeft: "auto" },
+  legs: { gap: space.sm },
+  leg: { gap: 2 },
+  routeGrid: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  endpoint: { minWidth: 58, gap: 1 },
+  arrival: { alignItems: "flex-end" },
+  airportCode: { color: colors.textSecondary, fontWeight: "600", letterSpacing: 0.5 },
+  stackedLeg: { gap: 1 },
   legLabel: { fontSize: 11, lineHeight: 14, fontWeight: "600", letterSpacing: 0.6, textTransform: "uppercase", color: colors.textSecondary },
   plusDay: { fontSize: 12, fontWeight: "600", color: colors.blue },
   route: { flex: 1, alignItems: "center", gap: 3, paddingHorizontal: space.sm },

@@ -122,6 +122,8 @@ describe("resultatkortet", () => {
     const card = within(screen.getByTestId("offer-sek_1"));
     expect(card.getByText("Ut · 23. okt.")).toBeOnTheScreen();
     expect(card.getByText("Hjem · 30. okt.")).toBeOnTheScreen();
+    expect(card.getAllByText(/07:05 – 13:40/)).toHaveLength(2);
+    expect(card.getAllByText(/OSL → BCN · 4 t 35 min · 1 mellomlanding|BCN → OSL · 4 t 35 min · 1 mellomlanding/)).toHaveLength(2);
     expect(card.getByText("Totalt for 1 voksen · Tur-retur")).toBeOnTheScreen();
     // Kortet viser en kort form; «Uten …» og «ikke oppgitt» skrives helt ut. VoiceOver får alt i sin helhet.
     expect(card.getByText("Håndbagasje inkl.")).toBeOnTheScreen();
