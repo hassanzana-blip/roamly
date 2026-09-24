@@ -4,6 +4,13 @@
 
 Several rows refine a feature that already exists in code; they are still listed because implementation alone is not proof of good interaction on the phone. The acceptance signal identifies the behavior to improve or verify. Do not count all 60 as new features delivered.
 
+## Implementation evidence, not a completion score
+
+- Map rows 1–7: `1883e5c` and correction `fc85cbf` implemented regional views, grouping, exact-airport selection, a list alternative and a destination card over the map. Codex independently reproduced the original selected-pin overlap, then ran the corrected 44 map/Explore tests. The 375/390/430 pt map images in `docs/evidence` are **browser approximations with no Apple MapKit tiles**. Real iPhone gestures, labels and VoiceOver remain unverified.
+- Home row 45 and touch target row 55: `6971bbe` reduced the measured 390×844 browser-preview hero from 249 to 195 pt and moved the Søk fly bottom edge from 607 to 553 pt. The first destination card visible above the tab bar grew from 69 to 127 of 132 pt. Codex reviewed the before/after images and ran the nine new Home tests. Native layout remains unverified.
+- Navigation/saved rows 41–43: `a784b68` added a fourth functional Lagret tab, exact-airport saved destinations and explicit past-date handling for recent searches, tested with device-local storage fixtures. `6f91619` compacted the Saved layout; Codex compared 390 pt before/after captures and independently passed 75 targeted tests plus typecheck and lint. Do not mark this as native-verified or as account-synced.
+- The public staging API readiness probe still reports `mobileAuth.providers` as 404 (8 of 9 checks passed at 11:20 UTC), so Google/Apple customer sign-in is not demonstrated in the installed app. KAYAK provider access remains subject to affiliate approval; no fabricated live fare is used to fill that gap.
+
 The immediate sequence is map usability, the search-to-offer journey, then navigation/account polish. Each stage needs a current 375/390/430 pt visual review, functional checks and a new signed iPhone build before it is called device-verified. The 403 from KAYAK is an affiliate-access dependency, not a UX task.
 
 The app already ships the open-source `react-native-maps` package with Apple's MapKit on iOS. Its [documented region and camera controls](https://github.com/react-native-maps/react-native-maps/blob/master/docs/mapview.md) support the map work below; a new map SDK is not the first fix. This is a source-based implementation choice, not evidence that the resulting map has passed an iPhone test.
@@ -102,4 +109,4 @@ The user-supplied `login page.zip`, OTP, navigation, search, card, dashboard, SV
 
 ## Ownership and gates
 
-Claude Code owns the mobile screen/component/test edits in focused stages; Codex independently reviews them and owns this product-quality plan, release readiness and configuration. The map stage was sent once to the existing HelloSky Claude Code session after verifying it was idle and the branch was clean at `fa4066c`. A green Jest run or Chromium capture is not a native iPhone test. A new EAS build and an on-device comparison are required to assess the revised app. Production deployment, paid services, real payment/booking flows and App Store/TestFlight submission remain separate release decisions.
+Claude Code owns the mobile screen/component/test edits in focused stages; Codex independently reviews them and owns this product-quality plan, release readiness and configuration. The map, Home and Saved stages were sent one at a time to the existing HelloSky Claude Code session, with independent code and image review between stages. A green Jest run or Chromium capture is not a native iPhone test. A new signed EAS preview and an on-device comparison are required to assess the revised app. Production deployment, paid services, real payment/booking flows and App Store/TestFlight submission remain separate release decisions.
