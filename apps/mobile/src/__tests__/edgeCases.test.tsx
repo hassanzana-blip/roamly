@@ -22,7 +22,7 @@ const FAMILY_FORM = { destination: BCN, adults: 2, childAges: [8], infantAges: [
 const COPY = {
   nb: {
     travellers: "2 voksne, 1 barn, 1 spedbarn",
-    cityOrAirport: "By eller flyplass",
+    toPlaceholder: "Til hvor?",
     basis: "Totalt for 2 voksne, 1 barn, 1 spedbarn · Tur-retur",
     cardBasis: "Totalt for 2 voksne, 1 barn, 1 spedbarn",
     providers: "3 tilbydere",
@@ -37,7 +37,7 @@ const COPY = {
   },
   en: {
     travellers: "2 adults, 1 child, 1 infant",
-    cityOrAirport: "City or airport",
+    toPlaceholder: "To?",
     basis: "Total for 2 adults, 1 child, 1 infant · Return",
     cardBasis: "Total for 2 adults, 1 child, 1 infant",
     providers: "3 providers",
@@ -94,7 +94,7 @@ function expectNoLineCaps(testID: string) {
 describe.each(["nb", "en"] as const)("fire reisende og lange navn (%s)", (locale) => {
   const c = COPY[locale];
 
-  it("Hjem: de fire reisende og flyplassfeltenes by eller hjelpetekst står i sin helhet", async () => {
+  it("Hjem: de fire reisende står i sin helhet, og flyplassfeltene viser by og kode – eller spørsmålet – uten linjegrense", async () => {
     const { factory } = setup();
     await render(
       <AppProvider initialLocale={locale} apiFactory={factory} initial={{ ...FAMILY_FORM, destination: null }}>
@@ -104,13 +104,11 @@ describe.each(["nb", "en"] as const)("fire reisende og lange navn (%s)", (locale
     // Hele teksten, og når den brytes, står tallet og ordet sammen («1 barn», ikke «1» / «barn»).
     expect(within(screen.getByTestId("travellers")).getByText(c.travellers).props.children).toBe(c.travellers.replace(/(\d) /g, "$1\u00A0"));
     expectNoLineCaps("travellers");
-    // Den store koden (OSL, «Velg») er alltid kort; etiketten og by/hjelpetekst («By eller flyplass») bryter linjen.
-    for (const id of ["origin", "destination"]) {
-      const lines = within(screen.getByTestId(id)).getAllByText(/./);
-      expect(lines).toHaveLength(3);
-      for (const el of [lines[0]!, lines[2]!]) expect(el.props.numberOfLines).toBeUndefined();
-    }
-    expect(within(screen.getByTestId("destination")).getByText(c.cityOrAirport)).toBeOnTheScreen();
+    // Byen og koden («Oslo (OSL)») og spørsmålet i et tomt felt bryter linjen i stedet for å kuttes.
+    expect(screen.getByTestId("origin")).toHaveTextContent("Oslo (OSL)");
+    expect(within(screen.getByTestId("destination")).getByText(c.toPlaceholder)).toBeOnTheScreen();
+    expectNoLineCaps("origin");
+    expectNoLineCaps("destination");
   });
 
   it("resultatlisten: grunnlaget gjelder alle reisende, samme reise hos tre selgere vises én gang", async () => {

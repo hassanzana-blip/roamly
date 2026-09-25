@@ -1753,3 +1753,60 @@ check OK.
 | `sheet-heads-after-390.jpg` | `6680bab021c912fd…` | 780×1860 |
 | `sheet-heads-after-390-via.jpg` | `82f613e7a39b1305…` | 780×1894 |
 | `sheet-heads-after-390-large.jpg` | `259a220273f96d4f…` | 780×1826 |
+
+## Home in the big search services' pattern (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock. Home
+itself shows no offer data; the shots after a search use demo data (labelled DEMO).
+
+**Versions:** before is `9c0317f`; after is the commit that adds this section.
+
+**Why:** Ali sent five momondo screenshots (25 Sep) and asked for the same UX, done better. We took the pattern,
+not their colours, copy, prices or features we do not have (see DESIGN.md, «Momondo-skjermbilder», status 25.09).
+
+**What changed (owner backlog 4.1)**
+- **One calm dark panel** instead of a photo header and a white sheet: the question «Hvor vil du reise?» (signed
+  in: «God kveld, Kari») with a round profile button, then Flights and Hotels as two equal tiles. The chosen tile
+  has the same faint blue as the chosen tab at the bottom; solid blue is used only on «Søk fly».
+- **Trip type as text tabs** (the chosen one light, with a blue line under it – not colour alone).
+- **From and to stacked in one white field** with the swap button on the divider, like the reference. Each row
+  has a takeoff or landing icon, so the fields need no labels; «Oslo (OSL)», or «Til hvor?» when empty. VoiceOver
+  still hears «Til: ikke valgt».
+- **Departure ▸ return in one white field** («fre. 23. okt. › fre. 30. okt.»); each half opens the calendar on
+  its own date. One way: the return half becomes «+ Legg til retur». VoiceOver now hears the whole date
+  («Avreise: fredag 23. oktober 2026»), not the abbreviation.
+- **Travellers and cabin as chips** (40 pt, with hitSlop to 44 pt; 8 pt between rows, so the slop never reaches a
+  neighbour). Both open the existing travellers sheet; «Bare direktefly» shows on the cabin chip when on.
+- **Destinations as white cards** (photo, city, country and code, «Se flyreiser ›») – no prices, because we have
+  no checked price before a search. Names wrap instead of being cut.
+- **Not built: the collapsed «Finn fly» bar.** Home is about 1.3 screens (1020 pt of content at 390 × 844), so
+  the form never scrolls out of view at normal text sizes and the bar would never show. It comes with a longer
+  Home (backlog 4.6). A tap on the status bar already scrolls to the top.
+- **Smaller app:** the header photo (`hero-wing.jpg`, 59 131 bytes) is no longer bundled; checked in the export.
+
+**Tests:** `homeFirstView.test.tsx` (order, title and profile button for guests and signed-in customers, 44 pt
+including the chips' hitSlop, empty field copy and colour, whole dates for VoiceOver, one way, tabs, tiles,
+chips, destination cards and their search, the passed-date error above the cards), `edgeCases.test.tsx` (four
+travellers and «Til hvor?» without line caps, nb and en), `coreFlowLayout.test.tsx`.
+
+**Checks:** Jest 572 passed, 3 skipped. Typecheck and lint clean. iOS bundle 4 942 623 bytes (+5 593). Bundle check
+OK.
+
+**Not verified:** a real iPhone (SF Pro instead of Inter, real Dynamic Type sizes, VoiceOver on the tabs and
+chips).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `home-v2-before-390.jpg` | `ab33e9d46c18b5a7…` | 780×1860 |
+| `home-v2-before-390-en.jpg` | `e7c6144d476eecb4…` | 780×1826 |
+| `home-v2-after-375.jpg` | `d782c6848f2ebd91…` | 750×1830 |
+| `home-v2-after-390.jpg` | `8010171913f04368…` | 780×1860 |
+| `home-v2-after-430.jpg` | `91b1fc8eeec11eb2…` | 860×2002 |
+| `home-v2-after-390-scrolled.jpg` | `89a8ab68cf219c95…` | 780×1860 |
+| `home-v2-after-390-filled.jpg` | `2a5ad800c6b268ca…` | 780×1860 |
+| `home-v2-after-390-recent.jpg` | `c4cab6de98adfe0b…` | 780×1860 |
+| `home-v2-after-390-oneway.jpg` | `db848a3fa87722e0…` | 780×1860 |
+| `home-v2-after-390-travellers.jpg` | `0e308bcd9e661235…` | 780×1860 |
+| `home-v2-after-390-large.jpg` | `cc5d68821b6604f6…` | 780×1860 |
+| `home-v2-after-390-xlarge.jpg` | `42828e6cf2fc19a0…` | 780×1860 |
+| `home-v2-after-390-en.jpg` | `41a4a0bc08337bb3…` | 780×1826 |

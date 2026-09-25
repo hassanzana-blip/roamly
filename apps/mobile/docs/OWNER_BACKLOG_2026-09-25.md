@@ -61,7 +61,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 1.14 | Price basis wording shorter on cards; full basis kept for VoiceOver and details [24] | done |
 | 1.15 | Results: «N reiser» count and sort label never contradict the list after filtering | verified: count follows the filtered list (filters tests); active filters now visible as chips |
 | 1.16 | Error recovery specific to the code, with the search kept (already largely true; verify copy) [18] | verified (retry only for retryable codes, «Endre søk» otherwise; screens/edge-case tests) |
-| 1.17 | Home: search form first view unchanged or tighter after the calendar change [45] | verified: same tiles; destinations 122 pt visible at 390 (MANIFEST «Home») |
+| 1.17 | Home: search form first view unchanged or tighter after the calendar change [45] | verified: same tiles; destinations 122 pt visible at 390 (MANIFEST «Home»). Later replaced by 4.1 |
 | 1.18 | Travellers sheet: summary line at the top, infant rule explained where it bites [24] | done (MANIFEST «Home») |
 | 1.19 | Swap airports: animated icon and VoiceOver announcement of the new route [13] | done (MANIFEST «Home») |
 | 1.20 | Recent searches reachable from Home in one tap without pushing destinations out of the first view [43] | done: chips under «Søk fly» (−26 pt, destinations stay in view) (MANIFEST «Home») |
@@ -104,6 +104,22 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 3.2 | Reduce Motion for every new transition [57] | ongoing |
 | 3.3 | Card entrance without layout shift | planned |
 | 3.4 | Tabular numerals everywhere a time or price is compared [53] | ongoing |
+
+## Owner feedback, 25 September: «build it like momondo, and better»
+
+Five momondo screenshots (onboarding, Home, the collapsed search bar, «Popular tools», Profile). We take the
+interaction patterns, not their colours, copy, prices or features we do not have.
+
+| # | Item | Status |
+|---|---|---|
+| 4.1 | Home in the big search services' pattern: dark panel, question (or greeting) and profile button, Flights/Hotels as two tiles, trip type as text tabs, from and to stacked in one field with the swap button on the divider, departure ▸ return in one field, travellers and cabin as chips; destinations as white cards without prices | done (MANIFEST «Home in the big search services' pattern») |
+| 4.2 | The form collapses into a «Finn fly» bar when it scrolls away | not now: Home is ~1.3 screens (1020 pt at 390 × 844), so the form never leaves the view at normal text sizes. Comes with a longer Home (4.6) |
+| 4.3 | Profile as a settings list with a sign-in card at the top (truthful: what an account adds today), then language, currency, help and legal as rows (also 2.14) | open (next) |
+| 4.4 | Floating tab bar (capsule, 44 pt targets, content padded above it) | open |
+| 4.5 | A sign-in screen before the app (their onboarding) | not doing: search needs no account, and the Apple/Google buttons stay hidden until approved |
+| 4.6 | A deals rail with real prices | proposal for Ali: a server job that caches real NOK prices per route with the time they were checked; needs provider quota and approval. Never invented prices |
+| 4.7 | Price alerts in the app | proposal for Ali: expose the web's `watch.*` through the mobile API; needs the worker and e-mail sending verified first (backlog [39]) |
+| 4.8 | Multi-city and a bags chip in the form | not now: search takes neither (bags are a results filter) |
 
 ## Blocked outside the app
 

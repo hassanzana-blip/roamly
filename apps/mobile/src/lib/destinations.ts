@@ -37,9 +37,6 @@ export type Destination = {
 
 const photo = (id: string, image: ImageSourcePropType, caption: Record<Locale, string>): Photo => ({ id, image, credit: { caption, source: "Unsplash" } });
 
-/** Toppbildet på forsiden: ekte utsikt fra flyvinduet. */
-export const HEADER_PHOTO: Photo = photo("hero-wing", require("../../assets/photos/hero-wing.jpg"), { en: "An aircraft wing above the clouds at sunset", nb: "Vinge over skylaget i solnedgang" });
-
 export const DESTINATIONS: Destination[] = [
   { id: "barcelona", iata: "BCN", airports: ["BCN"], names: { en: { city: "Barcelona", country: "Spain", airport: "Barcelona–El Prat" }, nb: { city: "Barcelona", country: "Spania", airport: "Barcelona-El Prat" } }, photo: photo("barcelona", require("../../assets/photos/barcelona.jpg"), { en: "Barcelona from above with the Sagrada Família", nb: "Barcelona sett ovenfra med Sagrada Família" }) },
   { id: "london", iata: "LHR", airports: ["LHR", "LGW", "STN", "LTN", "LCY"], names: { en: { city: "London", country: "United Kingdom", airport: "London Heathrow" }, nb: { city: "London", country: "Storbritannia", airport: "London Heathrow Airport" } }, photo: photo("london", require("../../assets/photos/london.jpg"), { en: "Tower Bridge over the Thames, London", nb: "Tower Bridge over Themsen, London" }) },
@@ -84,4 +81,4 @@ export function destinationChoice(d: Destination, locale: Locale): { iata: strin
 }
 
 /** Alle bildene appen har med seg, for kreditering i profilen. */
-export const ALL_PHOTOS: Photo[] = [HEADER_PHOTO, ...DESTINATIONS.map((d) => d.photo)];
+export const ALL_PHOTOS: Photo[] = DESTINATIONS.map((d) => d.photo);

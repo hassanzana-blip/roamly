@@ -1,6 +1,7 @@
 /** Forsiden og søkeskjemaet (SearchPanel, DateField). */
 const en = {
-  heroTitle: "New experiences are\njust a trip away.",
+  /** Tittelen på forsiden for gjester; innlogget står hilsenen med navn. */
+  title: "Where to next?",
   greetingName: (greeting: string, name: string) => `${greeting}, ${name}`,
   profileButton: "Your profile",
   loginButton: "Log in",
@@ -17,8 +18,9 @@ const en = {
   oneway: "One way",
   from: "From",
   to: "To",
-  choose: "Choose",
-  cityOrAirport: "City or airport",
+  /** Tomme felt i rutefeltet. */
+  fromPlaceholder: "From?",
+  toPlaceholder: "To?",
   notChosen: "not chosen",
   airportHint: "Opens airport search",
   airportLabel: (label: string, city: string, name: string, iata: string) => `${label}: ${city}, ${name}, ${iata}`,
@@ -53,7 +55,7 @@ const en = {
 };
 
 const nb: typeof en = {
-  heroTitle: "Nye opplevelser\ner bare en reise unna.",
+  title: "Hvor vil du reise?",
   greetingName: (greeting, name) => `${greeting}, ${name}`,
   profileButton: "Din profil",
   loginButton: "Logg inn",
@@ -70,8 +72,8 @@ const nb: typeof en = {
   oneway: "Én vei",
   from: "Fra",
   to: "Til",
-  choose: "Velg",
-  cityOrAirport: "By eller flyplass",
+  fromPlaceholder: "Fra hvor?",
+  toPlaceholder: "Til hvor?",
   notChosen: "ikke valgt",
   airportHint: "Åpner flyplassøket",
   airportLabel: (label, city, name, iata) => `${label}: ${city}, ${name}, ${iata}`,

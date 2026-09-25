@@ -5,17 +5,16 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
-import { FEATURED, HEADER_PHOTO, destinationChoice, type Destination } from "../../lib/destinations";
+import { FEATURED, destinationChoice, type Destination } from "../../lib/destinations";
 import { cabinLabel, formErrorText, passengerCount, passengerSummary } from "../../lib/searchForm";
 import { recentIsPast, recentKey, withFreshDates, type RecentSearch } from "../../lib/recent";
 import { localizedChoice } from "../../lib/airportIndex";
 import { useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
-import { Banner, IconButton, LinkButton, Wordmark } from "../../components/ui";
-import { PhotoBackdrop } from "../../components/Photo";
+import { Banner, IconButton, LinkButton } from "../../components/ui";
 import { SearchPanel } from "../../components/SearchPanel";
 import { ServiceSwitch } from "../../components/ServiceSwitch";
-import { DestinationCard } from "../../components/DestinationCard";
+import { DestinationRailCard } from "../../components/DestinationCard";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { Icon } from "../../components/Icon";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
@@ -56,10 +55,10 @@ function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (
             testID={`home-recent-${r.origin.iata}-${r.destination.iata}-${r.departDate}`}
             style={({ pressed }) => [styles.recentPill, pressed && { opacity: 0.7 }]}
           >
-            <Icon name="clock" size={14} color={colors.textSecondary} />
-            <Text style={[type.footnoteStrong, { color: colors.text }]}>{`${r.origin.iata}\u2011${r.destination.iata}`}</Text>
-            <Text style={[type.footnote, { color: colors.textSecondary }]}>{f.dateSpan(r.departDate, back)}</Text>
-            {extra ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{`· ${extra}`}</Text> : null}
+            <Icon name="clock" size={14} color={colors.onDarkMuted} />
+            <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{`${r.origin.iata}\u2011${r.destination.iata}`}</Text>
+            <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{f.dateSpan(r.departDate, back)}</Text>
+            {extra ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{`· ${extra}`}</Text> : null}
           </Pressable>
         );
       })}
@@ -68,9 +67,9 @@ function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (
 }
 
 /**
- * Forsiden: et lavt fotohode, hvitt søkeark og reisemål. Første bilde
- * (390×844) skal vise rute, datoer, reisende/klasse og «Søk fly» – og begynnelsen
- * på reisemålene; forklaringen om hvordan HelloSky virker står under dem.
+ * Forsiden, som de store søketjenestene: rolig mørk flate, kort spørsmål (eller hilsen) og profilknapp, fly eller
+ * hotell, og søket rett under – fra og til, datoer, reisende og «Søk fly». Under: reisemål som hvite kort (uten
+ * priser – dem har vi ikke før det er søkt).
  */
 export default function HomeScreen() {
   const router = useRouter();
@@ -117,58 +116,48 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
         onScroll={(event) => setScrolled(event.nativeEvent.contentOffset.y > 24)}
       >
-        <PhotoBackdrop photo={HEADER_PHOTO} scrim="medium" style={[styles.hero, { paddingTop: insets.top + space.xs }]} testID="home-hero">
-          <View style={styles.heroTop}>
-            <Wordmark />
+        <View style={[styles.panel, { paddingTop: insets.top + space.sm }]} testID="home-sheet">
+          <View style={styles.headRow}>
+            {/* Innlogget: hilsen med navn. Gjest: spørsmålet søket svarer på. */}
+            <Text style={[type.hero, styles.title]} accessibilityRole="header" testID="home-title">
+              {name ? t.home.greetingName(f.greeting(), name) : t.home.title}
+            </Text>
             {auth.status === "signedIn" ? (
               <Pressable onPress={() => router.push("/profil")} accessibilityRole="button" accessibilityLabel={t.home.profileButton} testID="account-button" style={({ pressed }) => [styles.avatar, pressed && { opacity: 0.8 }]}>
                 {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
               </Pressable>
             ) : (
-              <IconButton icon="user" label={t.home.loginButton} variant="glass" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
+              <IconButton icon="user" label={t.home.loginButton} variant="dark" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
             )}
           </View>
-          <View style={styles.heroText}>
-            {/* Hilsen bare med navn (innlogget); en generell «God ettermiddag» tar bare plass fra søket. */}
-            {name ? (
-              <Text style={[type.footnote, { color: colors.onDarkMuted }]} testID="home-greeting">
-                {t.home.greetingName(f.greeting(), name)}
-              </Text>
-            ) : null}
-            <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header" testID="home-title">
-              {t.home.heroTitle}
-            </Text>
-          </View>
-        </PhotoBackdrop>
-
-        <View style={styles.sheet} testID="home-sheet">
-          <ServiceSwitch active="flights" onSelect={() => router.push("/hotell")} />
+          <ServiceSwitch variant="tiles" active="flights" onSelect={() => router.push("/hotell")} />
           <SearchPanel
             footer={
               again.length ? (
                 <RecentSearchesRow items={again} onPick={searchAgain} />
               ) : (
-                <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
+                <Text style={[type.footnote, { color: colors.onDarkMuted, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
               )
             }
           />
-
-          <View style={styles.sectionHead}>
-            <Text style={[type.section, { color: colors.text }]} accessibilityRole="header">
-              {t.home.exploreTitle}
-            </Text>
-            <LinkButton label={t.home.seeAll} accessibilityLabel={t.home.seeAllLabel} onPress={() => router.push("/utforsk")} />
-          </View>
-          {cardProblem ? (
-            <Banner tone="error" testID="card-error">
-              {formErrorText(cardProblem, i18n)}
-            </Banner>
-          ) : null}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.railWrap}>
+        <View style={styles.sectionHead}>
+          <Text style={[type.title, { color: colors.onDark, flex: 1 }]} accessibilityRole="header">
+            {t.home.exploreTitle}
+          </Text>
+          <LinkButton dark label={t.home.seeAll} accessibilityLabel={t.home.seeAllLabel} onPress={() => router.push("/utforsk")} />
+        </View>
+        {cardProblem ? (
+          <View style={styles.cardError}>
+            <Banner tone="error" dark testID="card-error">
+              {formErrorText(cardProblem, i18n)}
+            </Banner>
+          </View>
+        ) : null}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {FEATURED.map((d) => (
-            <DestinationCard key={d.id} destination={d} onPress={() => searchTo(d)} testID={`destination-${d.id}`} />
+            <DestinationRailCard key={d.id} destination={d} onPress={() => searchTo(d)} testID={`destination-${d.id}`} />
           ))}
         </ScrollView>
         {/* Hvordan HelloSky virker: under reisemålene, så søket og reisemålene står i første bilde. */}
@@ -182,21 +171,20 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.white },
-  // Lavt fotohode: logo og konto på én linje, tittelen under. Arket overlapper bunnen med 28 pt.
-  hero: { paddingHorizontal: space.xl, paddingBottom: 36, gap: space.sm },
-  heroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
-  heroText: { gap: 2 },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  // Søket i et litt lysere mørkt panel med runde hjørner nederst; siden under er kull.
+  panel: { backgroundColor: colors.raised, borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingBottom: space.xl, gap: space.lg },
+  headRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: TOUCH },
+  title: { color: colors.onDark, flex: 1 },
   avatar: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.85)" },
   avatarText: { fontSize: 15, fontWeight: "700", color: colors.white },
-  sheet: { marginTop: -28, backgroundColor: colors.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm },
-  // Raden går helt ut til kanten (under arkets marg), så brikkene kan rulles uten å klippes ved margen. Luft over og
+  // Raden går helt ut til kanten (under panelets marg), så brikkene kan rulles uten å klippes ved margen. Luft over og
   // under brikkene, så hitSlop (4 pt) når 44 pt – en ScrollView klipper det som stikker utenfor.
   recentScroll: { marginHorizontal: -space.lg },
   recentRow: { paddingHorizontal: space.lg, gap: space.sm, paddingVertical: 4 },
-  recentPill: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder },
-  sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  railWrap: { backgroundColor: colors.white },
+  recentPill: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.darkBorder },
+  sectionHead: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingTop: space.xxl, paddingBottom: space.md },
+  cardError: { paddingHorizontal: space.lg, paddingBottom: space.md },
   rail: { paddingHorizontal: space.lg, gap: space.md },
-  howItWorks: { color: colors.textSecondary, paddingHorizontal: space.lg, marginTop: space.lg },
+  howItWorks: { color: colors.onDarkMuted, paddingHorizontal: space.lg, marginTop: space.xl },
 });

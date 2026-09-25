@@ -101,7 +101,9 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `InformationCard`, `InfoRow` | `ui.tsx` | Hvite kort med rader (ikon, tittel, verdi) |
 | `Notices`, `Banner`, `DemoBadge` | `ui.tsx` | Korte meldinger på mørkt (kan åpnes), meldinger på lyst, «DEMO»-merke |
 | `Field`, `Stepper`, `BottomSheet`, `StateView` | `ui.tsx` | Tekstfelt, antall reisende, ark nedenfra, tomme/feil-tilstander |
-| `SearchPanel`, `FormTile`, `DateField` | `SearchPanel.tsx`, `DateField.tsx` | Søkearket: turtype, fra/til med bytt, datoer, reisende, klasse |
+| `SearchPanel` | `SearchPanel.tsx` | Søket på forsiden, på mørk grunn: turtype som tekstfaner (valgt lys med blå strek), fra og til under hverandre i ett hvitt felt (avgang- og landingsikon, bytt-knappen på skillelinjen), avreise ▸ retur i ett felt, reisende og klasse som brikker (40 pt + hitSlop = 44), «Søk fly» |
+| `FormTile`, `DateField` | `DateField.tsx` | Celle med ikon, etikett og verdi, og datofelt med iOS' kalender (hotellsøket) |
+| `ServiceSwitch` | `ServiceSwitch.tsx` | Fly eller hotell: to like brede ruter på forsiden (valgt med svak blå flate og blå kant, som den valgte fanen), brikker i hotellsøket |
 | `OfferCard`, `RouteLine`, `BaggageSummary` | `OfferCard.tsx` | Resultatkortet (215 pt tur-retur ved 390): hver strekning på to linjer («UT · 9. OKT.» og «3 t 16 min · 1 mellomlanding · CPH», så tider, koder og rutelinje), risiko (natt, flyplassbytte, 6 t+) med ikon og ord, bagasje ved prisen, hele kortet er knappen |
 | `SortTabs` | `SortTabs.tsx` | Best / Billigst / Raskest over resultatlisten med ekte toppris og reisetid; valgt fane hvit på kull; under hverandre når et beløp ville brytes |
 | `DateRangeSheet` | `RangeCalendar.tsx` | Avreise og retur i ett ark: månedsliste (mandag først), bånd mellom datoene, antall netter, passerte dager sperret, 47 × 46 pt dager |
@@ -109,14 +111,17 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `MarkedText` | `MarkedText.tsx` | Tekst der det kunden skrev er uthevet (600); samme regel som søket (starten av hvert ord, aksenter og æ/ø/å likegyldig). Bare visuelt – VoiceOver leser raden som før |
 | `PriceTag` | `PriceTag.tsx` | Kronepris, «ca.»-pris med kurs, eller «Ingen pris i kroner» |
 | `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg; kildemetadata beholdes uten synlig kreditering over bildet |
-| `DestinationCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort, fanemeny, selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
+| `DestinationCard`, `DestinationRailCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort (fotokort i Utforsk; hvitt kort med foto, by, land og kode og «Se flyreiser» – uten pris – i raden på forsiden), fanemeny, selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
 
 ## Skjermene
 
-1. **Hjem** (`src/app/(tabs)/index.tsx`): foto øverst (vinge over skylaget), hilsen med kundens fornavn når
-   innlogget – ellers bare «God kveld» osv. – og hvitt søkeark: `Tur-retur | Én vei`, Fra/Til med bytt,
-   Avreise/Retur, Reisende/Reiseklasse, «Søk fly» og én linje om at man ikke må logge inn. Under: reisemål som søker
-   direkte, og til slutt en kort forklaring av hvordan HelloSky virker.
+1. **Hjem** (`src/app/(tabs)/index.tsx`), bygget etter de store søketjenestenes oppsett: et litt lysere mørkt panel
+   med runde hjørner nederst. Øverst spørsmålet «Hvor vil du reise?» (innlogget: «God kveld, Kari») og en rund
+   profilknapp (initialene når innlogget). Så Fly og Hotell som to like brede ruter, `Tur-retur  Én vei` som
+   tekstfaner, fra og til under hverandre i ett hvitt felt med bytt-knappen på skillelinjen («Oslo (OSL)», tomt
+   felt: «Til hvor?»), avreise ▸ retur i ett hvitt felt (én vei: «+ Legg til retur»), reisende og klasse som brikker,
+   «Søk fly» og én linje om at man ikke må logge inn. Helblått brukes bare på «Søk fly». Under panelet: reisemål som
+   hvite kort uten pris (et trykk søker dit med skjemaets datoer), og til slutt hvordan HelloSky virker.
 2. **Resultater** (`src/app/resultater.tsx`): mørk grunn, rute og søk i toppen (+ «DEMO»), brikker (Alle, Direkte,
    Maks 1 mellomlanding, Bagasje inkludert), korte meldinger (demo, «Om «ca.»-priser» som en rad på 44 pt), fanene
    Best / Billigst / Raskest (standard «Best», nettets vekter), antall reiser/tilbud og hva sorteringen gjør. Ett hvitt
@@ -135,7 +140,7 @@ I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utfors
 reisende som knapper som endrer søket der, i én rad som ruller sideveis) og Profil
 (`(tabs)/profil.tsx`, kundeinnlogging, språk, hjelp og konto).
 
-Forsiden: etter søk står de andre nylige søkene (ikke passerte, ikke det som står i skjemaet) som små lyse brikker
+Forsiden: etter søk står de andre nylige søkene (ikke passerte, ikke det som står i skjemaet) som små mørke brikker
 under «Søk fly» – «OSL‑LHR 9.–16. okt.», ett trykk søker igjen – der linjen om innlogging står for nye kunder.
 Bytt-knappen snur en halv runde (ikke med «Reduser bevegelse») og VoiceOver hører den nye ruten. I reisende-arket
 står et sammendrag øverst, og en regel som stopper en knapp (spedbarn per voksen, ni reisende) står rett under den.
@@ -188,6 +193,12 @@ Profil (to bilder) og Utforsk-kart. De ligger ikke i repoet (tredjeparts merkeva
 7. *Utforsk sier hva et prisanslag er* («Estimated cheapest price per person in economy class»), står fast på
    avreisestedet («From OSL · Anytime») og har alltid en listevisning. Hos oss: liste, ikke kart (et kart uten
    ekte priser ville vært dødt), og ingen prisanslag før serveren har dem.
+
+**Status 25.09.2026 (eierens nye skjermbilder, samme referanse):** punkt 2 er bygget på forsiden (se Skjermene),
+med to tillegg: avgang- og landingsikon i rutefeltet (feltene har ingen etiketter) og hele datoen for VoiceOver.
+Punkt 3 er ikke bygget ennå: forsiden er bare ~1,3 skjermer høy (målt 1020 pt innhold ved 390 × 844), så skjemaet
+kan ikke rulles ut av bildet med vanlig tekststørrelse – linjen ville aldri vises. Den kommer når forsiden får mer
+innhold (ekte tilbudsrad, se backloggen); til da ruller et trykk på statuslinjen til toppen, som i alle iOS-lister.
 
 Ikke kopieres: Stays/Cars/Flight+Hotel, «Travel deals under £98», GBP, bjelle/varsler, Trips, «Price Alerts»
 (bare hvis ekte), «Rate the app», kart med prisnåler, «Tracking preferences» (krever først en avklart

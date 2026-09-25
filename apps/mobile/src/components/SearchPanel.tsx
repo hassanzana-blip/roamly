@@ -5,20 +5,22 @@ import { useRouter } from "expo-router";
 import { useApp } from "../lib/appState";
 import type { PickMode } from "../lib/calendar";
 import { cabinLabel, formErrorText, passengerSummary, type AirportChoice, type SearchForm } from "../lib/searchForm";
-import { useI18n } from "../i18n";
+import { useA11yLanguage, useI18n } from "../i18n";
 import type { FormErrorCode } from "../i18n/ns/search";
-import { Banner, PrimaryButton, Segmented } from "./ui";
-import { FormTile } from "./DateField";
+import { Banner, PrimaryButton } from "./ui";
 import { DateRangeSheet } from "./RangeCalendar";
 import { TravellersSheet } from "./TravellersSheet";
-import { Icon } from "./Icon";
+import { Icon, type IconName } from "./Icon";
 import { useReducedMotion } from "../lib/motion";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
 
-/** Én ende av ruten: etikett, stor flyplasskode og by. Trykk åpner flyplassøket. */
-function AirportField({ label, value, onPress, testID, align }: { label: string; value: AirportChoice | null; onPress: () => void; testID: string; align: "left" | "right" }) {
+/**
+ * Én ende av ruten, som en rad i det hvite rutefeltet: avgang- eller landingsikon og «Oslo (OSL)», eller et spørsmål
+ * når ingenting er valgt. Ikonet sier hvilken ende det er uten en egen etikett. Plass til høyre for bytt-knappen, som
+ * står på skillelinjen.
+ */
+function AirportRow({ label, placeholder, icon, value, onPress, testID }: { label: string; placeholder: string; icon: IconName; value: AirportChoice | null; onPress: () => void; testID: string }) {
   const { t } = useI18n();
-  const alignItems = align === "left" ? "flex-start" : "flex-end";
   return (
     <Pressable
       testID={testID}
@@ -26,22 +28,76 @@ function AirportField({ label, value, onPress, testID, align }: { label: string;
       accessibilityRole="button"
       accessibilityLabel={value ? t.home.airportLabel(label, value.city, value.name, value.iata) : `${label}: ${t.home.notChosen}`}
       accessibilityHint={t.home.airportHint}
-      style={({ pressed }) => [styles.airport, { alignItems }, pressed && { opacity: 0.6 }]}
+      style={({ pressed }) => [styles.airportRow, pressed && { backgroundColor: colors.inset }]}
     >
-      <Text style={[type.caption, { color: colors.textSecondary }]}>{label}</Text>
-      {/* Tomt felt: vanlig mørk tekst, ikke en blå flate som konkurrerer med «Søk fly». */}
-      <Text style={value ? [type.code, { color: colors.text }] : [type.title, styles.empty]} numberOfLines={1}>
-        {value ? value.iata : t.home.choose}
-      </Text>
-      {/* Lange bynavn og stor tekst bryter linjen. */}
-      <Text style={[type.footnote, { color: colors.textSecondary, textAlign: align }]}>{value ? value.city : t.home.cityOrAirport}</Text>
+      <Icon name={icon} size={20} color={colors.textSecondary} />
+      {/* Lange bynavn og stor tekst bryter linjen i stedet for å kuttes. */}
+      {value ? (
+        <Text style={[type.bodyStrong, styles.airportText, { color: colors.text }]}>
+          {value.city}
+          <Text style={[type.body, { color: colors.textSecondary }]}>{`  (${value.iata})`}</Text>
+        </Text>
+      ) : (
+        <Text style={[type.body, styles.airportText, { color: colors.textSecondary }]}>{placeholder}</Text>
+      )}
+    </Pressable>
+  );
+}
+
+/** Reisetypen som tekstfaner: valgt er hvit og halvfet med en strek under – ikke bare en annen farge. */
+function TripTabs({ value, onChange }: { value: SearchForm["tripType"]; onChange: (v: SearchForm["tripType"]) => void }) {
+  const lang = useA11yLanguage();
+  const { t } = useI18n();
+  const h = t.home;
+  const options: { value: SearchForm["tripType"]; label: string }[] = [
+    { value: "roundtrip", label: h.roundtrip },
+    { value: "oneway", label: h.oneway },
+  ];
+  return (
+    <View style={styles.tabs} accessibilityLanguage={lang} accessibilityRole="radiogroup" accessibilityLabel={h.tripType}>
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            testID={`segment-${o.value}`}
+            onPress={() => onChange(o.value)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            accessibilityLabel={o.label}
+            style={({ pressed }) => [styles.tab, pressed && !selected && { opacity: 0.7 }]}
+          >
+            <Text style={[type.bodyStrong, { color: selected ? colors.onDark : colors.onDarkDim }]}>{o.label}</Text>
+            <View style={[styles.tabLine, selected && styles.tabLineOn]} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** En brikke på mørk grunn som åpner et ark (reisende, klasse). */
+function PanelChip({ label, onPress, testID, accessibilityLabel, accessibilityHint }: { label: string; onPress: () => void; testID: string; accessibilityLabel: string; accessibilityHint: string }) {
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      hitSlop={(TOUCH - 40) / 2}
+      style={({ pressed }) => [styles.chip, pressed && { opacity: 0.7 }]}
+    >
+      <Text style={[type.calloutStrong, { color: colors.onDark }]}>{label}</Text>
+      <Icon name="chevronDown" size={16} color={colors.onDarkMuted} />
     </Pressable>
   );
 }
 
 /**
- * Søkeskjemaet på forsiden: reisetype, rute med bytteknapp, datoer, reisende og
- * reiseklasse, og én blå knapp. Alt leses fra og skrives til appens søkeskjema.
+ * Søkeskjemaet på forsiden, på mørk grunn: reisetype som tekstfaner, fra og til under hverandre i ett hvitt felt med
+ * bytt-knappen på skillelinjen, avreise ▸ retur i ett felt, reisende og klasse som brikker, og én blå knapp. Alt leses
+ * fra og skrives til appens søkeskjema.
  */
 export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
   const router = useRouter();
@@ -79,62 +135,101 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
     if (!err) router.push("/resultater");
   };
 
+  const dayParts = (iso: string) => {
+    // «fre. 9. okt.»: ukedagen dempet, datoen tydelig.
+    const full = i18n.f.day(iso);
+    const cut = full.indexOf(" ");
+    return cut > 0 ? { weekday: full.slice(0, cut), date: full.slice(cut + 1) } : { weekday: "", date: full };
+  };
+  const dateHalf = (iso: string) => {
+    const p = dayParts(iso);
+    return (
+      <Text style={[type.bodyStrong, { color: colors.text }]}>
+        {p.weekday ? <Text style={[type.body, { color: colors.textSecondary }]}>{`${p.weekday} `}</Text> : null}
+        {p.date}
+      </Text>
+    );
+  };
+  const extras = [cabinLabel(form.cabinClass, i18n), ...(form.directOnly ? [h.directOnly] : [])];
+
   return (
     <View style={{ gap: space.sm }}>
-      <Segmented
-        label={h.tripType}
-        value={form.tripType}
-        options={[
-          { value: "roundtrip", label: h.roundtrip, icon: "repeat" },
-          { value: "oneway", label: h.oneway, icon: "oneWay" },
-        ]}
-        onChange={(tripType) => setForm((f) => ({ ...f, tripType }))}
-      />
+      <TripTabs value={form.tripType} onChange={(tripType) => setForm((f) => ({ ...f, tripType }))} />
 
-      <View style={styles.route}>
-        <AirportField testID="origin" label={h.from} align="left" value={form.origin} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "fra" } })} />
+      {/* Fra og til under hverandre i ett hvitt felt, som de store søketjenestene; bytt-knappen står på skillelinjen. */}
+      <View style={styles.routeCard}>
+        <AirportRow testID="origin" label={h.from} placeholder={h.fromPlaceholder} icon="takeoff" value={form.origin} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "fra" } })} />
+        <View style={styles.routeDivider} />
+        <AirportRow testID="destination" label={h.to} placeholder={h.toPlaceholder} icon="landing" value={form.destination} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "til" } })} />
         <Pressable onPress={swap} accessibilityRole="button" accessibilityLabel={h.swap} style={({ pressed }) => [styles.swap, pressed && { backgroundColor: colors.inset }]} testID="swap">
           <Animated.View style={{ transform: [{ rotate }] }} testID="swap-icon">
-            <Icon name="swapHorizontal" size={18} color={colors.text} />
+            <Icon name="swap" size={20} color={colors.text} />
           </Animated.View>
         </Pressable>
-        <AirportField testID="destination" label={h.to} align="right" value={form.destination} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "til" } })} />
       </View>
 
-      <View style={styles.grid}>
-        <View style={styles.gridRow}>
-          <FormTile testID="depart-date" icon="calendar" label={h.depart} value={i18n.f.day(form.departDate)} onPress={() => setCalendar("depart")} accessibilityHint={h.calendarHint} />
-          {form.tripType === "roundtrip" ? (
-            <FormTile testID="return-date" icon="calendar" label={h.return} value={i18n.f.day(form.returnDate)} onPress={() => setCalendar("return")} accessibilityHint={h.calendarHint} />
-          ) : (
-            <FormTile
-              testID="add-return"
-              icon="calendar"
-              label={h.return}
-              value={h.add}
-              action
-              accessibilityLabel={h.addReturn}
-              accessibilityHint={h.addReturnHint}
-              onPress={() => {
-                setForm((f) => ({ ...f, tripType: "roundtrip" }));
-                setCalendar("return");
-              }}
-            />
-          )}
+      {/* Avreise ▸ retur i ett felt; hver halvdel åpner den samme kalenderen på sin dato. VoiceOver hører hele datoen. */}
+      <View style={styles.dateCard}>
+        <Pressable
+          testID="depart-date"
+          onPress={() => setCalendar("depart")}
+          accessibilityRole="button"
+          accessibilityLabel={`${h.depart}: ${i18n.f.longDay(form.departDate)}`}
+          accessibilityHint={h.calendarHint}
+          style={({ pressed }) => [styles.dateHalf, pressed && { backgroundColor: colors.inset }]}
+        >
+          {dateHalf(form.departDate)}
+        </Pressable>
+        <View style={styles.dateArrow} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Icon name="chevronRight" size={16} color={colors.textSecondary} />
         </View>
-        <View style={styles.gridRow}>
-          {/* Tallet og ordet holdes sammen når linjen brytes: «1 barn», aldri «1» og «barn» på hver sin linje. */}
-          <FormTile testID="travellers" icon="user" label={h.travellers} value={passengerSummary(form, i18n).replace(/(\d) /g, "$1\u00A0")} onPress={() => setTravellersOpen(true)} accessibilityHint={h.travellersHint} />
-          <FormTile testID="cabin" icon="seat" label={h.cabin} value={cabinLabel(form.cabinClass, i18n)} onPress={() => setTravellersOpen(true)} accessibilityHint={h.travellersHint} />
-        </View>
+        {form.tripType === "roundtrip" ? (
+          <Pressable
+            testID="return-date"
+            onPress={() => setCalendar("return")}
+            accessibilityRole="button"
+            accessibilityLabel={`${h.return}: ${i18n.f.longDay(form.returnDate)}`}
+            accessibilityHint={h.calendarHint}
+            style={({ pressed }) => [styles.dateHalf, pressed && { backgroundColor: colors.inset }]}
+          >
+            {dateHalf(form.returnDate)}
+          </Pressable>
+        ) : (
+          <Pressable
+            testID="add-return"
+            onPress={() => {
+              setForm((f) => ({ ...f, tripType: "roundtrip" }));
+              setCalendar("return");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={h.addReturn}
+            accessibilityHint={h.addReturnHint}
+            style={({ pressed }) => [styles.dateHalf, pressed && { backgroundColor: colors.inset }]}
+          >
+            <Text style={[type.bodyStrong, { color: colors.blue }]}>{`+ ${h.addReturn}`}</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* Reisende og klasse (og «Bare direktefly») som brikker; alle åpner det samme arket. */}
+      <View style={styles.chips}>
+        {/* Tallet og ordet holdes sammen: «1 barn», aldri «1» og «barn» på hver sin linje. */}
+        <PanelChip
+          testID="travellers"
+          label={passengerSummary(form, i18n).replace(/(\d) /g, "$1\u00A0")}
+          accessibilityLabel={`${h.travellers}: ${passengerSummary(form, i18n)}`}
+          accessibilityHint={h.travellersHint}
+          onPress={() => setTravellersOpen(true)}
+        />
+        <PanelChip testID="cabin" label={extras.join(" · ")} accessibilityLabel={`${h.cabin}: ${extras.join(", ")}`} accessibilityHint={h.travellersHint} onPress={() => setTravellersOpen(true)} />
       </View>
 
       {problem && problem.form === form ? (
-        <Banner tone="error" testID="form-error">
+        <Banner tone="error" dark testID="form-error">
           {formErrorText(problem.code, i18n)}
         </Banner>
       ) : null}
-      <PrimaryButton testID="search-button" label={h.searchButton} icon="arrowRight" onPress={submit} />
+      <PrimaryButton testID="search-button" label={h.searchButton} onPress={submit} />
       {footer}
 
       <DateRangeSheet
@@ -153,11 +248,20 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
 }
 
 const styles = StyleSheet.create({
-  route: { flexDirection: "row", alignItems: "center", borderRadius: radius.card - 4, borderWidth: 1, borderColor: colors.lightBorder, paddingHorizontal: space.lg, paddingVertical: space.sm, minHeight: 80 },
-  // Samme linjehøyde som flyplasskoden, så ruteboksen ikke hopper når et felt fylles ut.
-  empty: { color: colors.text, lineHeight: 30 },
-  airport: { flex: 1, gap: 1, minHeight: TOUCH, justifyContent: "center" },
-  swap: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, alignItems: "center", justifyContent: "center", marginHorizontal: space.sm },
-  grid: { gap: 6 },
-  gridRow: { flexDirection: "row", gap: 6 },
+  tabs: { flexDirection: "row", gap: space.xl },
+  tab: { minHeight: TOUCH, justifyContent: "center", gap: 4, paddingTop: 6 },
+  tabLine: { height: 2, borderRadius: 1, backgroundColor: "transparent" },
+  tabLineOn: { backgroundColor: colors.blueOnDark },
+  routeCard: { borderRadius: radius.input, backgroundColor: colors.white, overflow: "hidden" },
+  // Plass til høyre for bytt-knappen; minHeight, så stor tekst gjør raden høyere i stedet for å kutte.
+  airportRow: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: space.md, paddingLeft: space.lg, paddingRight: 64, paddingVertical: space.sm },
+  airportText: { flexShrink: 1 },
+  // Streken starter under teksten, ikke under ikonet.
+  routeDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.lightBorder, marginLeft: space.lg + 20 + space.md },
+  swap: { position: "absolute", right: space.md, top: "50%", marginTop: -TOUCH / 2, width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, alignItems: "center", justifyContent: "center" },
+  dateCard: { flexDirection: "row", alignItems: "stretch", borderRadius: radius.input, backgroundColor: colors.white, overflow: "hidden" },
+  dateHalf: { flex: 1, minHeight: 56, justifyContent: "center", paddingHorizontal: space.lg, paddingVertical: space.sm },
+  dateArrow: { justifyContent: "center" },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, paddingVertical: 2 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, maxWidth: "100%", paddingHorizontal: space.md, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, backgroundColor: colors.bg },
 });

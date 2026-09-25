@@ -49,7 +49,7 @@ function screenOrder(): string[] {
 const layout = (height: number) => ({ nativeEvent: { layout: { x: 0, y: 0, width: 375, height } } });
 
 describe("Hjem: kompakt søk", () => {
-  it("én kort gjestelinje ved knappen, reisemålene før forklaringen, og tomt reisemål i vanlig mørk tekst", async () => {
+  it("én kort gjestelinje ved knappen, reisemålene før forklaringen, og tomt reisemål som et dempet spørsmål – ikke blått som en lenke", async () => {
     const { factory } = setup();
     await render(
       <AppProvider apiFactory={factory}>
@@ -65,8 +65,8 @@ describe("Hjem: kompakt søk", () => {
     expect(button).toBeGreaterThan(-1);
     expect([button < guest, guest < firstCard, firstCard < how]).toEqual([true, true, true]);
 
-    const empty = within(screen.getByTestId("destination")).getByText("Velg");
-    expect(StyleSheet.flatten(empty.props.style).color).toBe(colors.text);
+    const empty = within(screen.getByTestId("destination")).getByText("Til hvor?");
+    expect(StyleSheet.flatten(empty.props.style).color).toBe(colors.textSecondary);
     expect(StyleSheet.flatten(empty.props.style).color).not.toBe(colors.blue);
   });
 });
