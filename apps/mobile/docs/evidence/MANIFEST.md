@@ -1568,3 +1568,30 @@ check OK.
 | `empty-after-375.jpg` | `f117945e61476aee…` | 750×1762 |
 | `empty-after-390-large.jpg` | `c350e6d7a37444fd…` | 780×1826 |
 | `empty-after-390-en.jpg` | `7048f0da52498ca1…` | 780×1826 |
+
+## Figma: the 6935d1d screens and components in the editable file (design specification)
+
+**Not the app and not an iPhone.** The top row of the image is a NON-NATIVE browser preview (Expo web, Chromium,
+393 × 852) against the local mock with demo data; the bottom row is the Figma file. FIXTURE numbers, not live prices.
+
+**Versions:** app `6935d1d`; Figma file `YE2XDmrOTFY8dRFiarPxSz`, frame P6 (node `65:226`), 25.09.2026.
+
+**What changed (backlog 2.16)**
+- **Components:** OfferCard (compact) with Trip = Return/One way and properties for airline, price, basis, seller
+  count, risk line and «+1»; SortTab; FilterChip; RecentSearchChip; AirportRow (Suggestion, Match, Exact code,
+  Nearby); CalendarDay (seven roles); eight icons. New text styles for the card's airport code, «Direkte», the airport
+  picker's code box, the logo fallback and the filter badge. The old OfferCard set is marked as superseded.
+- **P6:** results with active-filter chips and sort tabs, the range calendar, the airport picker for «oslo» with Torp
+  as its own row, the filter sheet at «Utreise» (Avgang | Ankomst •) and at «Mellomlanding i», and the empty answer
+  with «Prøv datoene rundt». Built from library instances, with the counts the app shows for the same filters.
+- **Checked:** each frame against a browser capture of the same state. Automated pass: no unbound fills or strokes,
+  no unstyled text and no default layer names in the new components or P6, apart from three sheet scrims that use the
+  code literal `rgba(0, 0, 0, 0.5)`.
+- **Left out on purpose:** the demo notice box on screen A (the DEMO badge stays), the keyboard, the iOS clear button
+  and the browser's focus box.
+
+**Not verified:** a real iPhone; Figma does not run the app's measurements (large text, narrow screens).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `figma-p6-parity.jpg` | `17926f4c2173dc28…` | 1520×1296 |

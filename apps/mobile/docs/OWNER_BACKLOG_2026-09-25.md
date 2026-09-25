@@ -94,7 +94,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 2.13 | Performance: measure search-to-first-card on device (needs a device build) [58] | blocked (device) |
 | 2.14 | Profile: guest state explains what an account adds, truthfully [48] | open |
 | 2.15 | Copy review nb/en for every new string (native-sounding, no clipped labels) [52] | ongoing |
-| 2.16 | Figma: new card, sort tabs and calendar components mirrored in the existing file | open |
+| 2.16 | Figma: new card, sort tabs and calendar components mirrored in the existing file | done: six components and eight icons, frame P6 with six screens from `6935d1d` (`docs/FIGMA_SPECIFICATION.md`) |
 
 ## P3
 

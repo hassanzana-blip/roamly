@@ -3,10 +3,10 @@
 Overlevering av appens uttrykk i repoet. Tokenverdiene (farger, typografi, mål) er hentet fra koden
 (`src/lib/theme.ts`), ikke skrevet av fra en skisse. Seksjonen «Tre skjermer» har i tillegg målte verdier.
 
-Codex bygger en redigerbar Figma-fil fra koden: https://www.figma.com/design/YE2XDmrOTFY8dRFiarPxSz. Per 23.09
-har den grunnlaget og fire kontrollfamilier (12 varianter); skjermene mangler. Figma-filen bruker Inter fordi SF
-Pro ga tekst uten bredde i koblingen; appen bruker iOS' systemskrift. Inntil skjermene finnes der, er denne filen
-og koden kilden.
+Den redigerbare Figma-filen er bygget fra koden: https://www.figma.com/design/YE2XDmrOTFY8dRFiarPxSz. Per 25.09
+har den 17 komponentfamilier (63 varianter), 16 ikoner og rammen P6 med seks skjermer fra `6935d1d` (resultater,
+datoer, flyplass, filtre og tomt svar); se `docs/FIGMA_SPECIFICATION.md`. Figma-filen bruker Inter fordi SF Pro ga
+tekst uten bredde i koblingen; appen bruker iOS' systemskrift. Er de uenige, er koden og denne filen kilden.
 
 **Språk og marked:** norsk bokmål ved første oppstart; engelsk er et valg i Profil som lagres og beholdes. Priser
 alltid i NOK. Fly fra Norge til hele verden er kjernen, og søk krever ikke innlogging. Det finnes også
