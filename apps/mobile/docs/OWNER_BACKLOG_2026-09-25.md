@@ -115,7 +115,7 @@ interaction patterns, not their colours, copy, prices or features we do not have
 | 4.1 | Home in the big search services' pattern: dark panel, question (or greeting) and profile button, Flights/Hotels as two tiles, trip type as text tabs, from and to stacked in one field with the swap button on the divider, departure ▸ return in one field, travellers and cabin as chips; destinations as white cards without prices | done (MANIFEST «Home in the big search services' pattern») |
 | 4.2 | The form collapses into a «Finn fly» bar when it scrolls away | not now: Home is ~1.3 screens (1020 pt at 390 × 844), so the form never leaves the view at normal text sizes. Comes with a longer Home (4.6) |
 | 4.3 | Profile as a settings list with a sign-in card at the top (truthful: what an account adds today), then language, currency, help and legal as rows (also 2.14) | done (MANIFEST «Profile as a settings list») |
-| 4.4 | Floating tab bar (capsule, 44 pt targets, content padded above it) | open |
+| 4.4 | Floating tab bar (capsule, 44 pt targets, content padded above it) | done: a capsule with margins above the home indicator; the screens end above it, so nothing hides under it (MANIFEST «Tab bar as a floating capsule») |
 | 4.5 | A sign-in screen before the app (their onboarding) | not doing: search needs no account, and the Apple/Google buttons stay hidden until approved |
 | 4.6 | A deals rail with real prices | proposal for Ali: a server job that caches real NOK prices per route with the time they were checked; needs provider quota and approval. Never invented prices |
 | 4.7 | Price alerts in the app | proposal for Ali: expose the web's `watch.*` through the mobile API; needs the worker and e-mail sending verified first (backlog [39]) |

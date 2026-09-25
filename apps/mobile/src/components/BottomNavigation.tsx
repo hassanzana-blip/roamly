@@ -2,7 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { Pressable, Text } from "./a11y";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./Icon";
-import { colors, space } from "../lib/theme";
+import { colors, radius, space } from "../lib/theme";
 import { useA11yLanguage, useI18n } from "../i18n";
 
 type TabRoute = { key: string; name: string };
@@ -20,17 +20,19 @@ const TABS: Record<string, { key: "home" | "explore" | "saved" | "profile"; icon
 };
 
 /**
- * Mørk fanelinje med fire faner. Valgt fane: en kompakt blå pille bak ikonet og
- * blå, halvfet etikett (prinsippet fra navigasjonsskissen – ingen kode derfra).
- * Hele fanen er trykkflaten (minst 48 pt høy), og etiketten vokser med stor tekst
- * opptil 1,3× så fire faner alltid får plass.
+ * Fanelinjen som en flytende kapsel, som hos de store søketjenestene og i nyere iOS: hevet mørk flate med rund
+ * form, marg på sidene og luft under. Kapselen står over hjemindikatoren (minst 24 pt fra bunnen); uten
+ * hjemindikator står den 8 pt fra bunnen. Valgt fane: en kompakt blå pille bak ikonet og blå, halvfet etikett.
+ * Hele fanen er trykkflaten (minst 48 pt høy), og etiketten vokser med stor tekst opptil 1,3× så fire faner
+ * alltid får plass.
  */
 export function BottomNavigation({ state, navigation }: TabBarProps) {
   const lang = useA11yLanguage();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   return (
-    <View accessibilityLanguage={lang} style={[styles.bar, { paddingBottom: Math.max(insets.bottom, space.sm) }]} accessibilityRole="tablist" testID="bottom-navigation">
+    <View accessibilityLanguage={lang} style={[styles.bar, { paddingBottom: Math.max(insets.bottom - space.sm, space.sm) }]} accessibilityRole="tablist" testID="bottom-navigation">
+      <View style={styles.capsule} testID="bottom-navigation-capsule">
       {state.routes.map((route, i) => {
         const tab = TABS[route.name];
         if (!tab) return null;
@@ -59,13 +61,15 @@ export function BottomNavigation({ state, navigation }: TabBarProps) {
           </Pressable>
         );
       })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: "row", backgroundColor: colors.bg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.darkBorder, paddingTop: space.sm },
-  item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 48, paddingHorizontal: 2 },
+  bar: { backgroundColor: colors.bg, paddingTop: space.xs, paddingHorizontal: space.lg },
+  capsule: { flexDirection: "row", backgroundColor: colors.raised, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.darkBorder, padding: space.xs, boxShadow: "0px 6px 20px rgba(0, 0, 0, 0.35)" },
+  item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 48, paddingHorizontal: 2, borderRadius: radius.pill },
   pill: { width: 52, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   pillOn: { backgroundColor: colors.blueOnDarkTint },
   label: { fontSize: 11, lineHeight: 13, fontWeight: "500" },

@@ -1867,3 +1867,38 @@ language and VoiceOver-language tests through the sheet.
 | `profile-v2-after-390-large-settings.jpg` | `70bd28e70b1c31c3…` | 780×1860 |
 | `profile-v2-after-390-en.jpg` | `2a7cda05e6fda699…` | 780×1826 |
 | `profile-v2-after-390-en-login.jpg` | `bc2c7044f2b3b18d…` | 780×1826 |
+
+## Tab bar as a floating capsule (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock.
+
+**Versions:** before is `8bea822` (the flat bar is unchanged in `7b92dcf`); after is the commit that adds this
+section.
+
+**What changed (owner backlog 4.4)**
+- **The tab bar is a floating capsule**, like the reference and newer iOS: the raised charcoal surface, fully
+  rounded, 16 pt from the screen edges, with a soft shadow and a hairline edge. The chosen tab keeps its blue pill
+  behind the icon and its blue label; every tab is still at least 48 pt tall.
+- **Above the home indicator:** the capsule ends 26 pt above the bottom edge on phones with a home indicator (8 pt
+  without), clear of the system gesture. The whole bar is 88 pt at 390 × 844 (it was 90).
+- **Nothing hides under it:** the screens still end above the bar, so no screen needed new bottom padding and the
+  last row of every list stays reachable. No glass: a blurred background needs a new dependency, and a see-through
+  surface without blur looks muddy on photos.
+
+**Tests:** `savedLibrary.test.tsx` («fire faner»: the capsule's shape and margins, at least 24 pt from the bottom
+with a home indicator; the tabs, selection and 44 pt as before).
+
+**Checks:** Jest 581 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean.
+
+**Not verified:** a real iPhone (the shadow and the gap above the home indicator on a device).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `tabs-v2-before-390-bottom.jpg` | `00a9bf456305cfa7…` | 780×660 |
+| `tabs-v2-after-390-bottom.jpg` | `2ed9f97fc78c4fe1…` | 780×660 |
+| `tabs-v2-after-375-home.jpg` | `248b15e1d5e78db7…` | 750×1762 |
+| `tabs-v2-after-430-home.jpg` | `d0ee7477e7760cf1…` | 860×2002 |
+| `tabs-v2-after-390-explore.jpg` | `d96f20480503e0ba…` | 780×1826 |
+| `tabs-v2-after-390-explore-map.jpg` | `7da69d9262e8ec02…` | 780×1860 |
+| `tabs-v2-after-390-saved.jpg` | `7eeb27e47e7b84a5…` | 780×1826 |
+| `tabs-v2-after-390-profile.jpg` | `deab2495672824a0…` | 780×1826 |

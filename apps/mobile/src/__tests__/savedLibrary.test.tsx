@@ -305,7 +305,7 @@ describe("fire faner", () => {
     expect(navigation.navigate).toHaveBeenCalledTimes(1);
   });
 
-  it("44 pt, etiketter på én linje med stor tekst opptil 1,3×, og linjen står over hjemindikatoren (safe area)", async () => {
+  it("44 pt, etiketter på én linje med stor tekst opptil 1,3×, og kapselen står over hjemindikatoren (minst 24 pt fra bunnen)", async () => {
     renderBar(0);
     await waitFor(() => expect(screen.getByTestId("tab-index")).toBeOnTheScreen());
     for (const t of screen.getAllByRole("tab")) {
@@ -316,7 +316,11 @@ describe("fire faner", () => {
       expect(label.props.maxFontSizeMultiplier).toBeGreaterThan(1);
     }
     const bar = screen.getByTestId("bottom-navigation");
-    expect(StyleSheet.flatten(bar.props.style).paddingBottom).toBe(34);
+    expect(StyleSheet.flatten(bar.props.style).paddingBottom).toBeGreaterThanOrEqual(24);
+    // En flytende kapsel: rund, med marg på sidene.
+    const capsule = StyleSheet.flatten(screen.getByTestId("bottom-navigation-capsule").props.style);
+    expect(capsule.borderRadius).toBeGreaterThanOrEqual(28);
+    expect(StyleSheet.flatten(bar.props.style).paddingHorizontal).toBeGreaterThanOrEqual(12);
   });
 
   it("engelsk: Saved", async () => {

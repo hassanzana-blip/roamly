@@ -111,7 +111,7 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `MarkedText` | `MarkedText.tsx` | Tekst der det kunden skrev er uthevet (600); samme regel som søket (starten av hvert ord, aksenter og æ/ø/å likegyldig). Bare visuelt – VoiceOver leser raden som før |
 | `PriceTag` | `PriceTag.tsx` | Kronepris, «ca.»-pris med kurs, eller «Ingen pris i kroner» |
 | `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg; kildemetadata beholdes uten synlig kreditering over bildet |
-| `DestinationCard`, `DestinationRailCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort (fotokort i Utforsk; hvitt kort med foto, by, land og kode og «Se flyreiser» – uten pris – i raden på forsiden), fanemeny, selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
+| `DestinationCard`, `DestinationRailCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort (fotokort i Utforsk; hvitt kort med foto, by, land og kode og «Se flyreiser» – uten pris – i raden på forsiden), fanemeny som flytende kapsel (valgt fane: blå pille bak ikonet og blå etikett; 48 pt faner), selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
 
 ## Skjermene
 
@@ -192,7 +192,9 @@ Profil (to bilder) og Utforsk-kart. De ligger ikke i repoet (tredjeparts merkeva
 3. *Søket krymper til en fast «Finn fly»-linje når man ruller*, så innholdet under blir tilgjengelig.
 4. *Reisemålskort med beslutningsinfo* (reisetid, direkte, datoer, pris). Hos oss: bare det serveren faktisk kan
    gi for kortet; ingen «deals under …» og ingen pris uten et gyldig tilbud.
-5. *Bunnmenyen er rolig:* fire valg, ett markert. Hos oss: tre (Hjem, Utforsk, Profil), mørk som nå.
+5. *Bunnmenyen er rolig:* fire valg, ett markert. Hos oss: fire (Hjem, Utforsk, Lagret, Profil). *25.09.2026:*
+   en flytende kapsel som deres (hevet mørk flate, rund, 16 pt marg på sidene, over hjemindikatoren), uten glass:
+   en uskarp bakgrunn krever en ny avhengighet, og en halvgjennomsiktig flate uten uskarphet blir uryddig.
 6. *Profil som en ryddig innstillingsliste:* ett innloggingskort øverst, så grupper med rader som viser verdien
    til høyre («Currency £ (GBP)», «Region»). Hos oss: «Språk – Norsk (bokmål)», «Valuta – NOK» (bare
    informasjon), Hjelp, Personvern, Vilkår, Om oss. De juridiske radene samlet nederst; «Software licenses»
