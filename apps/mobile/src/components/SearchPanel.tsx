@@ -1,15 +1,16 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, Animated, Easing, ScrollView, StyleSheet, View } from "react-native";
-import { Pressable, Switch, Text } from "./a11y";
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
+import { Pressable, Text } from "./a11y";
 import { useRouter } from "expo-router";
 import { useApp } from "../lib/appState";
 import type { PickMode } from "../lib/calendar";
-import { CABINS, CHILD_AGES, DEFAULT_CHILD_AGE, DEFAULT_INFANT_AGE, INFANT_AGES, MAX_PASSENGERS, cabinLabel, formErrorText, passengerCount, passengerSummary, type AirportChoice, type SearchForm } from "../lib/searchForm";
+import { cabinLabel, formErrorText, passengerSummary, type AirportChoice, type SearchForm } from "../lib/searchForm";
 import { useI18n } from "../i18n";
 import type { FormErrorCode } from "../i18n/ns/search";
-import { Banner, BottomSheet, ChoiceChips, PrimaryButton, Segmented, Stepper } from "./ui";
+import { Banner, PrimaryButton, Segmented } from "./ui";
 import { FormTile } from "./DateField";
 import { DateRangeSheet } from "./RangeCalendar";
+import { TravellersSheet } from "./TravellersSheet";
 import { Icon } from "./Icon";
 import { useReducedMotion } from "../lib/motion";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
@@ -53,7 +54,6 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
   const [travellersOpen, setTravellersOpen] = useState(false);
   // Kalenderen: én for begge datoene; åpnet på avreise eller retur, etter hvilken rute kunden trykket på.
   const [calendar, setCalendar] = useState<PickMode | null>(null);
-  const total = passengerCount(form);
 
   const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
 
@@ -72,7 +72,6 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
     }
     AccessibilityInfo.announceForAccessibility(h.swapped(from?.city ?? h.notChosen, to?.city ?? h.notChosen));
   };
-  const infants = form.infantAges.length;
 
   const submit = () => {
     const err = runSearch();
@@ -148,84 +147,7 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
         footer={<PrimaryButton testID="calendar-done-button" label={t.calendar.done} onPress={() => setCalendar(null)} />}
       />
 
-      <BottomSheet visible={travellersOpen} title={h.travellersSheet} onClose={() => setTravellersOpen(false)} testID="travellers-sheet">
-        <ScrollView contentContainerStyle={{ gap: space.xs, paddingBottom: space.md }}>
-          {/* Hva som er valgt, samlet øverst – også når barnas alder har skjøvet resten nedover. */}
-          <Text style={[type.footnote, { color: colors.textSecondary }]} testID="travellers-summary">
-            {[passengerSummary(form, i18n), cabinLabel(form.cabinClass, i18n), ...(form.directOnly ? [h.directOnly] : [])].join(" · ")}
-          </Text>
-          {/* Et spedbarn sitter på fanget til en voksen: færre voksne enn spedbarn går ikke – det sies der det stopper. */}
-          <Stepper
-            testID="adults"
-            label={h.adults}
-            hint={h.adultsHint}
-            value={form.adults}
-            min={Math.max(1, infants)}
-            max={MAX_PASSENGERS - total + form.adults}
-            note={infants > 1 && form.adults === infants ? h.adultsForInfants : null}
-            onChange={(adults) => setForm((f) => ({ ...f, adults, infantAges: f.infantAges.slice(0, adults) }))}
-          />
-          <Stepper
-            label={h.children}
-            hint={h.childrenHint}
-            value={form.childAges.length}
-            min={0}
-            max={Math.min(8, MAX_PASSENGERS - total + form.childAges.length)}
-            onChange={(n) => setForm((f) => ({ ...f, childAges: n > f.childAges.length ? [...f.childAges, DEFAULT_CHILD_AGE] : f.childAges.slice(0, n) }))}
-          />
-          {form.childAges.map((age, i) => (
-            <View key={`c${i}`} style={styles.ageRow}>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{h.childAge(i + 1)}</Text>
-              <ChoiceChips
-                label={h.childAge(i + 1)}
-                value={age}
-                options={CHILD_AGES}
-                format={(n) => String(n)}
-                onChange={(v) => setForm((f) => ({ ...f, childAges: f.childAges.map((x, xi) => (xi === i ? v : x)) }))}
-              />
-            </View>
-          ))}
-          <Stepper
-            testID="infants"
-            label={h.infants}
-            hint={h.infantsHint}
-            value={form.infantAges.length}
-            min={0}
-            max={Math.min(4, form.adults, MAX_PASSENGERS - total + form.infantAges.length)}
-            note={infants > 0 && infants >= form.adults && total < MAX_PASSENGERS ? h.infantPerAdult : null}
-            onChange={(n) => setForm((f) => ({ ...f, infantAges: n > f.infantAges.length ? [...f.infantAges, DEFAULT_INFANT_AGE] : f.infantAges.slice(0, n) }))}
-          />
-          {form.infantAges.map((age, i) => (
-            <View key={`i${i}`} style={styles.ageRow}>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{h.infantAge(i + 1)}</Text>
-              <ChoiceChips
-                label={h.infantAge(i + 1)}
-                value={age}
-                options={INFANT_AGES}
-                format={(n) => (n === 0 ? h.infantUnder1 : h.infant1)}
-                onChange={(v) => setForm((f) => ({ ...f, infantAges: f.infantAges.map((x, xi) => (xi === i ? v : x)) }))}
-              />
-            </View>
-          ))}
-          {total >= MAX_PASSENGERS ? (
-            <View style={styles.ruleNote} testID="travellers-max-note">
-              <Icon name="info" size={14} color={colors.textSecondary} />
-              <Text style={[type.footnote, { color: colors.textSecondary, flex: 1 }]}>{h.maxTravellers(MAX_PASSENGERS)}</Text>
-            </View>
-          ) : null}
-          <View style={styles.sheetDivider} />
-          <Text style={[type.bodyStrong, { color: colors.text }]}>{h.cabin}</Text>
-          <ChoiceChips label={h.cabin} value={form.cabinClass} options={CABINS} format={(v) => cabinLabel(v, i18n)} onChange={(cabinClass) => setForm((f) => ({ ...f, cabinClass }))} />
-          <View style={styles.sheetDivider} />
-          <View style={styles.switchRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[type.bodyStrong, { color: colors.text }]}>{h.directOnly}</Text>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{h.directOnlyHint}</Text>
-            </View>
-            <Switch accessibilityLabel={h.directOnly} value={form.directOnly} onValueChange={(directOnly) => setForm((f) => ({ ...f, directOnly }))} trackColor={{ true: colors.blue, false: colors.lightBorder }} />
-          </View>
-        </ScrollView>
-      </BottomSheet>
+      <TravellersSheet visible={travellersOpen} onClose={() => setTravellersOpen(false)} />
     </View>
   );
 }
@@ -238,8 +160,4 @@ const styles = StyleSheet.create({
   swap: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, alignItems: "center", justifyContent: "center", marginHorizontal: space.sm },
   grid: { gap: 6 },
   gridRow: { flexDirection: "row", gap: 6 },
-  ageRow: { gap: space.sm, paddingBottom: space.sm },
-  sheetDivider: { height: 1, backgroundColor: colors.lightBorder, marginVertical: space.sm },
-  switchRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 56 },
-  ruleNote: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
 });

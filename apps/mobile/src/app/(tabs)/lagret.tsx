@@ -151,6 +151,8 @@ export default function SavedScreen() {
               // Hver dato holdes samlet («tor. 15. okt.» brytes aldri inni); linjen kan bare brytes mellom datoene.
               const day = (iso: string) => f.day(iso).replace(/ /g, "\u00A0");
               const dates = r.tripType === "roundtrip" ? `${day(r.departDate)} – ${day(r.returnDate)}` : day(r.departDate);
+              // Synlig: kort datospenn som på forsiden («9.–16. okt.»), så raden holder seg på få linjer. VoiceOver får hele datoene.
+              const span = f.dateSpan(r.departDate, r.tripType === "roundtrip" ? r.returnDate : null);
               const people = `${passengerSummary(r, i18n)} · ${cabinLabel(r.cabinClass, i18n)}`;
               const detail = `${dates} · ${people}`;
               const past = recentIsPast(r, today);
@@ -170,7 +172,7 @@ export default function SavedScreen() {
                     <View style={styles.rowText}>
                       <Text style={[type.calloutStrong, { color: colors.onDark }]}>{route}</Text>
                       {/* Nøyaktige flyplasskoder med ikke-brytende bindestrek (aldri «OSL–» / «BCN»), så de fulle datoene. */}
-                      <Text style={[type.footnote, { color: past ? colors.onDarkMuted : colors.onDark }]}>{`${r.origin.iata}\u2011${r.destination.iata} · ${dates}`}</Text>
+                      <Text style={[type.footnote, { color: past ? colors.onDarkMuted : colors.onDark }]}>{`${r.origin.iata}\u2011${r.destination.iata} · ${span}`}</Text>
                       <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{people}</Text>
                       {past ? (
                         <View style={styles.past} testID={`recent-past-${id}`}>

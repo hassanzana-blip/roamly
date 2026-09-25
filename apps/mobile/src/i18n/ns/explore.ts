@@ -1,8 +1,13 @@
 /** Utforsk og reisemålskortene. Ingen «fra»-priser: vi har ingen verifisert pris uten datoer og reisende. */
 const en = {
   title: "Explore destinations",
-  fromSummary: (city: string, iata: string, dates: string, travellers: string) => `From ${city} (${iata}) · ${dates} · ${travellers}`,
-  chooseOrigin: "Choose where you're flying from on the home screen.",
+  /** Fra-flyplassen og datoene øverst i Utforsk, som knapper som endrer dem der. */
+  fromChip: (city: string, iata: string) => `From ${city} (${iata})`,
+  chooseOriginChip: "Choose departure airport",
+  originHint: "Opens the airport search",
+  datesHint: "Opens the calendar",
+  travellersSpoken: (travellers: string) => `Travellers: ${travellers}`,
+  travellersHint: "Opens travellers and cabin",
   seeFlights: "See flights",
   seeFlightsTo: (city: string, airport: string) => `See flights to ${city}, ${airport}`,
   countryCode: (country: string, iata: string) => `${country} · ${iata}`,
@@ -39,8 +44,12 @@ const en = {
 
 const nb: typeof en = {
   title: "Utforsk reisemål",
-  fromSummary: (city, iata, dates, travellers) => `Fra ${city} (${iata}) · ${dates} · ${travellers}`,
-  chooseOrigin: "Velg hvor du reiser fra på forsiden.",
+  fromChip: (city, iata) => `Fra ${city} (${iata})`,
+  chooseOriginChip: "Velg avreiseflyplass",
+  originHint: "Åpner flyplassøket",
+  datesHint: "Åpner kalenderen",
+  travellersSpoken: (travellers) => `Reisende: ${travellers}`,
+  travellersHint: "Åpner reisende og reiseklasse",
   seeFlights: "Se flyreiser",
   seeFlightsTo: (city, airport) => `Se flyreiser til ${city}, ${airport}`,
   countryCode: (country, iata) => `${country} · ${iata}`,

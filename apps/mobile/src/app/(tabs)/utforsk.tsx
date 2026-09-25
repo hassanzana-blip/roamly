@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { useRouter } from "expo-router";
@@ -7,10 +7,14 @@ import { StatusBarShield } from "../../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
 import { DESTINATIONS, destinationChoice, type Destination } from "../../lib/destinations";
-import { formErrorText, passengerSummary } from "../../lib/searchForm";
+import { cabinLabel, formErrorText, passengerSummary } from "../../lib/searchForm";
 import { useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
-import { Banner, DarkTabs, SecondaryButton } from "../../components/ui";
+import { Banner, DarkTabs, PrimaryButton, SecondaryButton } from "../../components/ui";
+import { Icon, type IconName } from "../../components/Icon";
+import { DateRangeSheet } from "../../components/RangeCalendar";
+import { TravellersSheet } from "../../components/TravellersSheet";
+import { nightsBetween } from "../../lib/calendar";
 import { DestinationSearch } from "../../components/DestinationSearch";
 import { normalizeSearch, searchDestinations } from "../../lib/destinationSearch";
 import { DestinationMap } from "../../components/DestinationMap";
@@ -18,9 +22,29 @@ import { DestinationPinCard } from "../../components/DestinationPinCard";
 import { MAP_AREAS, MAP_POINTS, areaOfDestination, initialArea, pointsIn, type MapArea } from "../../lib/destinationMap";
 import { DestinationCard } from "../../components/DestinationCard";
 import { SaveButton } from "../../components/SaveButton";
-import { colors, radius, space, type } from "../../lib/theme";
+import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
 type ExploreView = "list" | "map";
+
+/** Søket Utforsk bruker (fra-flyplass, datoer), som en knapp som endrer det på stedet. */
+function ContextButton({ icon, label, onPress, testID, accessibilityLabel, accessibilityHint }: { icon: IconName; label: string; onPress: () => void; testID: string; accessibilityLabel: string; accessibilityHint: string }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      // 36 pt høy knapp; trykkflaten når 44 pt.
+      hitSlop={(TOUCH - 36) / 2}
+      style={({ pressed }) => [styles.context, pressed && { opacity: 0.7 }]}
+      testID={testID}
+    >
+      <Icon name={icon} size={15} color={colors.onDarkMuted} />
+      <Text style={[type.footnoteStrong, { color: colors.onDark, flexShrink: 1 }]}>{label}</Text>
+      <Icon name="chevronDown" size={14} color={colors.onDarkMuted} />
+    </Pressable>
+  );
+}
 
 /**
  * Alle reisemålene HelloSky har godkjente bilder av, som liste eller kart, med
@@ -33,7 +57,7 @@ export default function ExploreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { form, runSearch } = useApp();
+  const { form, setForm, runSearch } = useApp();
   const i18n = useI18n();
   const { t, f, locale } = i18n;
   const [problem, setProblem] = useState<FormErrorCode | null>(null);
@@ -44,6 +68,9 @@ export default function ExploreScreen() {
   const [areaRequest, setAreaRequest] = useState(0);
   const [cardHeight, setCardHeight] = useState(0);
   const [query, setQuery] = useState("");
+  const [datesOpen, setDatesOpen] = useState(false);
+  const [travellersOpen, setTravellersOpen] = useState(false);
+  const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
   const matches = searchDestinations(query);
   const searching = normalizeSearch(query) !== "";
   const shownIds = new Set(matches.map((m) => m.destination.id));
@@ -68,16 +95,57 @@ export default function ExploreScreen() {
     if (!err) router.push("/resultater");
   };
 
-  const dates = form.tripType === "roundtrip" ? `${f.shortDay(form.departDate)} – ${f.shortDay(form.returnDate)}` : f.shortDay(form.departDate);
+  const roundTrip = form.tripType === "roundtrip";
+  const dates = f.dateSpan(form.departDate, roundTrip ? form.returnDate : null);
+  const datesSpoken = t.calendar.summarySpoken(f.longDay(form.departDate), roundTrip ? f.longDay(form.returnDate) : null, roundTrip ? t.calendar.nights(nightsBetween(form.departDate, form.returnDate)) : null);
+  // Reisende, og klassen og «bare direkte» når de ikke er standard.
+  const travellers = [passengerSummary(form, i18n), ...(form.cabinClass !== "economy" ? [cabinLabel(form.cabinClass, i18n)] : []), ...(form.directOnly ? [t.home.directOnly] : [])].join(" · ");
+  // Søket Utforsk bruker – fra-flyplass, datoer og reisende – endres her, uten å gå til forsiden. Én rad som ruller
+  // sideveis, så reisemålene står like høyt oppe; luft over og under så trykkflatene (44 pt) ikke klippes.
+  const context = (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.contextScroll}
+      contentContainerStyle={styles.contextRow}
+      testID="explore-summary"
+    >
+      <ContextButton
+        icon="plane"
+        label={form.origin ? t.explore.fromChip(form.origin.city, form.origin.iata) : t.explore.chooseOriginChip}
+        accessibilityLabel={form.origin ? t.explore.fromChip(form.origin.city, form.origin.iata) : t.explore.chooseOriginChip}
+        accessibilityHint={t.explore.originHint}
+        onPress={() => router.push({ pathname: "/flyplass", params: { felt: "fra" } })}
+        testID="context-origin"
+      />
+      <ContextButton icon="calendar" label={dates} accessibilityLabel={datesSpoken} accessibilityHint={t.explore.datesHint} onPress={() => setDatesOpen(true)} testID="context-dates" />
+      <ContextButton icon="user" label={travellers} accessibilityLabel={t.explore.travellersSpoken(travellers)} accessibilityHint={t.explore.travellersHint} onPress={() => setTravellersOpen(true)} testID="context-travellers" />
+    </ScrollView>
+  );
+  const datesSheet = (
+    <DateRangeSheet
+      testID="context-calendar"
+      visible={datesOpen}
+      roundTrip={roundTrip}
+      dates={{ departDate: form.departDate, returnDate: form.returnDate }}
+      onChange={onDates}
+      onClose={() => setDatesOpen(false)}
+      footer={<PrimaryButton testID="context-dates-done" label={t.calendar.done} onPress={() => setDatesOpen(false)} />}
+    />
+  );
+  const sheets = (
+    <>
+      {datesSheet}
+      <TravellersSheet visible={travellersOpen} onClose={() => setTravellersOpen(false)} />
+    </>
+  );
 
   const head = (
     <View style={[styles.head, view === "map" && { marginBottom: space.md }]}>
       <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
         {t.explore.title}
       </Text>
-      <Text style={[type.footnote, { color: colors.onDarkMuted }]} testID="explore-summary">
-        {form.origin ? t.explore.fromSummary(form.origin.city, form.origin.iata, dates, passengerSummary(form, i18n)) : t.explore.chooseOrigin}
-      </Text>
+      {context}
       <DestinationSearch value={query} onChange={changeQuery} />
       {searching ? (
         <Text style={[type.footnoteStrong, { color: colors.onDarkMuted }]} accessibilityLiveRegion="polite" testID="explore-count">
@@ -176,6 +244,7 @@ export default function ExploreScreen() {
           ) : null}
         </View>
         )}
+        {sheets}
       </View>
     );
   }
@@ -215,6 +284,7 @@ export default function ExploreScreen() {
       </View>
     </ScrollView>
     <StatusBarShield />
+    {sheets}
     </View>
   );
 }
@@ -222,6 +292,9 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   head: { paddingHorizontal: space.lg, gap: space.sm, marginBottom: space.xl },
+  contextScroll: { flexGrow: 0, marginHorizontal: -space.lg },
+  contextRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingVertical: 4 },
+  context: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, maxWidth: "100%", paddingHorizontal: space.md, borderRadius: radius.pill, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
   mapNote: { color: colors.onDarkMuted, paddingHorizontal: space.lg, marginBottom: space.sm },
   areas: { flexGrow: 0, flexShrink: 0 },
   areasContent: { paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.sm },

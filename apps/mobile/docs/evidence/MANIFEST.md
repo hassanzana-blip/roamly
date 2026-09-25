@@ -1665,3 +1665,45 @@ these fixes.
 
 **Not verified:** a real iPhone (the spinner offset and the pull gesture in particular).
 
+
+## Explore: from-airport, dates and travellers changed in place; Saved rows one line shorter (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock with demo
+data.
+
+**Versions:** before is `d4e9448`; after is the commit that adds this section.
+
+**What changed**
+- **Explore: the search it uses can be changed there (backlog 2.9).** The line «Fra Oslo (OSL) · 9. okt. – 16. okt. ·
+  1 voksen» is now three buttons in one row that scrolls sideways: «Fra Oslo (OSL)» opens the airport search,
+  «9.–16. okt.» opens the same range calendar as Home, and «1 voksen» opens the same travellers-and-cabin sheet (the
+  cabin and «Bare direktefly» are added to the button when they are not the default). A destination then searches
+  with exactly that. Before, all of it had to be changed on Home. The buttons are 36 pt with 44 pt targets; VoiceOver
+  hears e.g. «Avreise fredag 9. oktober 2026, retur fredag 16. oktober 2026, 7 netter» and what a tap opens. With
+  larger text the row scrolls instead of wrapping, so the destinations stay as high as before.
+- **The travellers sheet is one component** (`TravellersSheet`), used by Home and Explore; Home is unchanged.
+- **Saved: recent searches one line shorter (backlog 2.10).** The dates read «9.–16. okt.» as on Home instead of
+  «fre. 9. okt. – fre. 16. okt.», which wrapped at 390 pt. VoiceOver still hears the full dates.
+
+**Tests:** `exploreContext.test.tsx` (the three buttons, labels, hints and 44 pt targets; the airport search route;
+new dates and travellers from Explore reach the search; the map view; no from-airport; one way; English) and
+`savedLibrary.test.tsx` (the short span, full dates for VoiceOver).
+
+**Checks:** Jest 560 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean. iOS bundle 4 935 878 bytes. Bundle
+check OK.
+
+**Not verified:** a real iPhone.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `explore-context-before-390.jpg` | `549f8274acd3d8dd…` | 780×1860 |
+| `explore-context-after-390.jpg` | `7cb628f3b4f8706f…` | 780×1860 |
+| `explore-context-after-390-dates.jpg` | `de6d940c90da620f…` | 780×1860 |
+| `explore-context-after-390-travellers.jpg` | `a4c95136112a26af…` | 780×1860 |
+| `explore-context-after-390-changed.jpg` | `b84dbc5f6bbc66ec…` | 780×1860 |
+| `explore-context-after-375.jpg` | `6170ec3e86e8f66a…` | 750×1762 |
+| `explore-context-after-430.jpg` | `803ad462afefe4de…` | 860×2002 |
+| `explore-context-after-390-large.jpg` | `5e31d2fdb15465a9…` | 780×1860 |
+| `explore-context-after-390-en.jpg` | `eee4a7937d54820f…` | 780×1826 |
+| `saved-rows-before-390.jpg` | `20d5a40ec2324135…` | 780×1860 |
+| `saved-rows-after-390.jpg` | `bf2cfff53cb0fe4b…` | 780×1860 |

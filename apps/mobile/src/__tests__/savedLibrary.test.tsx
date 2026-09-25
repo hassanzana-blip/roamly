@@ -8,7 +8,7 @@ import { __resetLocalStoreForTests, readPref, writePref } from "../lib/localStor
 import { fakeServer } from "../test/fakeServer";
 import { SEARCH_RESULT } from "../test/fixtures";
 import { initialForm } from "../lib/searchForm";
-import { toIsoDate } from "../lib/format";
+import { formatDateSpan, formatDay, toIsoDate } from "../lib/format";
 import { BottomNavigation } from "../components/BottomNavigation";
 import ExploreScreen from "../app/(tabs)/utforsk";
 import SavedScreen from "../app/(tabs)/lagret";
@@ -156,6 +156,9 @@ describe("Lagret-fanen", () => {
     const id = `OSL-BCN-${day(20)}`;
     expect(screen.getByTestId(`recent-${id}`)).toHaveTextContent(/Oslo → Barcelona/);
     expect(screen.getByTestId(`recent-${id}`)).toHaveTextContent(/OSL\u2011BCN · /);
+    // Kort datospenn som på forsiden, så raden holder seg på få linjer; VoiceOver får hele datoene.
+    expect(screen.getByTestId(`recent-${id}`)).toHaveTextContent(`OSL\u2011BCN · ${formatDateSpan(day(20), day(27), "nb")}`, { exact: false });
+    expect(screen.getByTestId(`recent-again-${id}`)).toHaveProp("accessibilityLabel", expect.stringContaining(formatDay(day(20), "nb").replace(/ /g, "\u00A0")));
     expect(screen.queryByTestId(`recent-past-${id}`)).toBeNull();
     await fireEvent.press(screen.getByTestId(`recent-again-${id}`));
     expect(router.push).toHaveBeenCalledWith("/resultater");

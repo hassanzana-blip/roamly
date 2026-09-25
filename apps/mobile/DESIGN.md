@@ -105,6 +105,7 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `OfferCard`, `RouteLine`, `BaggageSummary` | `OfferCard.tsx` | Resultatkortet (215 pt tur-retur ved 390): hver strekning på to linjer («UT · 9. OKT.» og «3 t 16 min · 1 mellomlanding · CPH», så tider, koder og rutelinje), risiko (natt, flyplassbytte, 6 t+) med ikon og ord, bagasje ved prisen, hele kortet er knappen |
 | `SortTabs` | `SortTabs.tsx` | Best / Billigst / Raskest over resultatlisten med ekte toppris og reisetid; valgt fane hvit på kull; under hverandre når et beløp ville brytes |
 | `DateRangeSheet` | `RangeCalendar.tsx` | Avreise og retur i ett ark: månedsliste (mandag først), bånd mellom datoene, antall netter, passerte dager sperret, 47 × 46 pt dager |
+| `TravellersSheet` | `TravellersSheet.tsx` | Reisende, reiseklasse og «Bare direktefly» i ett ark; brukes på forsiden og i Utforsk |
 | `MarkedText` | `MarkedText.tsx` | Tekst der det kunden skrev er uthevet (600); samme regel som søket (starten av hvert ord, aksenter og æ/ø/å likegyldig). Bare visuelt – VoiceOver leser raden som før |
 | `PriceTag` | `PriceTag.tsx` | Kronepris, «ca.»-pris med kurs, eller «Ingen pris i kroner» |
 | `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg; kildemetadata beholdes uten synlig kreditering over bildet |
@@ -130,7 +131,8 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
    og under «[tilbyder] · Bestillingen fullføres hos tilbyderen.». Handlingen åpner leverandørens egen lenke i
    Safari-visning, målt med nettets `flights.trackProviderClick`. VoiceOver hører «Gå til tilbud hos [tilbyder]».
 
-I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`) og Profil
+I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`; øverst fra-flyplass, datoer og
+reisende som knapper som endrer søket der, i én rad som ruller sideveis) og Profil
 (`(tabs)/profil.tsx`, kundeinnlogging, språk, hjelp og konto).
 
 Forsiden: etter søk står de andre nylige søkene (ikke passerte, ikke det som står i skjemaet) som små lyse brikker
