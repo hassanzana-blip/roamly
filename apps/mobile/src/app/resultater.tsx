@@ -7,16 +7,17 @@ import { StatusBarShield } from "../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useApp } from "../lib/appState";
-import { fxNotice } from "../lib/price";
+import { fxNotice, priceDisplay } from "../lib/price";
 import { addDays, formatClock, fromIsoDate, toIsoDate } from "../lib/format";
 import { ApiError } from "../lib/api";
 import { errorText } from "../lib/errorText";
 import { exclusionSummary, pricesStale, providerDisplayName, resultKind, totalConfirmed } from "../lib/resultStatus";
 import { useA11yLanguage, useI18n } from "../i18n";
 import { cabinLabel, passengerSummary } from "../lib/searchForm";
-import { activeFilterCount, airlineOptions, applyView, clearedFilters, countWith, legThresholds, priceThresholds, SORTS, STOPS, TIME_BANDS, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
+import { activeFilterCount, airlineOptions, applyView, averageLegMinutes, clearedFilters, countWith, legThresholds, priceThresholds, SORT_TABS, SORTS, STOPS, TIME_BANDS, topFor, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
 import { groupJourneys } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
+import { SortTabs, type SortTab } from "../components/SortTabs";
 import { Banner, BottomSheet, Chip, DemoBadge, IconButton, Notices, PrimaryButton, SecondaryButton, StateView, type NoticeItem } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
@@ -110,6 +111,22 @@ export default function ResultsScreen() {
   }, [unconfirmedTotal, view.maxPriceMinor, setView]);
   const shown = useMemo(() => (offers ? applyView(offers, view) : []), [offers, view]);
   const journeys = useMemo(() => groupJourneys(shown), [shown]);
+  // Best / Billigst / Raskest: hva som står øverst med hver sortering, med filtrene som gjelder. Ekte tall fra svaret.
+  const sortTabs = useMemo<SortTab[]>(() => {
+    if (!offers) return [];
+    return SORT_TABS.map((key) => {
+      const top = topFor(offers, view, key);
+      const d = top ? priceDisplay(top.best.price, i18n) : null;
+      const avg = top ? averageLegMinutes(top.best) : null;
+      const oneWay = top ? top.best.offer.slices.length === 1 : true;
+      const label = i18n.t.results.sorts[key].label;
+      // Synlig: bare reisetiden (per vei), så den får plass i en smal fane. VoiceOver sier «i snitt … per vei».
+      const detail = avg ? i18n.f.duration(avg) : null;
+      const nok = top?.best.price.nok;
+      const spokenPrice = !nok || nok.kind === "unavailable" ? "" : nok.kind === "converted" ? i18n.t.results.tabs.spokenApprox(i18n.f.spokenNok(nok.amountMinor)) : i18n.f.spokenNok(nok.amountMinor);
+      return { key, label, price: d?.available ? d.primary : null, detail, spoken: i18n.t.results.tabs.spoken(label, spokenPrice, avg ? i18n.f.spokenDuration(avg) : "", oneWay) };
+    });
+  }, [offers, view, i18n]);
 
   // VoiceOver: si fra én gang når et søk er ferdig – hvor mange reiser, eller hva som gikk galt.
   const doneCount = search.status === "done" ? groupJourneys(search.result.offers).length : null;
@@ -276,14 +293,19 @@ export default function ResultsScreen() {
           )}
         </View>
       ) : null}
+      {journeys.length > 1 ? (
+        <View style={styles.tabs}>
+          <SortTabs tabs={sortTabs} value={view.sort} label={t.results.tabs.label} onChange={(sort) => setView((v) => ({ ...v, sort }))} />
+        </View>
+      ) : null}
       {journeys.length ? (
         <View style={styles.countRow}>
-          <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]} testID="result-count">
+          <Text style={[type.footnote, { color: colors.onDarkMuted, flexShrink: 1 }]} testID="result-count">
             {`${reiser(journeys.length)} · ${t.results.offers(shown.length)}`}
             {all.length - shown.length > 0 ? ` · ${t.results.hiddenByFilters(all.length - shown.length)}` : ""}
           </Text>
           {/* Gjeldende sortering som tekst; den endres med «Sorter» i den flytende linjen (én kontroll, 44 pt). */}
-          <Text style={[type.footnote, { color: colors.onDarkMuted, textAlign: "right", flexShrink: 1 }]} testID="sort-summary">
+          <Text style={[type.footnote, styles.sortSummary]} testID="sort-summary">
             {sortLabel}
           </Text>
         </View>
@@ -476,6 +498,7 @@ export default function ResultsScreen() {
               }}
             />
           ))}
+          <Text style={[type.footnote, { color: colors.textSecondary }]} testID="best-explained">{t.results.tabs.bestExplained}</Text>
           <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.noNokLast}</Text>
           {all.some((o) => o.price.nok.kind === "converted") ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.approxRanking}</Text> : null}
         </View>
@@ -544,7 +567,10 @@ const styles = StyleSheet.create({
   notices: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.xs },
   statusRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.xs, minHeight: 28 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#3DDC84" },
-  countRow: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: 6 },
+  // Antallet og sorteringen deler raden; blir teksten stor, legger forklaringen seg under i stedet for å presse antallet.
+  countRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space.md, rowGap: 2, paddingHorizontal: space.lg, paddingVertical: 6 },
+  sortSummary: { color: colors.onDarkMuted, textAlign: "right", flexGrow: 1, flexShrink: 1, flexBasis: 150 },
+  tabs: { paddingTop: space.xs, paddingBottom: 2 },
   sortLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH },
   item: { paddingHorizontal: space.lg },
   errorBox: { padding: space.lg, gap: space.md },

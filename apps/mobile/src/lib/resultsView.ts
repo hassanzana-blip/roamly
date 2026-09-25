@@ -1,5 +1,7 @@
 import type { MobileOffer } from "@contracts/mobileSearch";
 import { checkedBagIncluded } from "./offer";
+import { minutesBetween } from "./format";
+import { groupJourneys, type Journey } from "./journeys";
 
 /**
  * Sortering og filtre på resultatlisten – bare på data tilbudene faktisk har:
@@ -11,9 +13,15 @@ import { checkedBagIncluded } from "./offer";
  *
  * Tilbud uten pris i kroner står alltid nederst, uansett sortering, så
  * merknaden «står nederst» over listen alltid stemmer.
+ *
+ * «Best» er nettets egen avveining (src/lib/offers.ts, «Best totalt»): pris og
+ * samlet reisetid sett mot det billigste og raskeste i svaret, flest bytter på
+ * én strekning, et straffepoeng for bytter over 5 timer og et lite dytt mot
+ * flyselskapets egen salgskanal. Samme tall, samme vekter – og forklart for
+ * kunden. Ingen betalt plassering og ingen skjult faktor.
  */
 
-export type SortKey = "price" | "duration" | "stops";
+export type SortKey = "best" | "price" | "duration" | "departure" | "stops";
 export type StopsFilter = "any" | "direct" | "max1";
 export type TimeBand = "night" | "morning" | "afternoon" | "evening";
 
@@ -32,7 +40,8 @@ export type ResultsView = {
   maxLegMinutes: number | null;
 };
 
-export const DEFAULT_VIEW: ResultsView = { sort: "price", stops: "any", bags: false, departBands: [], returnBands: [], airlines: [], maxPriceMinor: null, maxLegMinutes: null };
+/** Standard: «Best» – som de store metasøkene. «Billigst» er ett trykk unna i fanene over listen. */
+export const DEFAULT_VIEW: ResultsView = { sort: "best", stops: "any", bags: false, departBands: [], returnBands: [], airlines: [], maxPriceMinor: null, maxLegMinutes: null };
 
 /** Filtrene av, sorteringen beholdt. */
 export function clearedFilters(v: ResultsView): ResultsView {
@@ -40,7 +49,10 @@ export function clearedFilters(v: ResultsView): ResultsView {
 }
 
 /** Rekkefølgen valgene vises i; tekstene står i ordboken (t.results). */
-export const SORTS: readonly SortKey[] = ["price", "duration", "stops"];
+export const SORTS: readonly SortKey[] = ["best", "price", "duration", "departure", "stops"];
+
+/** Fanene over listen: de tre avveiningene kunden oftest veksler mellom. De to andre står i «Sorter». */
+export const SORT_TABS: readonly SortKey[] = ["best", "price", "duration"];
 
 export const STOPS: readonly StopsFilter[] = ["any", "direct", "max1"];
 
@@ -68,6 +80,55 @@ export function maxStops(o: MobileOffer): number {
 
 function totalStops(o: MobileOffer): number {
   return o.offer.slices.reduce((m, s) => m + s.stops, 0);
+}
+
+/** Gjennomsnittlig reisetid per strekning (minutter), eller null når en varighet mangler. */
+export function averageLegMinutes(o: MobileOffer): number | null {
+  const total = totalDuration(o);
+  return total === null ? null : Math.round(total / o.offer.slices.length);
+}
+
+/** Lengste ventetid ved et bytte (minutter), regnet trygt fra leverandørens tider; 0 uten bytter eller uleselige tider. */
+export function longestLayover(o: MobileOffer): number {
+  let max = 0;
+  for (const s of o.offer.slices) {
+    for (let i = 0; i < s.segments.length - 1; i++) {
+      const m = minutesBetween(s.segments[i]!.arrivingAt, s.segments[i + 1]!.departingAt);
+      if (m !== null) max = Math.max(max, m);
+    }
+  }
+  return max;
+}
+
+/** Laveste kronepris og korteste samlede reisetid i hele svaret – målestokken «Best» regnes mot. */
+export type BestContext = { minPrice: number; minMinutes: number };
+
+export function bestContext(offers: MobileOffer[]): BestContext {
+  const prices = offers.map(nokMinor).filter((p): p is number => p !== null && p > 0);
+  const minutes = offers.map(totalDuration).filter((m): m is number => m !== null);
+  return { minPrice: prices.length ? Math.min(...prices) : 1, minMinutes: minutes.length ? Math.min(...minutes) : 1 };
+}
+
+/** Bytter som gir straffepoeng i «Best» (samme grense som nettet). */
+export const BEST_LONG_LAYOVER_MINUTES = 300;
+
+/**
+ * «Best»: lavere er bedre. 1,0 i pris = billigst i svaret, 1,0 i tid = raskest i svaret. Et tilbud uten kronepris
+ * eller med ukjent reisetid kan ikke veies og står bakerst (Infinity).
+ */
+export function bestScore(o: MobileOffer, ctx: BestContext): number {
+  const price = nokMinor(o);
+  const minutes = totalDuration(o);
+  if (price === null || minutes === null) return Number.POSITIVE_INFINITY;
+  const agency = o.offer.booking?.kind === "external" && o.offer.booking.sellerKind !== "airline";
+  return (price / ctx.minPrice) * 0.6 + (minutes / ctx.minMinutes) * 0.3 + maxStops(o) * 0.15 + (longestLayover(o) > BEST_LONG_LAYOVER_MINUTES ? 0.1 : 0) + (agency ? 0.05 : 0);
+}
+
+/** Utreisens avgang som tall (lokal tid på flyplassen, slik leverandøren oppga den); null når tiden ikke kan leses. */
+export function departureKey(o: MobileOffer): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(o.offer.slices[0]?.departingAt ?? "");
+  if (!m) return null;
+  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) / 60_000;
 }
 
 function bandOf(at: string | undefined): TimeBand | null {
@@ -139,23 +200,41 @@ function passes(o: MobileOffer, v: ResultsView): boolean {
   return true;
 }
 
-/** Filtrer og sorter. Serverens rekkefølge er utgangspunktet og avgjør ved likhet. */
+/**
+ * Filtrer og sorter. Serverens rekkefølge (stigende kronepris) er utgangspunktet og avgjør ved likhet.
+ * `offers` er hele svaret: målestokken for «Best» regnes av alle tilbudene, så rekkefølgen ikke hopper når et
+ * filter slås på.
+ */
 export function applyView(offers: MobileOffer[], v: ResultsView): MobileOffer[] {
   const kept = offers.map((o, i) => ({ o, i })).filter(({ o }) => passes(o, v));
   if (v.sort === "price") return kept.map(({ o }) => o);
+  const ctx = v.sort === "best" ? bestContext(offers) : null;
   const key = (o: MobileOffer): number => {
+    if (v.sort === "best") return bestScore(o, ctx!);
     if (v.sort === "duration") return totalDuration(o) ?? Number.POSITIVE_INFINITY;
+    if (v.sort === "departure") return departureKey(o) ?? Number.POSITIVE_INFINITY;
     return totalStops(o);
   };
+  const keys = new Map(kept.map(({ o }) => [o, key(o)]));
   return kept
     .sort((a, b) => {
       const nok = Number(hasNok(b.o)) - Number(hasNok(a.o));
       if (nok) return nok;
-      const k = key(a.o) - key(b.o);
-      if (k) return k;
+      const ka = keys.get(a.o)!;
+      const kb = keys.get(b.o)!;
+      // To ukjente (Infinity) er like – da avgjør serverens rekkefølge.
+      if (ka !== kb) return ka < kb ? -1 : 1;
       return a.i - b.i;
     })
     .map(({ o }) => o);
+}
+
+/**
+ * Den første reisen i listen for en sortering, med filtrene som gjelder – det fanene over listen viser. Prisen er
+ * reisens billigste selger, akkurat som på kortet som står øverst når fanen velges.
+ */
+export function topFor(offers: MobileOffer[], v: ResultsView, sort: SortKey): Journey | null {
+  return groupJourneys(applyView(offers, { ...v, sort }))[0] ?? null;
 }
 
 /** Antall aktive filtre (sortering teller ikke). */

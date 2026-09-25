@@ -92,8 +92,8 @@ describe("Resultater: ekte trykkflater og plass nederst", () => {
     expect(fx.props.hitSlop).toBeUndefined();
     expect(fx.props.accessibilityRole).toBe("button");
     expect(screen.getByTestId("sandbox-banner")).toHaveTextContent("Demo: testdata, ikke ekte fly eller priser.");
-    // Sorteringen står som tekst; den endres med «Sorter» i den flytende linjen.
-    expect(screen.getByTestId("sort-summary")).toHaveTextContent("Laveste pris først");
+    // Sorteringen står som tekst (standard «Best», forklart); den endres i fanene over listen eller med «Sorter».
+    expect(screen.getByTestId("sort-summary")).toHaveTextContent("Pris, reisetid og bytter veid sammen");
     expect(screen.queryByTestId("open-sort")).toBeNull();
     expect(screen.getByTestId("open-sort-toolbar")).toBeOnTheScreen();
   });

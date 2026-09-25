@@ -1042,3 +1042,62 @@ The List/Kart buttons stay 44 pt tall. No outbound request left the preview.
 | `explore-search-before-390-large-list.jpg` | `40c9506e4d3f646a…` | 780×1887 |
 | `explore-search-before-390-list.jpg` | `aa4414dc670ee4b2…` | 780×1862 |
 | `explore-search-before-430-list.jpg` | `946442e161d41246…` | 860×2013 |
+
+## Results: Best / Cheapest / Fastest (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle), with the fake-server fixture:
+- safe areas are simulated (375×812 → 50/34, 390×844 → 47/34, 430×932 → 59/34);
+- Inter replaces the system font; «135 %» is a simulated text size (every text and `fontScale` scaled, as Dynamic Type does);
+- flights, prices and sellers are **hand-made demo data** (`provider: "demo"`, so the app itself shows DEMO). Airline and
+  seller names are labels only. Airport search answers from the server's real airport registry.
+
+**Versions:** before is `2f4ab8a`; after is the commit that adds this section. Images are JPEG (quality 82).
+
+**What changed**
+- A **Best** ranking, now the default. It is the web's own «Best totalt» formula (`src/lib/offers.ts`), with the same
+  weights: price against the cheapest journey in the answer (0.6), total travel time against the fastest (0.3), most stops
+  on one leg (0.15 each), +0.1 for a layover over 5 hours, and +0.05 when the seller is not the airline. The yardstick is
+  the whole answer, so switching a filter never reshuffles what remains. Offers without a NOK price or with an unknown
+  travel time cannot be weighed and stay last.
+- **Earliest departure** sort (outbound local time; equal times fall back to price).
+- **Sort tabs** above the list: Best / Cheapest / Fastest. Each shows the price and the per-leg travel time of the journey
+  that tops the list with that sort and the current filters (real numbers from the answer). VoiceOver hears «Raskest,
+  3 500 kroner, i snitt 2 timer 30 minutter per vei». The other two sorts stay in «Sorter».
+- The sort sheet explains Best in plain words, including the airline-direct nudge, and says no one pays to be ranked.
+- The count row now explains the current sort («Pris, reisetid og bytter veid sammen»).
+- Large text: the tabs stay side by side while the price and time fit on one line; if an amount would wrap, they stack
+  for that text size (measured, as in the details bar). Accessibility sizes (≥ 1.6) always stack.
+
+**Measured first view** (pt from the top of the screen; «cards visible» counts the part of each card above the toolbar):
+
+| Viewport | First card top before → after | Cards visible before → after | Tabs height |
+|---|---|---|---|
+| 375×812 | 254 → 352 | 1.55 → 1.21 | 74 |
+| 390×844 | 251 → 331 | 1.67 → 1.39 | 74 |
+| 430×932 | 263 → 343 | 1.93 → 1.66 | 74 |
+| 390×844, text 135 % | 323 → 446 | 1.05 → 0.76 | 93 |
+
+**Tradeoff, recovered by the next stage:** the tabs cost ~80 pt of the first view. The compact card that follows this
+commit is what brings the card count up; this stage is not pushed on its own.
+
+**Fixture facts used in the images:** Best 1 720 kr (Norwegian, direct, 3 t 16 min each way); Cheapest 1 530 kr
+(Lufthansa via Munich, 12 t 56 min each way, overnight layover); Fastest = Best.
+
+**Tests:** `resultsView.test.ts` (+6: the web's weights, the airline nudge, a stable yardstick under filters, unweighable
+offers last, earliest departure with tie-breaks, the tab tops under filters) and `filters.test.tsx` (+3: default Best and
+the tab numbers/VoiceOver label; the sort sheet's five choices and explanation; measured stacking at large text). Existing
+price-basis and layout tests now reach «Billigst» through its tab.
+
+**Not verified:** real iPhone rendering, SF Pro widths, VoiceOver reading of the tab list, real Dynamic Type sizes, and
+live KAYAK answers (staging returns demo data).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `sort-after-375.jpg` | `b20c9556bde586cd…` | 750×1824 |
+| `sort-after-390-cheapest.jpg` | `4af7807f10e0262f…` | 780×1916 |
+| `sort-after-390-en.jpg` | `de9bf94296821e46…` | 780×1888 |
+| `sort-after-390-large.jpg` | `44a34eaf6ab513b2…` | 780×1916 |
+| `sort-after-390-sheet.jpg` | `ac64397a59338be0…` | 780×1888 |
+| `sort-after-390.jpg` | `765a5de59284bee1…` | 780×1888 |
+| `sort-after-430.jpg` | `f62b649f335539c1…` | 860×2036 |
+| `sort-before-2f4ab8a-390.jpg` | `a9dabb347737c29b…` | 780×1888 |

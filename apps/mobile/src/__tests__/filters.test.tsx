@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
-import { Text } from "react-native";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
+import { Dimensions, StyleSheet, Text } from "react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
@@ -47,20 +47,68 @@ async function renderResults(result: MobileSearchResult) {
 const cardIds = () => screen.getAllByTestId(/^offer-/).map((el) => el.props.testID as string);
 
 describe("sortering", () => {
-  it("«Billigst» er serverens rekkefølge; «Raskest» sorterer på reisetid; uten kronepris står sist", async () => {
+  it("standard «Best»; fanene viser ekte pris og reisetid for toppen av hver sortering og bytter rekkefølgen", async () => {
     await renderResults(withDirect());
-    expect(cardIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-thb_1", "offer-direct_1"]);
-    expect(screen.getByText("Laveste pris først")).toBeOnTheScreen();
+    const selected = (key: string) => screen.getByTestId(`sort-tab-${key}`).props.accessibilityState?.selected;
+    expect([selected("best"), selected("price"), selected("duration")]).toEqual([true, false, false]);
+    // Best: pris mot billigste, reisetid mot raskeste og bytter. Den dyre direkteruten (3 500 kr) veier ikke opp.
+    expect(cardIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-direct_1", "offer-thb_1"]);
+    expect(screen.getByTestId("sort-summary")).toHaveTextContent("Pris, reisetid og bytter veid sammen");
+    // Fanene: tallene til reisen som står øverst med hver sortering.
+    expect(screen.getByTestId("sort-tab-price")).toHaveTextContent(/Billigst.*ca\.\s1\s442\skr.*4 t 35 min/);
+    expect(screen.getByTestId("sort-tab-duration")).toHaveTextContent(/Raskest.*3\s500\skr.*2 t 30 min/);
+    expect(screen.getByTestId("sort-tab-duration").props.accessibilityLabel).toMatch(/^Raskest, 3\s500 kroner, i snitt 2 timer 30 minutter per vei$/);
 
-    await fireEvent.press(screen.getByTestId("open-sort-toolbar"));
-    await fireEvent.press(screen.getByTestId("sort-duration"));
+    await fireEvent.press(screen.getByTestId("sort-tab-duration"));
+    expect(selected("duration")).toBe(true);
     expect(cardIds()[0]).toBe("offer-direct_1");
     expect(cardIds().at(-1)).toBe("offer-thb_1");
     expect(screen.getByText("Korteste reisetid først")).toBeOnTheScreen();
 
+    // «Billigst» er serverens rekkefølge, urørt.
+    await fireEvent.press(screen.getByTestId("sort-tab-price"));
+    expect(cardIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-thb_1", "offer-direct_1"]);
+    expect(screen.getByText("Laveste pris først")).toBeOnTheScreen();
+  });
+
+  it("«Sorter»: fem valg, «Best» forklart åpent; tidligst avgang velges der, og da er ingen fane valgt", async () => {
+    await renderResults(withDirect());
     await fireEvent.press(screen.getByTestId("open-sort-toolbar"));
-    await fireEvent.press(screen.getByTestId("sort-price"));
-    expect(cardIds()[0]).toBe("offer-sek_1");
+    for (const key of ["best", "price", "duration", "departure", "stops"]) expect(screen.getByTestId(`sort-${key}`)).toBeOnTheScreen();
+    expect(screen.getByTestId("best-explained")).toHaveTextContent(/pris.*reisetid.*mellomlandinger.*Ingen betaler for plassering\./);
+    await fireEvent.press(screen.getByTestId("sort-departure"));
+    // Alle testreisene går 07:05 unntatt direkteruten (14:20); lik tid avgjøres av prisen, uten kronepris sist.
+    expect(cardIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-direct_1", "offer-thb_1"]);
+    expect(screen.getByTestId("sort-summary")).toHaveTextContent("Tidligste avgang på utreisen først");
+    for (const key of ["best", "price", "duration"]) expect(screen.getByTestId(`sort-tab-${key}`).props.accessibilityState?.selected).toBe(false);
+  });
+
+  it("stor tekst: fanene står side om side til et beløp brytes – da under hverandre, for akkurat den tekststørrelsen", async () => {
+    const baseWindow = Dimensions.get("window");
+    const setScale = (fontScale: number) => act(async () => Dimensions.set({ window: { ...baseWindow, fontScale }, screen: { ...Dimensions.get("screen"), fontScale } }));
+    Dimensions.set({ window: baseWindow, screen: Dimensions.get("screen") });
+    try {
+      await setScale(1.2);
+      await renderResults(withDirect());
+      const direction = () => StyleSheet.flatten(screen.getByTestId("sort-tabs").props.style).flexDirection;
+      expect(direction()).toBe("row");
+      const oneLine = { nativeEvent: { layout: { x: 0, y: 0, width: 90, height: 21 * 1.2 } } };
+      await fireEvent(screen.getByTestId("sort-tab-price-price"), "layout", oneLine);
+      expect(direction()).toBe("row");
+      // «1 442 kr» delt over to linjer: under hverandre.
+      await fireEvent(screen.getByTestId("sort-tab-price-price"), "layout", { nativeEvent: { layout: { x: 0, y: 0, width: 60, height: 2 * 21 * 1.2 } } });
+      expect(direction()).toBe("column");
+      // Tilgjengelighetsstørrelser: alltid under hverandre.
+      await setScale(1.8);
+      expect(direction()).toBe("column");
+    } finally {
+      await setScale(baseWindow.fontScale);
+    }
+  });
+
+  it("én reise: ingen faner (ingenting å veie mot)", async () => {
+    await renderResults({ ...SEARCH_RESULT, offers: [SEK_OFFER] });
+    expect(screen.queryByTestId("sort-tabs")).toBeNull();
   });
 });
 

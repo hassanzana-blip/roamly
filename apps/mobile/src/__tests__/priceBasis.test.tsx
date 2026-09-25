@@ -66,6 +66,9 @@ describe("resultatkortet", () => {
     const card = within(screen.getByTestId("offer-sek_1"));
     expect(card.getByText(NB_TOTAL)).toBeOnTheScreen();
     expect(screen.queryByTestId("price-basis-notice")).toBeNull();
+    // Standard er «Best»; «Billigst» er én fane unna og sier «laveste pris» når totalen er bekreftet.
+    expect(screen.getByTestId("sort-summary")).toHaveTextContent("Pris, reisetid og bytter veid sammen");
+    await fireEvent.press(screen.getByTestId("sort-tab-price"));
     expect(screen.getByTestId("sort-summary")).toHaveTextContent("Laveste pris først");
     await fireEvent.press(screen.getByTestId("open-filters"));
     await waitFor(() => expect(screen.getByTestId("filter-screen")).toBeOnTheScreen());
@@ -86,6 +89,7 @@ describe("resultatkortet", () => {
     expect(screen.getByTestId("price-sek_1")).toHaveTextContent(/1\s442\skr/);
     expect(screen.getByTestId("price-sek_1")).not.toHaveTextContent(/5\s768/);
     expect(screen.getByTestId("price-basis-notice")).toHaveTextContent(NB_EXPLAINED);
+    await fireEvent.press(screen.getByTestId("sort-tab-price"));
     expect(screen.getByTestId("sort-summary")).toHaveTextContent("Laveste pris fra tilbyderen først");
   });
 
@@ -118,6 +122,7 @@ describe("resultatkortet", () => {
     await show(PER_PERSON, "results", "en");
     expect(within(screen.getByTestId("offer-sek_1")).getByText("Provider's price, total not confirmed · Return")).toBeOnTheScreen();
     expect(screen.getByTestId("price-basis-notice")).toHaveTextContent("The provider didn't confirm that these prices cover all travellers. Check the total with the provider before you book.");
+    await fireEvent.press(screen.getByTestId("sort-tab-price"));
     expect(screen.getByTestId("sort-summary")).toHaveTextContent("Lowest provider price first");
   });
 });

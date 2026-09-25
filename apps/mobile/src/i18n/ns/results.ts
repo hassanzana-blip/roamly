@@ -3,10 +3,20 @@ import type { SortKey, StopsFilter, TimeBand } from "../../lib/resultsView";
 /** Resultatlisten: sortering, filtre og tellinger. */
 const en = {
   sorts: {
+    best: { label: "Best", summary: "Price, travel time and stops weighed together" },
     price: { label: "Cheapest", summary: "Lowest total price first" },
     duration: { label: "Fastest", summary: "Shortest travel time first" },
+    departure: { label: "Earliest departure", summary: "Earliest outbound departure first" },
     stops: { label: "Fewest stops", summary: "Fewest stops first" },
   } satisfies Record<SortKey, { label: string; summary: string }>,
+  /** Fanene over listen: toppen for hver avveining, med ekte pris og reisetid. */
+  tabs: {
+    label: "Sort results",
+    spokenApprox: (amount: string) => `approximately ${amount}`,
+    spoken: (label: string, price: string, duration: string, oneWay: boolean) => [label, price, duration ? (oneWay ? duration : `average ${duration} each way`) : ""].filter(Boolean).join(", "),
+    bestExplained:
+      "Best weighs the price against the cheapest journey in this search, the total travel time against the fastest, and the number of stops. Layovers over 5 hours count against a journey, and at almost the same price we put the airline's own sales channel ahead of a travel agency. No one pays to be ranked.",
+  },
   stops: { any: "All", direct: "Direct", max1: "Max 1 stop" } satisfies Record<StopsFilter, string>,
   bands: { night: "Night", morning: "Morning", afternoon: "Afternoon", evening: "Evening" } satisfies Record<TimeBand, string>,
   journeys: (n: number) => `${n} ${n === 1 ? "journey" : "journeys"}`,
@@ -94,9 +104,18 @@ const en = {
 
 const nb: typeof en = {
   sorts: {
+    best: { label: "Best", summary: "Pris, reisetid og bytter veid sammen" },
     price: { label: "Billigst", summary: "Laveste pris først" },
     duration: { label: "Raskest", summary: "Korteste reisetid først" },
+    departure: { label: "Tidligst avgang", summary: "Tidligste avgang på utreisen først" },
     stops: { label: "Færrest mellomlandinger", summary: "Færrest mellomlandinger først" },
+  },
+  tabs: {
+    label: "Sorter resultatene",
+    spokenApprox: (amount) => `omtrent ${amount}`,
+    spoken: (label, price, duration, oneWay) => [label, price, duration ? (oneWay ? duration : `i snitt ${duration} per vei`) : ""].filter(Boolean).join(", "),
+    bestExplained:
+      "Best veier prisen mot den billigste reisen i søket, samlet reisetid mot den raskeste og antall mellomlandinger. Bytter på over 5 timer trekker ned, og ved nesten lik pris står flyselskapets egen salgskanal foran et reisebyrå. Ingen betaler for plassering.",
   },
   stops: { any: "Alle", direct: "Direkte", max1: "Maks 1 mellomlanding" },
   bands: { night: "Natt", morning: "Morgen", afternoon: "Ettermiddag", evening: "Kveld" },

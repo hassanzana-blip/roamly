@@ -137,7 +137,7 @@ the web, with a Bearer token instead of a cookie.
 | 30 | Airport-change, overnight and long-layover warnings before hand-off | verified | `3046d65`: warning box above the hand-off button (tested). |
 | 31 | Bag and refund/change: included / not included / unknown / fee | verified | `5230535`: "allowed for a fee" (KAYAK, Duffel, demo, web + app); `83ce160`: unknown bag restriction = "not stated". |
 | 32 | Compare all providers for the same journey | partial | Sellers are grouped within one search, with price, bags and terms kept in step; different providers are not merged. |
-| 33 | Sort labels explained, stable | partial | Summaries on each option. Gap: nothing explains how estimated "approx." prices rank. |
+| 33 | Sort labels explained, stable | verified | Summaries on each option; «approx.» ranking explained in the sort sheet. 25 Sep: «Best» (default, the web's weights, explained in the sheet), earliest departure, and Best/Cheapest/Fastest tabs with real numbers (`resultsView.test.ts`, `filters.test.tsx`). |
 | 34 | Filters persist within a search, live counts, clear all | partial | Filters are lost when the search is re-run. |
 | 35 | Cancellable slow search, race-safe | partial | Cancel, abort, sequence guard; the timeout covers the body (`2b8ee6f`). Gap: `retryable` is ignored in the UI. |
 | 36 | Empty, error and offline states keep the input | partial | The input is kept; recovery is generic. |
