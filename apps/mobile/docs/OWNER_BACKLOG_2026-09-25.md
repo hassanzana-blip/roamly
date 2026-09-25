@@ -51,7 +51,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 1.4 | Layover airports on the card («1 mellomlanding · CPH») | done |
 | 1.5 | One range calendar for departure + return in one sheet; one-way picks one date; month list, today/past disabled, 44 pt days, VoiceOver dates [23] | done (stage «range calendar») |
 | 1.6 | The same calendar in the results «Datoer» sheet (replaces two compact pickers) | done |
-| 1.7 | Loading: skeleton cards under the real header (search stays visible), stable layout, Reduce Motion respected, cancel kept [17][45] | planned |
+| 1.7 | Loading: skeleton cards under the real header (search stays visible), stable layout, Reduce Motion respected, cancel kept [17][45] | done (stage «loading») |
 | 1.8 | Details: the full journey (both legs, every segment, layovers) visible without hunting through tabs [39] | planned |
 | 1.9 | Details: baggage and fare conditions per seller visible before the handoff button without tab switching [33][34] | planned |
 | 1.10 | Airport picker: other airports in the same city/area offered next to the chosen one (e.g. TRF next to OSL, LGW next to LHR), never merged [14] | planned |

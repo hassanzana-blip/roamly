@@ -18,6 +18,7 @@ import { groupJourneys } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
 import { DateRangeSheet } from "../components/RangeCalendar";
 import { SortTabs, type SortTab } from "../components/SortTabs";
+import { ResultsSkeleton } from "../components/ResultsSkeleton";
 import { Banner, BottomSheet, Chip, DemoBadge, IconButton, Notices, PrimaryButton, SecondaryButton, StateView, type NoticeItem } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
@@ -184,24 +185,24 @@ export default function ResultsScreen() {
   }
 
   if (search.status === "loading") {
+    // Søket står i toppen; under: hva som skjer og plassholderkort i samme form som svaret. «Stopp søket» står der
+    // verktøylinjen kommer, innen rekkevidde for tommelen.
     return shell(
-      <StateView
-        busy
-        icon="plane"
-        title={r.loadingTitle}
-        body={slow ? r.loadingSlow : r.loadingBody}
-        testID="results-loading"
-      >
-        <SecondaryButton
-          dark
-          testID="cancel-search"
-          label={r.cancelSearch}
-          onPress={() => {
-            cancelSearch();
-            router.back();
-          }}
-        />
-      </StateView>,
+      <View style={styles.loading}>
+        <ResultsSkeleton title={r.loadingTitle} body={slow ? r.loadingSlow : r.loadingBody} testID="results-loading" />
+        <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
+          <SecondaryButton
+            dark
+            icon="close"
+            testID="cancel-search"
+            label={r.cancelSearch}
+            onPress={() => {
+              cancelSearch();
+              router.back();
+            }}
+          />
+        </View>
+      </View>,
     );
   }
 
@@ -547,6 +548,7 @@ const styles = StyleSheet.create({
   sortLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH },
   item: { paddingHorizontal: space.lg },
   errorBox: { padding: space.lg, gap: space.md },
+  loading: { flex: 1, overflow: "hidden" },
   toolbarWrap: { position: "absolute", left: 0, right: 0, alignItems: "center" },
   toolbar: { flexDirection: "row", alignItems: "center", backgroundColor: colors.raised, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.sm, paddingVertical: 6 },
   tool: { flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: TOUCH, paddingHorizontal: space.md },

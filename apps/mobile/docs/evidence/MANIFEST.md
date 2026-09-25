@@ -1203,3 +1203,37 @@ at accessibility sizes, and one-handed reach on a device.
 | `cal-after-390-large.jpg` | `f8d621697d36bb4b…` | 780×1888 |
 | `cal-after-390-results.jpg` | `4487db0128a00c81…` | 780×1916 |
 | `cal-after-430.jpg` | `51d4e0c65342cb70…` | 860×2036 |
+
+## Results: loading with placeholder cards (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle), simulated safe areas and text size,
+Inter instead of SF Pro. The fake server holds the search open (12 s) so the loading state can be captured.
+
+**Versions:** before is `2f4ab8a` (the loading state was unchanged up to `e619332`); after is the commit that adds this
+section. Images are JPEG (quality 82).
+
+**What changed**
+- The search (route, dates, travellers, class) stays at the top while providers answer, as before.
+- Under it: one status line («Vi sammenligner priser …» with the existing expectation text; after 8 s the existing
+  «Noen tilbydere bruker lenger tid …») and three placeholder cards in the shape of the compact result card, so the list
+  does not jump when the answer arrives. The placeholders are grey shapes only: no prices, times or airlines. They are
+  hidden from VoiceOver; the status line is one readable progress element and a polite live region.
+- «Stopp søket» sits where the Filtrer/Sorter/Datoer bar appears, within thumb reach (before: under the spinner at the
+  top half of the screen). It still cancels the request and goes back, and the form is kept.
+- The placeholders pulse gently (opacity 1 → 0.72, 0.8 s). With Reduce Motion they stand still.
+
+**Tests:** `resultsLoading.test.tsx` (new, 4): the search in the header while loading; the spoken status; placeholders
+hidden from VoiceOver and without any text; the slow message after 8 s; «Stopp søket» aborts and goes back; no pulse with
+Reduce Motion.
+
+**Not verified:** perceived speed on a real iPhone with a live provider (staging answers in demo mode), and VoiceOver's
+reading of the progress element on device.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `loading-after-375.jpg` | `fdf422210347192b…` | 750×1796 |
+| `loading-after-390-large.jpg` | `85d48d6b4598b6a7…` | 780×1888 |
+| `loading-after-390-slow.jpg` | `58259be03f87651b…` | 780×1888 |
+| `loading-after-390.jpg` | `1cd43490aa09a5bb…` | 780×1916 |
+| `loading-after-430.jpg` | `9b295c70722c87a3…` | 860×2036 |
+| `loading-before-2f4ab8a-390.jpg` | `8aeef44c14aa350c…` | 780×1888 |
