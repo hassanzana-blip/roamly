@@ -73,7 +73,7 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 
 | Token | Str./linje | Vekt | Bruk |
 |---|---|---|---|
-| `hero` | 28/34 | 600 | Overskrift i fotohodet |
+| `hero` | 28/34 | 600 | Overskriften på forsiden («Hvor vil du reise?») og i Profil |
 | `title` | 22/28 | 600 | Skjermtitler |
 | `section` | 18/24 | 600 | Seksjoner, korttitler |
 | `headline` | 17/22 | 600 | Toppfelt |
@@ -222,15 +222,16 @@ og 430 × 932, pluss Resultater ved 320 × 568.
 - Simulert safe area øverst/nederst: 50/34 pt ved 375, 59/34 ved 393 og 430, 20/0 ved 320.
 - Tall i punkter fra toppen av skjermen.
 - Commit `dad15c4`. Bildene er `nb-dad15c4-*` og `en-dad15c4-*` i `docs/evidence`; metoden står i `MANIFEST.md`.
+- H2–H5 er målt på nytt 25.09.2026 for den nye forsiden (med fanemenyen som flytende kapsel), samme metode.
 - Ikke målt på iPhone ennå.
 
 | # | Krav | Mål | Målt 375 / 393 / 430 |
 |---|---|---|---|
 | H1 | Ny installasjon er på norsk | «Søk fly», ingen lagret språk | ja / ja / ja |
-| H2 | Fotohodet er kompakt | ≤ 230 pt pluss safe area øverst | 202 + innfelling (252 / 261 / 261) |
-| H3 | «Søk fly» er ett blått hovedvalg og synlig uten rulling | 52 pt, bunn over fanemenyen | 562 < 721 / 571 < 761 / 571 < 841 |
-| H4 | «Utforsk reisemål» og foto i første bilde | overskriften og ≥ 40 pt av første kort over menyen | 77 / 108 / 132 pt |
-| H5 | Reisemålskort uten oppdiktet pris; tomt reisemål i vanlig mørk tekst | «Se flyreiser»; «Velg» ikke blå | ja |
+| H2 | Toppen er kompakt (ingen fotohode siden 25.09) | tittel og profilknapp på én linje, rett under statuslinjen | ja / ja / ja |
+| H3 | «Søk fly» er ett blått hovedvalg og synlig uten rulling | 52 pt, bunn over fanemenyen | 539 < 724 / 548 < 764 / 548 < 844 (25.09) |
+| H4 | «Utforsk reisemål» og foto i første bilde | overskriften og ≥ 40 pt av første kort over menyen | 59 / 90 / 170 pt (25.09) |
+| H5 | Reisemålskort uten oppdiktet pris; tomt reisemål som et dempet spørsmål | «Se flyreiser»; «Til hvor?» ikke blå | ja (25.09) |
 | R1 | Første reise viser begge etapper | «UT · dato» og «HJEM · dato» med tider, rute og stopp | ja / ja / ja |
 | R2 | Totalpris med grunnlag nede til venstre, «Detaljer» nede til høyre | «Totalt for 1 voksen · Tur-retur»; pillen ≥ 44 pt | ja; pillen 44 pt høy |
 | R3 | Totalpris og «Detaljer» over den flytende linjen, også ved 320 | bunn ≤ linjens topp | 469 < 712 / 478 < 752 / 478 < 832; 320 nb 493 < 502, en 457 < 502 |

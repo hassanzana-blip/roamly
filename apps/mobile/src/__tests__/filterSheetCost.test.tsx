@@ -8,6 +8,7 @@ import { fakeServer } from "../test/fakeServer";
 import { SEARCH_RESULT } from "../test/fixtures";
 import { connectionOptions, journeysVia } from "../lib/resultsView";
 import ResultsScreen from "../app/resultater";
+import { pinClock } from "../test/clock";
 
 // Filterarket regner bare mens det er åpent; en fjernet brikke sies til VoiceOver; og et prisfilter tegnes aldri
 // – ikke én gang – mens totalen for alle reisende ikke er bekreftet.
@@ -64,6 +65,11 @@ async function show(results: MobileSearchResult[]) {
 const counted = () => (journeysVia as jest.Mock).mock.calls.length + (connectionOptions as jest.Mock).mock.calls.length;
 
 afterEach(() => jest.restoreAllMocks());
+
+
+// Klokken står fast (bare Date), så de faste reisedatoene i testene aldri har passert.
+beforeEach(() => pinClock());
+afterEach(() => jest.useRealTimers());
 
 describe("filterarket regner bare mens det er åpent", () => {
   it("lukket: ingen telling når listen tegnes på nytt (fanene); åpent: tellingene står; lukket igjen: stille", async () => {

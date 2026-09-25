@@ -8,6 +8,7 @@ import { fakeServer } from "../test/fakeServer";
 import { PROFILE, SEARCH_RESULT, TOKEN } from "../test/fixtures";
 import { colors, space } from "../lib/theme";
 import HomeScreen from "../app/(tabs)/index";
+import { pinClock } from "../test/clock";
 
 // Hjem: første bilde og kjernesøket. Jest kan ikke måle piksler; det som prøves er
 // det som bestemmer første bilde (rekkefølge, tittel og konto, tett luft i panelet,
@@ -54,6 +55,11 @@ const flat = (testID: string) => StyleSheet.flatten(screen.getByTestId(testID).p
 
 beforeEach(() => keychain.clear());
 
+
+// Klokken står fast (bare Date), så de faste reisedatoene i testene aldri har passert.
+beforeEach(() => pinClock());
+afterEach(() => jest.useRealTimers());
+
 describe("Hjem: første bilde", () => {
   it("dekker statuslinjen når panelet rulles under den", async () => {
     const inset = jest.spyOn(SafeArea, "useSafeAreaInsets").mockReturnValue({ top: 59, bottom: 34, left: 0, right: 0 });
@@ -86,7 +92,8 @@ describe("Hjem: første bilde", () => {
     expect(title).toHaveTextContent("Hvor vil du reise?");
     expect(title).toHaveProp("accessibilityRole", "header");
     expect(screen.queryByText(/^God (morgen|formiddag|ettermiddag|kveld|natt)/)).toBeNull();
-    expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Logg inn");
+    // Knappen heter det den åpner: Profil (med innloggingskortet øverst).
+    expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Din profil");
     await fireEvent.press(screen.getByTestId("account-button"));
     expect(router.push).toHaveBeenLastCalledWith("/profil");
     // Panelet med søket: tett luft mellom delene, og ingen luft over tittelen utover statuslinjen.
@@ -154,6 +161,13 @@ describe("Hjem: skjemaet som hos de store søketjenestene", () => {
     expect(StyleSheet.flatten(empty.props.style).color).toBe(colors.textSecondary);
     expect(screen.getByTestId("destination")).toHaveProp("accessibilityLabel", "Til: ikke valgt");
     expect(screen.getByTestId("destination")).toHaveProp("accessibilityHint", "Åpner flyplassøket");
+  });
+
+  it("bytt-knappen står midt på skillelinjen, også når fra-raden blir høyere (lang by, stor tekst)", async () => {
+    await renderHome();
+    expect(flat("swap").top).toBe(56 - 22);
+    await fireEvent(screen.getByTestId("origin"), "layout", { nativeEvent: { layout: { x: 0, y: 0, width: 358, height: 84 } } });
+    expect(flat("swap").top).toBe(84 - 22);
   });
 
   it("datoene i ett felt: ukedag og dato for avreise og retur; VoiceOver hører hele datoen; hver halvdel åpner kalenderen på sin dato", async () => {

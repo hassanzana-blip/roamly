@@ -127,7 +127,8 @@ export default function HomeScreen() {
                 {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
               </Pressable>
             ) : (
-              <IconButton icon="user" label={t.home.loginButton} variant="dark" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
+              // Gjest: knappen går til Profil (innloggingskortet står øverst der), så den heter det den åpner.
+              <IconButton icon="user" label={t.home.profileButton} variant="dark" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
             )}
           </View>
           <ServiceSwitch variant="tiles" active="flights" onSelect={() => router.push("/hotell")} />

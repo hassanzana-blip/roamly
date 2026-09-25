@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
-import { AppProvider, type ApiFactory } from "../lib/appState";
+import { AppProvider, type ApiFactory, type NativeSocialSignIn } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
 import { AUTH_RESULT, PROFILE, TOKEN } from "../test/fixtures";
@@ -170,13 +170,90 @@ describe("Profil innlogget", () => {
     await renderProfile({ signedIn: true });
     const account = within(screen.getByTestId("account-card"));
     expect(account.getByText("Konto")).toHaveProp("accessibilityRole", "header");
-    expect(account.getByLabelText("Navn, Kari Nordmann")).toBeOnTheScreen();
-    expect(account.getByLabelText("E-post, kari@example.no")).toBeOnTheScreen();
+    // Verdien øverst og hva den er under; VoiceOver hører «Navn: Kari Nordmann».
+    expect(account.getByLabelText("Navn: Kari Nordmann")).toHaveTextContent(/^Kari Nordmann\s*Navn$/);
+    expect(account.getByLabelText("E-post: kari@example.no")).toHaveTextContent(/^kari@example\.no\s*E-post$/);
     expect(screen.getByTestId("open-edit-profile")).toHaveProp("accessibilityRole", "button");
     expect(screen.getByTestId("logout-button")).toHaveProp("accessibilityRole", "button");
     // «Slett konto» er rød – med tekst, ikke bare farge.
     const del = within(screen.getByTestId("open-delete-account")).getByText("Slett konto");
     expect(StyleSheet.flatten(del.props.style).color).toBe(colors.danger);
     inOrder(["account-card", "settings-group", "help-card", "logout-button", "open-delete-account"]);
+  });
+});
+
+describe("Profil: tilstand mellom innlogging og utlogging", () => {
+  it("listen starter øverst etter innlogging og etter utlogging (egen rulleflate per tilstand)", async () => {
+    await renderProfile({ routes: { "mobileAuth.login": () => ({ data: AUTH_RESULT }), "mobileAuth.logout": () => ({ data: { ok: true } }) } });
+    const guest = screen.getByTestId("account-signed-out");
+    await fireEvent.press(screen.getByTestId("open-login"));
+    await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
+    await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
+    await fireEvent.press(screen.getByTestId("auth-submit"));
+    await waitFor(() => expect(screen.getByTestId("account-signed-in")).toBeOnTheScreen());
+    const signedIn = screen.getByTestId("account-signed-in");
+    expect(signedIn).not.toBe(guest);
+    await fireEvent.press(screen.getByTestId("logout-button"));
+    await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    expect(screen.getByTestId("account-signed-out")).not.toBe(signedIn);
+  });
+
+  const GOOGLE_READY = { password: true, social: [{ provider: "google" as const, available: true, reason: null }, { provider: "apple" as const, available: false, reason: "not_configured" as const }], clerkPublishableKey: "pk_live_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk" };
+
+  it("et passord som ble skrevet, blir ikke liggende når innloggingen skjer uten skjemaet (Google)", async () => {
+    const native: NativeSocialSignIn = { supports: (p) => p === "google", signIn: jest.fn(async () => ({ kind: "token" as const, token: "clerk-token-0123456789-0123456789" })) };
+    const server = fakeServer({
+      "mobileAuth.me": () => ({ data: null }),
+      "mobileAuth.providers": () => ({ data: GOOGLE_READY }),
+      "mobileAuth.exchangeSocialToken": () => ({ data: { ...AUTH_RESULT, created: false, linked: false } }),
+      "mobileAuth.logout": () => ({ data: { ok: true } }),
+    });
+    const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
+    await render(
+      <AppProvider initialLocale="nb" apiFactory={factory} nativeSocial={native}>
+        <AccountScreen />
+      </AppProvider>,
+    );
+    await waitFor(() => expect(server.calls.some((c) => c.path === "mobileAuth.providers")).toBe(true));
+    await fireEvent.press(screen.getByTestId("open-login"));
+    await waitFor(() => expect(screen.getByTestId("social-google")).toBeOnTheScreen());
+    await fireEvent.changeText(screen.getByTestId("password"), "ikke-sendt-passord");
+    await fireEvent.press(screen.getByTestId("social-google"));
+    await waitFor(() => expect(screen.getByTestId("account-signed-in")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("logout-button"));
+    await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("open-login"));
+    expect(screen.getByTestId("password").props.value).toBe("");
+  });
+
+  it("mens innloggingen pågår: «Glemt passordet?» og bytte til ny konto gjør ingenting", async () => {
+    // Google-vinduet står åpent (løftet svarer først når testen sier det).
+    let finish!: () => void;
+    const native: NativeSocialSignIn = { supports: (p) => p === "google", signIn: jest.fn(() => new Promise((resolve) => (finish = () => resolve({ kind: "cancelled" as const })))) };
+    const server = fakeServer({ "mobileAuth.me": () => ({ data: null }), "mobileAuth.providers": () => ({ data: GOOGLE_READY }) });
+    const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
+    await render(
+      <AppProvider initialLocale="nb" apiFactory={factory} nativeSocial={native}>
+        <AccountScreen />
+      </AppProvider>,
+    );
+    await waitFor(() => expect(server.calls.some((c) => c.path === "mobileAuth.providers")).toBe(true));
+    await fireEvent.press(screen.getByTestId("open-login"));
+    await waitFor(() => expect(screen.getByTestId("social-google")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("social-google"));
+    await fireEvent.press(screen.getByTestId("open-forgot"));
+    expect(screen.queryByTestId("forgot-password")).toBeNull();
+    await fireEvent.press(screen.getByTestId("segment-register"));
+    expect(screen.getByTestId("segment-login")).toBeSelected();
+    // Avbrutt: nå virker begge igjen.
+    await act(async () => finish());
+    await fireEvent.press(screen.getByTestId("open-forgot"));
+    expect(screen.getByTestId("forgot-password")).toBeOnTheScreen();
+  });
+
+  it("en lang verdi til høyre tar aldri mer enn litt over halve raden, så etiketten får plass", async () => {
+    await renderProfile();
+    const value = within(screen.getByTestId("currency-row")).getByText("NOK");
+    expect(StyleSheet.flatten(value.props.style)).toMatchObject({ maxWidth: "55%", flexShrink: 1 });
   });
 });

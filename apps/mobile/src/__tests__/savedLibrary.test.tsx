@@ -316,7 +316,9 @@ describe("fire faner", () => {
       expect(label.props.maxFontSizeMultiplier).toBeGreaterThan(1);
     }
     const bar = screen.getByTestId("bottom-navigation");
-    expect(StyleSheet.flatten(bar.props.style).paddingBottom).toBeGreaterThanOrEqual(24);
+    // Med hjemindikator (34 pt): kapselen 26 pt fra bunnen. «tabbar» gir VoiceOver fanelinjen på iOS.
+    expect(StyleSheet.flatten(bar.props.style).paddingBottom).toBe(26);
+    expect(bar).toHaveProp("accessibilityRole", "tabbar");
     // En flytende kapsel: rund, med marg på sidene.
     const capsule = StyleSheet.flatten(screen.getByTestId("bottom-navigation-capsule").props.style);
     expect(capsule.borderRadius).toBeGreaterThanOrEqual(28);
@@ -331,7 +333,7 @@ describe("fire faner", () => {
       </AppProvider>,
     );
     expect(screen.getAllByRole("tab").map((t) => t.props.accessibilityLabel)).toEqual(["Home", "Explore", "Saved", "Profile"]);
-    // Uten safe area: likevel luft under etikettene.
-    expect(StyleSheet.flatten(screen.getByTestId("bottom-navigation").props.style).paddingBottom).toBeGreaterThanOrEqual(8);
+    // Uten hjemindikator: kapselen 8 pt fra bunnen.
+    expect(StyleSheet.flatten(screen.getByTestId("bottom-navigation").props.style).paddingBottom).toBe(8);
   });
 });

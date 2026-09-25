@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import ResultsScreen from "../app/resultater";
+import { pinClock, TEST_NOW } from "../test/clock";
 
 // Mens søket pågår: søket står i toppen, en statuslinje sier hva som skjer, og plassholderkort i resultatenes form
 // holder plassen – uten et eneste tall. «Stopp søket» avbryter. Med «Reduser bevegelse» pulserer ingenting.
@@ -53,6 +54,11 @@ async function renderLoading() {
 
 afterEach(() => jest.restoreAllMocks());
 
+
+// Klokken står fast (bare Date), så de faste reisedatoene i testene aldri har passert.
+beforeEach(() => pinClock());
+afterEach(() => jest.useRealTimers());
+
 describe("søket pågår", () => {
   it("søket står i toppen; statuslinjen leses opp; plassholderkortene er skjult for VoiceOver og har ingen tall", async () => {
     await renderLoading();
@@ -67,7 +73,7 @@ describe("søket pågår", () => {
   });
 
   it("etter 8 sekunder: beskjed om at noen tilbydere bruker lenger tid", async () => {
-    jest.useFakeTimers({ doNotFake: ["nextTick", "queueMicrotask", "setImmediate", "performance"] });
+    jest.useFakeTimers({ now: TEST_NOW, doNotFake: ["nextTick", "queueMicrotask", "setImmediate", "performance"] });
     try {
       await renderLoading();
       expect(screen.getByTestId("results-loading-body")).toHaveTextContent("Vi henter tilbudene og samler like reiser, så du ser hver reise én gang.");

@@ -120,6 +120,8 @@ interaction patterns, not their colours, copy, prices or features we do not have
 | 4.6 | A deals rail with real prices | proposal for Ali (`docs/PROPOSAL_DEALS_AND_ALERTS_2026-09-25.md`): recommended, low prices from recent live searches (`search_events`) with the dates and the time found, no provider cost; or a nightly check that spends quota. Never invented prices |
 | 4.7 | Price alerts in the app | proposal for Ali (same file): the web's `watch.*` on the mobile API; first the worker, a live Duffel key and e-mail must be verified, and account deletion must switch alerts off (today they are kept) |
 | 4.8 | Multi-city and a bags chip in the form | not now: search takes neither (bags are a results filter) |
+| 4.9 | VoiceOver: in-page tab groups (Flights/Hotels, the sort tabs, the details tabs) use the roles tablist/tab, which give no trait on iOS; only the tab bar has «tabbar» now | open: check on a device whether «tabbar» or buttons with a selected state read best, then change all three together |
+| 4.10 | Tests no longer expire: six suites searched fixed October dates with the real clock and would have failed from 24 October | done: the clock is pinned (`src/test/clock.ts`); the suite passes with the clock at 24 Oct 2026 and 1 Jun 2027 |
 
 ## Blocked outside the app
 

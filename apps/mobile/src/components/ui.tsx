@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ActivityIndicator, Modal, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { Pressable, Text } from "./a11y";
 import Svg, { Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -523,7 +523,8 @@ export function BottomSheet({ visible, title, onClose, children, testID, footer 
   const reduced = useReducedMotion();
   return (
     <Modal visible={visible} transparent animationType={reduced ? "fade" : "slide"} onRequestClose={onClose}>
-      <View style={styles.sheetRoot} accessibilityLanguage={lang}>
+      {/* Tastaturet skyver arket opp, så feltene og knappen under dem (glemt passord, endre profil, slett) synes. */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.sheetRoot} accessibilityLanguage={lang}>
         {/* Bakgrunnen lukker ved trykk; for VoiceOver er «Ferdig» og tofingers-Z (escape) veien ut. */}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
         <View accessibilityLanguage={lang} style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]} testID={testID} accessibilityViewIsModal onAccessibilityEscape={onClose}>
@@ -537,7 +538,7 @@ export function BottomSheet({ visible, title, onClose, children, testID, footer 
           {children}
           {footer}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

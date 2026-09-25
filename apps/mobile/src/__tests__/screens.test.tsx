@@ -12,6 +12,7 @@ import SearchScreen from "../app/(tabs)/index";
 import ResultsScreen from "../app/resultater";
 import OfferScreen from "../app/tilbud/[id]";
 import AccountScreen from "../app/(tabs)/profil";
+import { pinClock } from "../test/clock";
 
 /** Leverandørens lenke vises aldri som tekst; den åpnes bare fra knappen. Ingen «betal»-løfter. */
 function expectNoRawLinks() {
@@ -101,6 +102,11 @@ afterEach(() => {
     for (const args of spy.mock.calls) expect(JSON.stringify(args)).not.toContain(TOKEN);
   }
 });
+
+
+// Klokken står fast (bare Date), så de faste reisedatoene i testene aldri har passert.
+beforeEach(() => pinClock());
+afterEach(() => jest.useRealTimers());
 
 describe("søk uten innlogging", () => {
   it("ufullstendig skjema gir norsk feilmelding og søker ikke", async () => {
@@ -414,10 +420,11 @@ describe("kundekonto", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    // Ingen ord om ansatte eller roller – verken i Profil eller i innloggingsarket.
+    await fireEvent.press(screen.getByTestId("open-login"));
     const tree = renderedStrings();
     for (const word of ["admin", "Admin", "ansatt", "staff", "Staff", "eier"]) expect(tree).not.toContain(word);
 
-    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
     await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
     await fireEvent.press(screen.getByTestId("auth-submit"));

@@ -7,6 +7,7 @@ import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
 import { NOK_OFFER, SAME_TRIP_OTHER_SELLER, SEARCH_RESULT, SEK_OFFER } from "../test/fixtures";
 import ResultsScreen from "../app/resultater";
+import { pinClock } from "../test/clock";
 
 // Resultatsiden: sortering, filterbrikker, filterarket, datoer og gruppering
 // av samme reise hos flere tilbydere – mot ekte app-tilstand og API-klient.
@@ -45,6 +46,11 @@ async function renderResults(result: MobileSearchResult) {
 }
 
 const cardIds = () => screen.getAllByTestId(/^offer-/).map((el) => el.props.testID as string);
+
+
+// Klokken står fast (bare Date), så de faste reisedatoene i testene aldri har passert.
+beforeEach(() => pinClock());
+afterEach(() => jest.useRealTimers());
 
 describe("sortering", () => {
   it("standard «Best»; fanene viser ekte pris og reisetid for toppen av hver sortering og bytter rekkefølgen", async () => {

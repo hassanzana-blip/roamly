@@ -60,6 +60,7 @@ function Row({
   separated,
   testID,
   accessibilityHint,
+  accessibilityLabel,
 }: {
   icon: IconName;
   title: string;
@@ -72,6 +73,8 @@ function Row({
   separated?: boolean;
   testID?: string;
   accessibilityHint?: string;
+  /** VoiceOver-etiketten når den synlige rekkefølgen ikke er den beste å høre (f.eks. «Navn: Kari Nordmann»). */
+  accessibilityLabel?: string;
 }) {
   const lang = useA11yLanguage();
   const fg = danger ? colors.danger : colors.text;
@@ -90,7 +93,7 @@ function Row({
   );
   if (!onPress) {
     return (
-      <View accessible accessibilityLanguage={lang} accessibilityLabel={[title, value, subtitle].filter(Boolean).join(", ")} style={[styles.row, separated && styles.rowBorder]} testID={testID}>
+      <View accessible accessibilityLanguage={lang} accessibilityLabel={accessibilityLabel ?? [title, value, subtitle].filter(Boolean).join(", ")} style={[styles.row, separated && styles.rowBorder]} testID={testID}>
         {inner}
       </View>
     );
@@ -99,7 +102,7 @@ function Row({
     <Pressable
       onPress={onPress}
       accessibilityRole={external ? "link" : "button"}
-      accessibilityLabel={title}
+      accessibilityLabel={accessibilityLabel ?? title}
       accessibilityHint={accessibilityHint}
       testID={testID}
       style={({ pressed }) => [styles.row, separated && styles.rowBorder, pressed && { backgroundColor: colors.inset }]}
@@ -358,6 +361,10 @@ export default function AccountScreen() {
     setSheet(null);
     setSaved(false);
     setAuthOpen(false);
+    // Også etter Google/Apple (som ikke går via skjemaet): et passord som ble skrevet, blir ikke liggende.
+    setPassword("");
+    setError(null);
+    setSocialNote(null);
   }
 
   // Innloggingsmåtene (Google/Apple) hentes bare når innloggingen faktisk kan vises.
@@ -382,7 +389,8 @@ export default function AccountScreen() {
     return (
       <View style={styles.screen}>
         <StatusBar style="light" />
-        <ScrollView style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-in">
+        {/* Egen nøkkel: etter innlogging starter listen øverst, ikke der gjestelisten var rullet. */}
+        <ScrollView key="signed-in" style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-in">
           <View style={styles.hello}>
             <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
               <Text style={styles.avatarText}>{initials}</Text>
@@ -398,9 +406,10 @@ export default function AccountScreen() {
           ) : null}
           {p ? (
             <Group title={a.accountSection} testID="account-card">
-              <Row icon="user" title={a.nameLabel} value={`${p.firstName} ${p.lastName}`.trim()} />
-              {p.email ? <Row icon="mail" title={a.emailLabel} value={p.email} separated /> : null}
-              {p.phone ? <Row icon="phone" title={a.phoneLabel} value={p.phone} separated /> : null}
+              {/* Verdien øverst og hva den er under, så lange navn og e-poster får hele bredden. */}
+              <Row icon="user" title={`${p.firstName} ${p.lastName}`.trim()} subtitle={a.nameLabel} accessibilityLabel={`${a.nameLabel}: ${`${p.firstName} ${p.lastName}`.trim()}`} />
+              {p.email ? <Row icon="mail" title={p.email} subtitle={a.emailLabel} accessibilityLabel={`${a.emailLabel}: ${p.email}`} separated /> : null}
+              {p.phone ? <Row icon="phone" title={p.phone} subtitle={a.phoneLabel} accessibilityLabel={`${a.phoneLabel}: ${p.phone}`} separated /> : null}
               <Row
                 icon="pencil"
                 title={a.editProfile}
@@ -517,7 +526,8 @@ export default function AccountScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-out">
+      {/* Egen nøkkel: etter utlogging, sletting eller utløpt økt starter listen øverst, så meldingen og kortet synes. */}
+      <ScrollView key="signed-out" style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-out">
         <Text style={[type.hero, { color: colors.onDark }]} accessibilityRole="header">
           {a.profileTitle}
         </Text>
@@ -535,7 +545,7 @@ export default function AccountScreen() {
 
       {/* Innlogging og ny konto i iOS' sidekort (dras ned for å lukke). Tastaturet: listen slutter der det begynner. */}
       <Modal visible={authOpen} animationType={reduced ? "fade" : "slide"} presentationStyle="pageSheet" allowSwipeDismissal onRequestClose={closeAuth}>
-        <View style={styles.modal} accessibilityLanguage={lang} testID="auth-modal">
+        <View style={styles.modal} accessibilityLanguage={lang} onAccessibilityEscape={closeAuth} testID="auth-modal">
           <View style={styles.modalHead}>
             <IconButton icon="close" label={i18n.t.common.close} variant="light" onPress={closeAuth} testID="auth-close" />
             <Text style={[type.headline, styles.modalTitle]} accessibilityRole="header">
@@ -552,6 +562,7 @@ export default function AccountScreen() {
                 { value: "register", label: a.modeRegister },
               ]}
               onChange={(m) => {
+                if (busy || socialBusy) return;
                 setMode(m);
                 setError(null);
               }}
@@ -611,7 +622,15 @@ export default function AccountScreen() {
               </Banner>
             ) : null}
             <PrimaryButton testID="auth-submit" label={mode === "login" ? a.submitLogin : a.submitRegister} onPress={submit} loading={busy} />
-            {mode === "login" ? <LinkButton label={a.forgot} onPress={() => setSheet("forgot")} testID="open-forgot" /> : null}
+            {mode === "login" ? (
+              <LinkButton
+                label={a.forgot}
+                onPress={() => {
+                  if (!busy && !socialBusy) setSheet("forgot");
+                }}
+                testID="open-forgot"
+              />
+            ) : null}
             <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{a.searchWithoutLogin}</Text>
           </ScrollView>
           {/* «Glemt passordet?» legges over skjemaet, i samme sidekort. */}
@@ -632,7 +651,8 @@ const styles = StyleSheet.create({
   row: { minHeight: TOUCH + 8, flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm },
   rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lightBorder },
   rowText: { flex: 1, gap: 2 },
-  rowValue: { color: colors.textSecondary, flexShrink: 1, textAlign: "right" },
+  // Verdien tar aldri mer enn litt over halve raden, så etiketten ikke presses til ingenting (lange verdier bryter).
+  rowValue: { color: colors.textSecondary, flexShrink: 1, maxWidth: "55%", textAlign: "right" },
   block: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: space.md },
   blockHead: { flexDirection: "row", alignItems: "center", gap: space.md },
   version: { color: colors.onDarkDim, textAlign: "center" },

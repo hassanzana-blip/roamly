@@ -1902,3 +1902,41 @@ with a home indicator; the tabs, selection and 44 pt as before).
 | `tabs-v2-after-390-explore-map.jpg` | `7da69d9262e8ec02…` | 780×1860 |
 | `tabs-v2-after-390-saved.jpg` | `7eeb27e47e7b84a5…` | 780×1826 |
 | `tabs-v2-after-390-profile.jpg` | `deab2495672824a0…` | 780×1826 |
+
+## Review fixes for the Home, Profile and tab bar stages (independent review)
+
+**Found by an independent reviewer (3 medium, 7 low; no high), all fixed except where noted:**
+- **Profile starts at the top after login, logout, deletion and an ended session.** Both states used the same
+  scroll view, so after deleting from the bottom of the list the «Kontoen din er slettet» message and the sign-in
+  card were above the screen. Each state now has its own list.
+- **Account rows give the value the full width:** «Kari Nordmann» over «Navn», the e-mail over «E-post», so a
+  long name or address no longer squeezes the label to nothing; VoiceOver hears «Navn: Kari Nordmann». A value
+  at the right (NOK) takes at most 55 % of the row.
+- **Tests no longer expire:** six suites (the new Home tests and five older ones) searched with 23–30 October and the
+  real clock, so the suite would have failed from 24 October. The clock is now pinned in those suites
+  (`src/test/clock.ts`: only `Date`, timers run normally). Checked by running the whole suite with the clock moved
+  to 24 Oct 2026 and to 1 Jun 2027: all pass.
+- **A typed password is cleared on every sign-in,** also with Google or Apple, which do not go through the form.
+- **While a sign-in runs,** «Glemt passordet?» and switching to a new account do nothing (no sheet over a sheet
+  that is about to close).
+- **Sheets move up for the keyboard** (forgot password, edit profile, delete account): the field and the button were
+  under the keyboard.
+- **Home:** the swap button stays on the divider when a city name wraps; a long travellers or cabin chip wraps
+  inside the chip; a date never breaks between «23.» and «okt.»; the guest button is called «Din profil», because
+  it opens Profile. The tab bar now has the role «tabbar», which gives it iOS' tab-bar trait («tablist» gives none), so VoiceOver
+  can read the tabs as tabs («fane, 1 av 4»; not checked on a device).
+- **Tests made stricter:** the tab bar's exact distance from the bottom (26 pt with a home indicator, 8 without),
+  and the check for staff words now also covers the sign-in sheet.
+- **Docs:** README and the Home rows in DESIGN.md (H2–H5, re-measured: «Søk fly» ends at 539 / 548 / 548 pt with
+  the bar at 724 / 764 / 844; 59 / 90 / 170 pt of the first destination photo above it).
+- **Not changed:** `assets/photos/hero-wing.jpg` and `scripts/make-photos.mjs` (outside the app source; the photo
+  is no longer bundled). The in-page tab roles (backlog 4.9).
+
+**Tests:** `profileList.test.tsx` (the list starts at the top after login and logout, the password cleared after a
+Google sign-in, the guards while a sign-in runs, the capped value), `homeFirstView.test.tsx` (the swap button on
+the divider, «Din profil»), `savedLibrary.test.tsx` (exact distances, «tabbar»), and the pinned clock in six suites.
+
+**Checks:** Jest 586 passed, 3 skipped (UTC and Oslo; also with the clock at 24 Oct 2026 and 1 Jun 2027).
+Typecheck and lint clean. iOS bundle 4 949 335 bytes. Bundle check OK.
+
+**Not verified:** a real iPhone (the keyboard over the sheets, VoiceOver's reading of the tab bar).

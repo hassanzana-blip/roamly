@@ -10,10 +10,11 @@ Byggidentitet, miljøer og lanseringskrav står i [`RELEASE.md`](RELEASE.md).
 Appen er **bare for flysøk og sammenligning**. Den selger ingenting selv og viser ingen gate-, sete-, boardingkort-
 eller bestillingsopplysninger. Vil kunden ha et tilbud, åpnes tilbyderens egen side, og bestillingen fullføres der.
 
-- **Hjem** (uten innlogging): fotohode med hilsen (kundens fornavn når innlogget, ellers nøytral), hvitt søkeark med
-  `Tur-retur | Én vei`, fra/til med flyplassøk (`flights.airports`, bare den valgte flyplassen – aldri andre i samme by),
-  datoer (iOS-kalender i et ark), voksne/barn (2–11 år)/spedbarn med alder, reiseklasse og «Bare direktefly».
-  Reisemålskortene søker direkte.
+- **Hjem** (uten innlogging): et mørkt panel med spørsmålet «Hvor vil du reise?» (innlogget: hilsen med fornavnet) og
+  profilknapp, Fly/Hotell som to ruter, `Tur-retur  Én vei` som faner, fra og til under hverandre med bytt-knappen på
+  skillelinjen (flyplassøk med `flights.airports`, bare den valgte flyplassen – aldri andre i samme by), avreise ▸ retur
+  i ett felt (én kalender i et ark), reisende og reiseklasse som brikker (voksne/barn 2–11 år/spedbarn med alder,
+  «Bare direktefly»). Reisemålskortene (uten pris) søker direkte.
 - **Resultater** (`flights.search`): ett kort per reise med ut- og hjemreise, bagasje og **hva prisen gjelder**
   («Totalt for 2 voksne · Tur-retur» – aldri per person). Samme reise hos flere tilbydere vises én gang med billigste
   tilbyder og «N tilbydere» (samme gruppering som nettet). Brikker og filterark (mellomlandinger, innsjekket bagasje,
@@ -31,8 +32,9 @@ eller bestillingsopplysninger. Vil kunden ha et tilbud, åpnes tilbyderens egen 
   Safari-visning (`expo-web-browser`), med «Bestillingen fullføres hos tilbyderen.» under. Klikket måles med nettets
   eksisterende `flights.trackProviderClick` (samme prosedyre er montert på `/api/mobile/trpc`; ingen ny
   videresending). Lenker som ikke er ren https, åpnes ikke.
-- **Utforsk** og **Profil** (`mobileAuth`): reisemål, vanlig kundeinnlogging med e-post og passord, ny konto,
-  utlogging og fotokreditering. Ingen andre roller.
+- **Utforsk** og **Profil** (`mobileAuth`): reisemål; Profil er en innstillingsliste med et innloggingskort (e-post og
+  passord, ny konto og glemt passord i et eget ark), språk, valuta (NOK, bare informasjon), hjelp og juridisk, og
+  for innloggede konto, utlogging og sletting. Ingen andre roller.
 
 ## Utseende
 
@@ -44,7 +46,8 @@ den nåværende valutaforklaringen er under målet og venter på retting.
 
 **Foto:** HelloSkys egne, godkjente reisefoto fra nettets register, kopiert inn av `scripts/make-photos.mjs`
 (`assets/photos/*.jpg`). De følger med appen – ingen bildesøk mens appen brukes, ingen Unsplash-nøkkel i appen.
-Kreditering «Foto: Unsplash» på bildet og en liste i Profil, slik registeret (`src/content/photos.ts`) oppgir.
+Kilden står i nettets register (`src/content/photos.ts`) og i `src/lib/destinations.ts`; appen viser ingen
+kildeetiketter eller kredittliste (se `DESIGN.md`, «Foto»).
 
 ## Sikkerhet
 

@@ -31,7 +31,8 @@ export function BottomNavigation({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   return (
-    <View accessibilityLanguage={lang} style={[styles.bar, { paddingBottom: Math.max(insets.bottom - space.sm, space.sm) }]} accessibilityRole="tablist" testID="bottom-navigation">
+    // «tabbar» (ikke «tablist»): bare den gir fanelinjens egenskap på iOS, så VoiceOver kan lese fanene som faner.
+    <View accessibilityLanguage={lang} style={[styles.bar, { paddingBottom: Math.max(insets.bottom - space.sm, space.sm) }]} accessibilityRole="tabbar" testID="bottom-navigation">
       <View style={styles.capsule} testID="bottom-navigation-capsule">
       {state.routes.map((route, i) => {
         const tab = TABS[route.name];

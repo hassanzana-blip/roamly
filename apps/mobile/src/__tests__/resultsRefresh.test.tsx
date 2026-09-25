@@ -9,6 +9,7 @@ import { NOK_OFFER, SAME_TRIP_OTHER_SELLER, SEARCH_RESULT, SEK_OFFER } from "../
 import type { Locale } from "../i18n/types";
 import ResultsScreen from "../app/resultater";
 import OfferScreen from "../app/tilbud/[id]";
+import { pinClock } from "../test/clock";
 
 // Oppdater prisene (dra ned, eller «Oppdater prisene»): samme søk på nytt. Listen står mens det nye svaret hentes, og
 // de nye prisene kommer inn i den samme listen. Feiler det, står de forrige prisene, med beskjed om når de er fra.
@@ -101,6 +102,11 @@ const pull = async () => {
     refreshControl().props.onRefresh();
   });
 };
+
+
+// Klokken står fast (bare Date), så de faste reisedatoene i testene aldri har passert.
+beforeEach(() => pinClock());
+afterEach(() => jest.useRealTimers());
 
 describe("dra ned for å oppdatere prisene", () => {
   it("listen står mens de nye prisene hentes; de kommer inn i den samme listen; VoiceOver hører start og slutt", async () => {

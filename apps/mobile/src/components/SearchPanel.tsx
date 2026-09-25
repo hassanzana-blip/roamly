@@ -19,7 +19,7 @@ import { colors, radius, space, TOUCH, type } from "../lib/theme";
  * når ingenting er valgt. Ikonet sier hvilken ende det er uten en egen etikett. Plass til høyre for bytt-knappen, som
  * står på skillelinjen.
  */
-function AirportRow({ label, placeholder, icon, value, onPress, testID }: { label: string; placeholder: string; icon: IconName; value: AirportChoice | null; onPress: () => void; testID: string }) {
+function AirportRow({ label, placeholder, icon, value, onPress, testID, onHeight }: { label: string; placeholder: string; icon: IconName; value: AirportChoice | null; onPress: () => void; testID: string; onHeight?: (h: number) => void }) {
   const { t } = useI18n();
   return (
     <Pressable
@@ -28,6 +28,7 @@ function AirportRow({ label, placeholder, icon, value, onPress, testID }: { labe
       accessibilityRole="button"
       accessibilityLabel={value ? t.home.airportLabel(label, value.city, value.name, value.iata) : `${label}: ${t.home.notChosen}`}
       accessibilityHint={t.home.airportHint}
+      onLayout={onHeight ? (e) => onHeight(Math.round(e.nativeEvent.layout.height)) : undefined}
       style={({ pressed }) => [styles.airportRow, pressed && { backgroundColor: colors.inset }]}
     >
       <Icon name={icon} size={20} color={colors.textSecondary} />
@@ -88,7 +89,7 @@ function PanelChip({ label, onPress, testID, accessibilityLabel, accessibilityHi
       hitSlop={(TOUCH - 40) / 2}
       style={({ pressed }) => [styles.chip, pressed && { opacity: 0.7 }]}
     >
-      <Text style={[type.calloutStrong, { color: colors.onDark }]}>{label}</Text>
+      <Text style={[type.calloutStrong, { color: colors.onDark, flexShrink: 1 }]}>{label}</Text>
       <Icon name="chevronDown" size={16} color={colors.onDarkMuted} />
     </Pressable>
   );
@@ -110,6 +111,8 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
   const [travellersOpen, setTravellersOpen] = useState(false);
   // Kalenderen: én for begge datoene; åpnet på avreise eller retur, etter hvilken rute kunden trykket på.
   const [calendar, setCalendar] = useState<PickMode | null>(null);
+  // Fra-radens høyde: bytt-knappen står midt på skillelinjen under den, også når en rad brytes (stor tekst).
+  const [originHeight, setOriginHeight] = useState(56);
 
   const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
 
@@ -139,7 +142,8 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
     // «fre. 9. okt.»: ukedagen dempet, datoen tydelig.
     const full = i18n.f.day(iso);
     const cut = full.indexOf(" ");
-    return cut > 0 ? { weekday: full.slice(0, cut), date: full.slice(cut + 1) } : { weekday: "", date: full };
+    const nbsp = (x: string) => x.replace(/ /g, "\u00A0");
+    return cut > 0 ? { weekday: full.slice(0, cut), date: nbsp(full.slice(cut + 1)) } : { weekday: "", date: nbsp(full) };
   };
   const dateHalf = (iso: string) => {
     const p = dayParts(iso);
@@ -158,10 +162,10 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
 
       {/* Fra og til under hverandre i ett hvitt felt, som de store søketjenestene; bytt-knappen står på skillelinjen. */}
       <View style={styles.routeCard}>
-        <AirportRow testID="origin" label={h.from} placeholder={h.fromPlaceholder} icon="takeoff" value={form.origin} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "fra" } })} />
+        <AirportRow testID="origin" label={h.from} placeholder={h.fromPlaceholder} icon="takeoff" value={form.origin} onHeight={setOriginHeight} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "fra" } })} />
         <View style={styles.routeDivider} />
         <AirportRow testID="destination" label={h.to} placeholder={h.toPlaceholder} icon="landing" value={form.destination} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "til" } })} />
-        <Pressable onPress={swap} accessibilityRole="button" accessibilityLabel={h.swap} style={({ pressed }) => [styles.swap, pressed && { backgroundColor: colors.inset }]} testID="swap">
+        <Pressable onPress={swap} accessibilityRole="button" accessibilityLabel={h.swap} style={({ pressed }) => [styles.swap, { top: originHeight - TOUCH / 2 }, pressed && { backgroundColor: colors.inset }]} testID="swap">
           <Animated.View style={{ transform: [{ rotate }] }} testID="swap-icon">
             <Icon name="swap" size={20} color={colors.text} />
           </Animated.View>
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
   airportText: { flexShrink: 1 },
   // Streken starter under teksten, ikke under ikonet.
   routeDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.lightBorder, marginLeft: space.lg + 20 + space.md },
-  swap: { position: "absolute", right: space.md, top: "50%", marginTop: -TOUCH / 2, width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, alignItems: "center", justifyContent: "center" },
+  swap: { position: "absolute", right: space.md, width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.white, alignItems: "center", justifyContent: "center" },
   dateCard: { flexDirection: "row", alignItems: "stretch", borderRadius: radius.input, backgroundColor: colors.white, overflow: "hidden" },
   dateHalf: { flex: 1, minHeight: 56, justifyContent: "center", paddingHorizontal: space.lg, paddingVertical: space.sm },
   dateArrow: { justifyContent: "center" },
