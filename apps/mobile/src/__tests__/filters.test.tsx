@@ -274,7 +274,9 @@ describe("mellomlanding, ankomsttid og aktive filtre", () => {
 
     await fireEvent.press(screen.getByTestId("times-out-depart"));
     expect(screen.getByTestId("times-out-arrive-dot")).toBeOnTheScreen();
-    expect(screen.getByTestId("times-out-arrive").props.accessibilityLabel).toBe("Ankomst, filter på");
+    expect(screen.getByTestId("times-out-arrive").props.accessibilityLabel).toBe("Utreise: Ankomst, filter på");
+    // Utreise og hjemreise høres forskjellig ut for VoiceOver.
+    expect(screen.getByTestId("times-back-arrive").props.accessibilityLabel).toBe("Hjemreise: Ankomst");
     expect(screen.queryByTestId("times-out-depart-dot")).toBeNull();
 
     // Hjemreisen har sitt eget valg.

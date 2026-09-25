@@ -9,7 +9,7 @@ import { normalizeQuery, type AirportChoice } from "../lib/searchForm";
 import { recentAirports } from "../lib/recent";
 import { countryFor, norwayAirports } from "../lib/norwayAirports";
 import { DESTINATIONS, destinationChoice } from "../lib/destinations";
-import { airportNames, airportRows, cityAlias, type AirportRow as Row } from "../lib/airportIndex";
+import { airportNames, airportRows, cityAlias, localizedChoice, type AirportRow as Row } from "../lib/airportIndex";
 import { searchTokens } from "../lib/textMatch";
 import { errorText } from "../lib/errorText";
 import { useI18n } from "../i18n";
@@ -67,12 +67,6 @@ function AirportRow({ airport, onPress, tokens, near, alias }: { airport: Airpor
   );
 }
 
-/** Forslag og nylige: landet på riktig språk for Norges flyplasser. */
-function SuggestedRow({ airport, onPress }: { airport: AirportChoice; onPress: () => void }) {
-  const { locale } = useI18n();
-  return <AirportRow airport={{ ...airport, country: countryFor(airport, locale) }} onPress={onPress} />;
-}
-
 /**
  * Før kunden har skrevet noe: flyplassene fra nylige søk, og forslag (Norges
  * hovedflyplasser for «Fra», appens reisemål for «Til»). Alt velges med ett trykk.
@@ -81,8 +75,13 @@ function Suggestions({ field, choose }: { field: "origin" | "destination"; choos
   const { recent } = useApp();
   const { t, locale } = useI18n();
   const a = t.airport;
-  const recents = recentAirports(recent, field);
-  const pool = field === "origin" ? norwayAirports(locale) : DESTINATIONS.slice(0, 8).map((d) => destinationChoice(d, locale));
+  // Det kunden ser, er det skjemaet får: navn på appens språk, Norges land som «Norge»/«Norway».
+  const shown = (x: AirportChoice) => {
+    const c = localizedChoice(x, locale);
+    return { ...c, country: countryFor(c, locale) };
+  };
+  const recents = recentAirports(recent, field).map(shown);
+  const pool = (field === "origin" ? norwayAirports(locale) : DESTINATIONS.slice(0, 8).map((d) => destinationChoice(d, locale))).map(shown);
   const suggestions = pool.filter((p) => !recents.some((r) => r.iata === p.iata));
   const section = (title: string, list: AirportChoice[], testID: string) =>
     list.length ? (
@@ -91,7 +90,7 @@ function Suggestions({ field, choose }: { field: "origin" | "destination"; choos
           {title}
         </Text>
         {list.map((ap) => (
-          <SuggestedRow key={`${testID}-${ap.iata}`} airport={ap} onPress={() => choose(ap)} />
+          <AirportRow key={`${testID}-${ap.iata}`} airport={ap} onPress={() => choose(ap)} />
         ))}
       </View>
     ) : null;
@@ -284,7 +283,8 @@ const styles = StyleSheet.create({
   loading: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.md, paddingHorizontal: space.xs },
   moreError: { color: colors.textSecondary, paddingVertical: space.md, paddingHorizontal: space.xs },
   row: { flexDirection: "row", alignItems: "center", minHeight: 64, paddingVertical: space.sm, paddingHorizontal: space.xs, borderRadius: radius.input, gap: space.md },
-  codeBox: { width: 52, height: 40, borderRadius: radius.sm, backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
+  // Minst 52 × 40; stor tekst gjør boksen større i stedet for at koden renner ut (hvit på hvitt når den er uthevet).
+  codeBox: { minWidth: 52, minHeight: 40, paddingHorizontal: 6, paddingVertical: 4, borderRadius: radius.sm, backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
   codeBoxHit: { backgroundColor: colors.text, borderColor: colors.text },
   markPrimary: { fontWeight: "600" },
   markSecondary: { fontWeight: "600", color: colors.text },

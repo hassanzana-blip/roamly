@@ -172,7 +172,7 @@ export function formatDateSpan(depart: string, ret: string | null, locale: Local
   const a = parseIsoDate(depart);
   const b = ret ? parseIsoDate(ret) : null;
   if (!a) return "";
-  if (!b) return formatShortDay(depart, locale);
+  if (!b || (a.y === b.y && a.m === b.m && a.d === b.d)) return formatShortDay(depart, locale);
   if (a.y === b.y && a.m === b.m) return locale === "en" ? `${a.d}–${b.d} ${MONTHS.en[a.m - 1]}` : `${a.d}.–${b.d}. ${MONTHS.nb[a.m - 1]}`;
   return `${formatShortDay(depart, locale)} – ${formatShortDay(ret!, locale)}`;
 }

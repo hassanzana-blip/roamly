@@ -4,7 +4,7 @@ import { Pressable, Switch, Text } from "./a11y";
 import { useRouter } from "expo-router";
 import { useApp } from "../lib/appState";
 import type { PickMode } from "../lib/calendar";
-import { CABINS, CHILD_AGES, DEFAULT_CHILD_AGE, DEFAULT_INFANT_AGE, INFANT_AGES, MAX_PASSENGERS, cabinLabel, formErrorText, passengerCount, passengerSummary, type AirportChoice } from "../lib/searchForm";
+import { CABINS, CHILD_AGES, DEFAULT_CHILD_AGE, DEFAULT_INFANT_AGE, INFANT_AGES, MAX_PASSENGERS, cabinLabel, formErrorText, passengerCount, passengerSummary, type AirportChoice, type SearchForm } from "../lib/searchForm";
 import { useI18n } from "../i18n";
 import type { FormErrorCode } from "../i18n/ns/search";
 import { Banner, BottomSheet, ChoiceChips, PrimaryButton, Segmented, Stepper } from "./ui";
@@ -48,7 +48,8 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
   const i18n = useI18n();
   const { t } = i18n;
   const h = t.home;
-  const [problem, setProblem] = useState<FormErrorCode | null>(null);
+  // Feilen gjelder skjemaet slik det var da kunden trykket «Søk fly»; endres skjemaet (en brikke, et nytt valg), er den borte.
+  const [problem, setProblem] = useState<{ code: FormErrorCode; form: SearchForm } | null>(null);
   const [travellersOpen, setTravellersOpen] = useState(false);
   // Kalenderen: én for begge datoene; åpnet på avreise eller retur, etter hvilken rute kunden trykket på.
   const [calendar, setCalendar] = useState<PickMode | null>(null);
@@ -75,7 +76,7 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
 
   const submit = () => {
     const err = runSearch();
-    setProblem(err);
+    setProblem(err ? { code: err, form } : null);
     if (!err) router.push("/resultater");
   };
 
@@ -129,9 +130,9 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
         </View>
       </View>
 
-      {problem ? (
+      {problem && problem.form === form ? (
         <Banner tone="error" testID="form-error">
-          {formErrorText(problem, i18n)}
+          {formErrorText(problem.code, i18n)}
         </Banner>
       ) : null}
       <PrimaryButton testID="search-button" label={h.searchButton} icon="arrowRight" onPress={submit} />

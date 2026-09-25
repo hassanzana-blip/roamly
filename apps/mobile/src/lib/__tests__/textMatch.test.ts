@@ -56,6 +56,13 @@ describe("uthevingen", () => {
     ]);
   });
 
+  it("et aksenttegn skrevet som eget tegn (NFD) uthevas sammen med bokstaven det hører til", () => {
+    expect(markSegments("Ma\u0301laga", ["ma"])).toEqual([
+      { text: "Ma\u0301", hit: true },
+      { text: "laga", hit: false },
+    ]);
+  });
+
   it("en bokstav som blir to (æ → ae) uthever hele bokstaven", () => {
     expect(markSegments("Færder", ["fa"])).toEqual([
       { text: "Fæ", hit: true },

@@ -28,7 +28,7 @@ export function activeFilterChips(v: ResultsView, ctx: { airlines: AirlineOption
     const bands = BAND_ORDER.filter((b) => v[key].includes(b));
     if (!bands.length) continue;
     // Én vei: bare «Avgang»/«Ankomst» – det finnes ingen hjemreise å skille fra.
-    const what = ctx.roundTrip ? a.what[key] : key === "arriveBands" ? a.what.arrive : a.what.depart;
+    const what = ctx.roundTrip ? a.what[key] : key === "arriveBands" || key === "returnArriveBands" ? a.what.arrive : a.what.depart;
     const list = bands.length > 2 ? a.bandsMany(bands.length) : bands.map((b) => t.results.bands[b].toLowerCase()).join(", ");
     add(key, a.time(what, list), (x) => ({ ...x, [key]: [] }));
   }

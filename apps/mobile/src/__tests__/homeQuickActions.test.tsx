@@ -19,7 +19,12 @@ const future = (days: number) => new Date(Date.now() + days * 86_400_000).toISOS
 
 function Probe() {
   const { form } = useApp();
-  return <RNText testID="probe">{`${form.origin?.iata ?? "-"}→${form.destination?.iata ?? "-"} a${form.adults} i${form.infantAges.length}`}</RNText>;
+  return (
+    <>
+      <RNText testID="probe">{`${form.origin?.iata ?? "-"}→${form.destination?.iata ?? "-"} a${form.adults} i${form.infantAges.length}`}</RNText>
+      <RNText testID="probe-dates">{`${form.departDate}/${form.returnDate}`}</RNText>
+    </>
+  );
 }
 
 async function renderHome(initial?: Record<string, unknown>) {
@@ -80,6 +85,58 @@ describe("nylige søk på forsiden", () => {
     expect(formatDateSpan("2026-10-09", "2026-10-16", "en")).toBe("9–16 Oct");
     expect(formatDateSpan("2026-12-28", "2027-01-04", "en")).toBe("28 Dec – 4 Jan");
     expect(formatDateSpan("2026-10-09", null, "nb")).toBe("9. okt.");
+    // Hjem samme dag: én dato, ikke «9.–9. okt.».
+    expect(formatDateSpan("2026-10-09", "2026-10-09", "nb")).toBe("9. okt.");
+    expect(formatDateSpan("2026-10-09", "2026-10-09", "en")).toBe("9 Oct");
+  });
+});
+
+describe("nylige søk på forsiden – kanttilfeller", () => {
+  const base = { ...initialForm(), origin: BGO, destination: LHR, departDate: future(30), returnDate: future(37) };
+
+  afterEach(() => jest.useRealTimers());
+
+  it("datoen har passert siden raden ble tegnet (appen lå over midnatt): ruten med nye datoer, ikke noe søk og ingen feil", async () => {
+    // Bare klokken er falsk; tidtakere og løfter går som vanlig.
+    jest.useFakeTimers({ doNotFake: ["hrtime", "nextTick", "performance", "queueMicrotask", "requestAnimationFrame", "cancelAnimationFrame", "requestIdleCallback", "cancelIdleCallback", "setImmediate", "clearImmediate", "setInterval", "clearInterval", "setTimeout", "clearTimeout"] });
+    jest.setSystemTime(new Date(2026, 9, 9, 21, 0));
+    writePref("recent", [{ ...initialForm(), origin: BGO, destination: LHR, departDate: "2026-10-09", returnDate: "2026-10-16" }]);
+    const server = await renderHome({ destination: BCN });
+    const chip = screen.getByTestId("home-recent-BGO-LHR-2026-10-09");
+    jest.setSystemTime(new Date(2026, 9, 10, 8, 0));
+    await fireEvent.press(chip);
+    expect(router.push).not.toHaveBeenCalled();
+    expect(server.calls.filter((c) => c.path === "flights.search")).toHaveLength(0);
+    expect(screen.getByTestId("probe")).toHaveTextContent(/^BGO→LHR /);
+    expect(screen.getByTestId("probe-dates")).not.toHaveTextContent(/2026-10-09/);
+    expect(screen.queryByTestId("card-error")).toBeNull();
+    expect(screen.queryByTestId("home-recent-BGO-LHR-2026-10-09")).toBeNull();
+  });
+
+  it("brikker som søker forskjellig, ser og høres forskjellige ut (reisende, klasse, direkte, én vei)", async () => {
+    const oneWay = { ...base, tripType: "oneway" as const, departDate: future(40) };
+    writePref("recent", [base, { ...base, adults: 2, childAges: [5], cabinClass: "business" as const }, { ...base, directOnly: true }, oneWay]);
+    await renderHome({ destination: BCN });
+    const pills = within(screen.getByTestId("home-recent")).getAllByTestId(/^home-recent-/);
+    expect(pills).toHaveLength(4);
+    const texts = pills.map((p) => within(p).queryAllByText(/./).map((t) => String(t.props.children)).join(" "));
+    expect(new Set(texts).size).toBe(4);
+    expect(texts[1]).toMatch(/· 3 reisende · Business$/);
+    expect(texts[2]).toMatch(/· Direkte$/);
+    const labels = pills.map((p) => p.props.accessibilityLabel as string);
+    expect(new Set(labels).size).toBe(4);
+    expect(labels[2]).toMatch(/ · Bare direktefly$/);
+    expect(labels[3]).toMatch(/^Søk igjen: Bergen → London, Én vei · /);
+  });
+
+  it("feilen fra «Søk fly» forsvinner når en brikke har fylt skjemaet og søkt", async () => {
+    writePref("recent", [base]);
+    await renderHome();
+    await fireEvent.press(screen.getByTestId("search-button"));
+    expect(screen.getByTestId("form-error")).toHaveTextContent("Velg hvor du skal.");
+    await fireEvent.press(within(screen.getByTestId("home-recent")).getAllByTestId(/^home-recent-/)[0]!);
+    expect(router.push).toHaveBeenCalledWith("/resultater");
+    expect(screen.queryByTestId("form-error")).toBeNull();
   });
 });
 

@@ -101,6 +101,9 @@ describe("aktive filtre som brikker", () => {
   it("tider: hvilken vei og om det er avgang eller ankomst; tidsrommene i dagens rekkefølge; mange blir et antall", () => {
     expect(labels({ ...DEFAULT_VIEW, departBands: ["evening", "morning"], returnArriveBands: ["night", "morning", "evening"] })).toEqual(["Avgang ut: morgen, kveld", "Ankomst hjem: 3 tidsrom"]);
     expect(labels({ ...DEFAULT_VIEW, arriveBands: ["afternoon"] }, false)).toEqual(["Ankomst: ettermiddag"]);
+    // Én vei: en ankomst på siste strekning heter aldri «Avgang».
+    expect(labels({ ...DEFAULT_VIEW, returnArriveBands: ["night"] }, false)).toEqual(["Ankomst: natt"]);
+    expect(labels({ ...DEFAULT_VIEW, maxLegMinutes: 240 }, true, "en")).toEqual(["Max 4h each way"]);
     expect(labels({ ...DEFAULT_VIEW, arriveBands: ["afternoon"] }, true, "en")).toEqual(["Outbound arrival: afternoon"]);
   });
 
@@ -109,7 +112,7 @@ describe("aktive filtre som brikker", () => {
       "Norwegian, SAS",
       "Ikke via CPH",
       "Opptil 3 000 kr",
-      "Reisetid opptil 4 t",
+      "Maks 4 t per vei",
     ]);
     expect(labels({ ...DEFAULT_VIEW, airlines: ["DY", "SK", "KL"], avoidConnections: ["CPH", "LHR", "FRA"] })).toEqual(["3 flyselskaper", "Ikke via 3 flyplasser"]);
   });

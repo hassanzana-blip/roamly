@@ -110,8 +110,9 @@ const en = {
       airlinesMany: (n: number) => `${n} airlines`,
       via: (codes: string) => `Not via ${codes}`,
       viaMany: (n: number) => `Not via ${n} airports`,
-      leg: (duration: string) => `Travel time up to ${duration}`,
+      leg: (duration: string) => `Max ${duration} each way`,
       remove: (label: string) => `Remove filter: ${label}`,
+      removed: (label: string, journeys: string) => `Removed: ${label}. ${journeys}.`,
     },
     /** Prissorteringen når totalen for alle reisende ikke er bekreftet (ikke «total»). */
     sortPriceUnconfirmed: "Lowest provider price first",
@@ -240,8 +241,9 @@ const nb: typeof en = {
       airlinesMany: (n) => `${n} flyselskaper`,
       via: (codes) => `Ikke via ${codes}`,
       viaMany: (n) => `Ikke via ${n} flyplasser`,
-      leg: (duration) => `Reisetid opptil ${duration}`,
+      leg: (duration) => `Maks ${duration} per vei`,
       remove: (label) => `Fjern filter: ${label}`,
+      removed: (label, journeys) => `Fjernet: ${label}. ${journeys}.`,
     },
     sortPriceUnconfirmed: "Laveste pris fra tilbyderen først",
     status: {

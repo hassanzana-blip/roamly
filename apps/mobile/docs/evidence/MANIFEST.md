@@ -1363,7 +1363,7 @@ and KAYAK's live autocomplete.
 | `airport-before-390-copenhagen.jpg` | `4bce5dfdc4324839…` | 780×1826 |
 | `airport-after-390-copenhagen.jpg` | `c3e26d375effab97…` | 780×1860 |
 | `airport-before-390-oslo.jpg` | `e5452f9f48503b9f…` | 780×1826 |
-| `airport-after-390-oslo.jpg` | `7fa611e37bcb19b0…` | 780×1860 |
+| `airport-after-390-oslo.jpg` | `4b258c9ad6ba56a9…` | 780×1860 |
 | `airport-before-390-slow-server.jpg` | `0a4e1f74fa2692d1…` | 780×1860 |
 | `airport-after-390-slow-server.jpg` | `6a8729666642b4ce…` | 780×1860 |
 | `airport-after-375-oslo.jpg` | `10d7e1ee716c1fac…` | 750×1790 |
@@ -1470,3 +1470,63 @@ accessibility sizes).
 | `travellers-after-390-infant.jpg` | `d74c3894325455c7…` | 780×1832 |
 | `travellers-after-390-two.jpg` | `2a563c5d509a2900…` | 780×1832 |
 | `travellers-after-390-large-infant.jpg` | `8caaec60efa97aa1…` | 780×1826 |
+
+## Review fixes for the airport picker, filters and Home stages (independent review)
+
+Two independent reviewers read `2e8156f..99c67b9` (read-only, in their own worktrees, each with probe tests). One
+covered the picker and Home, the other the filters. They found 18 problems, none severe. All are fixed in the commit
+that adds this section. The ones that could be written as tests have a regression test, and each of those tests fails
+on the previous code.
+
+**Picker**
+1. **Torp came and went while typing.** «os» → OSL, TRF; «osl» → OSL; «oslo» → OSL, TRF. The rule now follows
+   whether the query is the start of the city's name (so «os», «osl» and «oslo» give the same rows), and «oslo torp»
+   (the airlines' own name) finds Torp. «Gardermoen» and «Oslo Gardermoen» still give OSL alone.
+2. **The caption claimed «nær»** (Torp is about 110 km from Oslo). Now «Brukes også for Oslo-området» / «Also serves
+   the Oslo area», which matches what the registry says. The image `airport-after-390-oslo.jpg` was re-shot with the
+   new caption and its hash updated above.
+3. **Recent picks kept the language they were made in.** «Recent» in English showed and stored «København …,
+   Danmark». Recents, suggestions and Home chips now use the app's language for registry airports.
+4. **«Stockholm Arlanda flyplass» in English.** Now «Stockholm Arlanda».
+5. **«aalesund», «tromsoe», «goeteborg», «zuerich» found nothing.** Alternative spellings are indexed.
+6. **Highlighting split a letter from its accent** when the server sends decomposed text (NFD). The accent now goes
+   with its letter.
+7. **The code chip could spill at large text** (white text on a white row). It now grows with the text
+   (`airport-after-390-xl-osl.jpg`).
+8. **The import guard missed common shapes** (re-export, `export *`, bare import, `require`, `import()`,
+   `./`-prefixed paths, `.js` files). It now lists every import with TypeScript's own pre-processor, after removing
+   `import type`/`export type`. A test runs it against all ten shapes.
+
+**Home**
+9. **A chip could overwrite the form with a search whose date had passed** (the app left open over midnight). Such a
+   tap now gives the route with new dates, like «Velg nye datoer» in Lagret. It does not search and shows no error.
+10. **Chips that search differently looked and sounded the same.** They now show what differs from a plain search
+    («· 3 reisende · Business», «· Direkte»). VoiceOver also hears «Bare direktefly» and «Én vei».
+11. **The form error stayed after a chip search.** An error now belongs to the form it was found in.
+12. **A same-day return read «9.–9. okt.»** It now reads «9. okt.».
+
+**Filters**
+13. **The filter sheet's counts ran on every render of the list, even with the sheet closed.** The reviewer measured
+    ~10–20 ms per render with 200 offers on a desktop CPU, with Hermes on a phone likely slower. The sheet is now its
+    own component. It counts only while open, keeps its last content while it slides away, and does not exist until
+    first opened. «Vis N reiser» uses the list's own count.
+14. **The travel-time chip left out «each way».** Now «Maks 4 t per vei» / «Max 4h each way».
+15. **VoiceOver could not tell the two «Avgang | Ankomst» switches apart.** Each option now says its leg
+    («Hjemreise: Ankomst, filter på»).
+16. **An «Opptil … kr» chip was drawn once when a repeated search came back with an unconfirmed total.** The screen
+    now removes the price filter in the same render (`view` is derived), not only in the effect afterwards.
+17. **Removing a chip lost VoiceOver's place, and the chip said «valgt».** Removing now announces «Fjernet: … N
+    reiser.», and a removable chip no longer carries the selected state.
+18. **Two small wording bugs.** A one-way return-arrival filter was labelled «Avgang», which could not happen yet. The
+    empty-filter message counted offers as «reiser»; it now counts journeys.
+
+**Checks:** typecheck and lint clean. Jest: 530 passed, 3 skipped, under both UTC and `TZ=Europe/Oslo`.
+`expo export` (iOS) OK: 4 924 689 bytes. Bundle check OK.
+
+**Not verified:** a real iPhone (VoiceOver announcement after removing a chip, and the switch labels).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `airport-after-390-xl-osl.jpg` | `eeca19b15b743869…` | 780×1860 |
+| `airport-after-390-oslo-torp.jpg` | `b19c4cc3f6474e27…` | 780×1860 |
+| `airport-after-390-oslo.jpg` | `4b258c9ad6ba56a9…` | 780×1860 |

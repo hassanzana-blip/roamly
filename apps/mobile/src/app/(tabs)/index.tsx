@@ -6,8 +6,9 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
 import { FEATURED, HEADER_PHOTO, destinationChoice, type Destination } from "../../lib/destinations";
-import { cabinLabel, formErrorText, passengerSummary } from "../../lib/searchForm";
-import { recentIsPast, recentKey, type RecentSearch } from "../../lib/recent";
+import { cabinLabel, formErrorText, passengerCount, passengerSummary } from "../../lib/searchForm";
+import { recentIsPast, recentKey, withFreshDates, type RecentSearch } from "../../lib/recent";
+import { localizedChoice } from "../../lib/airportIndex";
 import { useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
 import { Banner, IconButton, LinkButton, Wordmark } from "../../components/ui";
@@ -31,15 +32,19 @@ function initialsOf(first?: string | null, last?: string | null): string {
  */
 function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (r: RecentSearch) => void }) {
   const i18n = useI18n();
-  const { t, f } = i18n;
+  const { t, f, locale } = i18n;
+  const h = t.home;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentScroll} contentContainerStyle={styles.recentRow} accessibilityLabel={t.home.recentTitle} testID="home-recent">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentScroll} contentContainerStyle={styles.recentRow} accessibilityLabel={h.recentTitle} testID="home-recent">
       {items.map((r) => {
-        const route = `${r.origin.city} → ${r.destination.city}`;
+        const route = `${localizedChoice(r.origin, locale).city} → ${localizedChoice(r.destination, locale).city}`;
         const back = r.tripType === "roundtrip" ? r.returnDate : null;
-        // VoiceOver: hele datoer med ukedag, som i Lagret; synlig: det korte spennet.
-        const dates = back ? `${f.day(r.departDate)} – ${f.day(back)}` : f.day(r.departDate);
-        const detail = `${dates} · ${passengerSummary(r, i18n)} · ${cabinLabel(r.cabinClass, i18n)}`;
+        // VoiceOver: hele datoer med ukedag, som i Lagret, og alt som skiller søket; synlig: det korte spennet.
+        const dates = back ? `${f.day(r.departDate)} – ${f.day(back)}` : `${h.oneway} · ${f.day(r.departDate)}`;
+        const detail = [dates, passengerSummary(r, i18n), cabinLabel(r.cabinClass, i18n), ...(r.directOnly ? [h.directOnly] : [])].join(" · ");
+        // Synlig bare det som avviker fra et vanlig søk (én voksen, økonomi, alle ruter), så to brikker aldri ser like ut.
+        const travellers = passengerCount(r);
+        const extra = [travellers > 1 ? h.travellersCount(travellers) : null, r.cabinClass !== "economy" ? cabinLabel(r.cabinClass, i18n) : null, r.directOnly ? t.results.screen.chips.direct : null].filter(Boolean).join(" · ");
         return (
           <Pressable
             key={recentKey(r)}
@@ -54,6 +59,7 @@ function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (
             <Icon name="clock" size={14} color={colors.textSecondary} />
             <Text style={[type.footnoteStrong, { color: colors.text }]}>{`${r.origin.iata}\u2011${r.destination.iata}`}</Text>
             <Text style={[type.footnote, { color: colors.textSecondary }]}>{f.dateSpan(r.departDate, back)}</Text>
+            {extra ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{`· ${extra}`}</Text> : null}
           </Pressable>
         );
       })}
@@ -69,7 +75,7 @@ function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { auth, runSearch, recent, form } = useApp();
+  const { auth, runSearch, recent, form, setForm } = useApp();
   const i18n = useI18n();
   const { t, f, locale } = i18n;
   const [cardProblem, setCardProblem] = useState<FormErrorCode | null>(null);
@@ -88,6 +94,13 @@ export default function HomeScreen() {
   const current = recentKey(form);
   const again = recent.filter((r) => recentKey(r) !== current && !recentIsPast(r)).slice(0, 4);
   const searchAgain = (r: RecentSearch) => {
+    // Datoene kan ha passert siden raden ble tegnet (appen lå i bakgrunnen over midnatt): da får skjemaet ruten med
+    // nye datoer å se på – som «Velg nye datoer» i Lagret – og kundens skjema byttes aldri ut med et søk som ikke går.
+    if (recentIsPast(r)) {
+      setForm(() => withFreshDates(r));
+      setCardProblem(null);
+      return;
+    }
     const err = runSearch(r);
     setCardProblem(err);
     if (!err) router.push("/resultater");

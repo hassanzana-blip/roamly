@@ -4,6 +4,8 @@ import type { Airport } from "@contracts/airports";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { ApiError, type ApiClient } from "../lib/api";
 import type { Locale } from "../i18n/types";
+import { writePref } from "../lib/localStore";
+import { initialForm } from "../lib/searchForm";
 import AirportPicker from "../app/flyplass";
 
 // Flyplassvelgeren: registerets treff med én gang (også engelske navn), serverens treff under når de kommer,
@@ -126,25 +128,41 @@ describe("det kunden skrev er uthevet", () => {
 });
 
 describe("Torp under Oslo", () => {
-  it("egen rad rett under OSL, merket «Annen flyplass nær Oslo», også for VoiceOver; velges som TRF", async () => {
+  it("egen rad rett under OSL, merket «Brukes også for Oslo-området», også for VoiceOver; velges som TRF", async () => {
     await renderPicker();
     await type("Oslo");
     expect(order()).toEqual(["OSL", "TRF"]);
-    expect(screen.getByTestId("airport-TRF-near")).toHaveTextContent("Annen flyplass nær Oslo");
-    expect(screen.getByTestId("airport-TRF")).toHaveProp("accessibilityLabel", "Sandefjord, Sandefjord lufthavn Torp, Norge, kode TRF. Annen flyplass nær Oslo");
+    expect(screen.getByTestId("airport-TRF-near")).toHaveTextContent("Brukes også for Oslo-området");
+    expect(screen.getByTestId("airport-TRF")).toHaveProp("accessibilityLabel", "Sandefjord, Sandefjord lufthavn Torp, Norge, kode TRF. Brukes også for Oslo-området");
     expect(screen.queryByTestId("airport-OSL-near")).toBeNull();
     await fireEvent.press(screen.getByTestId("airport-TRF"));
     expect(screen.getByTestId("chosen")).toHaveTextContent("TRF|Sandefjord|Sandefjord lufthavn Torp|Norge");
   });
 
-  it("den som skriver «OSL», får bare OSL fra registeret", async () => {
+  it("Torp kommer ikke og går mens kunden skriver «Oslo»; den som skriver «Gardermoen», får bare OSL", async () => {
     await renderPicker();
-    await type("OSL");
+    for (const q of ["Os", "OSL", "Oslo"]) {
+      await type(q);
+      expect([q, order().slice(0, 2)]).toEqual([q, ["OSL", "TRF"]]);
+    }
+    await type("Gardermoen");
     expect(order()).toEqual(["OSL"]);
   });
 });
 
 describe("engelsk", () => {
+  it("«Recent»: et valg lagret på norsk vises – og lagres – på engelsk", async () => {
+    const CPH_NB = { iata: "CPH", name: "København lufthavn Kastrup", city: "København", country: "Danmark" };
+    const LHR = { iata: "LHR", name: "London Heathrow Airport", city: "London", country: "Storbritannia" };
+    const future = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+    writePref("recent", [{ ...initialForm(), origin: CPH_NB, destination: LHR, departDate: future(30), returnDate: future(37) }]);
+    await renderPicker("en");
+    const row = within(screen.getByTestId("airport-recent")).getByTestId("airport-CPH");
+    expect(row).toHaveProp("accessibilityLabel", "Copenhagen, Copenhagen Kastrup, Denmark, code CPH");
+    await fireEvent.press(row);
+    expect(screen.getByTestId("chosen")).toHaveTextContent("CPH|Copenhagen|Copenhagen Kastrup|Denmark");
+  });
+
   it("raden og skjemaet får engelske navn: Copenhagen, Denmark", async () => {
     await renderPicker("en");
     await type("copenhagen");
@@ -159,7 +177,7 @@ describe("engelsk", () => {
   it("Torp under Oslo på engelsk", async () => {
     await renderPicker("en");
     await type("oslo");
-    expect(screen.getByTestId("airport-TRF-near")).toHaveTextContent("Another airport near Oslo");
+    expect(screen.getByTestId("airport-TRF-near")).toHaveTextContent("Also serves the Oslo area");
     expect(screen.getByTestId("airport-TRF-detail")).toHaveTextContent("Sandefjord lufthavn Torp, Norway");
   });
 });

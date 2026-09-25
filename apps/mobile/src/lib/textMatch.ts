@@ -80,7 +80,11 @@ export function matchRanges(text: string, tokens: readonly string[]): Range[] {
   const hits: Range[] = [];
   for (const tok of tokens) {
     const word = words.find((w) => w.w.startsWith(tok));
-    if (word) hits.push({ start: f.start[word.at]!, end: f.end[word.at + tok.length - 1]! });
+    if (!word) continue;
+    let end = f.end[word.at + tok.length - 1]!;
+    // Et aksenttegn skrevet som eget tegn (NFD) hører til bokstaven foran – det uthevas sammen med den.
+    while (end < text.length && /\p{M}/u.test(text[end]!)) end++;
+    hits.push({ start: f.start[word.at]!, end });
   }
   hits.sort((a, b) => a.start - b.start);
   const merged: Range[] = [];

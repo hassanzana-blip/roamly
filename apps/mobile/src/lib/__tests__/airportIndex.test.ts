@@ -25,6 +25,13 @@ describe("registerets treff", () => {
     expect(codes(query)[0]).toBe(iata);
   });
 
+  it("skrivemåter med oe/aa/ue i stedet for ø/å/ü: «aalesund», «tromsoe», «goeteborg», «zuerich»", () => {
+    expect(codes("aalesund")[0]).toBe("AES");
+    expect(codes("tromsoe")[0]).toBe("TOS");
+    expect(codes("goeteborg")[0]).toBe("GOT");
+    expect(codes("zuerich")[0]).toBe("ZRH");
+  });
+
   it("norske navn og skrivemåter uten æ/ø/å virker som før", () => {
     expect(codes("kobenhavn")[0]).toBe("CPH");
     expect(codes("København")[0]).toBe("CPH");
@@ -62,9 +69,19 @@ describe("Torp under Oslo", () => {
     expect(rows[0]!.near).toBeNull();
   });
 
-  it("den som skriver koden eller flyplassnavnet, får bare den flyplassen", () => {
-    expect(airportRows("osl", null).map((r) => r.airport.iata)).toEqual(["OSL"]);
+  it("samme svar mens «Oslo» skrives (os, osl, oslo) – raden kommer ikke og går", () => {
+    for (const q of ["os", "osl", "oslo", "OSLO "]) expect([q, airportRows(q, null).slice(0, 2).map((r) => r.airport.iata)]).toEqual([q, ["OSL", "TRF"]]);
+  });
+
+  it("den som skriver flyplassnavnet (også med byen), får bare den flyplassen", () => {
     expect(airportRows("gardermoen", null).map((r) => r.airport.iata)).toEqual(["OSL"]);
+    expect(airportRows("oslo gardermoen", null).map((r) => r.airport.iata)).toEqual(["OSL"]);
+  });
+
+  it("«oslo torp» (flyselskapenes navn) finner Torp, merket med byen, selv om OSL ikke passer", () => {
+    const rows = airportRows("oslo torp", null);
+    expect(rows.map((r) => r.airport.iata)).toEqual(["TRF"]);
+    expect(rows[0]!.near?.iata).toBe("OSL");
   });
 
   it("står TRF allerede i serverens svar, flyttes den ikke og vises ikke to ganger", () => {
@@ -98,6 +115,8 @@ describe("navn på appens språk", () => {
   it("bokmål: registerets navn; engelsk: engelske navn der de finnes", () => {
     expect(airportNames(cph, "nb")).toEqual({ city: "København", name: "København lufthavn Kastrup", country: "Danmark" });
     expect(airportNames(cph, "en")).toEqual({ city: "Copenhagen", name: "Copenhagen Kastrup", country: "Denmark" });
+    // Ingen norske ord i engelske navn for utenlandske flyplasser (Arlanda het «Stockholm Arlanda flyplass»).
+    expect(airportNames(searchLocalAirports("arn")[0]!.airport, "en").name).toBe("Stockholm Arlanda");
     // Norske flyplassnavn er egennavn; landet oversettes.
     expect(airportNames(searchLocalAirports("osl")[0]!.airport, "en")).toEqual({ city: "Oslo", name: "Oslo lufthavn Gardermoen", country: "Norway" });
   });

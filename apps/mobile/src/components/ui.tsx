@@ -169,7 +169,8 @@ export function Chip({ label, selected, onPress, dark = true, disabled, testID, 
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ selected, disabled: !!disabled }}
+      // Et aktivt filter med «×» er en fjern-knapp, ikke et valg: VoiceOver skal ikke si «valgt».
+      accessibilityState={removable ? { disabled: !!disabled } : { selected, disabled: !!disabled }}
       hitSlop={4}
       style={({ pressed }) => [
         styles.chip,

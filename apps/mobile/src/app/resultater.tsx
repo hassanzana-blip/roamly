@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AccessibilityInfo, FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { StatusBarShield } from "../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { MobileOffer } from "@contracts/mobileSearch";
 import { useApp } from "../lib/appState";
 import { fxNotice, priceDisplay } from "../lib/price";
 import { formatClock } from "../lib/format";
@@ -100,11 +101,202 @@ function canRetry(err: unknown): boolean {
   return !(err instanceof ApiError) || err.retryable || RETRY_CODES.has(err.code);
 }
 
+type FilterSheetProps = {
+  visible: boolean;
+  all: MobileOffer[];
+  view: ResultsView;
+  setView: (update: (v: ResultsView) => ResultsView) => void;
+  confirmed: boolean;
+  hasReturn: boolean;
+};
+
+/**
+ * Filterarkets innhold. Hvert valg viser hvor mange reiser det gir – én gjennomgang av tilbudene per valg – så det
+ * regnes bare mens arket er åpent. Lukket står det siste innholdet stille (også mens arket glir ned), og ingenting
+ * regnes på nytt når listen tegnes (klokken, fanene, brikkene). Før arket er åpnet første gang, finnes det ikke.
+ */
+const FilterSheetBody = memo(function FilterSheetBody({ visible, all, view, ...rest }: FilterSheetProps) {
+  const [shown, setShown] = useState<{ all: MobileOffer[]; view: ResultsView } | null>(visible ? { all, view } : null);
+  if (visible && (shown?.all !== all || shown?.view !== view)) setShown({ all, view });
+  const current = visible ? { all, view } : shown;
+  if (!current) return null;
+  return <FilterSheetContent all={current.all} view={current.view} {...rest} />;
+});
+
+const FilterSheetContent = memo(function FilterSheetContent({ all, view, setView, confirmed, hasReturn }: Omit<FilterSheetProps, "visible">) {
+  const lang = useA11yLanguage();
+  const { t, f } = useI18n();
+  const r = t.results.screen;
+  const reiser = t.results.journeys;
+  // Tidsfiltrene: avgang eller ankomst vises for hver vei (begge kan være på samtidig).
+  const [timeMode, setTimeMode] = useState<{ out: "depart" | "arrive"; back: "depart" | "arrive" }>({ out: "depart", back: "depart" });
+  // Valgene kommer fra svaret og endres bare med det.
+  const options = useMemo(() => ({ airlines: airlineOptions(all), prices: priceThresholds(all), legs: legThresholds(all), connections: connectionOptions(all) }), [all]);
+  const { airlines, prices, legs, connections } = options;
+  // Antall reiser et valg ville gitt (uten sortering – rekkefølgen betyr ingenting for en telling).
+  const shownFor = (patch: Partial<ResultsView>) => journeyCount(all, { ...view, ...patch });
+  const bandGroup = (key: BandKey, hint: string, prefix: string) => (
+    <View style={{ gap: space.sm }}>
+      <Text style={[type.footnote, { color: colors.textSecondary }]}>{hint}</Text>
+      <View style={styles.bands}>
+        {TIME_BANDS.map((b) => {
+          const selected = view[key].includes(b.value);
+          const n = shownFor({ [key]: [b.value] } as Partial<ResultsView>);
+          const disabled = n === 0 && !selected;
+          return (
+            <Pressable
+              key={b.value}
+              testID={`${prefix}-${b.value}`}
+              onPress={() => setView((v) => ({ ...v, [key]: selected ? v[key].filter((x) => x !== b.value) : [...v[key], b.value] }))}
+              disabled={disabled}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected, disabled }}
+              accessibilityLabel={r.bandSpoken(t.results.bands[b.value], b.range, reiser(n))}
+              style={({ pressed }) => [styles.band, selected && styles.bandOn, disabled && { opacity: 0.4 }, pressed && !selected && { opacity: 0.7 }]}
+            >
+              <View style={styles.bandTop}>
+                <Text style={[type.footnote, { color: selected ? colors.white : colors.textSecondary }]}>{t.results.bands[b.value]}</Text>
+                <Icon name={BAND_ICON[b.value]} size={18} color={selected ? colors.white : colors.text} strokeWidth={1.75} />
+              </View>
+              <Text style={[type.bodyStrong, type.tabular, { color: selected ? colors.white : colors.text }]}>{b.range}</Text>
+              <Text style={[type.caption, { color: selected ? colors.white : colors.textSecondary }]}>{reiser(n)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+  // Én vei (ut) eller hjem: velg avgang eller ankomst, så tidsrommene for den. Et prikkmerke viser at det andre
+  // valget også har et filter på. VoiceOver hører hvilken vei valget gjelder («Hjemreise: Ankomst»).
+  const timeGroup = (leg: "out" | "back") => {
+    const mode = timeMode[leg];
+    const keys: Record<"depart" | "arrive", BandKey> = leg === "out" ? { depart: "departBands", arrive: "arriveBands" } : { depart: "returnBands", arrive: "returnArriveBands" };
+    const title = leg === "back" ? r.timesBack : hasReturn ? r.timesOut : r.timesOneWay;
+    const hint = leg === "out" ? (mode === "depart" ? r.departHint : r.arriveHint) : mode === "depart" ? r.returnHint : r.returnArriveHint;
+    const option = (value: "depart" | "arrive") => {
+      const on = view[keys[value]].length > 0;
+      const spoken = `${title}: ${r.timeMode[value]}`;
+      return { value, label: r.timeMode[value], dot: on, spoken: on ? r.timeModeActive(spoken) : spoken };
+    };
+    return (
+      <View style={{ gap: space.sm }} testID={`times-${leg}`}>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
+        <Segmented
+          value={mode}
+          label={r.timeModeLabel(title)}
+          testIDPrefix={`times-${leg}-`}
+          options={[option("depart"), option("arrive")]}
+          onChange={(m) => setTimeMode((tm) => ({ ...tm, [leg]: m }))}
+        />
+        {bandGroup(keys[mode], hint, leg === "out" ? (mode === "depart" ? "band" : "arrive-band") : mode === "depart" ? "return-band" : "return-arrive-band")}
+      </View>
+    );
+  };
+
+  return (
+    <ScrollView contentContainerStyle={{ gap: space.lg }} testID="filter-screen">
+      <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.stopsTitle}>
+        <Text style={[type.bodyStrong, { color: colors.text }]}>{r.stopsTitle}</Text>
+        {STOPS.map((value) => {
+          const n = shownFor({ stops: value });
+          const selected = view.stops === value;
+          return <OptionRow key={value} testID={`stops-${value}`} label={t.results.stops[value]} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, stops: value }))} />;
+        })}
+      </View>
+      <View style={styles.switchRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{r.bagsTitle}</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.bagsDetail(reiser(shownFor({ bags: true })))}</Text>
+        </View>
+        <Switch
+          testID="bags-switch"
+          accessibilityLabel={r.bagsTitle}
+          value={view.bags}
+          disabled={!view.bags && !shownFor({ bags: true })}
+          onValueChange={(bags) => setView((v) => ({ ...v, bags }))}
+          trackColor={{ true: colors.blue, false: colors.lightBorder }}
+        />
+      </View>
+      {timeGroup("out")}
+      {hasReturn ? timeGroup("back") : null}
+      {airlines.length > 1 ? (
+        <View style={{ gap: space.sm }} accessibilityLabel={r.airlinesTitle}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{r.airlinesTitle}</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.airlinesHint}</Text>
+          {airlines.map((a) => {
+            const selected = view.airlines.includes(a.iata);
+            const n = shownFor({ airlines: [a.iata] });
+            return (
+              <OptionRow
+                key={a.iata}
+                multi
+                testID={`airline-${a.iata}`}
+                label={r.airlineRow(a.name, a.iata)}
+                detail={reiser(n)}
+                selected={selected}
+                disabled={!n && !selected}
+                onPress={() => setView((v) => ({ ...v, airlines: selected ? v.airlines.filter((x) => x !== a.iata) : [...v.airlines, a.iata] }))}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+      {connections.length ? (
+        <View style={{ gap: space.sm }} accessibilityLabel={r.viaTitle} testID="via-group">
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{r.viaTitle}</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.viaHint}</Text>
+          {connections.map((c) => {
+            const allowed = !view.avoidConnections.includes(c.iata);
+            const n = journeysVia(all, view, c.iata);
+            return (
+              <OptionRow
+                key={c.iata}
+                multi
+                plain
+                testID={`via-${c.iata}`}
+                label={r.viaRow(c.city, c.iata)}
+                detail={reiser(n)}
+                selected={allowed}
+                disabled={!n && allowed}
+                onPress={() => setView((v) => ({ ...v, avoidConnections: allowed ? [...v.avoidConnections, c.iata] : v.avoidConnections.filter((x) => x !== c.iata) }))}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+      {prices.length && confirmed ? (
+        <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.priceTitle}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{r.priceTitle}</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.priceHint}</Text>
+          <OptionRow testID="price-any" label={r.anyPrice} detail={reiser(shownFor({ maxPriceMinor: null }))} selected={view.maxPriceMinor === null} onPress={() => setView((v) => ({ ...v, maxPriceMinor: null }))} />
+          {prices.map((p) => {
+            const n = shownFor({ maxPriceMinor: p });
+            const selected = view.maxPriceMinor === p;
+            return <OptionRow key={p} testID={`price-${p}`} label={r.upTo(f.nok(p))} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, maxPriceMinor: p }))} />;
+          })}
+        </View>
+      ) : null}
+      {legs.length ? (
+        <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.legTitle}>
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{r.legTitle}</Text>
+          <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.legHint}</Text>
+          <OptionRow testID="leg-any" label={r.anyLength} detail={reiser(shownFor({ maxLegMinutes: null }))} selected={view.maxLegMinutes === null} onPress={() => setView((v) => ({ ...v, maxLegMinutes: null }))} />
+          {legs.map((m) => {
+            const n = shownFor({ maxLegMinutes: m });
+            const selected = view.maxLegMinutes === m;
+            return <OptionRow key={m} testID={`leg-${m}`} label={r.upTo(f.duration(m))} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, maxLegMinutes: m }))} />;
+          })}
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+});
+
 export default function ResultsScreen() {
   const lang = useA11yLanguage();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { search, runSearch, cancelSearch, form, setForm, view, setView } = useApp();
+  const { search, runSearch, cancelSearch, form, setForm, view: storedView, setView } = useApp();
   const i18n = useI18n();
   const { t, f } = i18n;
   const r = t.results.screen;
@@ -121,8 +313,6 @@ export default function ResultsScreen() {
     return () => clearInterval(id);
   }, []);
   const [sheet, setSheet] = useState<null | "filter" | "sort" | "dates">(null);
-  // Tidsfiltrene i arket: avgang eller ankomst vises for hver vei (begge kan være på samtidig).
-  const [timeMode, setTimeMode] = useState<{ out: "depart" | "arrive"; back: "depart" | "arrive" }>({ out: "depart", back: "depart" });
   // Den flytende linjens faktiske høyde (stor tekst gjør den høyere), så det siste kortet kan rulles helt over den.
   const [toolbarHeight, setToolbarHeight] = useState(0);
   // En treg leverandør: si fra etter en stund, i stedet for å bare vise en
@@ -136,11 +326,13 @@ export default function ResultsScreen() {
   const slow = search.status === "loading" && slowSearch === search;
 
   const offers = search.status === "done" ? search.result.offers : null;
-  // Ubekreftet total: et prisfilter («Opptil 3 000 kr») ville vært et løfte om en total. Det tas bort.
+  // Ubekreftet total: et prisfilter («Opptil 3 000 kr») ville vært et løfte om en total. Det tas bort – også i den
+  // første tegningen av svaret, før effekten under har rukket å nullstille det lagrede valget (liste, tall og brikker).
   const unconfirmedTotal = search.status === "done" && !totalConfirmed(search.result);
+  const view = useMemo(() => (unconfirmedTotal && storedView.maxPriceMinor !== null ? { ...storedView, maxPriceMinor: null } : storedView), [unconfirmedTotal, storedView]);
   useEffect(() => {
-    if (unconfirmedTotal && view.maxPriceMinor !== null) setView((v) => ({ ...v, maxPriceMinor: null }));
-  }, [unconfirmedTotal, view.maxPriceMinor, setView]);
+    if (unconfirmedTotal && storedView.maxPriceMinor !== null) setView((v) => ({ ...v, maxPriceMinor: null }));
+  }, [unconfirmedTotal, storedView.maxPriceMinor, setView]);
   const shown = useMemo(() => (offers ? applyView(offers, view) : []), [offers, view]);
   const journeys = useMemo(() => groupJourneys(shown), [shown]);
   // Best / Billigst / Raskest: hva som står øverst med hver sortering, med filtrene som gjelder. Ekte tall fra svaret.
@@ -284,9 +476,14 @@ export default function ResultsScreen() {
   const clearFilters = () => setView(clearedFilters);
   const toggleStops = (value: "direct" | "max1") => setView((v) => ({ ...v, stops: v.stops === value ? "any" : value }));
 
-  const airlines = airlineOptions(all);
-  // Filtrene fra arket, synlige over listen når arket er lukket – et trykk fjerner filteret.
-  const activeChips = activeFilterChips(view, { airlines, roundTrip: hasReturn }, i18n);
+  // Filtrene fra arket, synlige over listen når arket er lukket – et trykk fjerner filteret. Selskapsnavnene trengs
+  // bare når et selskap er valgt.
+  const activeChips = activeFilterChips(view, { airlines: view.airlines.length ? airlineOptions(all) : [], roundTrip: hasReturn }, i18n);
+  // Et fjernet filter: VoiceOver mister brikken den sto på, så den hører hva som skjedde og hvor mange reiser det nå er.
+  const removeFilter = (chip: (typeof activeChips)[number]) => {
+    setView(chip.clear);
+    AccessibilityInfo.announceForAccessibility(r.active.removed(chip.label, reiser(journeyCount(all, chip.clear(view)))));
+  };
   const chips: { key: string; label: string; selected: boolean; count: number; onPress: () => void }[] = [
     { key: "all", label: r.chips.all, selected: filters === 0, count: all.length, onPress: clearFilters },
     { key: "direct", label: r.chips.direct, selected: view.stops === "direct", count: countWith(all, view, { stops: "direct" }), onPress: () => toggleStops("direct") },
@@ -305,7 +502,7 @@ export default function ResultsScreen() {
               const chip = <Chip key={c.key} testID={`chip-${c.key}`} label={c.label} selected={c.selected} onPress={c.onPress} />;
               // De aktive filtrene fra arket rett etter «Alle», så de synes uten å rulle.
               return c.key === "all"
-                ? [chip, ...activeChips.map((a) => <Chip key={`active-${a.key}`} testID={`active-${a.key}`} label={a.label} accessibilityLabel={a.spoken} selected removable onPress={() => setView(a.clear)} />)]
+                ? [chip, ...activeChips.map((a) => <Chip key={`active-${a.key}`} testID={`active-${a.key}`} label={a.label} accessibilityLabel={a.spoken} selected removable onPress={() => removeFilter(a)} />)]
                 : [chip];
             })}
         </ScrollView>
@@ -353,68 +550,6 @@ export default function ResultsScreen() {
     </View>
   );
 
-  // Antall reiser et valg ville gitt (uten sortering – rekkefølgen betyr ingenting for en telling).
-  const shownFor = (patch: Parameters<typeof countWith>[2]) => journeyCount(all, { ...view, ...patch });
-  const prices = priceThresholds(all);
-  const legs = legThresholds(all);
-  const connections = connectionOptions(all);
-  const bandGroup = (key: BandKey, hint: string, prefix: string) => (
-    <View style={{ gap: space.sm }}>
-      <Text style={[type.footnote, { color: colors.textSecondary }]}>{hint}</Text>
-      <View style={styles.bands}>
-        {TIME_BANDS.map((b) => {
-          const selected = view[key].includes(b.value);
-          const n = shownFor({ [key]: [b.value] } as Partial<ResultsView>);
-          const disabled = n === 0 && !selected;
-          return (
-            <Pressable
-              key={b.value}
-              testID={`${prefix}-${b.value}`}
-              onPress={() => setView((v) => ({ ...v, [key]: selected ? v[key].filter((x) => x !== b.value) : [...v[key], b.value] }))}
-              disabled={disabled}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: selected, disabled }}
-              accessibilityLabel={r.bandSpoken(t.results.bands[b.value], b.range, reiser(n))}
-              style={({ pressed }) => [styles.band, selected && styles.bandOn, disabled && { opacity: 0.4 }, pressed && !selected && { opacity: 0.7 }]}
-            >
-              <View style={styles.bandTop}>
-                <Text style={[type.footnote, { color: selected ? colors.white : colors.textSecondary }]}>{t.results.bands[b.value]}</Text>
-                <Icon name={BAND_ICON[b.value]} size={18} color={selected ? colors.white : colors.text} strokeWidth={1.75} />
-              </View>
-              <Text style={[type.bodyStrong, type.tabular, { color: selected ? colors.white : colors.text }]}>{b.range}</Text>
-              <Text style={[type.caption, { color: selected ? colors.white : colors.textSecondary }]}>{reiser(n)}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-  // Én vei (ut) eller hjem: velg avgang eller ankomst, så tidsrommene for den. Et prikkmerke viser at det andre
-  // valget også har et filter på.
-  const timeGroup = (leg: "out" | "back") => {
-    const mode = timeMode[leg];
-    const keys: Record<"depart" | "arrive", BandKey> = leg === "out" ? { depart: "departBands", arrive: "arriveBands" } : { depart: "returnBands", arrive: "returnArriveBands" };
-    const title = leg === "back" ? r.timesBack : hasReturn ? r.timesOut : r.timesOneWay;
-    const hint = leg === "out" ? (mode === "depart" ? r.departHint : r.arriveHint) : mode === "depart" ? r.returnHint : r.returnArriveHint;
-    const option = (value: "depart" | "arrive") => {
-      const on = view[keys[value]].length > 0;
-      return { value, label: r.timeMode[value], dot: on, spoken: on ? r.timeModeActive(r.timeMode[value]) : r.timeMode[value] };
-    };
-    return (
-      <View style={{ gap: space.sm }} testID={`times-${leg}`}>
-        <Text style={[type.bodyStrong, { color: colors.text }]}>{title}</Text>
-        <Segmented
-          value={mode}
-          label={r.timeModeLabel(title)}
-          testIDPrefix={`times-${leg}-`}
-          options={[option("depart"), option("arrive")]}
-          onChange={(m) => setTimeMode((tm) => ({ ...tm, [leg]: m }))}
-        />
-        {bandGroup(keys[mode], hint, leg === "out" ? (mode === "depart" ? "band" : "arrive-band") : mode === "depart" ? "return-band" : "return-arrive-band")}
-      </View>
-    );
-  };
-
   return (
     <View style={styles.screen}>
       <StatusBar style="light" />
@@ -428,7 +563,7 @@ export default function ResultsScreen() {
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
           all.length ? (
-            <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(all.length))}>
+            <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(doneCount ?? all.length))}>
               <PrimaryButton label={r.clearFilters} testID="reset-filters" onPress={clearFilters} />
             </StateView>
           ) : excluded ? (
@@ -468,106 +603,12 @@ export default function ResultsScreen() {
         testID="filter-sheet"
         footer={
           <View style={{ gap: space.sm }}>
-            <PrimaryButton testID="filter-apply" label={shownFor({}) ? r.show(reiser(shownFor({}))) : r.noneMatch} disabled={!shownFor({})} onPress={() => setSheet(null)} />
+            <PrimaryButton testID="filter-apply" label={journeys.length ? r.show(reiser(journeys.length)) : r.noneMatch} disabled={!journeys.length} onPress={() => setSheet(null)} />
             {filters ? <SecondaryButton label={r.clearFilters} onPress={clearFilters} testID="filter-reset" /> : null}
           </View>
         }
       >
-        <ScrollView contentContainerStyle={{ gap: space.lg }} testID="filter-screen">
-          <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.stopsTitle}>
-            <Text style={[type.bodyStrong, { color: colors.text }]}>{r.stopsTitle}</Text>
-            {STOPS.map((value) => {
-              const n = shownFor({ stops: value });
-              const selected = view.stops === value;
-              return <OptionRow key={value} testID={`stops-${value}`} label={t.results.stops[value]} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, stops: value }))} />;
-            })}
-          </View>
-          <View style={styles.switchRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.bagsTitle}</Text>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.bagsDetail(reiser(shownFor({ bags: true })))}</Text>
-            </View>
-            <Switch
-              testID="bags-switch"
-              accessibilityLabel={r.bagsTitle}
-              value={view.bags}
-              disabled={!view.bags && !shownFor({ bags: true })}
-              onValueChange={(bags) => setView((v) => ({ ...v, bags }))}
-              trackColor={{ true: colors.blue, false: colors.lightBorder }}
-            />
-          </View>
-          {timeGroup("out")}
-          {hasReturn ? timeGroup("back") : null}
-          {airlines.length > 1 ? (
-            <View style={{ gap: space.sm }} accessibilityLabel={r.airlinesTitle}>
-              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.airlinesTitle}</Text>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.airlinesHint}</Text>
-              {airlines.map((a) => {
-                const selected = view.airlines.includes(a.iata);
-                const n = shownFor({ airlines: [a.iata] });
-                return (
-                  <OptionRow
-                    key={a.iata}
-                    multi
-                    testID={`airline-${a.iata}`}
-                    label={r.airlineRow(a.name, a.iata)}
-                    detail={reiser(n)}
-                    selected={selected}
-                    disabled={!n && !selected}
-                    onPress={() => setView((v) => ({ ...v, airlines: selected ? v.airlines.filter((x) => x !== a.iata) : [...v.airlines, a.iata] }))}
-                  />
-                );
-              })}
-            </View>
-          ) : null}
-          {connections.length ? (
-            <View style={{ gap: space.sm }} accessibilityLabel={r.viaTitle} testID="via-group">
-              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.viaTitle}</Text>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.viaHint}</Text>
-              {connections.map((c) => {
-                const allowed = !view.avoidConnections.includes(c.iata);
-                const n = journeysVia(all, view, c.iata);
-                return (
-                  <OptionRow
-                    key={c.iata}
-                    multi
-                    plain
-                    testID={`via-${c.iata}`}
-                    label={r.viaRow(c.city, c.iata)}
-                    detail={reiser(n)}
-                    selected={allowed}
-                    disabled={!n && allowed}
-                    onPress={() => setView((v) => ({ ...v, avoidConnections: allowed ? [...v.avoidConnections, c.iata] : v.avoidConnections.filter((x) => x !== c.iata) }))}
-                  />
-                );
-              })}
-            </View>
-          ) : null}
-          {prices.length && confirmed ? (
-            <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.priceTitle}>
-              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.priceTitle}</Text>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.priceHint}</Text>
-              <OptionRow testID="price-any" label={r.anyPrice} detail={reiser(shownFor({ maxPriceMinor: null }))} selected={view.maxPriceMinor === null} onPress={() => setView((v) => ({ ...v, maxPriceMinor: null }))} />
-              {prices.map((p) => {
-                const n = shownFor({ maxPriceMinor: p });
-                const selected = view.maxPriceMinor === p;
-                return <OptionRow key={p} testID={`price-${p}`} label={r.upTo(f.nok(p))} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, maxPriceMinor: p }))} />;
-              })}
-            </View>
-          ) : null}
-          {legs.length ? (
-            <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.legTitle}>
-              <Text style={[type.bodyStrong, { color: colors.text }]}>{r.legTitle}</Text>
-              <Text style={[type.footnote, { color: colors.textSecondary }]}>{r.legHint}</Text>
-              <OptionRow testID="leg-any" label={r.anyLength} detail={reiser(shownFor({ maxLegMinutes: null }))} selected={view.maxLegMinutes === null} onPress={() => setView((v) => ({ ...v, maxLegMinutes: null }))} />
-              {legs.map((m) => {
-                const n = shownFor({ maxLegMinutes: m });
-                const selected = view.maxLegMinutes === m;
-                return <OptionRow key={m} testID={`leg-${m}`} label={r.upTo(f.duration(m))} detail={reiser(n)} selected={selected} disabled={!n && !selected} onPress={() => setView((v) => ({ ...v, maxLegMinutes: m }))} />;
-              })}
-            </View>
-          ) : null}
-        </ScrollView>
+        <FilterSheetBody visible={sheet === "filter"} all={all} view={view} setView={setView} confirmed={confirmed} hasReturn={hasReturn} />
       </BottomSheet>
 
       <BottomSheet visible={sheet === "sort"} title={r.sort} onClose={() => setSheet(null)} testID="sort-sheet">

@@ -1,5 +1,6 @@
 import type { Locale } from "../i18n/types";
 import { REGISTRY, type RegistryAirport } from "./airportRegistry";
+import type { AirportChoice } from "./searchForm";
 import { covers, searchTokens, searchWords } from "./textMatch";
 
 /**
@@ -17,6 +18,7 @@ type Names = { city?: string; name?: string; country?: string };
 /** Engelske navn der de skiller seg fra registerets. Norske flyplassnavn er egennavn og beholdes. */
 const EN: Readonly<Record<string, Names>> = {
   CPH: { city: "Copenhagen", name: "Copenhagen Kastrup" },
+  ARN: { name: "Stockholm Arlanda" },
   GOT: { city: "Gothenburg", name: "Gothenburg Landvetter" },
   HEL: { city: "Helsinki", name: "Helsinki-Vantaa" },
   KEF: { name: "Keflavík International" },
@@ -68,10 +70,10 @@ const ALSO_SERVES: Readonly<Record<string, readonly string[]>> = { OSL: ["TRF"] 
 
 export type AirportNames = { city: string; name: string; country: string };
 
-/** Navnene en rad viser, på appens språk. Serverens flyplasser utenfor registeret vises som serveren sendte dem. */
 /** Det en rad trenger av en flyplass – både registerets og serverens (`Airport`) passer. */
 export type PickerAirport = RegistryAirport;
 
+/** Navnene en rad viser, på appens språk. Serverens flyplasser utenfor registeret vises som serveren sendte dem. */
 export function airportNames(a: PickerAirport, locale: Locale): AirportNames {
   if (locale !== "en") return { city: a.city, name: a.name, country: a.country };
   const en = EN[a.iata];
@@ -80,18 +82,24 @@ export function airportNames(a: PickerAirport, locale: Locale): AirportNames {
 
 type Entry = { airport: PickerAirport; iata: string; city: string[]; name: string[]; country: string[]; i: number; cityKey: string };
 
+/** Vanlige skrivemåter uten æ/ø/å og omlyd: «aalesund», «tromsoe», «goeteborg», «zuerich». */
+const spelled = (s: string) => s.replace(/[øØöÖ]/g, "oe").replace(/[åÅ]/g, "aa").replace(/[äÄ]/g, "ae").replace(/[üÜ]/g, "ue");
+/** Ordene i tekstene, på begge måter å skrive dem. */
+const wordsOf = (...texts: string[]) => [...new Set([...searchWords(...texts), ...searchWords(...texts.map(spelled))])];
+
 const INDEX: readonly Entry[] = REGISTRY.map((airport, i) => {
   const en = airportNames(airport, "en");
   return {
     airport,
     iata: airport.iata.toLowerCase(),
-    city: searchWords(airport.city, en.city),
-    name: searchWords(airport.name, en.name),
-    country: searchWords(airport.country, en.country),
+    city: wordsOf(airport.city, en.city),
+    name: wordsOf(airport.name, en.name),
+    country: wordsOf(airport.country, en.country),
     i,
     cityKey: `${airport.countryCode}:${airport.city}`,
   };
 });
+const ENTRY = new Map(INDEX.map((e) => [e.airport.iata, e]));
 /** Per by: første plass i registeret, og om noen av byens flyplasser er merket populær. */
 const CITIES = new Map<string, { first: number; popular: boolean }>();
 for (const e of INDEX) {
@@ -133,6 +141,14 @@ export function searchLocalAirports(query: string, limit = 8): AirportRow[] {
   return hits.slice(0, limit).map(({ e, field }) => ({ airport: e.airport, field, near: null }));
 }
 
+/**
+ * Gjelder søket byen (eller begynnelsen av den – «os», «osl», «oslo»), eventuelt sammen med ord fra den andre
+ * flyplassen («oslo torp»)? Den som skriver «Gardermoen» eller «Oslo Gardermoen», har valgt flyplass.
+ */
+function asksForCity(tokens: readonly string[], city: Entry, other: Entry): boolean {
+  return tokens.some((t) => city.city.some((w) => w.startsWith(t))) && covers(tokens, [...city.city, other.iata, ...other.city, ...other.name]);
+}
+
 /** Samlet liste: registerets treff med byens andre flyplass rett under, så serverens treff som mangler. */
 export function airportRows(query: string, server: readonly PickerAirport[] | null, limit = 16): AirportRow[] {
   const rows: AirportRow[] = [];
@@ -142,20 +158,38 @@ export function airportRows(query: string, server: readonly PickerAirport[] | nu
     seen.add(row.airport.iata);
     rows.push(row);
   };
+  const tokens = searchTokens(query);
   const local = searchLocalAirports(query);
   const listed = new Set(local.map((r) => r.airport.iata));
-  for (const row of local) {
-    add(row);
-    // Bare når kunden søkte på byen: den som skriver «OSL» eller «Gardermoen», vet hvilken flyplass det er.
-    if (row.field !== "city") continue;
-    for (const code of ALSO_SERVES[row.airport.iata] ?? []) {
-      const other = BY_IATA.get(code);
-      if (other && !listed.has(code)) add({ airport: other, field: null, near: row.airport });
+  // Byens andre flyplasser som søket gjelder og som ikke alt står i listen – samme svar for «os», «osl» og «oslo»,
+  // så raden ikke kommer og går mens kunden skriver.
+  const extra = new Map<string, PickerAirport[]>();
+  for (const [hub, codes] of Object.entries(ALSO_SERVES)) {
+    for (const code of codes) {
+      const city = ENTRY.get(hub);
+      const other = ENTRY.get(code);
+      if (city && other && !listed.has(code) && asksForCity(tokens, city, other)) extra.set(hub, [...(extra.get(hub) ?? []), other.airport]);
     }
   }
+  for (const row of local) {
+    add(row);
+    for (const other of extra.get(row.airport.iata) ?? []) add({ airport: other, field: null, near: row.airport });
+    extra.delete(row.airport.iata);
+  }
+  // Byens egen flyplass traff ikke («oslo torp»): den andre står likevel, merket med byen.
+  for (const [hub, others] of extra) for (const other of others) add({ airport: other, field: null, near: BY_IATA.get(hub) ?? null });
   // Serverens rekkefølge for resten. En flyplass i registeret vises med registerets navn (samme som over).
   for (const a of server ?? []) add({ airport: BY_IATA.get(a.iata) ?? a, field: null, near: null });
   return rows;
+}
+
+/**
+ * Et lagret valg (nylige søk, forslag, skjemaet) med navnene på appens språk når flyplassen er i registeret – så
+ * «København» blir «Copenhagen» på engelsk, uansett hvilket språk valget ble gjort på. Ellers som lagret.
+ */
+export function localizedChoice(a: AirportChoice, locale: Locale): AirportChoice {
+  const reg = BY_IATA.get(a.iata);
+  return reg ? { iata: a.iata, ...airportNames(reg, locale) } : a;
 }
 
 /**
