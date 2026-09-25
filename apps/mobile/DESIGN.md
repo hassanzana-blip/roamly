@@ -131,6 +131,11 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`) og Profil
 (`(tabs)/profil.tsx`, kundeinnlogging, språk, hjelp og konto).
 
+Forsiden: etter søk står de andre nylige søkene (ikke passerte, ikke det som står i skjemaet) som små lyse brikker
+under «Søk fly» – «OSL‑LHR 9.–16. okt.», ett trykk søker igjen – der linjen om innlogging står for nye kunder.
+Bytt-knappen snur en halv runde (ikke med «Reduser bevegelse») og VoiceOver hører den nye ruten. I reisende-arket
+står et sammendrag øverst, og en regel som stopper en knapp (spedbarn per voksen, ni reisende) står rett under den.
+
 Flyplassøket viser registerets treff med én gang, på begge språk («København (Copenhagen)» når bare det engelske
 navnet passet), og serverens treff under når de kommer – radene over flytter seg ikke. Det kunden skrev er uthevet;
 en nøyaktig kode står invertert (kull med hvit tekst). Søk på byen Oslo gir Torp som egen rad rett under, merket

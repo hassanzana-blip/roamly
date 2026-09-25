@@ -59,12 +59,12 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 1.12 | Filters: connection airports (from the offers), arrival-time bands both ways [29][31] | done: «Mellomlanding i» and «Avgang \| Ankomst» per leg (MANIFEST «Filters») |
 | 1.13 | Filter state visible after the sheet closes: active filters as removable chips [29] | done: chips after «Alle», a tap removes (MANIFEST «Filters») |
 | 1.14 | Price basis wording shorter on cards; full basis kept for VoiceOver and details [24] | done |
-| 1.15 | Results: «N reiser» count and sort label never contradict the list after filtering | planned |
-| 1.16 | Error recovery specific to the code, with the search kept (already largely true; verify copy) [18] | verify |
-| 1.17 | Home: search form first view unchanged or tighter after the calendar change [45] | planned |
-| 1.18 | Travellers sheet: summary line at the top, infant rule explained where it bites [24] | planned |
-| 1.19 | Swap airports: animated icon and VoiceOver announcement of the new route [13] | planned |
-| 1.20 | Recent searches reachable from Home in one tap without pushing destinations out of the first view [43] | planned |
+| 1.15 | Results: «N reiser» count and sort label never contradict the list after filtering | verified: count follows the filtered list (filters tests); active filters now visible as chips |
+| 1.16 | Error recovery specific to the code, with the search kept (already largely true; verify copy) [18] | verified (retry only for retryable codes, «Endre søk» otherwise; screens/edge-case tests) |
+| 1.17 | Home: search form first view unchanged or tighter after the calendar change [45] | verified: same tiles; destinations 122 pt visible at 390 (MANIFEST «Home») |
+| 1.18 | Travellers sheet: summary line at the top, infant rule explained where it bites [24] | done (MANIFEST «Home») |
+| 1.19 | Swap airports: animated icon and VoiceOver announcement of the new route [13] | done (MANIFEST «Home») |
+| 1.20 | Recent searches reachable from Home in one tap without pushing destinations out of the first view [43] | done: chips under «Søk fly» (−26 pt, destinations stay in view) (MANIFEST «Home») |
 
 ## P1: trust and handoff
 

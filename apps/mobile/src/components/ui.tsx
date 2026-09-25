@@ -464,10 +464,15 @@ export function Field({ label, error, icon, ...props }: TextInputProps & { label
   );
 }
 
-export function Stepper({ label, hint, value, min, max, onChange }: { label: string; hint?: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
+/**
+ * `note`: en regel som stopper knappene akkurat nå («Høyst ett spedbarn per voksen»), under raden – der den
+ * biter – og i VoiceOver-hintet.
+ */
+export function Stepper({ label, hint, value, min, max, onChange, note, testID }: { label: string; hint?: string; value: number; min: number; max: number; onChange: (v: number) => void; note?: string | null; testID?: string }) {
   const { t } = useI18n();
   const lang = useA11yLanguage();
   return (
+    <View style={{ gap: 2 }}>
     <View style={styles.stepperRow}>
       <View style={{ flex: 1 }}>
         <Text style={[type.bodyStrong, { color: colors.text }]}>{label}</Text>
@@ -480,7 +485,7 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
         accessibilityLanguage={lang}
         accessibilityRole="adjustable"
         accessibilityLabel={label}
-        accessibilityHint={hint}
+        accessibilityHint={[hint, note].filter(Boolean).join(". ") || undefined}
         accessibilityValue={{ min, max, now: value, text: String(value) }}
         accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
         onAccessibilityAction={(e) => {
@@ -497,6 +502,13 @@ export function Stepper({ label, hint, value, min, max, onChange }: { label: str
           <Icon name="plus" size={18} color={colors.text} />
         </Pressable>
       </View>
+    </View>
+      {note ? (
+        <View style={styles.stepperNote} testID={testID ? `${testID}-note` : undefined}>
+          <Icon name="info" size={14} color={colors.textSecondary} />
+          <Text style={[type.footnote, { color: colors.textSecondary, flex: 1 }]}>{note}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -599,6 +611,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, minHeight: 48, fontSize: 16, color: colors.text },
 
   stepperRow: { flexDirection: "row", alignItems: "center", minHeight: 56 },
+  stepperNote: { flexDirection: "row", alignItems: "flex-start", gap: 6, paddingBottom: space.xs },
   stepButton: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, borderWidth: 1, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
 
   sheetRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0, 0, 0, 0.5)" },

@@ -1424,3 +1424,49 @@ the sheet).
 | `filters-after-390-via.jpg` | `6b02dc79f5a3fcaf…` | 780×1860 |
 | `filters-after-390-en-times.jpg` | `9d9a2baf739003c7…` | 780×1860 |
 | `filters-after-390-large-times.jpg` | `c0630d34b2599ab3…` | 780×1826 |
+
+## Home: other recent searches in one tap, «bytt» that speaks, traveller rules where they bite (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock.
+
+**Versions:** before is `568020a`; after is the commit that adds this section.
+
+**What changed**
+- **Recent searches from Home (backlog 1.20).** Coming back to Home after searching, the other recent searches (not
+  the one already in the form, and none whose dates have passed) show as small chips under «Søk fly»: «OSL‑LHR
+  9.–16. okt.». They replace the line «Du trenger ikke logge inn for å søke.», which is for new customers, who have no
+  recent searches. One tap searches again with exactly those details and opens the results. VoiceOver: «Søk igjen:
+  Bergen → London, fre. 9. okt. – fre. 16. okt. · 1 voksen · Økonomi». The full list, including searches with past
+  dates, is still in Lagret. Measured first view (destination cards still visible above the tab bar): 390 pt 122 →
+  96 pt, 375 pt 87 → 61 pt, 430 pt 198 → 172 pt, and only when the row is shown. The earlier list here (122 pt per
+  search) pushed them out.
+- **Swap (backlog 1.19).** The arrows turn half a round (not with Reduce Motion), and VoiceOver hears the new route:
+  «Byttet. Fra Barcelona, til Oslo.»
+- **Travellers sheet (backlog 1.18).** A summary on top follows the choices («2 voksne, 2 spedbarn · Økonomi»). The
+  infant rule is said where it stops a button: «Høyst ett spedbarn per voksen …» under Spedbarn when «+» stops. Adults
+  can no longer drop below infants, which before silently removed an infant; «−» stops with «Hvert spedbarn trenger en
+  voksen. Ta bort et spedbarn først.» At nine travellers: «Høyst 9 reisende i ett søk.» The notes are also in
+  VoiceOver's hint for the adjustable control.
+- New i18n strings in both languages; three unused Home strings removed.
+
+**Tests:** `homeQuickActions.test.tsx` covers which recents show (not the form's, not past), the one-tap search with
+the exact slices, the login line when there is none, the date span in both languages, the swap announcement with and
+without Reduce Motion, and the traveller rules: summary, the infant note and disabled «+», adults blocked at the number
+of infants with nothing removed silently, and the nine-traveller note. The Home order test is unchanged; with no other
+recent searches the login line is where it was.
+
+**Not verified:** a real iPhone (VoiceOver announcement timing after swap, the chips' scroll with Dynamic Type
+accessibility sizes).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `home-before-390-after-searches.jpg` | `e8d52d357e9ea494…` | 780×1860 |
+| `home-after-390-recent.jpg` | `00101a25f9d6c5b1…` | 780×1860 |
+| `home-after-375-recent.jpg` | `80c3f2a9be3e3659…` | 750×1762 |
+| `home-after-430-recent.jpg` | `ce8614f7591cbf1d…` | 860×2002 |
+| `home-after-390-large-recent.jpg` | `ce75860c0b599db7…` | 780×1860 |
+| `home-after-390-fresh.jpg` | `f7c50b5c52bd227b…` | 780×1860 |
+| `travellers-before-390.jpg` | `c953bae3283d9a49…` | 780×1798 |
+| `travellers-after-390-infant.jpg` | `d74c3894325455c7…` | 780×1832 |
+| `travellers-after-390-two.jpg` | `2a563c5d509a2900…` | 780×1832 |
+| `travellers-after-390-large-infant.jpg` | `8caaec60efa97aa1…` | 780×1826 |

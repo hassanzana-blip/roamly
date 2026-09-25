@@ -7,9 +7,6 @@ const en = {
   noLoginNeeded: "You don't need to log in to search.",
   howItWorks: "HelloSky compares prices from airlines and travel agencies. You book and pay on the provider's own website.",
   recentTitle: "Recent searches",
-  recentNote: "Saved only on this phone.",
-  recentClear: "Clear all",
-  recentRemove: (route: string) => `Remove ${route}`,
   recentHint: "Searches again with these details",
   exploreTitle: "Explore destinations",
   seeAll: "See all",
@@ -25,6 +22,7 @@ const en = {
   airportHint: "Opens airport search",
   airportLabel: (label: string, city: string, name: string, iata: string) => `${label}: ${city}, ${name}, ${iata}`,
   swap: "Swap from and to",
+  swapped: (from: string, to: string) => `Swapped. From ${from}, to ${to}.`,
   depart: "Departure",
   return: "Return",
   add: "Add",
@@ -48,6 +46,9 @@ const en = {
   infant1: "1 year",
   directOnly: "Direct flights only",
   directOnlyHint: "Only searches for journeys without stops.",
+  infantPerAdult: "At most one infant per adult: infants sit on an adult's lap.",
+  adultsForInfants: "Each infant needs an adult. Remove an infant first.",
+  maxTravellers: (n: number) => `At most ${n} travellers in one search.`,
 };
 
 const nb: typeof en = {
@@ -58,9 +59,6 @@ const nb: typeof en = {
   noLoginNeeded: "Du trenger ikke logge inn for å søke.",
   howItWorks: "HelloSky sammenligner priser fra flyselskaper og reisebyråer. Du bestiller og betaler på tilbyderens egen nettside.",
   recentTitle: "Nylige søk",
-  recentNote: "Lagres bare på denne telefonen.",
-  recentClear: "Tøm alle",
-  recentRemove: (route) => `Fjern ${route}`,
   recentHint: "Søker på nytt med disse valgene",
   exploreTitle: "Utforsk reisemål",
   seeAll: "Se alle",
@@ -76,6 +74,7 @@ const nb: typeof en = {
   airportHint: "Åpner flyplassøket",
   airportLabel: (label, city, name, iata) => `${label}: ${city}, ${name}, ${iata}`,
   swap: "Bytt fra og til",
+  swapped: (from, to) => `Byttet. Fra ${from}, til ${to}.`,
   depart: "Avreise",
   return: "Retur",
   add: "Legg til",
@@ -99,6 +98,9 @@ const nb: typeof en = {
   infant1: "1 år",
   directOnly: "Bare direktefly",
   directOnlyHint: "Søker bare etter reiser uten mellomlanding.",
+  infantPerAdult: "Høyst ett spedbarn per voksen: spedbarn sitter på fanget til en voksen.",
+  adultsForInfants: "Hvert spedbarn trenger en voksen. Ta bort et spedbarn først.",
+  maxTravellers: (n) => `Høyst ${n} reisende i ett søk.`,
 };
 
 export const home = { en, nb };

@@ -164,6 +164,19 @@ export function formatShortDay(iso: string, locale: Locale): string {
   return locale === "en" ? `${p.d} ${MONTHS.en[p.m - 1]}` : `${p.d}. ${MONTHS.nb[p.m - 1]}`;
 }
 
+/**
+ * Et datospenn så kort som det kan være uten å bli uklart: «9.–16. okt.» (samme måned), «30. okt. – 6. nov.»,
+ * en «9–16 Oct». Uten retur: bare avreisen.
+ */
+export function formatDateSpan(depart: string, ret: string | null, locale: Locale): string {
+  const a = parseIsoDate(depart);
+  const b = ret ? parseIsoDate(ret) : null;
+  if (!a) return "";
+  if (!b) return formatShortDay(depart, locale);
+  if (a.y === b.y && a.m === b.m) return locale === "en" ? `${a.d}–${b.d} ${MONTHS.en[a.m - 1]}` : `${a.d}.–${b.d}. ${MONTHS.nb[a.m - 1]}`;
+  return `${formatShortDay(depart, locale)} – ${formatShortDay(ret!, locale)}`;
+}
+
 /** Hilsen etter klokken på telefonen. */
 export function greeting(locale: Locale, now: Date = new Date()): string {
   const h = now.getHours();

@@ -6,7 +6,8 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
 import { FEATURED, HEADER_PHOTO, destinationChoice, type Destination } from "../../lib/destinations";
-import { formErrorText } from "../../lib/searchForm";
+import { cabinLabel, formErrorText, passengerSummary } from "../../lib/searchForm";
+import { recentIsPast, recentKey, type RecentSearch } from "../../lib/recent";
 import { useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
 import { Banner, IconButton, LinkButton, Wordmark } from "../../components/ui";
@@ -15,6 +16,7 @@ import { SearchPanel } from "../../components/SearchPanel";
 import { ServiceSwitch } from "../../components/ServiceSwitch";
 import { DestinationCard } from "../../components/DestinationCard";
 import { StatusBarShield } from "../../components/StatusBarShield";
+import { Icon } from "../../components/Icon";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
 /** Kundens initialer, eller ingenting (gjest). Aldri et oppdiktet navn eller bilde. */
@@ -23,9 +25,43 @@ function initialsOf(first?: string | null, last?: string | null): string {
 }
 
 /**
- * Nylige søk står i Lagret-fanen, ikke her: målt i forhåndsvisningen presset ett
- * eneste nylig søk (122 pt) reisemålene nesten ut av første bilde (127 → 7 pt ved 390×844).
- *
+ * Andre nylige søk som én rad med små brikker under «Søk fly», i stedet for linjen om innlogging (den er for
+ * nye kunder, som ikke har nylige søk). Et trykk søker igjen. Hele listen – også søk med passerte datoer – står i
+ * Lagret. En liste med kort her presset reisemålene ut av første bilde (122 pt per søk); raden er 44 pt.
+ */
+function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (r: RecentSearch) => void }) {
+  const i18n = useI18n();
+  const { t, f } = i18n;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentScroll} contentContainerStyle={styles.recentRow} accessibilityLabel={t.home.recentTitle} testID="home-recent">
+      {items.map((r) => {
+        const route = `${r.origin.city} → ${r.destination.city}`;
+        const back = r.tripType === "roundtrip" ? r.returnDate : null;
+        // VoiceOver: hele datoer med ukedag, som i Lagret; synlig: det korte spennet.
+        const dates = back ? `${f.day(r.departDate)} – ${f.day(back)}` : f.day(r.departDate);
+        const detail = `${dates} · ${passengerSummary(r, i18n)} · ${cabinLabel(r.cabinClass, i18n)}`;
+        return (
+          <Pressable
+            key={recentKey(r)}
+            onPress={() => onPick(r)}
+            accessibilityRole="button"
+            accessibilityLabel={t.saved.searchAgainLabel(route, detail)}
+            accessibilityHint={t.home.recentHint}
+            hitSlop={4}
+            testID={`home-recent-${r.origin.iata}-${r.destination.iata}-${r.departDate}`}
+            style={({ pressed }) => [styles.recentPill, pressed && { opacity: 0.7 }]}
+          >
+            <Icon name="clock" size={14} color={colors.textSecondary} />
+            <Text style={[type.footnoteStrong, { color: colors.text }]}>{`${r.origin.iata}\u2011${r.destination.iata}`}</Text>
+            <Text style={[type.footnote, { color: colors.textSecondary }]}>{f.dateSpan(r.departDate, back)}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/**
  * Forsiden: et lavt fotohode, hvitt søkeark og reisemål. Første bilde
  * (390×844) skal vise rute, datoer, reisende/klasse og «Søk fly» – og begynnelsen
  * på reisemålene; forklaringen om hvordan HelloSky virker står under dem.
@@ -33,7 +69,7 @@ function initialsOf(first?: string | null, last?: string | null): string {
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { auth, runSearch } = useApp();
+  const { auth, runSearch, recent, form } = useApp();
   const i18n = useI18n();
   const { t, f, locale } = i18n;
   const [cardProblem, setCardProblem] = useState<FormErrorCode | null>(null);
@@ -45,6 +81,14 @@ export default function HomeScreen() {
 
   const searchTo = (d: Destination) => {
     const err = runSearch({ destination: destinationChoice(d, locale) });
+    setCardProblem(err);
+    if (!err) router.push("/resultater");
+  };
+  // Andre søk enn det som står i skjemaet, med datoer som ikke har passert.
+  const current = recentKey(form);
+  const again = recent.filter((r) => recentKey(r) !== current && !recentIsPast(r)).slice(0, 4);
+  const searchAgain = (r: RecentSearch) => {
+    const err = runSearch(r);
     setCardProblem(err);
     if (!err) router.push("/resultater");
   };
@@ -86,7 +130,15 @@ export default function HomeScreen() {
 
         <View style={styles.sheet} testID="home-sheet">
           <ServiceSwitch active="flights" onSelect={() => router.push("/hotell")} />
-          <SearchPanel footer={<Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>} />
+          <SearchPanel
+            footer={
+              again.length ? (
+                <RecentSearchesRow items={again} onPick={searchAgain} />
+              ) : (
+                <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
+              )
+            }
+          />
 
           <View style={styles.sectionHead}>
             <Text style={[type.section, { color: colors.text }]} accessibilityRole="header">
@@ -125,8 +177,11 @@ const styles = StyleSheet.create({
   avatar: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.85)" },
   avatarText: { fontSize: 15, fontWeight: "700", color: colors.white },
   sheet: { marginTop: -28, backgroundColor: colors.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm },
-  recentRow: { flexDirection: "row", alignItems: "center", gap: space.xs },
-  recentMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingVertical: space.xs },
+  // Raden går helt ut til kanten (under arkets marg), så brikkene kan rulles uten å klippes ved margen. Luft over og
+  // under brikkene, så hitSlop (4 pt) når 44 pt – en ScrollView klipper det som stikker utenfor.
+  recentScroll: { marginHorizontal: -space.lg },
+  recentRow: { paddingHorizontal: space.lg, gap: space.sm, paddingVertical: 4 },
+  recentPill: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   railWrap: { backgroundColor: colors.white },
   rail: { paddingHorizontal: space.lg, gap: space.md },
