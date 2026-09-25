@@ -329,6 +329,10 @@ export default function ResultsScreen() {
   // Svaret som vises: det ferdige, eller det forrige mens samme søk oppdateres (dra ned, «Oppdater prisene»).
   const answer = useMemo(() => shownAnswer(search), [search]);
   const refreshing = search.status === "loading" && !!search.previous;
+  // Startet oppdateringen med «dra ned», viser iOS sin egen spinner øverst. Startet den fra lenken eller arket, er linjen
+  // over fanene nok – listen skal ikke hoppe ned.
+  const [pulled, setPulled] = useState(false);
+  if (pulled && !refreshing) setPulled(false);
   const offers = answer ? answer.result.offers : null;
   // Ubekreftet total: et prisfilter («Opptil 3 000 kr») ville vært et løfte om en total. Det tas bort – også i den
   // første tegningen av svaret, før effekten under har rukket å nullstille det lagrede valget (liste, tall og brikker).
@@ -363,14 +367,18 @@ export default function ResultsScreen() {
   useEffect(() => {
     if (search.status === "loading") {
       refreshedFrom.current = !!search.previous;
+      // Linjen over fanene leses ikke opp av seg selv på iOS: VoiceOver hører at prisene oppdateres.
+      if (search.previous) AccessibilityInfo.announceForAccessibility(r.status.refreshingSpoken);
       return;
     }
     const refresh = refreshedFrom.current;
     refreshedFrom.current = false;
     let text: string | null = null;
     if (search.status === "done") {
-      const found = t.results.journeys(groupJourneys(search.result.offers).length);
-      text = search.refreshError ? r.status.refreshFailed(errorText(search.refreshError, i18n), formatClock(new Date(search.at))) : refresh ? r.status.refreshed(found) : r.announceFound(found);
+      // Antallet kunden ser: med filtrene som står (de står gjennom en oppdatering).
+      const found = t.results.journeys(journeys.length);
+      const why = search.refreshError ? errorText(search.refreshError, i18n) : null;
+      text = why !== null ? (search.result.offers.length ? r.status.refreshFailed(why, formatClock(new Date(search.at))) : r.status.refreshFailedEmpty(why)) : refresh ? r.status.refreshed(found) : r.announceFound(found);
     } else if (search.status === "error") {
       text = errorText(search.error, i18n);
     }
@@ -471,6 +479,10 @@ export default function ResultsScreen() {
   if (!answer) return null;
   const { result, at } = answer;
   const refreshError = search.status === "done" ? search.refreshError : undefined;
+  // «Oppdater prisene» og «dra ned»: søket som vises – ikke datoer som er valgt i arket uten å søke.
+  const refreshShown = () => {
+    runSearch(search.query);
+  };
   const all = result.offers;
   const notice = fxNotice(result, i18n);
   // Tilbud som ikke gjaldt søket (annen flyplass eller dato, manglende retur): sagt rett ut, aldri erstattet.
@@ -483,7 +495,9 @@ export default function ResultsScreen() {
   // Demo og testmiljø sies rett ut; ekte priser merkes med når de ble sjekket.
   const notices: NoticeItem[] = [
     // En oppdatering som feilet: sagt først; prisene under er de forrige, med tidspunktet de ble sjekket.
-    ...(refreshError ? [{ key: "refresh", tone: "warning" as const, text: r.status.refreshFailed(errorText(refreshError, i18n), checkedAt), testID: "refresh-error" }] : []),
+    ...(refreshError
+      ? [{ key: "refresh", tone: "warning" as const, text: all.length ? r.status.refreshFailed(errorText(refreshError, i18n), checkedAt) : r.status.refreshFailedEmpty(errorText(refreshError, i18n)), testID: "refresh-error" }]
+      : []),
     ...(kind === "demo" ? [{ key: "demo", tone: "warning" as const, text: r.status.demo, testID: "sandbox-banner" }] : []),
     ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
     ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
@@ -565,10 +579,10 @@ export default function ResultsScreen() {
         </View>
       ) : null}
       {refreshing ? (
-        // Samme søk kjøres på nytt: listen står, og linjen sier hva som skjer (også med VoiceOver).
-        <View style={styles.statusRow} testID="price-refreshing" accessibilityLiveRegion="polite">
+        // Samme søk kjøres på nytt: listen står, og linjen sier hva som skjer og hvor gamle prisene som vises er.
+        <View style={styles.statusRow} testID="price-refreshing">
           <ActivityIndicator size="small" color={colors.onDarkMuted} />
-          <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.refreshing}</Text>
+          <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.refreshing(checkedAt)}</Text>
         </View>
       ) : (kind === "live" || kind === "unverified") && all.length ? (
         <View style={styles.statusRow} testID="price-status">
@@ -576,7 +590,7 @@ export default function ResultsScreen() {
             <>
               <Icon name="clock" size={14} color={colors.warningOnDark} />
               <Text style={[type.footnote, { color: colors.warningOnDark, flex: 1 }]}>{r.status.stale(checkedAt)}</Text>
-              <Pressable onPress={() => runSearch()} accessibilityRole="button" hitSlop={10} style={styles.sortLink} testID="refresh-prices">
+              <Pressable onPress={refreshShown} accessibilityRole="button" hitSlop={10} style={styles.sortLink} testID="refresh-prices">
                 <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{r.status.refresh}</Text>
               </Pressable>
             </>
@@ -621,11 +635,14 @@ export default function ResultsScreen() {
         // Dra ned: samme søk på nytt, som «Oppdater prisene». Listen står til de nye prisene er her.
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={pulled && refreshing}
             onRefresh={() => {
-              runSearch();
+              setPulled(true);
+              refreshShown();
             }}
             tintColor={colors.onDarkMuted}
+            // Spinneren under statuslinjen, ikke bak skjermkanten øverst.
+            progressViewOffset={insets.top}
             testID="results-refresh"
           />
         }

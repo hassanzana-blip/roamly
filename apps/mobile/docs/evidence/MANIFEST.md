@@ -1608,8 +1608,9 @@ with the same dates.
 - **Updating the prices keeps the list (backlog 2.7).** Running the same search again – pulling down the list (new,
   iOS' own refresh control), «Oppdater prisene», or «Søk på nytt» with unchanged dates – no longer swaps the journeys
   for placeholders. The list, the chosen sort and the filters stay; a line above the tabs says «Oppdaterer prisene …»
-  (read by VoiceOver), and the new prices replace the old ones in place. VoiceOver then hears «Prisene er oppdatert.
-  12 reiser.»
+  (after the review: «Oppdaterer prisene fra kl. 22:10 …», so the age of the prices shown stays visible; VoiceOver
+  hears «Oppdaterer prisene.»), and the new prices replace the old ones in place. VoiceOver then hears «Prisene er
+  oppdatert. 12 reiser.» – the number shown, with the filters that stay.
 - **A failed update keeps the previous prices,** with the reason and their age: «Fikk ikke oppdatert prisene.
   Leverandøren svarer ikke akkurat nå. Prisene under er fra kl. 21:39.» Before, every journey disappeared behind an
   error. A new search (other dates, airports or travellers) still starts from placeholders, and a first search that
@@ -1633,10 +1634,34 @@ check OK.
 |---|---|---|
 | `refresh-before-390-same-search.jpg` | `951717d5ced63267…` | 780×1860 |
 | `refresh-before-390-failed.jpg` | `afaa36e735faabc8…` | 780×1860 |
-| `refresh-after-390-refreshing.jpg` | `ed3001ead6e096bf…` | 780×1916 |
-| `refresh-after-390-failed.jpg` | `27a511081c53517c…` | 780×1860 |
+| `refresh-after-390-refreshing.jpg` | `a668a69731a08520…` | 780×1950 |
+| `refresh-after-390-failed.jpg` | `c259afc1dc4416b6…` | 780×1860 |
 | `refresh-after-390-new-search.jpg` | `3fd5f1ef9efa5b74…` | 780×1894 |
-| `refresh-after-375-refreshing.jpg` | `69c3017dbd6eaf55…` | 750×1762 |
+| `refresh-after-375-refreshing.jpg` | `d9fc4d7e48db4c7e…` | 750×1762 |
 | `refresh-after-430-failed.jpg` | `ad8fe1378999aca9…` | 860×2002 |
 | `refresh-after-390-large-failed.jpg` | `6e155e5be3292e59…` | 780×1860 |
 | `refresh-after-390-en-failed.jpg` | `36efa5050303f185…` | 780×1826 |
+
+## Review fixes for the refresh stage (independent review)
+
+**NON-NATIVE: not an iPhone.** Same setup as the section above; the three images marked there were captured again after
+these fixes.
+
+**Found by an independent reviewer (2 medium, 5 low; no high), all fixed:**
+- **Open flight details no longer say «Tilbudet er borte» after an update.** The metasearch gives every offer a new id
+  on each search, so the details screen now follows the open journey by its flights and times, with the new price and
+  the seller the customer had chosen.
+- **VoiceOver hears the update start** («Oppdaterer prisene.»); the line over the tabs is not spoken by itself on iOS.
+- **Pull down and «Oppdater prisene» refresh the search on screen,** not dates picked in the sheet without searching.
+- **The spoken count is the number shown** with the filters that stay («Prisene er oppdatert. 1 reise.»).
+- **A failed update of an empty answer says nothing about prices:** «Fikk ikke søkt på nytt. …».
+- **iOS' own spinner shows only after a pull, below the status bar** (`progressViewOffset`); started from the link or
+  the sheet, the line over the tabs is enough and the list does not jump.
+- **The age of the prices stays visible while updating:** «Oppdaterer prisene fra kl. 22:10 …».
+- **Tests clear the announcement mock first and count every announcement,** and cover new offer ids, a chosen
+  seller, edited dates, an empty answer and English.
+
+**Checks:** Jest 553 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean.
+
+**Not verified:** a real iPhone (the spinner offset and the pull gesture in particular).
+

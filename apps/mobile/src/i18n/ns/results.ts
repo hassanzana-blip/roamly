@@ -129,9 +129,13 @@ const en = {
       stale: (time: string) => `Prices checked at ${time} may have changed.`,
       refresh: "Refresh prices",
       /** Samme søk kjøres på nytt (dra ned eller «Oppdater prisene»); listen står imens. */
-      refreshing: "Updating prices …",
+      /** Prisene som vises til de nye er her, med klokkeslettet de er fra. */
+      refreshing: (time: string) => `Updating the prices from ${time} …`,
+      refreshingSpoken: "Updating the prices.",
       refreshed: (journeys: string) => `Prices updated. ${journeys}.`,
       refreshFailed: (why: string, time: string) => `Couldn't update the prices. ${why} The prices below are from ${time}.`,
+      /** Oppdateringen av et svar uten reiser feilet: ingen priser å si noe om. */
+      refreshFailedEmpty: (why: string) => `Couldn't search again. ${why}`,
       /** Tilbud serveren holdt utenfor fordi de ikke gjaldt søket (annen flyplass, dato, manglende retur). */
       excluded: (n: number, why: string) => (n === 1 ? `1 offer from the provider didn't match your search (${why}) and isn't shown.` : `${n} offers from the provider didn't match your search (${why}) and aren't shown.`),
       excludedWhy: { airport: "different airport", date: "different date", missingLeg: "a missing leg", extraLeg: "an extra leg", incomplete: "incomplete flight data" },
@@ -264,9 +268,11 @@ const nb: typeof en = {
       checked: (time) => `Prisene sjekket kl. ${time}`,
       stale: (time) => `Prisene fra kl. ${time} kan ha endret seg.`,
       refresh: "Oppdater prisene",
-      refreshing: "Oppdaterer prisene …",
+      refreshing: (time) => `Oppdaterer prisene fra kl. ${time} …`,
+      refreshingSpoken: "Oppdaterer prisene.",
       refreshed: (journeys) => `Prisene er oppdatert. ${journeys}.`,
       refreshFailed: (why, time) => `Fikk ikke oppdatert prisene. ${why} Prisene under er fra kl. ${time}.`,
+      refreshFailedEmpty: (why) => `Fikk ikke søkt på nytt. ${why}`,
       excluded: (n, why) => `${n} tilbud fra tilbyderen gjaldt ikke søket ditt (${why}) og vises ikke.`,
       excludedWhy: { airport: "annen flyplass", date: "annen dato", missingLeg: "en strekning mangler", extraLeg: "en ekstra strekning", incomplete: "ufullstendige flydata" },
       excludedEmptyTitle: "Ingen reiser passet søket",

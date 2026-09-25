@@ -9,7 +9,7 @@ import type { MobileOffer } from "@contracts/mobileSearch";
 import type { OfferSlice, Segment } from "@contracts/types";
 import { shownAnswer, useApp } from "../../lib/appState";
 import { applyView } from "../../lib/resultsView";
-import { journeyOf, sellerLabel } from "../../lib/journeys";
+import { journeyByKey, journeyOf, sellerLabel } from "../../lib/journeys";
 import { baggageFacts, baggageShort, conditionFacts, handoffLabel, offerExpired, priceBasis, providerHandoff, sellerKindLabel } from "../../lib/offer";
 import { dayOffset, formatTime, minutesBetween } from "../../lib/format";
 import { priceDisplay, serviceFeeNokMinor } from "../../lib/price";
@@ -285,7 +285,8 @@ export default function OfferScreen() {
   const i18n = useI18n();
   const { t, f } = i18n;
   const dt = t.details;
-  const [chosen, setChosen] = useState<string | null>(null);
+  // Valgt selger: tilbudet, og navnet – så valget står når samme søk kjøres på nytt og tilbudene får nye ID-er.
+  const [chosen, setChosen] = useState<{ id: string; seller: string } | null>(null);
   const [opening, setOpening] = useState(false);
   const [openError, setOpenError] = useState(false);
   // Bunnlinjens faktiske høyde (stor tekst, lange navn), så det siste kortet kan rulles helt fram.
@@ -324,11 +325,21 @@ export default function OfferScreen() {
   // Mens samme søk oppdateres, står det forrige svaret – reisen forsvinner ikke midt i et trykk.
   const result = shownAnswer(search)?.result ?? null;
   // Selgerne som passer filtrene i listen; finnes ikke reisen der lenger, alle selgerne.
-  const journey = useMemo(() => {
+  const byId = useMemo(() => {
     if (!result || !id) return null;
     return journeyOf(applyView(result.offers, view), id) ?? journeyOf(result.offers, id);
   }, [result, view, id]);
-  const selectedItem = journey ? (journey.sellers.find((s) => s.item.offer.id === (chosen ?? id))?.item ?? journey.best) : null;
+  // Reisens identitet (samme fly og tider). Oppdateres prisene, får tilbudene nye ID-er; da følges reisen på den.
+  const [openedKey, setOpenedKey] = useState<string | null>(null);
+  if (byId && byId.key !== openedKey) setOpenedKey(byId.key);
+  const byKey = useMemo(() => {
+    if (byId || !result || !openedKey) return null;
+    return journeyByKey(applyView(result.offers, view), openedKey) ?? journeyByKey(result.offers, openedKey);
+  }, [byId, result, view, openedKey]);
+  const journey = byId ?? byKey;
+  const selectedItem = journey
+    ? (journey.sellers.find((s) => s.item.offer.id === (chosen?.id ?? id))?.item ?? (chosen ? journey.sellers.find((s) => sellerLabel(s.item.offer) === chosen.seller)?.item : undefined) ?? journey.best)
+    : null;
   // Utløpet til den valgte selgerens tilbud vises i det øyeblikket det skjer, også om skjermen bare står åpen
   // eller appen har vært i bakgrunnen.
   const refreshExpiry = useExpiryClock(selectedItem?.offer.expiresAt);
@@ -443,7 +454,7 @@ export default function OfferScreen() {
                     key={`${s.item.offer.id}:${fontScale}`}
                     item={s.item}
                     selected={s.item.offer.id === offer.id}
-                    onPress={() => setChosen(s.item.offer.id)}
+                    onPress={() => setChosen({ id: s.item.offer.id, seller: sellerLabel(s.item.offer) })}
                     priceBelow={sellerPriceBelow(s.item.offer.id)}
                     onNeedsRoom={(scale) => moveSellerPriceBelow(s.item.offer.id, scale)}
                   />

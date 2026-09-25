@@ -70,3 +70,11 @@ export function journeyOf(items: MobileOffer[], offerId: string): Journey | null
   const key = itinerarySignature(hit.offer);
   return groupJourneys(items.filter((i) => itinerarySignature(i.offer) === key))[0] ?? null;
 }
+
+/**
+ * Reisen med denne identiteten (samme fly og tider), blant de gitte tilbudene. Samme søk på nytt gir nye tilbud-ID-er
+ * (metasøket lager dem per søk), så en åpen reise følges videre på identiteten.
+ */
+export function journeyByKey(items: MobileOffer[], key: string): Journey | null {
+  return groupJourneys(items.filter((i) => itinerarySignature(i.offer) === key))[0] ?? null;
+}
