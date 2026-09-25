@@ -190,6 +190,25 @@ describe("Lagret-fanen", () => {
     expect(server.calls.filter((c) => c.path === "flights.search")).toHaveLength(0);
   });
 
+  it("én vei sies på raden (ikke lik en tur-retur samme dag); hver dato holdes samlet når spennet går over to måneder", async () => {
+    writePref("recent", [
+      { ...initialForm(), tripType: "oneway", origin: OSL, destination: BGO, departDate: "2026-10-23", returnDate: "2026-10-30" },
+      { ...initialForm(), origin: OSL, destination: BGO, departDate: "2026-10-24", returnDate: "2026-10-24" },
+      { ...initialForm(), origin: OSL, destination: LHR, departDate: "2026-10-30", returnDate: "2026-11-06" },
+    ]);
+    __resetLocalStoreForTests();
+    jest.useFakeTimers({ now: Date.parse("2026-09-25T10:00:00Z"), doNotFake: ["nextTick", "queueMicrotask", "setImmediate", "performance"] });
+    try {
+      await renderApp(<SavedScreen />);
+      const line = (id: string) => within(screen.getByTestId(`recent-${id}`)).getByText(/^OSL\u2011/).props.children as string;
+      expect(line("OSL-BGO-2026-10-23")).toBe("OSL\u2011BGO · Én vei · 23.\u00A0okt.");
+      expect(line("OSL-BGO-2026-10-24")).toBe("OSL\u2011BGO · 24.\u00A0okt.");
+      expect(line("OSL-LHR-2026-10-30")).toBe("OSL\u2011LHR · 30.\u00A0okt. – 6.\u00A0nov.");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("fjerne ett nylig søk, eller alle", async () => {
     writePref("recent", [
       { ...initialForm(), origin: OSL, destination: BCN, departDate: day(10), returnDate: day(17) },

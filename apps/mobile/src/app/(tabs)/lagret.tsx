@@ -10,6 +10,7 @@ import { useApp } from "../../lib/appState";
 import { destinationChoice, type Destination } from "../../lib/destinations";
 import { savedDestinations } from "../../lib/saved";
 import { recentIsPast, recentKey, withFreshDates, type RecentSearch } from "../../lib/recent";
+import { keepDatesTogether } from "../../lib/format";
 import { cabinLabel, formErrorText, passengerSummary } from "../../lib/searchForm";
 import { useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
@@ -148,11 +149,13 @@ export default function SavedScreen() {
               const key = recentKey(r);
               const id = `${r.origin.iata}-${r.destination.iata}-${r.departDate}`;
               const route = `${r.origin.city} → ${r.destination.city}`;
-              // Hver dato holdes samlet («tor. 15. okt.» brytes aldri inni); linjen kan bare brytes mellom datoene.
+              // VoiceOver: hele datoer med ukedag. Hver dato holdes samlet («tor. 15. okt.» brytes aldri inni).
               const day = (iso: string) => f.day(iso).replace(/ /g, "\u00A0");
               const dates = r.tripType === "roundtrip" ? `${day(r.departDate)} – ${day(r.returnDate)}` : day(r.departDate);
-              // Synlig: kort datospenn som på forsiden («9.–16. okt.»), så raden holder seg på få linjer. VoiceOver får hele datoene.
-              const span = f.dateSpan(r.departDate, r.tripType === "roundtrip" ? r.returnDate : null);
+              // Synlig: kort datospenn som på forsiden («9.–16. okt.»), så raden holder seg på få linjer; én vei sies, så
+              // den ikke ser ut som en tur-retur samme dag. Linjen kan bare brytes mellom datoene.
+              const span = keepDatesTogether(f.dateSpan(r.departDate, r.tripType === "roundtrip" ? r.returnDate : null));
+              const when = r.tripType === "roundtrip" ? span : `${t.home.oneway} · ${span}`;
               const people = `${passengerSummary(r, i18n)} · ${cabinLabel(r.cabinClass, i18n)}`;
               const detail = `${dates} · ${people}`;
               const past = recentIsPast(r, today);
@@ -171,8 +174,8 @@ export default function SavedScreen() {
                     </View>
                     <View style={styles.rowText}>
                       <Text style={[type.calloutStrong, { color: colors.onDark }]}>{route}</Text>
-                      {/* Nøyaktige flyplasskoder med ikke-brytende bindestrek (aldri «OSL–» / «BCN»), så de fulle datoene. */}
-                      <Text style={[type.footnote, { color: past ? colors.onDarkMuted : colors.onDark }]}>{`${r.origin.iata}\u2011${r.destination.iata} · ${span}`}</Text>
+                      {/* Nøyaktige flyplasskoder med ikke-brytende bindestrek (aldri «OSL–» / «BCN»), så datoene. */}
+                      <Text style={[type.footnote, { color: past ? colors.onDarkMuted : colors.onDark }]}>{`${r.origin.iata}\u2011${r.destination.iata} · ${when}`}</Text>
                       <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{people}</Text>
                       {past ? (
                         <View style={styles.past} testID={`recent-past-${id}`}>

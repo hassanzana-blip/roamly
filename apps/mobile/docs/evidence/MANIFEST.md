@@ -1707,3 +1707,20 @@ check OK.
 | `explore-context-after-390-en.jpg` | `eee4a7937d54820f…` | 780×1826 |
 | `saved-rows-before-390.jpg` | `20d5a40ec2324135…` | 780×1860 |
 | `saved-rows-after-390.jpg` | `bf2cfff53cb0fe4b…` | 780×1860 |
+
+## Review fixes for the Explore stage (independent review)
+
+**Found by an independent reviewer (1 medium, 2 low; no high), all fixed:**
+- **Explore's error goes away when the search is fixed there.** A destination tap with a passed departure date or no
+  from-airport showed an error that stayed after the dates or the airport were corrected with the new buttons. The
+  error now belongs to the search it was raised for, as on Home.
+- **With the keyboard up, the first tap on a button works** (the row keeps taps like the page around it), instead of
+  only closing the keyboard.
+- **Saved rows keep each date on one line** («30. okt. – 6. nov.» only breaks at the dash), and a one-way search says
+  «Én vei», so it no longer looks like a same-day round trip. Explore's date button says «Én vei» the same way.
+- **Tests:** the error clearing after new dates and after choosing an airport in the real picker, taps with the
+  keyboard up, the row padding that keeps the 44 pt targets, and Saved rows for one way, same day and two months.
+
+**Checks:** Jest 563 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean.
+
+**Not verified:** a real iPhone.

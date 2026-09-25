@@ -165,6 +165,17 @@ export function formatShortDay(iso: string, locale: Locale): string {
 }
 
 /**
+ * Et datospenn der hver dato holdes samlet på én linje («30.\u00A0okt. – 6.\u00A0nov.»): linjen kan bare brytes ved
+ * tankestreken mellom datoene, aldri midt i en dato.
+ */
+export function keepDatesTogether(span: string): string {
+  return span
+    .split(" – ")
+    .map((part) => part.replace(/ /g, "\u00A0"))
+    .join(" – ");
+}
+
+/**
  * Et datospenn så kort som det kan være uten å bli uklart: «9.–16. okt.» (samme måned), «30. okt. – 6. nov.»,
  * en «9–16 Oct». Uten retur: bare avreisen.
  */

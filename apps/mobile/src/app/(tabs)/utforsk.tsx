@@ -15,6 +15,8 @@ import { Icon, type IconName } from "../../components/Icon";
 import { DateRangeSheet } from "../../components/RangeCalendar";
 import { TravellersSheet } from "../../components/TravellersSheet";
 import { nightsBetween } from "../../lib/calendar";
+import { keepDatesTogether } from "../../lib/format";
+import { recentKey } from "../../lib/recent";
 import { DestinationSearch } from "../../components/DestinationSearch";
 import { normalizeSearch, searchDestinations } from "../../lib/destinationSearch";
 import { DestinationMap } from "../../components/DestinationMap";
@@ -60,7 +62,9 @@ export default function ExploreScreen() {
   const { form, setForm, runSearch } = useApp();
   const i18n = useI18n();
   const { t, f, locale } = i18n;
-  const [problem, setProblem] = useState<FormErrorCode | null>(null);
+  // Feilen gjelder søket slik det var da kunden trykket på et reisemål; endres fra-flyplass, datoer eller reisende her
+  // (eller på forsiden), er den borte.
+  const [problem, setProblem] = useState<{ code: FormErrorCode; key: string } | null>(null);
   const [view, setView] = useState<ExploreView>("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Kartets område: Europa først (eller det valgte reisemålets område); knappene bytter.
@@ -90,13 +94,16 @@ export default function ExploreScreen() {
   const cardWidth = (width - space.lg * 2 - space.md) / 2;
 
   const searchTo = (d: Destination) => {
-    const err = runSearch({ destination: destinationChoice(d, locale) });
-    setProblem(err);
+    const destination = destinationChoice(d, locale);
+    const err = runSearch({ destination });
+    setProblem(err ? { code: err, key: recentKey({ ...form, destination }) } : null);
     if (!err) router.push("/resultater");
   };
 
   const roundTrip = form.tripType === "roundtrip";
-  const dates = f.dateSpan(form.departDate, roundTrip ? form.returnDate : null);
+  // Én vei sies på knappen, så den ikke ser ut som en tur-retur samme dag.
+  const span = keepDatesTogether(f.dateSpan(form.departDate, roundTrip ? form.returnDate : null));
+  const dates = roundTrip ? span : `${t.home.oneway} · ${span}`;
   const datesSpoken = t.calendar.summarySpoken(f.longDay(form.departDate), roundTrip ? f.longDay(form.returnDate) : null, roundTrip ? t.calendar.nights(nightsBetween(form.departDate, form.returnDate)) : null);
   // Reisende, og klassen og «bare direkte» når de ikke er standard.
   const travellers = [passengerSummary(form, i18n), ...(form.cabinClass !== "economy" ? [cabinLabel(form.cabinClass, i18n)] : []), ...(form.directOnly ? [t.home.directOnly] : [])].join(" · ");
@@ -106,6 +113,8 @@ export default function ExploreScreen() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      // Med tastaturet oppe (søket etter reisemål) virker første trykk på en knapp, ikke bare på tastaturet.
+      keyboardShouldPersistTaps="handled"
       style={styles.contextScroll}
       contentContainerStyle={styles.contextRow}
       testID="explore-summary"
@@ -164,9 +173,9 @@ export default function ExploreScreen() {
           { value: "map", label: t.explore.viewMap },
         ]}
       />
-      {problem ? (
+      {problem && problem.key === recentKey(form) ? (
         <Banner tone="error" dark testID="explore-error">
-          {formErrorText(problem, i18n)}
+          {formErrorText(problem.code, i18n)}
         </Banner>
       ) : null}
     </View>

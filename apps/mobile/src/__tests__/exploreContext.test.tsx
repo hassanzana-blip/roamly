@@ -7,6 +7,7 @@ import { SEARCH_RESULT } from "../test/fixtures";
 import type { SearchForm } from "../lib/searchForm";
 import { TOUCH } from "../lib/theme";
 import ExploreScreen from "../app/(tabs)/utforsk";
+import AirportPicker from "../app/flyplass";
 
 // Utforsk: fra-flyplassen, datoene og de reisende står øverst som knapper og endres der – uten å gå til forsiden. Et
 // reisemål søker med det som står der.
@@ -71,13 +72,48 @@ describe("søket øverst i Utforsk", () => {
     expect([search.passengers.length, search.cabinClass]).toEqual([2, "business"]);
   });
 
-  it("knappene er 36 pt høye, med trykkflate på minst 44 pt", async () => {
+  it("knappene er 36 pt høye, med trykkflate på minst 44 pt som raden ikke klipper; første trykk virker med tastaturet oppe", async () => {
     await renderExplore();
+    const row = screen.getByTestId("explore-summary");
+    const pad = (StyleSheet.flatten(row.props.contentContainerStyle) as { paddingVertical: number }).paddingVertical;
+    expect(row).toHaveProp("keyboardShouldPersistTaps", "handled");
     for (const id of ["context-origin", "context-dates", "context-travellers"]) {
       const b = screen.getByTestId(id);
       const style = StyleSheet.flatten(b.props.style) as { minHeight: number };
       expect([id, style.minHeight + 2 * (b.props.hitSlop as number)]).toEqual([id, TOUCH]);
+      expect(pad).toBeGreaterThanOrEqual(b.props.hitSlop as number);
     }
+  });
+
+  it("feilen fra et reisemål forsvinner når datoene rettes her", async () => {
+    // Appen sto åpen over natten: avreisen har passert.
+    await renderExplore({ initial: { departDate: "2026-09-20", returnDate: "2026-09-27" } });
+    await fireEvent.press(screen.getByTestId("explore-barcelona"));
+    expect(screen.getByTestId("explore-error")).toHaveTextContent("Utreisedatoen har passert. Velg en ny dato.");
+    await fireEvent.press(screen.getByTestId("context-dates"));
+    await fireEvent.press(screen.getByTestId("day-2026-10-09"));
+    await fireEvent.press(screen.getByTestId("day-2026-10-16"));
+    await fireEvent.press(screen.getByTestId("context-dates-done"));
+    expect(screen.queryByTestId("explore-error")).toBeNull();
+  });
+
+  it("feilen «velg hvor du reiser fra» forsvinner når fra-flyplassen velges fra knappen", async () => {
+    const setParams = (globalThis as unknown as { __setParams: (p: Record<string, string>) => void }).__setParams;
+    setParams({ felt: "fra" });
+    const server = fakeServer({ "mobileAuth.me": () => ({ data: null }), "flights.airports": () => ({ data: [] }), "flights.search": () => ({ data: SEARCH_RESULT }) });
+    const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
+    await render(
+      <AppProvider initialLocale="nb" apiFactory={factory} initial={{ ...DATES, origin: null }}>
+        <ExploreScreen />
+        <AirportPicker />
+      </AppProvider>,
+    );
+    await fireEvent.press(screen.getByTestId("explore-barcelona"));
+    expect(screen.getByTestId("explore-error")).toHaveTextContent("Velg hvor du reiser fra.");
+    await fireEvent.changeText(screen.getByTestId("airport-query"), "bergen");
+    await fireEvent.press(screen.getByTestId("airport-BGO"));
+    expect(screen.getByTestId("context-origin")).toHaveTextContent("Fra Bergen (BGO)");
+    expect(screen.queryByTestId("explore-error")).toBeNull();
   });
 
   it("datoene endres i kalenderen her, og et reisemål søker med de nye datoene", async () => {
@@ -107,7 +143,7 @@ describe("søket øverst i Utforsk", () => {
   it("uten fra-flyplass ber knappen om en; én vei viser bare avreisen", async () => {
     await renderExplore({ initial: { ...DATES, origin: null, tripType: "oneway" } });
     expect(screen.getByTestId("context-origin")).toHaveTextContent("Velg avreiseflyplass");
-    expect(screen.getByTestId("context-dates")).toHaveTextContent("23. okt.");
+    expect(screen.getByTestId("context-dates")).toHaveTextContent("Én vei · 23. okt.");
     expect(screen.getByTestId("context-dates")).toHaveProp("accessibilityLabel", "Avreise fredag 23. oktober 2026");
   });
 
