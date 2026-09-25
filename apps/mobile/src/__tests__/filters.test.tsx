@@ -391,3 +391,20 @@ describe("feil i søket", () => {
     expect(screen.getByTestId("retry-search")).toBeOnTheScreen();
   });
 });
+
+describe("filterarkets overskrifter", () => {
+  it("hver del har en overskrift som VoiceOver kan hoppe til, i arkets rekkefølge; de blir stående øverst mens delen rulles", async () => {
+    await renderResults(withDirect());
+    await fireEvent.press(screen.getByTestId("open-filters"));
+    const sheet = screen.getByTestId("filter-screen");
+    const heads = within(sheet).getAllByRole("header").map((h) => String(h.props.children));
+    expect(heads.slice(0, 3)).toEqual(["Mellomlandinger", "Utreise", "Hjemreise"]);
+    expect(heads).toContain("Mellomlanding i");
+    // Overskriftene er rullefeltets egne barn, og det er nøyaktig dem som står fast.
+    const scroll = sheet.props as { stickyHeaderIndices?: number[] };
+    const titles = screen.getAllByTestId(/^filter-head-/);
+    expect(titles).toHaveLength(heads.length);
+    expect(scroll.stickyHeaderIndices).toHaveLength(heads.length);
+    for (const t of titles) expect(StyleSheet.flatten(t.props.style)).toMatchObject({ backgroundColor: "#FFFFFF" });
+  });
+});

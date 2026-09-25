@@ -1724,3 +1724,32 @@ check OK.
 **Checks:** Jest 563 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean.
 
 **Not verified:** a real iPhone.
+
+## Filter sheet: headings stay at the top and are VoiceOver headings (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock with demo
+data (labelled DEMO).
+
+**Versions:** before is `e133bf3`; after is the commit that adds this section.
+
+**What changed (backlog 2.5)**
+- **The filter sheet is long** (stops, bags, both legs' times, airlines, stop airports, price, longest leg). Each
+  part's heading now stays at the top of the sheet while that part scrolls past, and the next heading pushes it away,
+  so it is always clear which part a row belongs to. The headings sit on white, so rows never show through.
+- **The headings are headings for VoiceOver** (they were plain text), so the rotor can jump between the parts. The
+  counts per option, the order and the spacing are unchanged.
+
+**Tests:** `filters.test.tsx` (headings in the sheet's order with the header role, exactly those headings stuck,
+white behind them).
+
+**Checks:** Jest 564 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean. iOS bundle 4 937 030 bytes. Bundle
+check OK.
+
+**Not verified:** a real iPhone (sticky headers inside the sheet's scroll view, and VoiceOver's rotor).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `sheet-heads-before-390.jpg` | `96f7fe47f64e27e9…` | 780×1860 |
+| `sheet-heads-after-390.jpg` | `6680bab021c912fd…` | 780×1860 |
+| `sheet-heads-after-390-via.jpg` | `82f613e7a39b1305…` | 780×1894 |
+| `sheet-heads-after-390-large.jpg` | `259a220273f96d4f…` | 780×1826 |

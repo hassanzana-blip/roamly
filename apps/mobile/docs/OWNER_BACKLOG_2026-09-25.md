@@ -83,7 +83,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 2.2 | Result card: seller count tappable context («3 tilbydere – fra 1 570 kr») | not doing: the whole card is one button (1.3), a second target inside it would break VoiceOver; the card already shows the cheapest seller's price and the details compare sellers |
 | 2.3 | Details: segment list shows aircraft and operating carrier compactly | verified: flight number, «operated by» and aircraft on one line per segment (stage «details one scroll») |
 | 2.4 | Details: «Del» shares route/dates, never a price guarantee (exists) [37] | verified earlier |
-| 2.5 | Filters sheet: sticky section headers, counts per option stay (exists) | planned |
+| 2.5 | Filters sheet: sticky section headers, counts per option stay (exists) | done: headings stay at the top and are VoiceOver headings (MANIFEST «Filter sheet: headings stay at the top») |
 | 2.6 | Results header: tapping the route opens the search form (not only the search icon) [25] | done (MANIFEST «Results: nothing found») |
 | 2.7 | Results: pull-to-refresh as an alias for «Oppdater priser» | done: pull down, «Oppdater prisene» and «Søk på nytt» keep the list while updating; a failed update keeps the previous prices (MANIFEST «Results: updating the prices keeps the list») |
 | 2.8 | Loading copy: what we are doing, not a promise about time | done (same stage) |
