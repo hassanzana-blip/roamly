@@ -24,6 +24,8 @@ export const colors = {
   lightBorder: "#E6E7EB",
   text: "#111214",
   textSecondary: "#62656D",
+  /** Det som ikke kan velges (passerte dager i kalenderen). Unntatt kontrastkravet, men fortsatt synlig. */
+  textDisabled: "#B4B7BE",
 
   // Handling
   blue: "#0754F8",

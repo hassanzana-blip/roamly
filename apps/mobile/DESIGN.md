@@ -40,6 +40,7 @@ hotellskjermer i utviklingsgrenen; de er ikke bekreftet med ekte bookbare levera
 | `lightBorder` | `#E6E7EB` | Kanter på lyse flater |
 | `text` | `#111214` | Tekst på lyst |
 | `textSecondary` | `#62656D` | Sekundærtekst på lyst |
+| `textDisabled` | `#B4B7BE` | Det som ikke kan velges (passerte dager i kalenderen); unntatt kontrastkravet |
 | `blue` | `#0754F8` | Handling (på lyst og som knappeflate) |
 | `bluePressed` | `#0544CC` | Trykket primærknapp |
 | `blueOnDark` | `#4C8DFF` | Blå tekst/ikon på mørkt (valgt fane i menyen, +1-døgn) |
@@ -101,7 +102,9 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `Notices`, `Banner`, `DemoBadge` | `ui.tsx` | Korte meldinger på mørkt (kan åpnes), meldinger på lyst, «DEMO»-merke |
 | `Field`, `Stepper`, `BottomSheet`, `StateView` | `ui.tsx` | Tekstfelt, antall reisende, ark nedenfra, tomme/feil-tilstander |
 | `SearchPanel`, `FormTile`, `DateField` | `SearchPanel.tsx`, `DateField.tsx` | Søkearket: turtype, fra/til med bytt, datoer, reisende, klasse |
-| `OfferCard`, `FlightLegRow`, `RouteLine`, `BaggageSummary` | `OfferCard.tsx` | Resultatkortet: ut- og hjemreise, bagasje, pris og prisgrunnlag |
+| `OfferCard`, `RouteLine`, `BaggageSummary` | `OfferCard.tsx` | Resultatkortet (215 pt tur-retur ved 390): hver strekning på to linjer («UT · 9. OKT.» og «3 t 16 min · 1 mellomlanding · CPH», så tider, koder og rutelinje), risiko (natt, flyplassbytte, 6 t+) med ikon og ord, bagasje ved prisen, hele kortet er knappen |
+| `SortTabs` | `SortTabs.tsx` | Best / Billigst / Raskest over resultatlisten med ekte toppris og reisetid; valgt fane hvit på kull; under hverandre når et beløp ville brytes |
+| `DateRangeSheet` | `RangeCalendar.tsx` | Avreise og retur i ett ark: månedsliste (mandag først), bånd mellom datoene, antall netter, passerte dager sperret, 47 × 46 pt dager |
 | `PriceTag` | `PriceTag.tsx` | Kronepris, «ca.»-pris med kurs, eller «Ingen pris i kroner» |
 | `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg; kildemetadata beholdes uten synlig kreditering over bildet |
 | `DestinationCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort, fanemeny, selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
@@ -113,10 +116,10 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
    Avreise/Retur, Reisende/Reiseklasse, «Søk fly» og én linje om at man ikke må logge inn. Under: reisemål som søker
    direkte, og til slutt en kort forklaring av hvordan HelloSky virker.
 2. **Resultater** (`src/app/resultater.tsx`): mørk grunn, rute og søk i toppen (+ «DEMO»), brikker (Alle, Direkte,
-   Maks 1 mellomlanding, Bagasje inkludert), korte meldinger (demo, «Om «ca.»-priser» som en rad på 44 pt), antall
-   reiser/tilbud og gjeldende sortering som tekst. Ett hvitt kort per
-   reise; samme reise hos flere tilbydere vises én gang med billigste pris og «N tilbydere». Flytende verktøylinje:
-   Filtrer / Sorter / Datoer.
+   Maks 1 mellomlanding, Bagasje inkludert), korte meldinger (demo, «Om «ca.»-priser» som en rad på 44 pt), fanene
+   Best / Billigst / Raskest (standard «Best», nettets vekter), antall reiser/tilbud og hva sorteringen gjør. Ett hvitt
+   kompakt kort per reise; samme reise hos flere tilbydere vises én gang med billigste pris og «N tilbydere». Flytende
+   verktøylinje: Filtrer / Sorter / Datoer (samme kalender som på forsiden).
 3. **Flydetaljer** (`src/app/tilbud/[id].tsx`): fotokort med selskap, utreisen i store tall og hjemreisen under;
    faner Oversikt / Bagasje / Vilkår (bare når tilbyderen oppga vilkår) / Reiseplan. Flere selgere av samme reise:
    sammenligningen står først i Oversikt. Fast bunnlinje: pris og grunnlag til venstre, «Gå til tilbud» til høyre,

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { AccessibilityInfo, FlatList, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { StatusBarShield } from "../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useApp } from "../lib/appState";
 import { fxNotice, priceDisplay } from "../lib/price";
-import { addDays, formatClock, fromIsoDate, toIsoDate } from "../lib/format";
+import { formatClock } from "../lib/format";
 import { ApiError } from "../lib/api";
 import { errorText } from "../lib/errorText";
 import { exclusionSummary, pricesStale, providerDisplayName, resultKind, totalConfirmed } from "../lib/resultStatus";
@@ -17,6 +16,7 @@ import { cabinLabel, passengerSummary } from "../lib/searchForm";
 import { activeFilterCount, airlineOptions, applyView, averageLegMinutes, clearedFilters, countWith, legThresholds, priceThresholds, SORT_TABS, SORTS, STOPS, TIME_BANDS, topFor, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
 import { groupJourneys } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
+import { DateRangeSheet } from "../components/RangeCalendar";
 import { SortTabs, type SortTab } from "../components/SortTabs";
 import { Banner, BottomSheet, Chip, DemoBadge, IconButton, Notices, PrimaryButton, SecondaryButton, StateView, type NoticeItem } from "../components/ui";
 import { Icon, type IconName } from "../components/Icon";
@@ -79,13 +79,14 @@ export default function ResultsScreen() {
   const insets = useSafeAreaInsets();
   const { search, runSearch, cancelSearch, form, setForm, view, setView } = useApp();
   const i18n = useI18n();
-  const { t, f, locale } = i18n;
+  const { t, f } = i18n;
   const r = t.results.screen;
   const reiser = t.results.journeys;
   // «Endre søk» går alltid til søkeskjemaet på forsiden – også når søket startet fra Utforsk.
   const editSearch = () => router.navigate("/");
   // Stabil, så kortene (memo) ikke tegnes på nytt ved hver endring i listen.
   const openOffer = useCallback((id: string) => router.push({ pathname: "/tilbud/[id]", params: { id } }), [router]);
+  const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
   // Klokke for «prisene kan ha endret seg»: oppdateres hvert halve minutt.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -506,44 +507,14 @@ export default function ResultsScreen() {
         </View>
       </BottomSheet>
 
-      <BottomSheet visible={sheet === "dates"} title={r.dates} onClose={() => setSheet(null)} testID="dates-sheet">
-        <View style={{ gap: space.md }}>
-          <View style={styles.dateRow}>
-            <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{r.departDate(f.day(form.departDate))}</Text>
-            <DateTimePicker
-              testID="dates-depart"
-              value={fromIsoDate(form.departDate)}
-              minimumDate={new Date()}
-              mode="date"
-              display={Platform.OS === "ios" ? "compact" : "default"}
-              locale={locale === "nb" ? "nb-NO" : "en-GB"}
-              accentColor={colors.blue}
-              themeVariant="light"
-              onChange={(_e: DateTimePickerEvent, d?: Date) => {
-                if (!d) return;
-                const departDate = toIsoDate(d);
-                setForm((prev) => ({ ...prev, departDate, returnDate: prev.returnDate < departDate ? addDays(departDate, 7) : prev.returnDate }));
-              }}
-            />
-          </View>
-          {form.tripType === "roundtrip" ? (
-            <View style={styles.dateRow}>
-              <Text style={[type.bodyStrong, { color: colors.text, flex: 1 }]}>{r.returnDate(f.day(form.returnDate))}</Text>
-              <DateTimePicker
-                testID="dates-return"
-                value={fromIsoDate(form.returnDate)}
-                minimumDate={fromIsoDate(form.departDate)}
-                mode="date"
-                display={Platform.OS === "ios" ? "compact" : "default"}
-                locale={locale === "nb" ? "nb-NO" : "en-GB"}
-                accentColor={colors.blue}
-                themeVariant="light"
-                onChange={(_e: DateTimePickerEvent, d?: Date) => {
-                  if (d) setForm((prev) => ({ ...prev, returnDate: toIsoDate(d) }));
-                }}
-              />
-            </View>
-          ) : null}
+      <DateRangeSheet
+        testID="dates-sheet"
+        visible={sheet === "dates"}
+        roundTrip={form.tripType === "roundtrip"}
+        dates={{ departDate: form.departDate, returnDate: form.returnDate }}
+        onChange={onDates}
+        onClose={() => setSheet(null)}
+        footer={
           <PrimaryButton
             testID="dates-search"
             label={r.searchAgain}
@@ -553,8 +524,8 @@ export default function ResultsScreen() {
               runSearch();
             }}
           />
-        </View>
-      </BottomSheet>
+        }
+      />
     </View>
   );
 }
@@ -592,5 +563,4 @@ const styles = StyleSheet.create({
   band: { flexBasis: "47%", flexGrow: 1, minHeight: 84, borderRadius: radius.input, borderWidth: 1, borderColor: colors.lightBorder, padding: space.md, gap: 2 },
   bandOn: { backgroundColor: colors.blue, borderColor: colors.blue },
   bandTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  dateRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 52 },
 });

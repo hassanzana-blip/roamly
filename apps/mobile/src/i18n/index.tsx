@@ -3,6 +3,7 @@ import { readPref, writePref } from "../lib/localStore";
 import {
   formatDay,
   formatInt,
+  formatLongDay,
   formatDuration,
   formatMonthYear,
   formatNok,
@@ -28,6 +29,7 @@ import { details } from "./ns/details";
 import { airport } from "./ns/airport";
 import { hotels } from "./ns/hotels";
 import { saved } from "./ns/saved";
+import { calendar } from "./ns/calendar";
 
 /**
  * Oversettelser. Hvert område har én fil med engelsk og norsk side om side;
@@ -36,8 +38,8 @@ import { saved } from "./ns/saved";
  * flertall bøyes riktig på begge språk.
  */
 const dictionaries = {
-  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en, hotels: hotels.en, saved: saved.en },
-  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb, hotels: hotels.nb, saved: saved.nb },
+  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en, hotels: hotels.en, saved: saved.en, calendar: calendar.en },
+  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb, hotels: hotels.nb, saved: saved.nb, calendar: calendar.nb },
 } satisfies Record<Locale, unknown>;
 
 export type Dictionary = typeof dictionaries.en;
@@ -52,6 +54,7 @@ export function formattersFor(locale: Locale) {
     nok: (amountMinor: number) => formatNok(amountMinor, locale),
     spokenNok: (amountMinor: number) => spokenNok(amountMinor, locale),
     day: (iso: string) => formatDay(iso, locale),
+    longDay: (iso: string) => formatLongDay(iso, locale),
     shortDay: (iso: string) => formatShortDay(iso, locale),
     numericDate: (iso: string) => formatNumericDate(iso, locale),
     monthYear: (year: number, month0: number) => formatMonthYear(year, month0, locale),

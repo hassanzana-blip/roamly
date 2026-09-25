@@ -127,7 +127,7 @@ the web, with a Bearer token instead of a cookie.
 | 20 | Draft restored after relaunch without stale dates | verified | `3285865`: `parseDraft`; past dates roll forward with the same trip length (tested); no token, name or e-mail is stored. |
 | 21 | Preferred departure airport | verified | `13fe57c`: only when the customer turns on "Remember as my usual departure airport"; shown with "Forget"; a new form starts from it (tests). |
 | 22 | Airport autocomplete: recent and popular | verified | `13fe57c`: before typing, the picker shows recent airports, then Norway's main airports (From) or the app's destinations (To), labelled as what they are, never "popular" without data. No matches: "Clear the search". |
-| 23 | Calendar bounds | partial | Minimum date only; no maximum (the provider horizon isn't known). Codex fixed web date validation in `79565c3`. |
+| 23 | Calendar bounds | partial | Minimum date only; no maximum (the provider horizon isn't known). Codex fixed web date validation in `79565c3`. 25 Sep: one range calendar (current month + 12, past days disabled) replaces the two native pickers on Home and in results (`calendar.test.ts`, `calendar.test.tsx`). |
 | 24 | Traveller and cabin sheets | partial | Caps and infant rules exist; no UI test of the sheet. |
 | 25 | Edit the search from results | partial | `d8c3e68`: "Edit search" goes to the form with the search kept. Gap: the results header reads the current form, which can differ from the results if the form is changed without searching. |
 | 26 | Airline filter | verified | `a7b7537`: airlines from the answer with counts; a journey matches when any of its flights is by a chosen airline (unit + screen tests). |

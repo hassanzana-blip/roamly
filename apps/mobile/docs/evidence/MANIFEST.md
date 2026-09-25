@@ -1157,3 +1157,49 @@ better), VoiceOver reading order, real Dynamic Type sizes, and live KAYAK answer
 | `card-after-390-oneway.jpg` | `d6fcd99d92463298…` | 780×1860 |
 | `card-after-390.jpg` | `a6c27d4c9b107dcf…` | 780×1888 |
 | `card-after-430.jpg` | `2142f7c509d8792b…` | 860×2036 |
+
+## Dates: one range calendar for departure and return (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle); simulated safe areas and text size;
+Inter instead of SF Pro. The preview's «today» is 25.09.2026. No flight data is involved except the results sheet image,
+whose search behind the sheet is the hand-made demo fixture.
+
+**Versions:** before is `9b71bac`; after is the commit that adds this section. There is no before image: the native iOS
+date picker does not exist in a browser (the old captures showed a web stand-in). Before, a round trip took two sheets:
+open «Avreise», pick, close; open «Retur», pick, close (6 taps). The results «Datoer» sheet had two compact pickers.
+
+**What changed**
+- One sheet for both dates, on Home and in the results «Datoer» sheet (which keeps «Søk på nytt»). A round trip is
+  open → tap departure → tap return → Ferdig (4 taps, one sheet). One way is one tap.
+- The top shows both dates and the number of nights; tapping «Avreise» or «Retur» decides what the next day sets.
+  Opening from «Retur» (or «Legg til» retur) starts on the return.
+- The form is valid after every tap (`lib/calendar.ts`, `applyPick`): a new departure keeps the return when it is still
+  after, otherwise moves it by the same trip length; a return tapped before the departure becomes the new departure.
+  Same-day return is allowed.
+- Monday-first weeks (Norwegian and British convention), the current month plus twelve (no invented booking horizon:
+  the search itself answers if a provider does not sell that far ahead). Past days are visibly disabled and not pressable.
+- Day cells are 47 × 46 pt at 375 pt. Rows grow with the text size (the numbers scale up to 2×, the largest that fits
+  seven columns). VoiceOver hears the full date and its role: «fredag 9. oktober 2026, avreise», «mandag 12. oktober 2026,
+  mellom avreise og retur», «torsdag 24. september 2026, kan ikke velges, har passert», with a hint for what a tap sets.
+- New theme token `textDisabled` (#B4B7BE) for the past days (disabled text is exempt from the contrast minimum).
+- Hotels keep their existing date fields for now (not part of the flight path).
+
+**Tests:** `lib/__tests__/calendar.test.ts` (new, 11: months over New Year, Monday-first grids, leap day, month index,
+nights across the DST change, every pick rule, day roles) and `calendar.test.tsx` (new, 5, clock fixed to 25.09.2026:
+two-tap range with nights and spoken roles; opening on return and a return before departure; past days disabled and
+today marked; one way and «Legg til» retur; English). The results dates test now picks a day in the calendar.
+
+**Not verified:** real iPhone rendering and scrolling feel, VoiceOver navigation through a month grid, real Dynamic Type
+at accessibility sizes, and one-handed reach on a device.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `cal-after-375.jpg` | `ccb1d91dde4c26e4…` | 750×1824 |
+| `cal-after-390-1-open.jpg` | `106225081ef118a5…` | 780×1888 |
+| `cal-after-390-2-depart.jpg` | `73c7d965d0a6c9fe…` | 780×1888 |
+| `cal-after-390-3-range.jpg` | `986c5ebc99b038d0…` | 780×1888 |
+| `cal-after-390-4-home.jpg` | `c3dd2c0296930205…` | 780×1888 |
+| `cal-after-390-en-return.jpg` | `3f746585c2008a28…` | 780×1888 |
+| `cal-after-390-large.jpg` | `f8d621697d36bb4b…` | 780×1888 |
+| `cal-after-390-results.jpg` | `4487db0128a00c81…` | 780×1916 |
+| `cal-after-430.jpg` | `51d4e0c65342cb70…` | 860×2036 |

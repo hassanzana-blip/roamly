@@ -189,12 +189,15 @@ describe("datoer", () => {
   it("«Datoer» i verktøylinjen søker på nytt med den nye datoen", async () => {
     const server = await renderResults(SEARCH_RESULT);
     await fireEvent.press(screen.getByTestId("open-dates"));
-    await fireEvent(screen.getByTestId("dates-depart"), "onChange", {}, new Date(2026, 10, 2));
+    // Kalenderen åpner på avreise; ett trykk på 2. november velger ny avreise.
+    expect(screen.getByTestId("dates-sheet-hint")).toHaveTextContent("Velg avreisedato");
+    await fireEvent.press(screen.getByTestId("day-2026-11-02"));
+    expect(screen.getByTestId("dates-sheet-hint")).toHaveTextContent("Velg returdato");
     await fireEvent.press(screen.getByTestId("dates-search"));
     await waitFor(() => expect(server.calls.filter((c) => c.path === "flights.search")).toHaveLength(2));
     const last = server.calls.filter((c) => c.path === "flights.search").at(-1)!;
     expect((last.input as { slices: { departureDate: string }[] }).slices[0]!.departureDate).toBe("2026-11-02");
-    // Hjemreisen var før den nye utreisen: flyttes en uke etter.
+    // Hjemreisen var før den nye utreisen: flyttes med samme reiselengde (en uke).
     expect((last.input as { slices: { departureDate: string }[] }).slices[1]!.departureDate).toBe("2026-11-09");
   });
 });

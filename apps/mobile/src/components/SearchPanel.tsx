@@ -1,14 +1,15 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Switch, Text } from "./a11y";
 import { useRouter } from "expo-router";
 import { useApp } from "../lib/appState";
-import { addDays, toIsoDate } from "../lib/format";
+import type { PickMode } from "../lib/calendar";
 import { CABINS, CHILD_AGES, DEFAULT_CHILD_AGE, DEFAULT_INFANT_AGE, INFANT_AGES, MAX_PASSENGERS, cabinLabel, formErrorText, passengerCount, passengerSummary, type AirportChoice } from "../lib/searchForm";
 import { useI18n } from "../i18n";
 import type { FormErrorCode } from "../i18n/ns/search";
 import { Banner, BottomSheet, ChoiceChips, PrimaryButton, Segmented, Stepper } from "./ui";
-import { DateField, FormTile } from "./DateField";
+import { FormTile } from "./DateField";
+import { DateRangeSheet } from "./RangeCalendar";
 import { Icon } from "./Icon";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
 
@@ -48,9 +49,11 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
   const h = t.home;
   const [problem, setProblem] = useState<FormErrorCode | null>(null);
   const [travellersOpen, setTravellersOpen] = useState(false);
-  const [returnOpen, setReturnOpen] = useState(false);
-  const today = toIsoDate(new Date());
+  // Kalenderen: én for begge datoene; åpnet på avreise eller retur, etter hvilken rute kunden trykket på.
+  const [calendar, setCalendar] = useState<PickMode | null>(null);
   const total = passengerCount(form);
+
+  const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
 
   const submit = () => {
     const err = runSearch();
@@ -86,15 +89,9 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
 
       <View style={styles.grid}>
         <View style={styles.gridRow}>
-          <DateField
-            testID="depart-date"
-            label={h.depart}
-            value={form.departDate}
-            minimum={today}
-            onChange={(departDate) => setForm((f) => ({ ...f, departDate, returnDate: f.returnDate < departDate ? addDays(departDate, 7) : f.returnDate }))}
-          />
+          <FormTile testID="depart-date" icon="calendar" label={h.depart} value={i18n.f.day(form.departDate)} onPress={() => setCalendar("depart")} accessibilityHint={h.calendarHint} />
           {form.tripType === "roundtrip" ? (
-            <DateField testID="return-date" label={h.return} value={form.returnDate} minimum={form.departDate} onChange={(returnDate) => setForm((f) => ({ ...f, returnDate }))} open={returnOpen} onOpenChange={setReturnOpen} />
+            <FormTile testID="return-date" icon="calendar" label={h.return} value={i18n.f.day(form.returnDate)} onPress={() => setCalendar("return")} accessibilityHint={h.calendarHint} />
           ) : (
             <FormTile
               testID="add-return"
@@ -106,7 +103,7 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
               accessibilityHint={h.addReturnHint}
               onPress={() => {
                 setForm((f) => ({ ...f, tripType: "roundtrip" }));
-                setReturnOpen(true);
+                setCalendar("return");
               }}
             />
           )}
@@ -125,6 +122,16 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
       ) : null}
       <PrimaryButton testID="search-button" label={h.searchButton} icon="arrowRight" onPress={submit} />
       {footer}
+
+      <DateRangeSheet
+        visible={calendar !== null}
+        startMode={calendar ?? "depart"}
+        roundTrip={form.tripType === "roundtrip"}
+        dates={{ departDate: form.departDate, returnDate: form.returnDate }}
+        onChange={onDates}
+        onClose={() => setCalendar(null)}
+        footer={<PrimaryButton testID="calendar-done-button" label={t.calendar.done} onPress={() => setCalendar(null)} />}
+      />
 
       <BottomSheet visible={travellersOpen} title={h.travellersSheet} onClose={() => setTravellersOpen(false)} testID="travellers-sheet">
         <ScrollView contentContainerStyle={{ gap: space.xs, paddingBottom: space.md }}>

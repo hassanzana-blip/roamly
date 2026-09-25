@@ -74,6 +74,19 @@ export function formatNumericDate(iso: string, locale: Locale): string {
   return `${String(p.d).padStart(2, "0")}.${String(p.m).padStart(2, "0")}.${p.y}`;
 }
 
+const WEEKDAYS_LONG: Record<Locale, string[]> = {
+  nb: ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+};
+
+/** Hele datoen for VoiceOver i kalenderen: nb «fredag 9. oktober 2026», en «Friday 9 October 2026». */
+export function formatLongDay(iso: string, locale: Locale): string {
+  const p = parseIsoDate(iso);
+  if (!p) return "";
+  const weekday = WEEKDAYS_LONG[locale][new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay()];
+  return locale === "en" ? `${weekday} ${p.d} ${MONTHS_LONG.en[p.m - 1]} ${p.y}` : `${weekday} ${p.d}. ${MONTHS_LONG.nb[p.m - 1]} ${p.y}`;
+}
+
 /** Måned og år for kalenderen: nb «oktober 2026», en «October 2026». */
 export function formatMonthYear(year: number, month0: number, locale: Locale): string {
   return `${MONTHS_LONG[locale][month0]} ${year}`;
