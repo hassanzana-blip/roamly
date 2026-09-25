@@ -62,6 +62,9 @@ const en = {
     clearFilters: "Clear filters",
     noFlightsTitle: "No flights found",
     noFlightsBody: "We found no flights for this search. Try other dates or airports.",
+    /** Tomt svar: samme reise noen dager før eller etter, som nye søk (ingen priser). */
+    nearbyTitle: "Try the dates around it",
+    nearbySpoken: (depart: string, ret: string | null) => (ret ? `Search departing ${depart}, returning ${ret}` : `Search departing ${depart}`),
     filter: "Filter",
     sort: "Sort",
     dates: "Dates",
@@ -194,6 +197,8 @@ const nb: typeof en = {
     clearFilters: "Nullstill filtre",
     noFlightsTitle: "Ingen fly funnet",
     noFlightsBody: "Vi fant ingen fly for dette søket. Prøv andre datoer eller flyplasser.",
+    nearbyTitle: "Prøv datoene rundt",
+    nearbySpoken: (depart, ret) => (ret ? `Søk med avreise ${depart} og retur ${ret}` : `Søk med avreise ${depart}`),
     filter: "Filtrer",
     sort: "Sorter",
     dates: "Datoer",

@@ -1530,3 +1530,41 @@ on the previous code.
 | `airport-after-390-xl-osl.jpg` | `eeca19b15b743869…` | 780×1860 |
 | `airport-after-390-oslo-torp.jpg` | `b19c4cc3f6474e27…` | 780×1860 |
 | `airport-after-390-oslo.jpg` | `4b258c9ad6ba56a9…` | 780×1860 |
+
+## Results: nothing found → «Prøv datoene rundt»; the search in the header can be tapped (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock returning
+an empty answer.
+
+**Versions:** before is `2e8156f` (the empty state is unchanged up to `44ab435`); after is the commit that adds this
+section.
+
+**What changed**
+- **A search that finds nothing offers the dates around it (backlog 2.11).** It shows «Prøv datoene rundt» with the
+  same trip three and one day earlier and later, keeping the trip length («6.–13. okt.», «8.–15. okt.» …), and never
+  a date that has passed. Each chip is a new search of exactly the search shown, with the new dates. There are no
+  prices on the chips; we have none until it is searched. The web does the same («Prøv datoene rundt»). The chips
+  also show when the provider answered but nothing matched the search. VoiceOver: «Søk med avreise tor. 22. okt. og
+  retur tor. 29. okt.».
+- **No price notes on an empty answer.** «Om «ca.»-priser» and «Ekte priser · sjekket kl. …» no longer sit above
+  «Ingen fly funnet». There are no prices to explain.
+- **The search in the header can be tapped (backlog 2.6)** to open the search form, like the search button next to
+  it. For VoiceOver the route stays a heading, and the button does the job, so nothing is announced twice.
+
+**Tests:** `nearbyDates.test.ts` (shifts, trip length kept, never before today, month change and summer time) and
+`resultsEmpty.test.tsx` (the four chips and their spoken labels, a tap searching the shown query with new dates,
+one-way with a weekday, past dates left out, the provider-mismatch case, no chips when there are journeys, no price
+notes on an empty answer, the header tap and its accessibility).
+
+**Checks:** Jest 540 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean. iOS bundle 4 927 237 bytes. Bundle
+check OK.
+
+**Not verified:** a real iPhone.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `empty-before-390.jpg` | `658e6cb0cd102983…` | 780×1860 |
+| `empty-after-390.jpg` | `de40b7227a4a0d69…` | 780×1860 |
+| `empty-after-375.jpg` | `f117945e61476aee…` | 750×1762 |
+| `empty-after-390-large.jpg` | `c350e6d7a37444fd…` | 780×1826 |
+| `empty-after-390-en.jpg` | `7048f0da52498ca1…` | 780×1826 |

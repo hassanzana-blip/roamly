@@ -84,13 +84,13 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 2.3 | Details: segment list shows aircraft and operating carrier compactly | planned |
 | 2.4 | Details: «Del» shares route/dates, never a price guarantee (exists) [37] | verified earlier |
 | 2.5 | Filters sheet: sticky section headers, counts per option stay (exists) | planned |
-| 2.6 | Results header: tapping the route opens the search form (not only the search icon) [25] | planned |
+| 2.6 | Results header: tapping the route opens the search form (not only the search icon) [25] | done (MANIFEST «Results: nothing found») |
 | 2.7 | Results: pull-to-refresh as an alias for «Oppdater priser» | planned |
 | 2.8 | Loading copy: what we are doing, not a promise about time | planned |
 | 2.9 | Explore: route context editable in place [9] | open |
 | 2.10 | Explore/Lagret: consistent row density with Results | open |
-| 2.11 | Empty results: suggest ±1–3 days only as a new search, never with invented prices [35] | planned |
-| 2.12 | Performance: memoised cards, stable keys, no per-render regrouping in the filter sheet | partial (cards memoised, stable callback) |
+| 2.11 | Empty results: suggest ±1–3 days only as a new search, never with invented prices [35] | done: «Prøv datoene rundt» (MANIFEST «Results: nothing found») |
+| 2.12 | Performance: memoised cards, stable keys, no per-render regrouping in the filter sheet | done: the sheet counts only while open (MANIFEST «Review fixes for the airport picker …») |
 | 2.13 | Performance: measure search-to-first-card on device (needs a device build) [58] | blocked (device) |
 | 2.14 | Profile: guest state explains what an account adds, truthfully [48] | open |
 | 2.15 | Copy review nb/en for every new string (native-sounding, no clipped labels) [52] | ongoing |

@@ -37,6 +37,7 @@ import {
   type TimeBand,
 } from "../lib/resultsView";
 import { activeFilterChips } from "../lib/filterChips";
+import { nearbyDates } from "../lib/nearbyDates";
 import { groupJourneys } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
 import { DateRangeSheet } from "../components/RangeCalendar";
@@ -371,7 +372,9 @@ export default function ResultsScreen() {
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
       <IconButton icon="chevronLeft" label={r.back} variant="plain" onPress={() => router.back()} testID="header-back" />
-      <View style={styles.headerText}>
+      {/* Et trykk på søket åpner søkeskjemaet, som søkeknappen til høyre. For VoiceOver er det knappen som gjør det;
+          overskriften forblir en overskrift. */}
+      <Pressable style={({ pressed }) => [styles.headerText, pressed && { opacity: 0.7 }]} onPress={editSearch} accessible={false} testID="header-edit">
         <View style={styles.titleRow}>
           <Text style={[type.headline, { color: colors.onDark }]} numberOfLines={1} accessibilityRole="header">
             {title}
@@ -381,7 +384,7 @@ export default function ResultsScreen() {
         <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={2}>
           {subtitle}
         </Text>
-      </View>
+      </Pressable>
       <IconButton icon="search" label={r.editSearch} onPress={editSearch} testID="edit-search" />
     </View>
   );
@@ -465,7 +468,8 @@ export default function ResultsScreen() {
     ...(excluded && all.length ? [{ key: "excluded", tone: "info" as const, text: r.status.excluded(excluded.count, excluded.why), testID: "excluded-notice" }] : []),
     // Alt omregnet (bare en opplysning): lukket bak «Om «ca.»-priser»; kortene har «ca.» og kilden.
     // Mangler kronepriser (en advarsel): alltid åpen.
-    ...(notice
+    // Uten tilbud er det ingen priser å forklare.
+    ...(notice && all.length
       ? notice.tone === "info"
         ? [{ key: "fx", tone: notice.tone, text: notice.text, label: t.price.fx.about, testID: "fx-notice" }]
         : [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }]
@@ -491,6 +495,30 @@ export default function ResultsScreen() {
     { key: "bags", label: r.chips.bags, selected: view.bags, count: countWith(all, view, { bags: true }), onPress: () => setView((v) => ({ ...v, bags: !v.bags })) },
   ];
 
+  // Ingen reiser: samme reise noen dager før eller etter, som nye søk – uten priser (dem har vi ikke før det er søkt).
+  const nearby = all.length ? [] : nearbyDates(search.query);
+  const nearbyRow = nearby.length ? (
+    <View style={styles.nearby} testID="nearby-dates">
+      <Text style={[type.footnoteStrong, { color: colors.onDark, textAlign: "center" }]}>{r.nearbyTitle}</Text>
+      <View style={styles.nearbyRow}>
+        {nearby.map((d) => {
+          const back = search.query.tripType === "roundtrip" ? d.returnDate : null;
+          return (
+            <Chip
+              key={d.days}
+              testID={`nearby-${d.days}`}
+              label={back ? f.dateSpan(d.departDate, back) : f.day(d.departDate)}
+              accessibilityLabel={r.nearbySpoken(f.day(d.departDate), back ? f.day(back) : null)}
+              selected={false}
+              // Søket som vises, med nye datoer – ikke et skjema som kan være endret etterpå.
+              onPress={() => runSearch({ ...search.query, departDate: d.departDate, returnDate: d.returnDate })}
+            />
+          );
+        })}
+      </View>
+    </View>
+  ) : null;
+
   const listHeader = (
     <View>
       {header}
@@ -512,7 +540,7 @@ export default function ResultsScreen() {
           <Notices items={notices} />
         </View>
       ) : null}
-      {kind === "live" || kind === "unverified" ? (
+      {(kind === "live" || kind === "unverified") && all.length ? (
         <View style={styles.statusRow} testID="price-status">
           {stale ? (
             <>
@@ -568,10 +596,12 @@ export default function ResultsScreen() {
             </StateView>
           ) : excluded ? (
             <StateView icon="plane" title={r.status.excludedEmptyTitle} body={r.status.excludedEmptyBody(excluded.count, excluded.why)} testID="results-excluded-empty">
+              {nearbyRow}
               <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
             </StateView>
           ) : (
-            <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody}>
+            <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody} testID="results-none">
+              {nearbyRow}
               <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
             </StateView>
           )
@@ -658,7 +688,9 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md },
-  headerText: { flex: 1, alignItems: "center", gap: 2 },
+  headerText: { flex: 1, alignItems: "center", gap: 2, minHeight: TOUCH, justifyContent: "center" },
+  nearby: { gap: space.sm, alignSelf: "stretch", paddingBottom: space.xs },
+  nearbyRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: space.sm },
   titleRow: { flexDirection: "row", alignItems: "center", gap: space.sm, maxWidth: "100%" },
   // Luft over og under brikkene inne i rullefeltet, så hitSlop (4 pt) når 44 pt – en ScrollView klipper det som stikker utenfor.
   chips: { paddingHorizontal: space.lg, gap: space.sm, paddingTop: space.xs, paddingBottom: 6 },
