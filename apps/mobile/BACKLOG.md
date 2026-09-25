@@ -134,7 +134,7 @@ the web, with a Bearer token instead of a cookie.
 | 27 | Maximum price filter (NOK totals) | verified | `a7b7537`: limits from the quartiles of the actual NOK totals; offers without a NOK price are hidden while a limit is set, and the sheet says so. |
 | 28 | Duration filter (unknown handled) | verified | `a7b7537`: longest leg, each way, in whole hours; unknown durations are hidden while a limit is set. |
 | 29 | Outbound and return time filters | partial | `a7b7537`: departure bands both ways. Gap: no arrival-time filters. |
-| 30 | Airport-change, overnight and long-layover warnings before hand-off | verified | `3046d65`: warning box above the hand-off button (tested). |
+| 30 | Airport-change, overnight and long-layover warnings before hand-off | verified | `3046d65`: warning box above the hand-off button (tested). 25 Sep: the same risks on the result card, one line per connection (`offerCard.test.tsx`). |
 | 31 | Bag and refund/change: included / not included / unknown / fee | verified | `5230535`: "allowed for a fee" (KAYAK, Duffel, demo, web + app); `83ce160`: unknown bag restriction = "not stated". |
 | 32 | Compare all providers for the same journey | partial | Sellers are grouped within one search, with price, bags and terms kept in step; different providers are not merged. |
 | 33 | Sort labels explained, stable | verified | Summaries on each option; «approx.» ranking explained in the sort sheet. 25 Sep: «Best» (default, the web's weights, explained in the sheet), earliest departure, and Best/Cheapest/Fastest tabs with real numbers (`resultsView.test.ts`, `filters.test.tsx`). |

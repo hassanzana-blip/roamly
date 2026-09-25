@@ -24,12 +24,21 @@ const en = {
   hiddenByFilters: (n: number) => `${n} hidden by filters`,
   providers: (n: number) => `${n} ${n === 1 ? "provider" : "providers"}`,
   card: {
-    details: "Details",
     detailsHint: "Shows flight details",
     out: (day: string) => `Out · ${day}`,
     back: (day: string) => `Return · ${day}`,
     leg: (from: string, to: string, dep: string, arr: string, duration: string, stops: string) => `${from} to ${to}, ${dep} to ${arr}, ${duration}, ${stops}`,
     providersSpoken: (n: number) => ` ${n} providers.`,
+    /** «1 stop · CPH» on the card; «1 stop in Copenhagen» for VoiceOver. */
+    via: (stops: string, codes: string) => `${stops} · ${codes}`,
+    viaSpoken: (stops: string, cities: string) => `${stops} in ${cities}`,
+    /** Material risks on the card: short, always with an icon and in words. */
+    risks: {
+      airportChange: (city: string) => `Change of airport in ${city}`,
+      overnightLayover: (city: string) => `Overnight connection in ${city}`,
+      overnightLayoverFor: (city: string, duration: string) => `Overnight connection in ${city} (${duration})`,
+      longLayover: (city: string, duration: string) => `${duration} layover in ${city}`,
+    },
   },
   screen: {
     fallbackTitle: "Flights",
@@ -124,12 +133,19 @@ const nb: typeof en = {
   hiddenByFilters: (n) => `${n} skjult av filtre`,
   providers: (n) => `${n} ${n === 1 ? "tilbyder" : "tilbydere"}`,
   card: {
-    details: "Detaljer",
     detailsHint: "Viser flydetaljer",
     out: (day) => `Ut · ${day}`,
     back: (day) => `Hjem · ${day}`,
     leg: (from, to, dep, arr, duration, stops) => `${from} til ${to}, ${dep} til ${arr}, ${duration}, ${stops}`,
     providersSpoken: (n) => ` ${n} tilbydere.`,
+    via: (stops, codes) => `${stops} · ${codes}`,
+    viaSpoken: (stops, cities) => `${stops} i ${cities}`,
+    risks: {
+      airportChange: (city) => `Bytte av flyplass i ${city}`,
+      overnightLayover: (city) => `Bytte over natten i ${city}`,
+      overnightLayoverFor: (city, duration) => `Bytte over natten i ${city} (${duration})`,
+      longLayover: (city, duration) => `${duration} ventetid i ${city}`,
+    },
   },
   screen: {
     fallbackTitle: "Flyreiser",

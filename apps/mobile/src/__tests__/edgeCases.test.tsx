@@ -24,6 +24,7 @@ const COPY = {
     travellers: "2 voksne, 1 barn, 1 spedbarn",
     cityOrAirport: "By eller flyplass",
     basis: "Totalt for 2 voksne, 1 barn, 1 spedbarn · Tur-retur",
+    cardBasis: "Totalt for 2 voksne, 1 barn, 1 spedbarn",
     providers: "3 tilbydere",
     count: "2 reiser · 4 tilbud",
     action: (s: string) => `Gå til tilbud hos ${s}`,
@@ -38,6 +39,7 @@ const COPY = {
     travellers: "2 adults, 1 child, 1 infant",
     cityOrAirport: "City or airport",
     basis: "Total for 2 adults, 1 child, 1 infant · Return",
+    cardBasis: "Total for 2 adults, 1 child, 1 infant",
     providers: "3 providers",
     count: "2 journeys · 4 offers",
     action: (s: string) => `Go to offer at ${s}`,
@@ -123,7 +125,8 @@ describe.each(["nb", "en"] as const)("fire reisende og lange navn (%s)", (locale
     await waitFor(() => expect(screen.getByTestId("results-list")).toBeOnTheScreen());
     expect(screen.getByTestId("result-count")).toHaveTextContent(c.count);
     const card = within(screen.getByTestId("offer-edge_agency"));
-    expect(card.getByText(c.basis)).toBeOnTheScreen();
+    // Kortet viser begge strekningene, så reisetypen gjentas ikke ved beløpet; VoiceOver får hele grunnlaget.
+    expect(card.getByText(c.cardBasis)).toBeOnTheScreen();
     expect(card.getByText(c.providers)).toBeOnTheScreen();
     expect(card.getByText(EDGE_AIRLINE)).toBeOnTheScreen();
     expect(screen.getByTestId("offer-edge_agency").props.accessibilityLabel).toContain(c.basis.toLowerCase());

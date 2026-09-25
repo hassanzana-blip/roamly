@@ -1101,3 +1101,59 @@ live KAYAK answers (staging returns demo data).
 | `sort-after-390.jpg` | `765a5de59284bee1…` | 780×1888 |
 | `sort-after-430.jpg` | `f62b649f335539c1…` | 860×2036 |
 | `sort-before-2f4ab8a-390.jpg` | `a9dabb347737c29b…` | 780×1888 |
+
+## Results: compact card with stop airports and risks (browser preview)
+
+**NON-NATIVE: not an iPhone.** Same method and fixture as «Results: Best / Cheapest / Fastest» above (Chromium, Expo web
+production bundle, simulated safe areas and text size, Inter instead of SF Pro, hand-made demo fares marked DEMO).
+
+**Versions:** before is `2f4ab8a` (what the last preview build showed) and `18193da` (tabs only); after is the commit that
+adds this section. Images are JPEG (quality 82). The before images are `sort-before-2f4ab8a-390.jpg` and `sort-after-390.jpg`.
+
+**What changed on the card** (the owner's outbound/return labels and route line are kept):
+- Each leg is two lines instead of three: «UT · 9. OKT.» on the left and «3 t 16 min · Direkte» on the right, then
+  departure time, airport code, route line, airport code and arrival time. The date labels stay; nothing else repeats.
+- The stop airport is on the card: «1 mellomlanding · CPH» (VoiceOver: «1 mellomlanding i København»). «Direkte» is green
+  text (a word, never colour alone).
+- Material risks are on the card, from the same rules as the details warning box: change of airport, overnight
+  connection and waits of 6 h or more. One connection is named once («Bytte over natten i München (8 t 55 min)»), and an
+  identical outbound/return risk is not repeated. Warning colour plus an icon plus words.
+- Bags sit beside the price instead of on their own row. The amount still carries «Totalt for 1 voksen»; the trip type is
+  not repeated there because both legs are on the card. VoiceOver and the details bar keep the full basis
+  («… · Tur-retur»).
+- The whole card is the button; the separate «Detaljer» pill is gone (it was hidden from VoiceOver already).
+- The airline line names the carriers that fly the journey («SAS · Vueling»), and the cabin appears only when it differs
+  from the one searched for. Long names wrap; no text on the card has a line limit.
+- Narrow screens (< 360 pt) and text above 135 %: each leg stacks, left-aligned, with «OSL → BCN · 3 t 16 min · Direkte».
+- Cards are memoised with a stable open callback, so filtering and sorting do not re-render unchanged cards.
+
+**Measured first view** (pt; same flow as above):
+
+| Viewport | Card height 2f4ab8a → after | Cards visible 2f4ab8a → 18193da → after |
+|---|---|---|
+| 375×812 | 289 → 215 | 1.55 → 1.21 → 1.63 |
+| 390×844 | 289 → 215 | 1.67 → 1.39 → 1.88 |
+| 430×932 | 289 → 215 | 1.93 → 1.66 → 2.18 |
+| 390×844, text 135 % | 393 → 267 | 1.05 → 0.76 → 1.08 |
+
+A card with a risk line is 232 pt. With live data the demo notice (≈ 75 pt) is replaced by the one-line price status, so
+the live first view has more room than these demo captures.
+
+**Tests:** `offerCard.test.tsx` (new, 7): stop airport and spoken city; one merged overnight risk with the wait; airport
+change and carrier names; no risk line on a plain direct flight and green «Direkte»; cabin only when it differs; the
+whole card opens its own offer and has no inner «Detaljer»; English; large text stacks without line limits. Existing
+card tests now expect the short basis on the card and the full basis in the VoiceOver label.
+
+**Not verified:** real iPhone rendering and SF Pro widths (Inter is wider, so real wrapping should be the same or
+better), VoiceOver reading order, real Dynamic Type sizes, and live KAYAK answers.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `card-after-320.jpg` | `6091606a3bc63257…` | 640×1336 |
+| `card-after-375.jpg` | `01499416cef11693…` | 750×1852 |
+| `card-after-390-cheapest.jpg` | `24ba5704736198d1…` | 780×1888 |
+| `card-after-390-en.jpg` | `49430eadc4d1f554…` | 780×1888 |
+| `card-after-390-large.jpg` | `b0aa950905032b01…` | 780×1888 |
+| `card-after-390-oneway.jpg` | `d6fcd99d92463298…` | 780×1860 |
+| `card-after-390.jpg` | `a6c27d4c9b107dcf…` | 780×1888 |
+| `card-after-430.jpg` | `2142f7c509d8792b…` | 860×2036 |

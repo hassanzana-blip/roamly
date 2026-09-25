@@ -37,7 +37,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 
 | # | Item | Status |
 |---|---|---|
-| 0.1 | Material itinerary risks (overnight layover, airport change, long layover) visible on the result card, not only in details [32] | planned |
+| 0.1 | Material itinerary risks (overnight layover, airport change, long layover) visible on the result card, not only in details [32] | done (stage «compact card») |
 | 0.2 | A «Best» ranking so a long overnight connection is not presented as the top choice just because it is marginally cheaper; explained in plain words | done (stage «Best / Cheapest / Fastest») |
 | 0.3 | Default ranking honest about what it optimises: the sort in effect is always visible on the list | done (same stage) |
 
@@ -47,8 +47,8 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 |---|---|---|
 | 1.1 | Sort tabs above the list: Best / Cheapest / Fastest with each tab's top price and travel time (real data only) [28] | done (same stage) |
 | 1.2 | Add «Earliest departure» sort; stable tie-breaks everywhere [28] | done (same stage) |
-| 1.3 | Compact result card (target ≤ 215 pt round trip at 390 pt): whole card is the button, bags beside the price, cabin shown only when it differs from the search [22] | planned |
-| 1.4 | Layover airports on the card («1 mellomlanding · CPH») | planned |
+| 1.3 | Compact result card (target ≤ 215 pt round trip at 390 pt): whole card is the button, bags beside the price, cabin shown only when it differs from the search [22] | done (215 pt) |
+| 1.4 | Layover airports on the card («1 mellomlanding · CPH») | done |
 | 1.5 | One range calendar for departure + return in one sheet; one-way picks one date; month list, today/past disabled, 44 pt days, VoiceOver dates [23] | planned |
 | 1.6 | The same calendar in the results «Datoer» sheet (replaces two compact pickers) | planned |
 | 1.7 | Loading: skeleton cards under the real header (search stays visible), stable layout, Reduce Motion respected, cancel kept [17][45] | planned |
@@ -58,7 +58,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 1.11 | Airport picker: matched text emphasised; Norwegian city names and IATA both match (server already does the search) | planned |
 | 1.12 | Filters: connection airports (from the offers), arrival-time bands both ways [29][31] | planned |
 | 1.13 | Filter state visible after the sheet closes: active filters as removable chips [29] | planned |
-| 1.14 | Price basis wording shorter on cards; full basis kept for VoiceOver and details [24] | planned |
+| 1.14 | Price basis wording shorter on cards; full basis kept for VoiceOver and details [24] | done |
 | 1.15 | Results: «N reiser» count and sort label never contradict the list after filtering | planned |
 | 1.16 | Error recovery specific to the code, with the search kept (already largely true; verify copy) [18] | verify |
 | 1.17 | Home: search form first view unchanged or tighter after the calendar change [45] | planned |
@@ -90,7 +90,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 2.9 | Explore: route context editable in place [9] | open |
 | 2.10 | Explore/Lagret: consistent row density with Results | open |
 | 2.11 | Empty results: suggest ±1–3 days only as a new search, never with invented prices [35] | planned |
-| 2.12 | Performance: memoised cards, stable keys, no per-render regrouping in the filter sheet | planned |
+| 2.12 | Performance: memoised cards, stable keys, no per-render regrouping in the filter sheet | partial (cards memoised, stable callback) |
 | 2.13 | Performance: measure search-to-first-card on device (needs a device build) [58] | blocked (device) |
 | 2.14 | Profile: guest state explains what an account adds, truthfully [48] | open |
 | 2.15 | Copy review nb/en for every new string (native-sounding, no clipped labels) [52] | ongoing |

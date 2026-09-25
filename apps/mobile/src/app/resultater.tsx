@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AccessibilityInfo, FlatList, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
@@ -84,6 +84,8 @@ export default function ResultsScreen() {
   const reiser = t.results.journeys;
   // «Endre søk» går alltid til søkeskjemaet på forsiden – også når søket startet fra Utforsk.
   const editSearch = () => router.navigate("/");
+  // Stabil, så kortene (memo) ikke tegnes på nytt ved hver endring i listen.
+  const openOffer = useCallback((id: string) => router.push({ pathname: "/tilbud/[id]", params: { id } }), [router]);
   // Klokke for «prisene kan ha endret seg»: oppdateres hvert halve minutt.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -380,7 +382,7 @@ export default function ResultsScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <OfferCard journey={item} totalConfirmed={confirmed} onPress={() => router.push({ pathname: "/tilbud/[id]", params: { id: item.best.offer.id } })} />
+            <OfferCard journey={item} totalConfirmed={confirmed} searchedCabin={search.query.cabinClass} onOpen={openOffer} />
           </View>
         )}
       />

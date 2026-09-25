@@ -58,7 +58,7 @@ describe("ny installasjon: norsk bokmål; engelsk er et lagret valg", () => {
   it("uten lagret valg er appen på norsk bokmål – og standarden lagres ikke som et valg", async () => {
     await renderResults(SEARCH_RESULT);
     const card = within(screen.getByTestId("offer-sek_1"));
-    expect(card.getByText("Totalt for 1 voksen · Tur-retur")).toBeOnTheScreen();
+    expect(card.getByText("Totalt for 1 voksen")).toBeOnTheScreen();
     expect(card.getByText("Ut · 23. okt.")).toBeOnTheScreen();
     expect(within(screen.getByTestId("price-nok_1")).getByText(/^2\s100,50\skr$/)).toBeOnTheScreen();
     expect(screen.getByTestId("result-count")).toHaveTextContent("5 reiser · 5 tilbud");
@@ -80,7 +80,7 @@ describe("ny installasjon: norsk bokmål; engelsk er et lagret valg", () => {
     savedEnglish();
     await renderResults(SEARCH_RESULT);
     const card = within(screen.getByTestId("offer-sek_1"));
-    expect(card.getByText("Total for 1 adult · Return")).toBeOnTheScreen();
+    expect(card.getByText("Total for 1 adult")).toBeOnTheScreen();
     expect(card.getByText("Out · 23 Oct")).toBeOnTheScreen();
     expect(within(screen.getByTestId("price-nok_1")).getByText(/^NOK\s2,100\.50$/)).toBeOnTheScreen();
     expect(screen.getByTestId("result-count")).toHaveTextContent("5 journeys · 5 offers");

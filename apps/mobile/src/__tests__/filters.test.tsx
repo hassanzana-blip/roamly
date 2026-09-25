@@ -171,13 +171,17 @@ describe("resultatkortet", () => {
     expect(card.getByText("Ut · 23. okt.")).toBeOnTheScreen();
     expect(card.getByText("Hjem · 30. okt.")).toBeOnTheScreen();
     expect(card.getAllByText(/07:05 – 13:40/)).toHaveLength(2);
-    expect(card.getAllByText(/OSL → BCN · 4 t 35 min · 1 mellomlanding|BCN → OSL · 4 t 35 min · 1 mellomlanding/)).toHaveLength(2);
-    expect(card.getByText("Totalt for 1 voksen · Tur-retur")).toBeOnTheScreen();
+    // Byttestedet står ved mellomlandingen.
+    expect(card.getAllByText(/OSL → BCN · 4 t 35 min · 1 mellomlanding · CPH|BCN → OSL · 4 t 35 min · 1 mellomlanding · CPH/)).toHaveLength(2);
+    // Beløpet: «Totalt for …»; begge strekningene står på kortet, så «Tur-retur» gjentas ikke der – VoiceOver får det.
+    expect(card.getByText("Totalt for 1 voksen")).toBeOnTheScreen();
     // Kortet viser en kort form; «Uten …» og «ikke oppgitt» skrives helt ut. VoiceOver får alt i sin helhet.
     expect(card.getByText("Håndbagasje inkl.")).toBeOnTheScreen();
     expect(card.getByText("Innsjekket bagasje: ikke oppgitt")).toBeOnTheScreen();
     const spoken = screen.getByTestId("offer-sek_1").props.accessibilityLabel as string;
     expect(spoken).toContain("Håndbagasje inkludert. Innsjekket bagasje: ikke oppgitt.");
+    expect(spoken).toContain("1 mellomlanding i København");
+    expect(spoken).toContain("totalt for 1 voksen · tur-retur");
   });
 });
 

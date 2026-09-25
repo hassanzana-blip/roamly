@@ -58,13 +58,17 @@ async function show(result: object | object[], screenName: "results" | "details"
 
 const NB_TOTAL = "Totalt for 2 voksne, 1 barn, 1 spedbarn · Tur-retur";
 const NB_UNVERIFIED = "Tilbyderens pris, total ikke bekreftet · Tur-retur";
+// Resultatkortet viser begge strekningene, så reisetypen gjentas ikke ved beløpet (VoiceOver og detaljene får den).
+const NB_TOTAL_CARD = "Totalt for 2 voksne, 1 barn, 1 spedbarn";
+const NB_UNVERIFIED_CARD = "Tilbyderens pris, total ikke bekreftet";
 const NB_EXPLAINED = "Tilbyderen bekreftet ikke at prisene gjelder alle reisende. Sjekk totalprisen hos tilbyderen før du bestiller.";
 
 describe("resultatkortet", () => {
   it("bekreftet total: «Totalt for» alle fire, ingen forklaring, vanlig sortering og prisfilter", async () => {
     await show(VERIFIED, "results");
     const card = within(screen.getByTestId("offer-sek_1"));
-    expect(card.getByText(NB_TOTAL)).toBeOnTheScreen();
+    expect(card.getByText(NB_TOTAL_CARD)).toBeOnTheScreen();
+    expect(screen.getByTestId("offer-sek_1").props.accessibilityLabel).toContain(NB_TOTAL.toLowerCase());
     expect(screen.queryByTestId("price-basis-notice")).toBeNull();
     // Standard er «Best»; «Billigst» er én fane unna og sier «laveste pris» når totalen er bekreftet.
     expect(screen.getByTestId("sort-summary")).toHaveTextContent("Pris, reisetid og bytter veid sammen");
@@ -81,7 +85,7 @@ describe("resultatkortet", () => {
   ])("ubekreftet (%s): samme beløp, «Tilbyderens pris», forklaring, nøytral sortering, ingen «Totalt for» noe sted", async (_n, result) => {
     await show(result, "results");
     const card = screen.getByTestId("offer-sek_1");
-    expect(within(card).getByText(NB_UNVERIFIED)).toBeOnTheScreen();
+    expect(within(card).getByText(NB_UNVERIFIED_CARD)).toBeOnTheScreen();
     expect(within(card).queryByText(/Totalt for/)).toBeNull();
     expect(card.props.accessibilityLabel).toContain(NB_UNVERIFIED.toLowerCase());
     expect(card.props.accessibilityLabel).not.toMatch(/totalt for/);
@@ -114,13 +118,14 @@ describe("resultatkortet", () => {
 
   it("eldre server med demo-data: en kjent total, som før", async () => {
     await show(OLD_DEMO, "results");
-    expect(within(screen.getByTestId("offer-sek_1")).getByText(NB_TOTAL)).toBeOnTheScreen();
+    expect(within(screen.getByTestId("offer-sek_1")).getByText(NB_TOTAL_CARD)).toBeOnTheScreen();
     expect(screen.queryByTestId("price-basis-notice")).toBeNull();
   });
 
   it("engelsk", async () => {
     await show(PER_PERSON, "results", "en");
-    expect(within(screen.getByTestId("offer-sek_1")).getByText("Provider's price, total not confirmed · Return")).toBeOnTheScreen();
+    expect(within(screen.getByTestId("offer-sek_1")).getByText("Provider's price, total not confirmed")).toBeOnTheScreen();
+    expect(screen.getByTestId("offer-sek_1").props.accessibilityLabel).toContain("provider's price, total not confirmed · return");
     expect(screen.getByTestId("price-basis-notice")).toHaveTextContent("The provider didn't confirm that these prices cover all travellers. Check the total with the provider before you book.");
     await fireEvent.press(screen.getByTestId("sort-tab-price"));
     expect(screen.getByTestId("sort-summary")).toHaveTextContent("Lowest provider price first");
