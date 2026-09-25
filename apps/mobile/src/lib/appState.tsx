@@ -28,14 +28,28 @@ type AuthState =
   /** profile er null når vi har en gyldig lagret sesjon, men ikke fikk hentet kontoen (f.eks. uten nett). */
   | { status: "signedIn"; profile: CustomerProfile | null };
 
+/** Et svar og da det kom (telefonens klokke) – for «sjekket kl. …» og utdaterte priser. */
+type Answer = { result: MobileSearchResult; at: number };
+
 /** `query`: skjemaet søket faktisk ble kjørt med – overskriften viser dette, ikke et skjema som er endret etterpå. */
-type SearchState =
+export type SearchState =
   | { status: "idle" }
-  | { status: "loading"; query: SearchForm }
-  /** `at`: da svaret kom (telefonens klokke) – for «sjekket kl. …» og utdaterte priser. */
-  | { status: "done"; result: MobileSearchResult; at: number; query: SearchForm }
+  /**
+   * `previous`: samme søk kjøres på nytt (oppdater prisene): svaret som står til det nye kommer, så listen blir stående
+   * i stedet for å byttes mot plassholdere. Et annet søk har aldri `previous`.
+   */
+  | { status: "loading"; query: SearchForm; previous?: Answer }
+  /** `refreshError`: en oppdatering feilet; `result` er da det forrige svaret, som fortsatt vises. */
+  | ({ status: "done"; query: SearchForm; refreshError?: unknown } & Answer)
   /** Feilen selv (ikke tekst), så meldingen alltid vises på gjeldende språk. */
   | { status: "error"; error: unknown; query: SearchForm };
+
+/** Svaret som vises nå: det ferdige, eller det forrige mens samme søk oppdateres. */
+export function shownAnswer(search: SearchState): Answer | null {
+  if (search.status === "done") return { result: search.result, at: search.at };
+  if (search.status === "loading") return search.previous ?? null;
+  return null;
+}
 
 type AppContextValue = {
   api: ApiClient;
@@ -356,11 +370,13 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
     searchAbort.current?.abort();
     const abort = new AbortController();
     searchAbort.current = abort;
-    setSearch({ status: "loading", query: next });
-    // Samme søk på nytt (oppdater priser, prøv igjen): filtrene står. Et annet søk: nullstilt.
+    // Samme søk på nytt (oppdater priser, prøv igjen): filtrene står, og svaret som vises blir stående til det nye
+    // kommer. Et annet søk: filtrene nullstilles, og plassholderne står til svaret er her.
     const key = recentKey(next);
-    if (key !== lastSearchKey.current) setViewState(DEFAULT_VIEW);
+    const same = key === lastSearchKey.current;
+    if (!same) setViewState(DEFAULT_VIEW);
     lastSearchKey.current = key;
+    setSearch((s) => ({ status: "loading", query: next, previous: same ? (shownAnswer(s) ?? undefined) : undefined }));
     api
       .search(toSearchRequest(next, sessionId), abort.signal)
       .then((result) => {
@@ -368,7 +384,8 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
       })
       .catch((err: unknown) => {
         if (seq !== searchSeq.current) return;
-        setSearch({ status: "error", error: err, query: next });
+        // Feilet en oppdatering, står det forrige svaret (med tidspunktet det ble sjekket) og feilen sies over listen.
+        setSearch((s) => (s.status === "loading" && s.previous ? { status: "done", ...s.previous, query: next, refreshError: err } : { status: "error", error: err, query: next }));
       });
     return null;
   }, [api, form, sessionId, recent, saveRecent]);

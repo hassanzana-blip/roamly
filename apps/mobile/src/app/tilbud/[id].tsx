@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 import type { MobileOffer } from "@contracts/mobileSearch";
 import type { OfferSlice, Segment } from "@contracts/types";
-import { useApp } from "../../lib/appState";
+import { shownAnswer, useApp } from "../../lib/appState";
 import { applyView } from "../../lib/resultsView";
 import { journeyOf, sellerLabel } from "../../lib/journeys";
 import { baggageFacts, baggageShort, conditionFacts, handoffLabel, offerExpired, priceBasis, providerHandoff, sellerKindLabel } from "../../lib/offer";
@@ -321,7 +321,8 @@ export default function OfferScreen() {
     [trackClick],
   );
 
-  const result = search.status === "done" ? search.result : null;
+  // Mens samme søk oppdateres, står det forrige svaret – reisen forsvinner ikke midt i et trykk.
+  const result = shownAnswer(search)?.result ?? null;
   // Selgerne som passer filtrene i listen; finnes ikke reisen der lenger, alle selgerne.
   const journey = useMemo(() => {
     if (!result || !id) return null;

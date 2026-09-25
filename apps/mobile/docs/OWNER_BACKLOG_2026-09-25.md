@@ -80,13 +80,13 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | # | Item | Status |
 |---|---|---|
 | 2.1 | «Best» explanation sheet: what goes into it, including the stated airline-direct nudge | done (in «Sorter») |
-| 2.2 | Result card: seller count tappable context («3 tilbydere – fra 1 570 kr») | planned |
-| 2.3 | Details: segment list shows aircraft and operating carrier compactly | planned |
+| 2.2 | Result card: seller count tappable context («3 tilbydere – fra 1 570 kr») | not doing: the whole card is one button (1.3), a second target inside it would break VoiceOver; the card already shows the cheapest seller's price and the details compare sellers |
+| 2.3 | Details: segment list shows aircraft and operating carrier compactly | verified: flight number, «operated by» and aircraft on one line per segment (stage «details one scroll») |
 | 2.4 | Details: «Del» shares route/dates, never a price guarantee (exists) [37] | verified earlier |
 | 2.5 | Filters sheet: sticky section headers, counts per option stay (exists) | planned |
 | 2.6 | Results header: tapping the route opens the search form (not only the search icon) [25] | done (MANIFEST «Results: nothing found») |
-| 2.7 | Results: pull-to-refresh as an alias for «Oppdater priser» | planned |
-| 2.8 | Loading copy: what we are doing, not a promise about time | planned |
+| 2.7 | Results: pull-to-refresh as an alias for «Oppdater priser» | done: pull down, «Oppdater prisene» and «Søk på nytt» keep the list while updating; a failed update keeps the previous prices (MANIFEST «Results: updating the prices keeps the list») |
+| 2.8 | Loading copy: what we are doing, not a promise about time | done (same stage) |
 | 2.9 | Explore: route context editable in place [9] | open |
 | 2.10 | Explore/Lagret: consistent row density with Results | open |
 | 2.11 | Empty results: suggest ±1–3 days only as a new search, never with invented prices [35] | done: «Prøv datoene rundt» (MANIFEST «Results: nothing found») |

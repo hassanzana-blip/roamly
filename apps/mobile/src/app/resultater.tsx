@@ -1,12 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { AccessibilityInfo, FlatList, ScrollView, StyleSheet, View } from "react-native";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AccessibilityInfo, ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { StatusBarShield } from "../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { MobileOffer } from "@contracts/mobileSearch";
-import { useApp } from "../lib/appState";
+import { shownAnswer, useApp } from "../lib/appState";
 import { fxNotice, priceDisplay } from "../lib/price";
 import { formatClock } from "../lib/format";
 import { ApiError } from "../lib/api";
@@ -326,10 +326,13 @@ export default function ResultsScreen() {
   }, [search]);
   const slow = search.status === "loading" && slowSearch === search;
 
-  const offers = search.status === "done" ? search.result.offers : null;
+  // Svaret som vises: det ferdige, eller det forrige mens samme søk oppdateres (dra ned, «Oppdater prisene»).
+  const answer = useMemo(() => shownAnswer(search), [search]);
+  const refreshing = search.status === "loading" && !!search.previous;
+  const offers = answer ? answer.result.offers : null;
   // Ubekreftet total: et prisfilter («Opptil 3 000 kr») ville vært et løfte om en total. Det tas bort – også i den
   // første tegningen av svaret, før effekten under har rukket å nullstille det lagrede valget (liste, tall og brikker).
-  const unconfirmedTotal = search.status === "done" && !totalConfirmed(search.result);
+  const unconfirmedTotal = !!answer && !totalConfirmed(answer.result);
   const view = useMemo(() => (unconfirmedTotal && storedView.maxPriceMinor !== null ? { ...storedView, maxPriceMinor: null } : storedView), [unconfirmedTotal, storedView]);
   useEffect(() => {
     if (unconfirmedTotal && storedView.maxPriceMinor !== null) setView((v) => ({ ...v, maxPriceMinor: null }));
@@ -353,12 +356,28 @@ export default function ResultsScreen() {
     });
   }, [offers, view, i18n]);
 
-  // VoiceOver: si fra én gang når et søk er ferdig – hvor mange reiser, eller hva som gikk galt.
-  const doneCount = search.status === "done" ? groupJourneys(search.result.offers).length : null;
-  const announced = search.status === "done" ? r.announceFound(t.results.journeys(doneCount ?? 0)) : search.status === "error" ? errorText(search.error, i18n) : null;
+  const doneCount = answer ? groupJourneys(answer.result.offers).length : null;
+  // VoiceOver: si fra én gang når et søk er ferdig – hvor mange reiser, eller hva som gikk galt. En oppdatering av
+  // samme søk sier at prisene er oppdatert, eller at det feilet (listen står da).
+  const refreshedFrom = useRef(false);
   useEffect(() => {
-    if (announced) AccessibilityInfo.announceForAccessibility(announced);
-  }, [announced]);
+    if (search.status === "loading") {
+      refreshedFrom.current = !!search.previous;
+      return;
+    }
+    const refresh = refreshedFrom.current;
+    refreshedFrom.current = false;
+    let text: string | null = null;
+    if (search.status === "done") {
+      const found = t.results.journeys(groupJourneys(search.result.offers).length);
+      text = search.refreshError ? r.status.refreshFailed(errorText(search.refreshError, i18n), formatClock(new Date(search.at))) : refresh ? r.status.refreshed(found) : r.announceFound(found);
+    } else if (search.status === "error") {
+      text = errorText(search.error, i18n);
+    }
+    if (text) AccessibilityInfo.announceForAccessibility(text);
+    // Bare når søket endrer seg – ikke ved hver tegning.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
   const filters = activeFilterCount(view);
 
   // Overskriften beskriver søket som vises – ikke et skjema som er endret etterpå uten å søke.
@@ -366,7 +385,7 @@ export default function ResultsScreen() {
   const title = q.origin && q.destination ? `${q.origin.city} → ${q.destination.city}` : r.fallbackTitle;
   const dates = q.tripType === "roundtrip" ? `${f.shortDay(q.departDate)} – ${f.shortDay(q.returnDate)}` : f.shortDay(q.departDate);
   const subtitle = `${dates} · ${passengerSummary(q, i18n)} · ${cabinLabel(q.cabinClass, i18n)}`;
-  const kind = search.status === "done" ? resultKind(search.result) : null;
+  const kind = answer ? resultKind(answer.result) : null;
   const demo = kind === "demo" || kind === "sandbox";
 
   const header = (
@@ -407,7 +426,7 @@ export default function ResultsScreen() {
     );
   }
 
-  if (search.status === "loading") {
+  if (search.status === "loading" && !answer) {
     // Søket står i toppen; under: hva som skjer og plassholderkort i samme form som svaret. «Stopp søket» står der
     // verktøylinjen kommer, innen rekkevidde for tommelen.
     return shell(
@@ -448,7 +467,10 @@ export default function ResultsScreen() {
     );
   }
 
-  const { result, at } = search;
+  // Her er det et svar: det ferdige, eller det forrige mens samme søk oppdateres.
+  if (!answer) return null;
+  const { result, at } = answer;
+  const refreshError = search.status === "done" ? search.refreshError : undefined;
   const all = result.offers;
   const notice = fxNotice(result, i18n);
   // Tilbud som ikke gjaldt søket (annen flyplass eller dato, manglende retur): sagt rett ut, aldri erstattet.
@@ -460,6 +482,8 @@ export default function ResultsScreen() {
   // Korte linjer, så første reise står høyt oppe; valutaforklaringen kan åpnes.
   // Demo og testmiljø sies rett ut; ekte priser merkes med når de ble sjekket.
   const notices: NoticeItem[] = [
+    // En oppdatering som feilet: sagt først; prisene under er de forrige, med tidspunktet de ble sjekket.
+    ...(refreshError ? [{ key: "refresh", tone: "warning" as const, text: r.status.refreshFailed(errorText(refreshError, i18n), checkedAt), testID: "refresh-error" }] : []),
     ...(kind === "demo" ? [{ key: "demo", tone: "warning" as const, text: r.status.demo, testID: "sandbox-banner" }] : []),
     ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
     ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
@@ -540,7 +564,13 @@ export default function ResultsScreen() {
           <Notices items={notices} />
         </View>
       ) : null}
-      {(kind === "live" || kind === "unverified") && all.length ? (
+      {refreshing ? (
+        // Samme søk kjøres på nytt: listen står, og linjen sier hva som skjer (også med VoiceOver).
+        <View style={styles.statusRow} testID="price-refreshing" accessibilityLiveRegion="polite">
+          <ActivityIndicator size="small" color={colors.onDarkMuted} />
+          <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.refreshing}</Text>
+        </View>
+      ) : (kind === "live" || kind === "unverified") && all.length ? (
         <View style={styles.statusRow} testID="price-status">
           {stale ? (
             <>
@@ -588,6 +618,17 @@ export default function ResultsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + space.sm + (toolbarHeight || 60) + space.lg }}
         data={journeys}
         keyExtractor={(j) => j.key}
+        // Dra ned: samme søk på nytt, som «Oppdater prisene». Listen står til de nye prisene er her.
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              runSearch();
+            }}
+            tintColor={colors.onDarkMuted}
+            testID="results-refresh"
+          />
+        }
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
           all.length ? (

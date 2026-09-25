@@ -120,7 +120,9 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
    Maks 1 mellomlanding, Bagasje inkludert), korte meldinger (demo, «Om «ca.»-priser» som en rad på 44 pt), fanene
    Best / Billigst / Raskest (standard «Best», nettets vekter), antall reiser/tilbud og hva sorteringen gjør. Ett hvitt
    kompakt kort per reise; samme reise hos flere tilbydere vises én gang med billigste pris og «N tilbydere». Flytende
-   verktøylinje: Filtrer / Sorter / Datoer (samme kalender som på forsiden).
+   verktøylinje: Filtrer / Sorter / Datoer (samme kalender som på forsiden). Samme søk på nytt (dra ned, «Oppdater
+   prisene») lar listen stå med «Oppdaterer prisene …» over fanene; feiler det, står de forrige prisene med grunnen og
+   klokkeslettet de er fra. Et nytt søk viser plassholderkort.
 3. **Flydetaljer** (`src/app/tilbud/[id].tsx`): fotokort med selskap, utreisen i store tall og hjemreisen under;
    så én rulleflate uten faner: selgerne (når flere selger samme reise), reiseplanen for hver strekning (hvert fly,
    bytter, flyplassbytte, +1 døgn), bagasjen og vilkårene til valgt selger (vilkår bare når tilbyderen oppga dem) og

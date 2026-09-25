@@ -58,7 +58,7 @@ describe("søket pågår", () => {
     await renderLoading();
     expect(screen.getByText("Oslo → Barcelona")).toBeOnTheScreen();
     const status = screen.getByRole("progressbar");
-    expect(status.props.accessibilityLabel).toBe("Vi sammenligner priser … Det kan ta opptil 20 sekunder.");
+    expect(status.props.accessibilityLabel).toBe("Vi sammenligner priser … Vi henter tilbudene og samler like reiser, så du ser hver reise én gang.");
     const cards = screen.getByTestId("results-loading-cards", { includeHiddenElements: true });
     expect(cards.props.accessibilityElementsHidden).toBe(true);
     expect(cards.props.importantForAccessibility).toBe("no-hide-descendants");
@@ -70,7 +70,7 @@ describe("søket pågår", () => {
     jest.useFakeTimers({ doNotFake: ["nextTick", "queueMicrotask", "setImmediate", "performance"] });
     try {
       await renderLoading();
-      expect(screen.getByTestId("results-loading-body")).toHaveTextContent("Det kan ta opptil 20 sekunder.");
+      expect(screen.getByTestId("results-loading-body")).toHaveTextContent("Vi henter tilbudene og samler like reiser, så du ser hver reise én gang.");
       await act(async () => jest.advanceTimersByTime(8_100));
       expect(screen.getByTestId("results-loading-body")).toHaveTextContent("Noen tilbydere bruker lenger tid enn vanlig. Vi venter på svarene deres.");
     } finally {

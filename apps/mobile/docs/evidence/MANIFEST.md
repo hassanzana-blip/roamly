@@ -1595,3 +1595,48 @@ check OK.
 | File | SHA-256 (prefix) | Size (px) |
 |---|---|---|
 | `figma-p6-parity.jpg` | `17926f4c2173dc28…` | 1520×1296 |
+
+## Results: updating the prices keeps the list; pull down on iPhone; loading says what we do (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock with demo
+data (labelled DEMO). Pull-to-refresh does not exist on the web: the captures run the same path through «Søk på nytt»
+with the same dates.
+
+**Versions:** before is `a67a9bc` (the app is unchanged since `6935d1d`); after is the commit that adds this section.
+
+**What changed**
+- **Updating the prices keeps the list (backlog 2.7).** Running the same search again – pulling down the list (new,
+  iOS' own refresh control), «Oppdater prisene», or «Søk på nytt» with unchanged dates – no longer swaps the journeys
+  for placeholders. The list, the chosen sort and the filters stay; a line above the tabs says «Oppdaterer prisene …»
+  (read by VoiceOver), and the new prices replace the old ones in place. VoiceOver then hears «Prisene er oppdatert.
+  12 reiser.»
+- **A failed update keeps the previous prices,** with the reason and their age: «Fikk ikke oppdatert prisene.
+  Leverandøren svarer ikke akkurat nå. Prisene under er fra kl. 21:39.» Before, every journey disappeared behind an
+  error. A new search (other dates, airports or travellers) still starts from placeholders, and a first search that
+  fails still shows «Prøv igjen».
+- **Flight details stay open during an update:** the open journey is still there until the new answer arrives.
+- **Loading says what we do, not how long it takes (backlog 2.8):** «Vi henter tilbudene og samler like reiser, så du
+  ser hver reise én gang.» instead of «Det kan ta opptil 20 sekunder.»
+
+**Tests:** `resultsRefresh.test.tsx` (the list and sort stay while refreshing, new prices land in the same list, the
+spoken result, a failed update with reason and time, recovery on the next pull, «Søk på nytt» with the same dates,
+new dates show placeholders, a failed first search, details during an update); `filterSheetCost.test.tsx` (the price
+filter belongs to the previous answer while it is shown and never flashes for an unconfirmed new one);
+`resultsLoading.test.tsx` (new copy).
+
+**Checks:** Jest 547 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean. iOS bundle 4 929 964 bytes. Bundle
+check OK.
+
+**Not verified:** a real iPhone, including the native pull-to-refresh gesture and its VoiceOver three-finger scroll.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `refresh-before-390-same-search.jpg` | `951717d5ced63267…` | 780×1860 |
+| `refresh-before-390-failed.jpg` | `afaa36e735faabc8…` | 780×1860 |
+| `refresh-after-390-refreshing.jpg` | `ed3001ead6e096bf…` | 780×1916 |
+| `refresh-after-390-failed.jpg` | `27a511081c53517c…` | 780×1860 |
+| `refresh-after-390-new-search.jpg` | `3fd5f1ef9efa5b74…` | 780×1894 |
+| `refresh-after-375-refreshing.jpg` | `69c3017dbd6eaf55…` | 750×1762 |
+| `refresh-after-430-failed.jpg` | `ad8fe1378999aca9…` | 860×2002 |
+| `refresh-after-390-large-failed.jpg` | `6e155e5be3292e59…` | 780×1860 |
+| `refresh-after-390-en-failed.jpg` | `36efa5050303f185…` | 780×1826 |
