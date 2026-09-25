@@ -58,6 +58,8 @@ describe("sortering", () => {
     expect(screen.getByTestId("sort-tab-price")).toHaveTextContent(/Billigst.*ca\.\s1\s442\skr.*4 t 35 min/);
     expect(screen.getByTestId("sort-tab-duration")).toHaveTextContent(/Raskest.*3\s500\skr.*2 t 30 min/);
     expect(screen.getByTestId("sort-tab-duration").props.accessibilityLabel).toMatch(/^Raskest, 3\s500 kroner, i snitt 2 timer 30 minutter per vei$/);
+    // Tur-retur: tiden i fanene er snittet per vei – det står synlig, ikke bare for VoiceOver.
+    expect(screen.getByTestId("sort-tabs-note")).toHaveTextContent("Reisetiden er snittet per vei.");
 
     await fireEvent.press(screen.getByTestId("sort-tab-duration"));
     expect(selected("duration")).toBe(true);

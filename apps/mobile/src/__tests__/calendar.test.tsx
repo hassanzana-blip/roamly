@@ -1,5 +1,5 @@
-import { Text as RNText } from "react-native";
-import { fireEvent, render, screen, within } from "@testing-library/react-native";
+import { Dimensions, FlatList, StyleSheet, Text as RNText } from "react-native";
+import { act, fireEvent, render, screen, within } from "@testing-library/react-native";
 import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
@@ -32,6 +32,8 @@ async function renderPanel(initial: Record<string, unknown> = {}, locale: "nb" |
   );
 }
 const probe = () => screen.getByTestId("probe").props.children as string;
+/** Månedene listen faktisk har tegnet (den første er der listen åpner). */
+const renderedMonths = () => [...new Set(screen.queryAllByTestId(/^month-\d+-\d+$/).map((n) => n.props.testID as string))];
 
 describe("kalenderen på forsiden", () => {
   it("avreise og retur i ett ark: to trykk, båndet og antall netter følger valget", async () => {
@@ -103,5 +105,69 @@ describe("kalenderen på forsiden", () => {
     expect(screen.getByTestId("calendar-hint")).toHaveTextContent("Choose your departure date");
     expect(screen.getByTestId("day-2026-10-16").props.accessibilityLabel).toBe("Friday 16 October 2026, return");
     expect(screen.getByTestId("calendar-nights")).toHaveTextContent("7 nights");
+  });
+
+  it("åpner på måneden til datoen kunden trykket på – også når returen er måneder unna, og ved gjenåpning", async () => {
+    await renderPanel({ returnDate: "2027-03-05" });
+    await fireEvent.press(screen.getByTestId("return-date"));
+    expect(screen.getByTestId("calendar-hint")).toHaveTextContent("Velg returdato");
+    expect(renderedMonths()[0]).toBe("month-2027-3");
+    await fireEvent.press(screen.getByTestId("calendar-done-button"));
+
+    // Bare avreise valgt, så lukket: åpnet fra «Avreise» står listen på avreisens måned, ikke på returens.
+    await fireEvent.press(screen.getByTestId("depart-date"));
+    expect(renderedMonths()[0]).toBe("month-2026-10");
+    await fireEvent.press(screen.getByTestId("day-2026-10-12"));
+    await fireEvent.press(screen.getByTestId("calendar-done-button"));
+    await fireEvent.press(screen.getByTestId("depart-date"));
+    expect(screen.getByTestId("calendar-hint")).toHaveTextContent("Velg avreisedato");
+    expect(renderedMonths()[0]).toBe("month-2026-10");
+  });
+
+  it("trykk på «Retur» øverst ruller til returens måned", async () => {
+    const scroll = jest.spyOn(FlatList.prototype, "scrollToIndex").mockImplementation(() => undefined);
+    try {
+      await renderPanel({ returnDate: "2027-03-05" });
+      await fireEvent.press(screen.getByTestId("depart-date"));
+      await fireEvent.press(screen.getByTestId("calendar-pick-return"));
+      expect(scroll).toHaveBeenLastCalledWith({ index: 6, animated: true });
+      expect(screen.getByTestId("calendar-hint")).toHaveTextContent("Velg returdato");
+    } finally {
+      scroll.mockRestore();
+    }
+  });
+
+  it("i retur-modus sier en dag før avreisen at den blir ny avreise (det trykket faktisk gjør)", async () => {
+    await renderPanel();
+    await fireEvent.press(screen.getByTestId("return-date"));
+    expect(screen.getByTestId("day-2026-10-05").props.accessibilityHint).toBe("Velger avreisedato");
+    expect(screen.getByTestId("day-2026-10-12").props.accessibilityHint).toBe("Velger returdato");
+  });
+
+  describe("skjermbredde og tekststørrelse", () => {
+    const baseWindow = Dimensions.get("window");
+    beforeAll(() => Dimensions.set({ window: baseWindow, screen: Dimensions.get("screen") }));
+    const setWindow = (patch: Partial<typeof baseWindow>) => act(async () => Dimensions.set({ window: { ...baseWindow, ...patch }, screen: { ...Dimensions.get("screen"), ...patch } }));
+    afterEach(() => setWindow({}));
+
+    it("320 pt bred skjerm: hver dag er fortsatt minst 44 pt bred", async () => {
+      await setWindow({ width: 320, fontScale: 1 });
+      await renderPanel();
+      await fireEvent.press(screen.getByTestId("depart-date"));
+      expect(StyleSheet.flatten(screen.getByTestId("day-2026-10-14").props.style).width).toBeGreaterThanOrEqual(44);
+    });
+
+    it("stor tekst: månedsnavnet får høyde etter tekststørrelsen, og listen gir etter så handlingen nederst synes", async () => {
+      await setWindow({ width: 390, fontScale: 1.8 });
+      await renderPanel();
+      await fireEvent.press(screen.getByTestId("depart-date"));
+      const heading = screen.getByText("oktober 2026");
+      const box = StyleSheet.flatten(heading.parent?.props.style);
+      expect(box.height).toBeGreaterThanOrEqual(22 * 1.8);
+      const list = StyleSheet.flatten(screen.getByTestId("calendar-months").props.style);
+      expect(list.flexShrink).toBe(1);
+      expect(list.minHeight).toBeGreaterThan(0);
+      expect(screen.getByTestId("calendar-done-button")).toBeOnTheScreen();
+    });
   });
 });

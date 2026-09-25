@@ -1,5 +1,6 @@
 import type { MobileOffer } from "@contracts/mobileSearch";
-import { activeFilterCount, airlineOptions, applyView, averageLegMinutes, bestContext, bestScore, clearedFilters, countWith, DEFAULT_VIEW, departBand, departureKey, legThresholds, longestLayover, maxStops, priceThresholds, SORT_TABS, SORTS, thresholds, topFor, totalDuration } from "../resultsView";
+import { activeFilterCount, airlineOptions, applyView, averageLegMinutes, bestContext, bestScore, clearedFilters, countWith, DEFAULT_VIEW, departBand, departureKey, journeyCount, legThresholds, longestLayover, maxStops, priceThresholds, SORT_TABS, SORTS, thresholds, topFor, totalDuration } from "../resultsView";
+import { groupJourneys } from "../journeys";
 import { NOK_OFFER, SEARCH_RESULT, THB_OFFER } from "../../test/fixtures";
 
 /** Et tilbud med gitt id, avgangstid, varighet og bytter på hver strekning. */
@@ -169,6 +170,35 @@ describe("«Best», tidligst avgang og fanene over listen", () => {
     // Er byrået tydelig billigere, vinner prisen.
     const billigByra = agency(trip("byraa", 1700, 300, 1));
     expect(ids(applyView([billigByra, airline], DEFAULT_VIEW))).toEqual(["byraa", "fly"]);
+  });
+
+  it("billetter HelloSky selger (uten booking) får ikke flyselskapets fordel – forklaringen gjelder uten unntak", () => {
+    const airline = trip("fly", 2000, 300, 1);
+    const hs = { ...trip("hs", 1995, 300, 1), offer: { ...trip("hs", 1995, 300, 1).offer, booking: undefined } };
+    expect(bestScore(hs, bestContext([hs, airline]))).toBeCloseTo((1995 / 1995) * 0.6 + 0.3 + 0.15 + 0.05, 6);
+    expect(ids(applyView([hs, airline], DEFAULT_VIEW))).toEqual(["fly", "hs"]);
+  });
+
+  it("flere selgere av samme reise: reisen står der dens beste selger står, og kortet viser den billigste", () => {
+    const airline = trip("fly", 2100, 200, 0, "08:00");
+    // Samme fly og tider hos et byrå, litt billigere.
+    const byra = agency({ ...airline, offer: { ...airline.offer, id: "byra" }, price: { ...airline.price, nok: nok(2050) } });
+    const other = trip("annen", 2300, 320, 1, "09:00");
+    const order = groupJourneys(applyView([byra, airline, other], DEFAULT_VIEW));
+    expect(order.map((j) => j.key === groupJourneys([airline])[0]!.key)).toEqual([true, false]);
+    expect(order[0]!.best.offer.id).toBe("byra");
+    expect(order[0]!.sellers.map((s) => s.item.offer.id)).toEqual(["byra", "fly"]);
+  });
+
+  it("antall reiser for filterarket: uten sortering, samme gruppering som listen", () => {
+    const airline = trip("fly", 2100, 200, 0, "08:00");
+    const byra = agency({ ...airline, offer: { ...airline.offer, id: "byra" } });
+    const other = trip("annen", 2300, 320, 1, "09:00");
+    const all = [byra, airline, other];
+    expect(journeyCount(all, DEFAULT_VIEW)).toBe(2);
+    expect(journeyCount(all, { ...DEFAULT_VIEW, stops: "direct" })).toBe(1);
+    expect(journeyCount(all, { ...DEFAULT_VIEW, airlines: ["XX"] })).toBe(0);
+    for (const v of [DEFAULT_VIEW, { ...DEFAULT_VIEW, stops: "direct" as const }]) expect(journeyCount(all, v)).toBe(groupJourneys(applyView(all, v)).length);
   });
 
   it("målestokken regnes av hele svaret, så et filter ikke stokker om rekkefølgen på det som står igjen", () => {

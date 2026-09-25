@@ -85,7 +85,8 @@ function JourneySummary({ item }: { item: MobileOffer }) {
         <View style={{ flex: 1 }}>
           {/* Hele navnet, også når det er langt: det er selskapet som flyr deg. */}
           <Text style={[type.calloutStrong, { color: colors.onDark }]}>{offer.owner.name}</Text>
-          <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>{`${flights} · ${cabinLabel(offer.cabinClass, i18n)}`}</Text>
+          {/* Ingen linjegrense: flynumre og reiseklasse brytes heller enn å kuttes (reiseklassen står bare her). */}
+          <Text style={[type.caption, { color: colors.onDarkMuted }]}>{`${flights} · ${cabinLabel(offer.cabinClass, i18n)}`}</Text>
         </View>
       </View>
       <View accessibilityLanguage={lang} style={styles.summaryRoute} accessible accessibilityLabel={t.details.sliceSpoken(offer.slices.length > 1 ? t.details.outbound : t.details.journey, f.day(out.departingAt), out.origin.city, formatTime(out.departingAt), out.destination.city, formatTime(out.arrivingAt), f.spokenDuration(out.durationMinutes), f.stops(out.stops).toLowerCase())}>

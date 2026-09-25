@@ -1269,3 +1269,34 @@ itinerary is always present (`screens.test.tsx`). VoiceOver language coverage no
 | `details-after-390-first-view.jpg` | `e2b740d4a6d79696…` | 780×1916 |
 | `details-after-390-full.jpg` | `de754c1247d72a6a…` | 780×6056 |
 | `details-before-2f4ab8a-390-full.jpg` | `95865c099d185d4b…` | 780×6028 |
+
+## Review fixes for the five stages above (independent review)
+
+An independent review of `18193da..470a38d` (read-only, with its own probe tests) found ten problems. All are fixed in
+the commit that adds this section, each with a test that fails on the previous code (checked by swapping the old file in):
+
+1. **The calendar could open on the wrong month.** Opening from «Retur» with a return months away showed the departure's
+   months, and reopening kept the last mode. The mode is now reset in the same render the sheet opens, so the list mounts
+   on the right month; tapping «Avreise»/«Retur» at the top scrolls to that month.
+2. **At large text on small phones the calendar's footer could be pushed off-screen.** The month list now gives way
+   (`flexShrink`, with a minimum of a heading and two weeks), so «Ferdig»/«Søk på nytt» stays visible.
+3. **Month headings were clipped at large text.** Their height now follows the text size (capped with the day numbers
+   at 2×), and the list's layout offsets use the same height.
+4. **Filter counts sorted every offer ~30 times per render** once «Best» became the default. Counts now use
+   `journeyCount` (filter + group, no sort), measured equal to the list's grouping in tests.
+5. **«Best» favoured HelloSky's own tickets.** Offers without a `booking` (HelloSky sells them; they cannot be booked in
+   the app) scored like airline-direct. The nudge now applies to everything that is not the airline itself, and the
+   explanation says «foran andre selgere (reisebyråer, også HelloSky)». This deliberately differs from the web.
+6. **The tab times were an unlabelled average.** On return searches a line under the tabs now says «Reisetiden er
+   snittet per vei.»
+7. **Card risk lines did not say which leg.** Return trips now say «Ut: …», «Hjem: …» or «Begge veier: …».
+8. **The cabin could be cut on the details screen** (its only place after the info card went): the line limit is removed.
+9. **A day before the departure said «Velger returdato»** in return mode; the hint now says what the tap does
+   («Velger avreisedato»).
+10. **Day cells were 40 pt wide at 320 pt.** On narrow screens the grid uses the sheet's side margin, giving 44 pt.
+
+Also: the calendar unit tests pass under `TZ=Europe/Oslo` (where 24–26 October 2026 is 49 hours), `America/Santiago` and
+UTC; Jest cannot switch time zone inside a test file, so the Oslo run is done from the command line. The full suite passes
+under both UTC and `TZ=Europe/Oslo` (450 passed, 3 skipped).
+
+**Not verified:** the same on a real iPhone (Dynamic Type accessibility sizes, VoiceOver in the calendar).

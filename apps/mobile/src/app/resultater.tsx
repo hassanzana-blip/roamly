@@ -13,7 +13,7 @@ import { errorText } from "../lib/errorText";
 import { exclusionSummary, pricesStale, providerDisplayName, resultKind, totalConfirmed } from "../lib/resultStatus";
 import { useA11yLanguage, useI18n } from "../i18n";
 import { cabinLabel, passengerSummary } from "../lib/searchForm";
-import { activeFilterCount, airlineOptions, applyView, averageLegMinutes, clearedFilters, countWith, legThresholds, priceThresholds, SORT_TABS, SORTS, STOPS, TIME_BANDS, topFor, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
+import { activeFilterCount, airlineOptions, applyView, averageLegMinutes, clearedFilters, countWith, journeyCount, legThresholds, priceThresholds, SORT_TABS, SORTS, STOPS, TIME_BANDS, topFor, type ResultsView, type SortKey, type TimeBand } from "../lib/resultsView";
 import { groupJourneys } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
 import { DateRangeSheet } from "../components/RangeCalendar";
@@ -252,6 +252,7 @@ export default function ResultsScreen() {
       : []),
   ];
   const sortLabel = view.sort === "price" && !confirmed ? r.sortPriceUnconfirmed : t.results.sorts[view.sort].summary;
+  const hasReturn = all.some((o) => o.offer.slices.length > 1);
   const clearFilters = () => setView(clearedFilters);
   const toggleStops = (value: "direct" | "max1") => setView((v) => ({ ...v, stops: v.stops === value ? "any" : value }));
 
@@ -299,7 +300,7 @@ export default function ResultsScreen() {
       ) : null}
       {journeys.length > 1 ? (
         <View style={styles.tabs}>
-          <SortTabs tabs={sortTabs} value={view.sort} label={t.results.tabs.label} onChange={(sort) => setView((v) => ({ ...v, sort }))} />
+          <SortTabs tabs={sortTabs} value={view.sort} label={t.results.tabs.label} note={hasReturn ? t.results.tabs.averageNote : null} onChange={(sort) => setView((v) => ({ ...v, sort }))} />
         </View>
       ) : null}
       {journeys.length ? (
@@ -317,8 +318,8 @@ export default function ResultsScreen() {
     </View>
   );
 
-  const shownFor = (patch: Parameters<typeof countWith>[2]) => groupJourneys(applyView(all, { ...view, ...patch })).length;
-  const hasReturn = all.some((o) => o.offer.slices.length > 1);
+  // Antall reiser et valg ville gitt (uten sortering – rekkefølgen betyr ingenting for en telling).
+  const shownFor = (patch: Parameters<typeof countWith>[2]) => journeyCount(all, { ...view, ...patch });
   const airlines = airlineOptions(all);
   const prices = priceThresholds(all);
   const legs = legThresholds(all);

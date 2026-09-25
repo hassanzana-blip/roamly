@@ -1,7 +1,7 @@
 import type { MobileOffer } from "@contracts/mobileSearch";
 import { checkedBagIncluded } from "./offer";
 import { minutesBetween } from "./format";
-import { groupJourneys, type Journey } from "./journeys";
+import { groupJourneys, itinerarySignature, type Journey } from "./journeys";
 
 /**
  * Sortering og filtre på resultatlisten – bare på data tilbudene faktisk har:
@@ -115,13 +115,17 @@ export const BEST_LONG_LAYOVER_MINUTES = 300;
 /**
  * «Best»: lavere er bedre. 1,0 i pris = billigst i svaret, 1,0 i tid = raskest i svaret. Et tilbud uten kronepris
  * eller med ukjent reisetid kan ikke veies og står bakerst (Infinity).
+ *
+ * Dyttet (+0,05) gjelder alle som ikke er flyselskapet selv – også billetter HelloSky selger (uten `booking`), som
+ * ikke kan bestilles i appen. Nettet gir HelloSkys egne billetter samme fordel som flyselskapet; appen gjør det ikke,
+ * så forklaringen kunden får («flyselskapets egen salgskanal foran andre selgere») stemmer uten unntak.
  */
 export function bestScore(o: MobileOffer, ctx: BestContext): number {
   const price = nokMinor(o);
   const minutes = totalDuration(o);
   if (price === null || minutes === null) return Number.POSITIVE_INFINITY;
-  const agency = o.offer.booking?.kind === "external" && o.offer.booking.sellerKind !== "airline";
-  return (price / ctx.minPrice) * 0.6 + (minutes / ctx.minMinutes) * 0.3 + maxStops(o) * 0.15 + (longestLayover(o) > BEST_LONG_LAYOVER_MINUTES ? 0.1 : 0) + (agency ? 0.05 : 0);
+  const airlineDirect = o.offer.booking?.kind === "external" && o.offer.booking.sellerKind === "airline";
+  return (price / ctx.minPrice) * 0.6 + (minutes / ctx.minMinutes) * 0.3 + maxStops(o) * 0.15 + (longestLayover(o) > BEST_LONG_LAYOVER_MINUTES ? 0.1 : 0) + (airlineDirect ? 0 : 0.05);
 }
 
 /** Utreisens avgang som tall (lokal tid på flyplassen, slik leverandøren oppga den); null når tiden ikke kan leses. */
@@ -294,6 +298,16 @@ export function priceThresholds(offers: MobileOffer[]): number[] {
 /** Varighetsterskler for lengste strekning, rundet opp til hele timer. */
 export function legThresholds(offers: MobileOffer[]): number[] {
   return thresholds(offers.map(longestLeg).filter((x): x is number => x !== null), 60);
+}
+
+/**
+ * Hvor mange reiser (ikke tilbud) filtrene gir, uten å sortere – til tellingene i filterarket, som regnes for hvert
+ * valg ved hver tegning. Samme gruppering som listen (reisens flynumre og tider).
+ */
+export function journeyCount(offers: MobileOffer[], v: ResultsView): number {
+  const keys = new Set<string>();
+  for (const o of offers) if (passes(o, v)) keys.add(itinerarySignature(o.offer));
+  return keys.size;
 }
 
 /** Hvor mange tilbud et valg ville gitt, med de andre filtrene uendret – vises ved hvert valg. */

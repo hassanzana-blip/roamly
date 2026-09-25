@@ -1,4 +1,9 @@
 import { applyPick, dayRole, monthGrid, monthIndexOf, monthsFrom, nightsBetween, todayIso } from "../calendar";
+import { addDays } from "../format";
+
+// Datoregningen bruker kalenderfelt og runder til hele døgn, så den er lik i alle tidssoner – også over
+// sommertidsskiftet (25.10.2026). Jest kan ikke bytte tidssone inne i en testfil; filen kjøres derfor også med
+// TZ=Europe/Oslo (se MANIFEST «Review fixes»).
 
 // Kalenderen for avreise og retur: rene datoer, mandag først, og et skjema som er gyldig etter hvert trykk.
 
@@ -33,6 +38,10 @@ describe("måneder og uker", () => {
   });
 
   it("netter mellom datoer, også over sommertidsskiftet (25. oktober 2026)", () => {
+    // I Norge er døgnet 24.–25. oktober 25 timer langt; datoregningen gir likevel hele dager.
+    expect(addDays("2026-10-24", 1)).toBe("2026-10-25");
+    expect(addDays("2026-10-25", 1)).toBe("2026-10-26");
+    expect(addDays("2026-03-28", 2)).toBe("2026-03-30");
     expect(nightsBetween("2026-10-23", "2026-10-30")).toBe(7);
     expect(nightsBetween("2026-10-24", "2026-10-26")).toBe(2);
     expect(nightsBetween("2026-10-09", "2026-10-09")).toBe(0);

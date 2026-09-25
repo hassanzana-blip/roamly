@@ -132,22 +132,26 @@ function CompactLeg({ slice, label }: { slice: OfferSlice; label?: string }) {
  */
 export function cardRisks(journey: Journey, { t, f }: Pick<I18n, "t" | "f">): string[] {
   const r = t.results.card.risks;
-  const changes: string[] = [];
-  const layovers = new Map<string, { city: string; overnight: boolean; minutes: number | null }>();
+  const slices = journey.best.offer.slices.length;
+  // Tekst → strekningene den gjelder, i den rekkefølgen de ble funnet.
+  const found = new Map<string, Set<number>>();
+  const add = (text: string, slice: number) => found.set(text, (found.get(text) ?? new Set()).add(slice));
+  const layovers = new Map<string, { slice: number; city: string; overnight: boolean; minutes: number | null }>();
   for (const w of journeyWarnings(journey.best.offer)) {
-    if (w.kind === "airportChange") changes.push(r.airportChange(w.city));
+    if (w.kind === "airportChange") add(r.airportChange(w.city), w.slice);
     else if (w.kind === "overnightLayover" || w.kind === "longLayover") {
       const key = `${w.slice}|${w.city}`;
-      const cur = layovers.get(key) ?? { city: w.city, overnight: false, minutes: null };
+      const cur = layovers.get(key) ?? { slice: w.slice, city: w.city, overnight: false, minutes: null };
       if (w.kind === "overnightLayover") cur.overnight = true;
       else cur.minutes = w.minutes;
       layovers.set(key, cur);
     }
   }
-  const waits = [...layovers.values()].map((l) =>
-    l.overnight ? (l.minutes ? r.overnightLayoverFor(l.city, f.duration(l.minutes)) : r.overnightLayover(l.city)) : r.longLayover(l.city, f.duration(l.minutes ?? 0)),
-  );
-  return [...new Set([...changes, ...waits])];
+  for (const l of layovers.values()) {
+    add(l.overnight ? (l.minutes ? r.overnightLayoverFor(l.city, f.duration(l.minutes)) : r.overnightLayover(l.city)) : r.longLayover(l.city, f.duration(l.minutes ?? 0)), l.slice);
+  }
+  // Tur-retur: si hvilken vei (eller begge). Én vei: bare teksten.
+  return [...found].map(([text, on]) => (slices !== 2 ? text : on.size === 2 ? r.bothWays(text) : on.has(0) ? r.outbound(text) : r.inbound(text)));
 }
 
 /** Selskapene som flyr reisen (markedsførende, i rekkefølge): «Norwegian», «SAS · Lufthansa», «SAS · KLM +1». */

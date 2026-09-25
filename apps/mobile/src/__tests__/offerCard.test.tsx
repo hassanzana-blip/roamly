@@ -77,15 +77,22 @@ async function renderCard(offer: MobileOffer, { searchedCabin = "economy", local
 describe("resultatkortet (vanlig tekststørrelse)", () => {
   beforeEach(() => setFontScale(1));
 
-  it("byttestedet står ved mellomlandingen; bytte over natten nevnes én gang med ventetiden, også når hjemreisen har det samme", async () => {
+  it("byttestedet står ved mellomlandingen; bytte over natten nevnes én gang med ventetiden – «Begge veier» når hjemreisen har det samme", async () => {
     const { card } = await renderCard(NIGHT);
     const c = within(card);
     expect(c.getAllByText(/1 mellomlanding · MUC/)).toHaveLength(2);
-    expect(within(screen.getByTestId("risks-natt")).getAllByText(/./).map((t) => t.props.children)).toEqual(["Bytte over natten i München (8 t 55 min)"]);
+    expect(within(screen.getByTestId("risks-natt")).getAllByText(/./).map((t) => t.props.children)).toEqual(["Begge veier: Bytte over natten i München (8 t 55 min)"]);
     // Risikoen er ord og ikon i advarselsfarge – aldri farge alene.
-    expect(StyleSheet.flatten(c.getByText("Bytte over natten i München (8 t 55 min)").props.style).color).toBe(colors.warning);
+    expect(StyleSheet.flatten(c.getByText("Begge veier: Bytte over natten i München (8 t 55 min)").props.style).color).toBe(colors.warning);
     expect(card.props.accessibilityLabel).toContain("1 mellomlanding i München");
-    expect(card.props.accessibilityLabel).toContain("Bytte over natten i München (8 t 55 min)");
+    expect(card.props.accessibilityLabel).toContain("Begge veier: Bytte over natten i München (8 t 55 min)");
+  });
+
+  it("tur-retur: en risiko bare på én vei sier hvilken («Hjem: …»)", async () => {
+    const out = slice("u", [seg("x1", OSL, BCN, "2026-10-09T07:00:00", "2026-10-09T10:20:00", 200)], 200);
+    const oneLeg = item("hjem", [out, NIGHT.offer.slices[1]!]);
+    await renderCard(oneLeg);
+    expect(within(screen.getByTestId("risks-hjem")).getAllByText(/./).map((t) => t.props.children)).toEqual(["Hjem: Bytte over natten i München (8 t 55 min)"]);
   });
 
   it("flyplassbytte står på kortet, og selskapene som flyr reisen står i rekkefølge", async () => {
@@ -122,7 +129,7 @@ describe("resultatkortet (vanlig tekststørrelse)", () => {
   it("engelsk: «1 stop · MUC», og risikoen på engelsk", async () => {
     await renderCard(NIGHT, { locale: "en" });
     expect(screen.getAllByText(/1 stop · MUC/)).toHaveLength(2);
-    expect(screen.getByText("Overnight connection in München (8h 55m)")).toBeOnTheScreen();
+    expect(screen.getByText("Both ways: Overnight connection in München (8h 55m)")).toBeOnTheScreen();
   });
 });
 
