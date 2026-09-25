@@ -1,4 +1,5 @@
 import { DESTINATIONS, type Destination } from "./destinations";
+import { covers, normalizeSearch, searchWords as words } from "./textMatch";
 
 /**
  * Søk blant HelloSkys 24 kuraterte reisemål – ingen andre steder, ingen priser
@@ -12,19 +13,7 @@ import { DESTINATIONS, type Destination } from "./destinations";
 export type MatchField = "iata" | "city" | "airport" | "country";
 export type DestinationMatch = { destination: Destination; field: MatchField };
 
-export function normalizeSearch(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ø/g, "o")
-    .replace(/æ/g, "ae")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-const words = (...texts: string[]) => texts.flatMap((t) => normalizeSearch(t).split(" ")).filter(Boolean);
-const covers = (tokens: string[], ws: string[]) => tokens.every((tok) => ws.some((w) => w.startsWith(tok)));
+export { normalizeSearch };
 
 /** Reisemålene som passer, beste treff først (hel IATA-kode, så by, flyplass, land); tomt søk gir alle. */
 export function searchDestinations(query: string, list: readonly Destination[] = DESTINATIONS): DestinationMatch[] {

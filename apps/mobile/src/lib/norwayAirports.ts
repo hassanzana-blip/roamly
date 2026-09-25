@@ -3,13 +3,16 @@ import type { AirportChoice } from "./searchForm";
 
 /**
  * Hovedflyplassene i Norge, som forslag i «Fra» før kunden har skrevet noe.
- * Bare navn og koder – ingen påstand om at de er «populære».
+ * Bare navn og koder – ingen påstand om at de er «populære». De seks første i
+ * samme rekkefølge som det delte registeret; Torp er med fordi mange i Oslo-
+ * området flyr derfra (registeret: «den andre inngangen til Oslo-området»).
  */
 const AIRPORTS: { iata: string; name: string; city: string }[] = [
   { iata: "OSL", name: "Oslo lufthavn Gardermoen", city: "Oslo" },
   { iata: "BGO", name: "Bergen lufthavn Flesland", city: "Bergen" },
   { iata: "TRD", name: "Trondheim lufthavn Værnes", city: "Trondheim" },
   { iata: "SVG", name: "Stavanger lufthavn Sola", city: "Stavanger" },
+  { iata: "TRF", name: "Sandefjord lufthavn Torp", city: "Sandefjord" },
   { iata: "TOS", name: "Tromsø lufthavn Langnes", city: "Tromsø" },
   { iata: "BOO", name: "Bodø lufthavn", city: "Bodø" },
   { iata: "AES", name: "Ålesund lufthavn Vigra", city: "Ålesund" },

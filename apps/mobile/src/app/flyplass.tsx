@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,38 +9,68 @@ import { normalizeQuery, type AirportChoice } from "../lib/searchForm";
 import { recentAirports } from "../lib/recent";
 import { countryFor, norwayAirports } from "../lib/norwayAirports";
 import { DESTINATIONS, destinationChoice } from "../lib/destinations";
+import { airportNames, airportRows, cityAlias, type AirportRow as Row } from "../lib/airportIndex";
+import { searchTokens } from "../lib/textMatch";
 import { errorText } from "../lib/errorText";
 import { useI18n } from "../i18n";
 import { Banner, Field, IconButton, LinkButton, StateView } from "../components/ui";
+import { MarkedText } from "../components/MarkedText";
 import { Icon } from "../components/Icon";
 import { colors, radius, space, type } from "../lib/theme";
 
-/** Én flyplass i listen: kode, by, navn og land. */
-function AirportRow({ airport, onPress }: { airport: AirportChoice; onPress: () => void }) {
-  const { t, locale } = useI18n();
+const NO_TOKENS: readonly string[] = [];
+
+/**
+ * Én flyplass i listen: kode, by, navn og land. Under et søk er det kunden skrev uthevet, og koden står
+ * invertert når søket er nøyaktig den koden. `alias` er bynavnet på det andre språket når det var det søket
+ * traff («København (Copenhagen)»). `near` er byen raden er en annen flyplass for (Torp under Oslo).
+ */
+function AirportRow({ airport, onPress, tokens, near, alias }: { airport: AirportChoice; onPress: () => void; tokens?: readonly string[]; near?: string | null; alias?: string | null }) {
+  const { t } = useI18n();
   const a = t.airport;
-  const country = countryFor(airport, locale);
+  const marked = tokens && tokens.length > 0;
+  const codeHit = marked && tokens.length === 1 && tokens[0] === airport.iata.toLowerCase();
+  const city = alias ? `${airport.city} (${alias})` : airport.city;
+  const label = a.rowLabel(city, airport.name, airport.country, airport.iata);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={a.rowLabel(airport.city, airport.name, country, airport.iata)}
+      accessibilityLabel={near ? `${label}. ${a.near(near)}` : label}
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.inset }]}
       testID={`airport-${airport.iata}`}
     >
-      <View style={styles.codeBox}>
-        <Text style={[type.calloutStrong, { color: colors.text, letterSpacing: 0.3 }]}>{airport.iata}</Text>
+      <View style={[styles.codeBox, codeHit && styles.codeBoxHit]} testID={codeHit ? `airport-${airport.iata}-code-hit` : undefined}>
+        <Text style={[type.calloutStrong, { color: codeHit ? colors.white : colors.text, letterSpacing: 0.3 }]}>{airport.iata}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[type.bodyStrong, { color: colors.text }]}>{airport.city}</Text>
-        <Text style={[type.footnote, { color: colors.textSecondary }]}>
-          {airport.name}
-          {country ? `, ${country}` : ""}
-        </Text>
+        {near ? (
+          <Text style={[type.caption, { color: colors.textSecondary }]} testID={`airport-${airport.iata}-near`}>
+            {a.near(near)}
+          </Text>
+        ) : null}
+        {marked ? (
+          <MarkedText text={city} tokens={tokens} style={[type.body, { color: colors.text }]} markStyle={styles.markPrimary} testID={`airport-${airport.iata}-city`} />
+        ) : (
+          <Text style={[type.bodyStrong, { color: colors.text }]}>{city}</Text>
+        )}
+        <MarkedText
+          text={airport.country ? `${airport.name}, ${airport.country}` : airport.name}
+          tokens={marked ? tokens : NO_TOKENS}
+          style={[type.footnote, { color: colors.textSecondary }]}
+          markStyle={styles.markSecondary}
+          testID={`airport-${airport.iata}-detail`}
+        />
       </View>
       <Icon name="chevronRight" size={18} color={colors.textSecondary} />
     </Pressable>
   );
+}
+
+/** Forslag og nylige: landet på riktig språk for Norges flyplasser. */
+function SuggestedRow({ airport, onPress }: { airport: AirportChoice; onPress: () => void }) {
+  const { locale } = useI18n();
+  return <AirportRow airport={{ ...airport, country: countryFor(airport, locale) }} onPress={onPress} />;
 }
 
 /**
@@ -61,7 +91,7 @@ function Suggestions({ field, choose }: { field: "origin" | "destination"; choos
           {title}
         </Text>
         {list.map((ap) => (
-          <AirportRow key={`${testID}-${ap.iata}`} airport={ap} onPress={() => choose(ap)} />
+          <SuggestedRow key={`${testID}-${ap.iata}`} airport={ap} onPress={() => choose(ap)} />
         ))}
       </View>
     ) : null;
@@ -75,9 +105,9 @@ function Suggestions({ field, choose }: { field: "origin" | "destination"; choos
 }
 
 /**
- * Flyplassøk (flights.airports på serveren), for både «Fra» og «Til».
- * Registeret har bare enkeltflyplasser, og søket bruker nøyaktig den som
- * velges – aldri andre flyplasser i samme by.
+ * Flyplassøk for både «Fra» og «Til». Registerets flyplasser (også på engelsk) vises med én gang; serverens
+ * verdensregister (flights.airports) fyller på under når det svarer. Hver rad er én flyplass, og søket bruker
+ * nøyaktig den som velges – aldri andre flyplasser i samme by.
  */
 export default function AirportPicker() {
   const router = useRouter();
@@ -88,6 +118,7 @@ export default function AirportPicker() {
   // Bare når kunden selv slår det på, huskes «Fra» som vanlig avreiseflyplass.
   const [remember, setRemember] = useState(false);
   const i18n = useI18n();
+  const { locale } = i18n;
   const a = i18n.t.airport;
   const [query, setQuery] = useState("");
   // Svaret lagres sammen med søket det gjelder. Bare et svar for akkurat det
@@ -97,6 +128,7 @@ export default function AirportPicker() {
   const q = normalizeQuery(query);
   const key = q.toLowerCase();
   const active = q.length >= 2;
+  const tokens = useMemo(() => searchTokens(q), [q]);
 
   useEffect(() => {
     if (!active) return;
@@ -117,9 +149,10 @@ export default function AirportPicker() {
     };
   }, [api, q, key, active]);
 
-  // Alt som vises er utledet for søket som står i feltet nå.
+  // Alt som vises er utledet for søket som står i feltet nå: registerets treff med én gang, serverens når
+  // svaret for akkurat dette søket er her.
   const current = active && answer?.key === key ? answer : null;
-  const shown = current?.results ?? [];
+  const rows = useMemo(() => (active ? airportRows(q, current?.results ?? null) : []), [active, q, current]);
   const shownError = current?.error ?? null;
   const loading = active && !current;
 
@@ -129,6 +162,8 @@ export default function AirportPicker() {
     if (field === "origin" && remember) setHomeAirport(choice);
     router.back();
   };
+  // Raden viser – og skjemaet får – navnene på appens språk.
+  const choiceFor = (row: Row): AirportChoice => ({ iata: row.airport.iata, ...airportNames(row.airport, locale) });
 
   const question = field === "origin" ? a.from : a.to;
 
@@ -164,8 +199,8 @@ export default function AirportPicker() {
         */}
         <FlatList
           style={styles.list}
-          data={shown}
-          keyExtractor={(a) => a.iata}
+          data={rows}
+          keyExtractor={(r) => r.airport.iata}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           automaticallyAdjustKeyboardInsets
@@ -191,16 +226,10 @@ export default function AirportPicker() {
                   </View>
                 </View>
               ) : null}
-              {shownError ? (
+              {shownError && rows.length === 0 ? (
                 <Banner tone="error" testID="airport-error">
                   {errorText(shownError, i18n, { BAD_RESPONSE: a.error })}
                 </Banner>
-              ) : null}
-              {loading ? (
-                <View style={styles.loading}>
-                  <ActivityIndicator color={colors.text} testID="airport-loading" />
-                  <Text style={[type.footnote, { color: colors.textSecondary }]}>{a.searching}</Text>
-                </View>
               ) : null}
             </View>
           }
@@ -214,7 +243,31 @@ export default function AirportPicker() {
               </StateView>
             ) : null
           }
-          renderItem={({ item }) => <AirportRow airport={item} onPress={() => choose(item)} />}
+          // Under treffene: at flere kan komme, eller at de ikke kom. Treffene over står stille imens.
+          ListFooterComponent={
+            loading ? (
+              <View style={styles.loading}>
+                <ActivityIndicator color={colors.text} testID="airport-loading" />
+                <Text style={[type.footnote, { color: colors.textSecondary, flex: 1 }]}>{rows.length ? a.searchingMore : a.searching}</Text>
+              </View>
+            ) : shownError && rows.length ? (
+              <Text style={[type.footnote, styles.moreError]} testID="airport-more-error">
+                {`${a.moreFailed} ${errorText(shownError, i18n, { BAD_RESPONSE: a.error })}`}
+              </Text>
+            ) : null
+          }
+          renderItem={({ item }) => {
+            const choice = choiceFor(item);
+            return (
+              <AirportRow
+                airport={choice}
+                tokens={tokens}
+                alias={cityAlias(item.airport, q, locale)}
+                near={item.near ? airportNames(item.near, locale).city : null}
+                onPress={() => choose(choice)}
+              />
+            );
+          }}
         />
       </View>
     </View>
@@ -228,9 +281,13 @@ const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: space.lg, gap: space.sm },
   list: { flex: 1 },
   listHead: { gap: space.md, paddingBottom: space.sm },
-  loading: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.xs },
+  loading: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingVertical: space.md, paddingHorizontal: space.xs },
+  moreError: { color: colors.textSecondary, paddingVertical: space.md, paddingHorizontal: space.xs },
   row: { flexDirection: "row", alignItems: "center", minHeight: 64, paddingVertical: space.sm, paddingHorizontal: space.xs, borderRadius: radius.input, gap: space.md },
   codeBox: { width: 52, height: 40, borderRadius: radius.sm, backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
+  codeBoxHit: { backgroundColor: colors.text, borderColor: colors.text },
+  markPrimary: { fontWeight: "600" },
+  markSecondary: { fontWeight: "600", color: colors.text },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: colors.lightBorder, marginLeft: 64 },
   sectionTitle: { fontSize: 12, lineHeight: 16, fontWeight: "600", letterSpacing: 0.6, textTransform: "uppercase", color: colors.textSecondary },
   homeRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44 },

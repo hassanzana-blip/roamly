@@ -1300,3 +1300,76 @@ UTC; Jest cannot switch time zone inside a test file, so the Oslo run is done fr
 under both UTC and `TZ=Europe/Oslo` (450 passed, 3 skipped).
 
 **Not verified:** the same on a real iPhone (Dynamic Type accessibility sizes, VoiceOver in the calendar).
+
+## Airport picker: instant matches, English names, highlighting, Torp under Oslo (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle). The airport answers come from a
+local mock that runs the server's real search (`api/lib/airportMeta.ts`) **without** KAYAK's autocomplete fallback.
+In production that fallback can fill in when the registry finds fewer than three airports, but the sandbox allows
+only 100 calls an hour, so it cannot be relied on.
+
+**Versions:** before is `2f4ab8a` (the picker was unchanged up to `2e8156f`); after is the commit that adds this
+section.
+
+**Problem found:** the shared registry only has Norwegian names («København», «Helsingfors», «Wien», «Roma»), and the
+server's world search skips those airports' English names. «helsinki», «munich», «vienna», «prague», «lisbon»,
+«athens», «venice», «geneva» and «gothenburg» found nothing. «copenhagen» found only Roskilde, «warsaw» found Modlin
+and Radom but not Chopin, and «rome» found Ciampino plus unrelated airports but not Fiumicino. The same gap is in
+the web app (same server). The server fix is outside the app's scope and is listed in the owner backlog.
+
+**What changed (app only)**
+- **Instant matches.** The picker shows matches from the app's copy of the curated registry as you type. Previously it
+  waited 250 ms plus a network round trip, with an empty list. The server's world matches are added *below* when they
+  arrive, so the rows above never move. A slow server shows «Ser etter flere flyplasser …» under the matches. A
+  failing server leaves the matches selectable, with «Fikk ikke hentet flere flyplasser. …» underneath instead of an
+  error over an empty list.
+- **Both languages.** English names for the registry airports whose names differ (Copenhagen, Helsinki, Munich,
+  Vienna, Rome, Milan, Venice, Athens, Lisbon, Prague, Warsaw, Geneva, Gothenburg and others) are searched in both
+  languages. A row shows the app's language. When only the other language matched, it says so: «København
+  (Copenhagen)», «Helsingfors (Helsinki)». In English the rows and the chosen airport use English names («Copenhagen»,
+  «Denmark»). The server's airports get English country names from their country code.
+- **What you typed is emphasised** (semibold) in the city and in the airport line, as in iOS' own search lists. An
+  exact code («bcn») shows the code chip inverted. Matching and emphasis use the same rule: each word typed must start
+  a word; accents and æ/ø/å do not matter. The emphasis is visual only; VoiceOver reads the row as before.
+- **Ordering.** Exact code, then city, airport name and country. Ties put the cities the registry marks as popular
+  first and keep a city's airports together, so «lon» gives London (LHR, LGW, STN) before Longyearbyen.
+- **Torp under Oslo (backlog 1.10).** A search for the *city* Oslo adds Sandefjord Torp (TRF) as its own row directly
+  under OSL, captioned «Annen flyplass nær Oslo» (also read by VoiceOver). It has its own code and choosing it searches
+  TRF only. It is never merged with OSL. Typing «OSL» or «Gardermoen» gives OSL alone. The registry itself calls Torp
+  «den andre inngangen til Oslo-området». Other cities' airports already share the city name and show up together.
+- Torp is also among «Flyplasser i Norge» before you type, in the registry's order (OSL, BGO, TRD, SVG, TRF, TOS …).
+
+**Architecture:** the app still imports only *types* from `contracts/` (Metro sees only `apps/mobile`). A first
+attempt imported the registry's values and failed to bundle; the browser preview caught it before commit. The
+registry is now copied into `src/lib/airportRegistry.ts`, like the destinations. A test fails if the copy drifts from
+`contracts/airports.ts`, and another fails if any app file imports values from `contracts/`.
+
+**Tests:** `textMatch.test.ts` (folding, ranges, æ → ae), `airportIndex.test.ts` (English names, ordering, Torp rule,
+merge with server answers, names per language), `airportRegistry.test.ts` (drift + import rule) and
+`airportPicker.test.tsx` (instant rows before the server answers, server rows appended without moving the others,
+soft failure, emphasis styles, inverted code, Torp row and label, English names in the form). The existing keyboard
+and stale-answer tests pass unchanged, apart from one wait that now waits for the server's row.
+
+**Performance:** iOS Hermes bundle 4 880 709 → 4 898 770 bytes (+18 kB, +0.37 %), measured with `expo export` on
+`2e8156f` and on this commit. The local search runs over 103 airports per keystroke (pre-folded words).
+
+**Not verified:** a real iPhone (keyboard, VoiceOver reading the emphasised rows, Dynamic Type accessibility sizes),
+and KAYAK's live autocomplete.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `airport-before-390-helsinki.jpg` | `46e87cbfab84bef3…` | 780×1826 |
+| `airport-after-390-helsinki.jpg` | `a8c577142ada8975…` | 780×1860 |
+| `airport-before-390-copenhagen.jpg` | `4bce5dfdc4324839…` | 780×1826 |
+| `airport-after-390-copenhagen.jpg` | `c3e26d375effab97…` | 780×1860 |
+| `airport-before-390-oslo.jpg` | `e5452f9f48503b9f…` | 780×1826 |
+| `airport-after-390-oslo.jpg` | `7fa611e37bcb19b0…` | 780×1860 |
+| `airport-before-390-slow-server.jpg` | `0a4e1f74fa2692d1…` | 780×1860 |
+| `airport-after-390-slow-server.jpg` | `6a8729666642b4ce…` | 780×1860 |
+| `airport-after-375-oslo.jpg` | `10d7e1ee716c1fac…` | 750×1790 |
+| `airport-after-430-oslo.jpg` | `8c9726dd4a0da005…` | 860×2002 |
+| `airport-after-390-large-oslo.jpg` | `572a7aa68f8470e4…` | 780×1826 |
+| `airport-after-390-en-copenhagen.jpg` | `03afadf0a08a9120…` | 780×1826 |
+| `airport-after-390-bcn.jpg` | `a755000fca0652f9…` | 780×1860 |
+| `airport-after-390-london.jpg` | `ef0d3530cce48dfd…` | 780×1826 |
+| `airport-after-390-gar.jpg` | `b2ff0711cf6cbd72…` | 780×1860 |

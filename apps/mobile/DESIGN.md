@@ -105,6 +105,7 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `OfferCard`, `RouteLine`, `BaggageSummary` | `OfferCard.tsx` | Resultatkortet (215 pt tur-retur ved 390): hver strekning på to linjer («UT · 9. OKT.» og «3 t 16 min · 1 mellomlanding · CPH», så tider, koder og rutelinje), risiko (natt, flyplassbytte, 6 t+) med ikon og ord, bagasje ved prisen, hele kortet er knappen |
 | `SortTabs` | `SortTabs.tsx` | Best / Billigst / Raskest over resultatlisten med ekte toppris og reisetid; valgt fane hvit på kull; under hverandre når et beløp ville brytes |
 | `DateRangeSheet` | `RangeCalendar.tsx` | Avreise og retur i ett ark: månedsliste (mandag først), bånd mellom datoene, antall netter, passerte dager sperret, 47 × 46 pt dager |
+| `MarkedText` | `MarkedText.tsx` | Tekst der det kunden skrev er uthevet (600); samme regel som søket (starten av hvert ord, aksenter og æ/ø/å likegyldig). Bare visuelt – VoiceOver leser raden som før |
 | `PriceTag` | `PriceTag.tsx` | Kronepris, «ca.»-pris med kurs, eller «Ingen pris i kroner» |
 | `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg; kildemetadata beholdes uten synlig kreditering over bildet |
 | `DestinationCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort, fanemeny, selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
@@ -129,6 +130,11 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 
 I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`) og Profil
 (`(tabs)/profil.tsx`, kundeinnlogging, språk, hjelp og konto).
+
+Flyplassøket viser registerets treff med én gang, på begge språk («København (Copenhagen)» når bare det engelske
+navnet passet), og serverens treff under når de kommer – radene over flytter seg ikke. Det kunden skrev er uthevet;
+en nøyaktig kode står invertert (kull med hvit tekst). Søk på byen Oslo gir Torp som egen rad rett under, merket
+«Annen flyplass nær Oslo». Lasting og en feil hos serveren står under treffene, ikke over.
 
 ## Foto
 

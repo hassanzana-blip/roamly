@@ -64,8 +64,9 @@ describe("flyplassvelgeren med tastaturet oppe", () => {
     expect(within(list()).getByText("Vi søker bare fra og til flyplassen du velger – aldri andre flyplasser i samme by.")).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByTestId("airport-query"), "osl");
-    await waitFor(() => expect(screen.getByTestId("airport-OSL")).toBeOnTheScreen());
+    // OSL står med én gang (registeret i appen); TRF kommer med serverens svar.
     expect(inList("airport-OSL")).toBe(true);
+    await waitFor(() => expect(screen.getByTestId("airport-TRF")).toBeOnTheScreen());
     expect(inList("airport-TRF")).toBe(true);
   });
 
