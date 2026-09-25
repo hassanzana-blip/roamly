@@ -97,7 +97,7 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | Komponent | Fil | Hva |
 |---|---|---|
 | `PrimaryButton`, `SecondaryButton`, `LinkButton`, `IconButton` | `src/components/ui.tsx` | Knapper (blå primær, mørk/lys sekundær, 44 pt ikonknapper) |
-| `Chip`, `ChoiceChips`, `Segmented`, `DarkTabs` | `ui.tsx` | Filterbrikker, valg, «Tur-retur/Én vei», fanene i detaljene |
+| `Chip`, `ChoiceChips`, `Segmented`, `DarkTabs` | `ui.tsx` | Filterbrikker (et aktivt filter fra arket: blå med «×», trykk fjerner), valg, «Tur-retur/Én vei» og «Avgang/Ankomst» (prikk = filter på i det andre valget), fanene i detaljene |
 | `InformationCard`, `InfoRow` | `ui.tsx` | Hvite kort med rader (ikon, tittel, verdi) |
 | `Notices`, `Banner`, `DemoBadge` | `ui.tsx` | Korte meldinger på mørkt (kan åpnes), meldinger på lyst, «DEMO»-merke |
 | `Field`, `Stepper`, `BottomSheet`, `StateView` | `ui.tsx` | Tekstfelt, antall reisende, ark nedenfra, tomme/feil-tilstander |

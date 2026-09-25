@@ -227,6 +227,63 @@ describe("flere filtre i filterarket", () => {
   });
 });
 
+describe("mellomlanding, ankomsttid og aktive filtre", () => {
+  /** Som withDirect, men direkteruten lander om kvelden (19:05), så ankomsttiden skiller. */
+  function withEveningDirect(): MobileSearchResult {
+    const base = withDirect();
+    const d = base.offers.at(-1)!;
+    const slices = d.offer.slices.map((s) => ({ ...s, arrivingAt: s.arrivingAt.replace("13:40", "19:05"), segments: s.segments.map((g) => ({ ...g, departingAt: s.departingAt, arrivingAt: s.arrivingAt.replace("13:40", "19:05") })) }));
+    return { ...base, offers: [...base.offers.slice(0, -1), { ...d, offer: { ...d.offer, slices } }] };
+  }
+
+  it("«Mellomlanding i»: flyplassene fra svaret; slått av skjuler reiser som bytter der, direkte står; brikken over listen fjerner filteret", async () => {
+    await renderResults(withDirect());
+    await fireEvent.press(screen.getByTestId("open-filters"));
+    const cph = screen.getByTestId("via-CPH");
+    expect(cph).toHaveTextContent(/København \(CPH\)/);
+    expect(cph.props.accessibilityState).toMatchObject({ checked: true });
+    expect(cph.props.accessibilityLabel).toBe("København (CPH), 5 reiser");
+    await fireEvent.press(cph);
+    expect(screen.getByTestId("via-CPH").props.accessibilityState).toMatchObject({ checked: false });
+    expect(cardIds()).toEqual(["offer-direct_1"]);
+    await fireEvent.press(screen.getByTestId("filter-apply"));
+
+    // Arket er lukket: filteret står som en brikke rett etter «Alle», og et trykk fjerner det.
+    const chip = screen.getByTestId("active-via");
+    expect(chip).toHaveTextContent("Ikke via CPH");
+    expect(chip.props.accessibilityLabel).toBe("Fjern filter: Ikke via CPH");
+    const row = screen.getAllByTestId(/^(chip|active)-/).map((el) => el.props.testID as string);
+    expect(row.slice(0, 2)).toEqual(["chip-all", "active-via"]);
+    expect(screen.getByLabelText("Filtrer, 1 aktive")).toBeOnTheScreen();
+    await fireEvent.press(chip);
+    expect(cardIds()).toHaveLength(6);
+    expect(screen.queryByTestId("active-via")).toBeNull();
+  });
+
+  it("ankomsttid: «Ankomst» viser tidsrommene for landing; prikken viser at et filter er på der når «Avgang» er valgt", async () => {
+    await renderResults(withEveningDirect());
+    await fireEvent.press(screen.getByTestId("open-filters"));
+    expect(screen.getByTestId("times-out-depart").props.accessibilityState).toMatchObject({ selected: true });
+    expect(screen.getByTestId("band-afternoon")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("times-out-arrive"));
+    expect(screen.queryByTestId("band-afternoon")).toBeNull();
+    expect(screen.getByText("Lokal tid der du lander.")).toBeOnTheScreen();
+    expect(screen.getByTestId("arrive-band-morning").props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(screen.getByTestId("arrive-band-evening"));
+    expect(cardIds()).toEqual(["offer-direct_1"]);
+
+    await fireEvent.press(screen.getByTestId("times-out-depart"));
+    expect(screen.getByTestId("times-out-arrive-dot")).toBeOnTheScreen();
+    expect(screen.getByTestId("times-out-arrive").props.accessibilityLabel).toBe("Ankomst, filter på");
+    expect(screen.queryByTestId("times-out-depart-dot")).toBeNull();
+
+    // Hjemreisen har sitt eget valg.
+    expect(screen.getByTestId("times-back-depart")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId("filter-apply"));
+    expect(screen.getByTestId("active-arriveBands")).toHaveTextContent("Ankomst ut: kveld");
+  });
+});
+
 describe("endre søket", () => {
   it("«Endre søk» går til søkeskjemaet på forsiden, også når søket startet fra Utforsk", async () => {
     const router = (globalThis as unknown as { __router: { navigate: jest.Mock; back: jest.Mock } }).__router;

@@ -1373,3 +1373,54 @@ and KAYAK's live autocomplete.
 | `airport-after-390-bcn.jpg` | `a755000fca0652f9…` | 780×1860 |
 | `airport-after-390-london.jpg` | `ef0d3530cce48dfd…` | 780×1826 |
 | `airport-after-390-gar.jpg` | `b2ff0711cf6cbd72…` | 780×1860 |
+
+## Filters: arrival times, connecting airports, active filters as chips (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock with
+demo data (labelled DEMO on screen).
+
+**Versions:** before is `2e8156f` (the results screen and filters are unchanged up to `24f52c6`); after is the
+commit that adds this section.
+
+**What changed**
+- **Active filters stay visible (backlog 1.13).** Before, a filter set in the sheet (times, airlines, price, travel
+  time) vanished when the sheet closed; only a number on «Filtrer» and «N skjult av filtre» hinted at it. Now each one
+  is a blue chip with «×» right after «Alle» («Avgang ut: morgen», «Ankomst hjem: kveld», «Norwegian, SAS», «Ikke via
+  CPH», «Opptil 3 000 kr», «Reisetid opptil 4 t»). A tap removes that filter; VoiceOver says «Fjern filter: …».
+  «Direkte», «Maks 1» and «Bagasje» keep their own chips, so nothing is shown twice.
+- **Arrival times (backlog 1.12).** Each leg («Utreise», «Hjemreise»; «Tider» on one-way searches) has an
+  «Avgang | Ankomst» switch over the same four time bands. Departure and arrival can both be on. A dot on the other
+  choice (and «…, filter på» for VoiceOver) shows that it has a filter too, so nothing hides behind the switch. The
+  times are local at the airport, as the provider gave them, including a landing after midnight.
+- **Connecting airports (backlog 1.12).** «Mellomlanding i» lists the airports the offers actually connect in (both
+  airports on an airport change), with the provider's city names, most journeys first. All are ticked; untick one
+  to hide journeys that connect there. Direct flights always stay. Each row counts the journeys that connect there
+  under the other filters; rows with none are disabled. Ticked is the default, so rows are not highlighted. The one
+  that stands out is the one the customer switched off.
+- Counts, «Vis N reiser», the badge and «Nullstill filtre» include the new filters. A new search starts with none,
+  as before.
+
+**Tests:** `connectionFilters.test.ts` covers connection airports (airport change, direct flights always pass,
+counts), arrival bands (overnight landing, return only) and the chips (labels in both languages, ordering, «N
+tidsrom», VoiceOver text, each chip clears only its own filter). `filters.test.tsx` walks the sheet: untick CPH, close,
+the chip right after «Alle», remove it; arrival switch, disabled empty bands, dot and spoken state; the return leg's own
+switch.
+
+**Performance:** iOS Hermes bundle 4 898 770 → 4 910 293 bytes (+11.5 kB). Counting per airport walks the offers
+once per airport row while the sheet is open.
+
+**Not verified:** a real iPhone (VoiceOver reading the chips row and the switch, Dynamic Type accessibility sizes in
+the sheet).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `filters-before-390-active.jpg` | `a4ff87487b9f0df5…` | 780×1860 |
+| `filters-after-390-active.jpg` | `878362a2847aecbb…` | 780×1860 |
+| `filters-after-375-active.jpg` | `961a0e6b57280628…` | 750×1762 |
+| `filters-after-430-active.jpg` | `23803b729bb4d7ba…` | 860×2002 |
+| `filters-after-390-large-active.jpg` | `c67b0389e1f9ea31…` | 780×1860 |
+| `filters-before-390-sheet.jpg` | `ed135173a1654a65…` | 780×1860 |
+| `filters-after-390-times.jpg` | `a0978f479242056a…` | 780×1860 |
+| `filters-after-390-via.jpg` | `6b02dc79f5a3fcaf…` | 780×1860 |
+| `filters-after-390-en-times.jpg` | `9d9a2baf739003c7…` | 780×1860 |
+| `filters-after-390-large-times.jpg` | `c0630d34b2599ab3…` | 780×1826 |

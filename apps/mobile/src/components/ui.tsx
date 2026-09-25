@@ -157,8 +157,11 @@ export function IconButton({
 
 // ─── Valg ───────────────────────────────────────────────────────────────────
 
-/** Filterbrikke. Valgt = blå; ellers hevet mørk (dark) eller innfelt lys. */
-export function Chip({ label, selected, onPress, dark = true, disabled, testID, accessibilityLabel }: { label: string; selected: boolean; onPress: () => void; dark?: boolean; disabled?: boolean; testID?: string; accessibilityLabel?: string }) {
+/**
+ * Filterbrikke. Valgt = blå; ellers hevet mørk (dark) eller innfelt lys. `removable`: et aktivt filter med «×» –
+ * et trykk fjerner det (etiketten til VoiceOver sier det).
+ */
+export function Chip({ label, selected, onPress, dark = true, disabled, testID, accessibilityLabel, removable }: { label: string; selected: boolean; onPress: () => void; dark?: boolean; disabled?: boolean; testID?: string; accessibilityLabel?: string; removable?: boolean }) {
   return (
     <Pressable
       testID={testID}
@@ -179,6 +182,7 @@ export function Chip({ label, selected, onPress, dark = true, disabled, testID, 
       <Text style={[type.footnoteStrong, { color: selected ? colors.white : dark ? colors.onDark : colors.text }]} numberOfLines={1}>
         {label}
       </Text>
+      {removable ? <Icon name="close" size={14} color={selected ? colors.white : dark ? colors.onDark : colors.text} strokeWidth={2.25} /> : null}
     </Pressable>
   );
 }
@@ -211,7 +215,20 @@ export function ChoiceChips<T extends string | number>({ value, options, onChang
 
 /** Lyst spor med blå valgt pille – reisetype (Tur-retur / Én vei). */
 /** `lang` på et valg: valget står på sitt eget språk (f.eks. «Norsk (bokmål)» i språkvelgeren) og leses med den stemmen. */
-export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string; icon?: IconName; lang?: string }[]; onChange: (v: T) => void; label: string }) {
+/** `dot`: et lite merke etter teksten (f.eks. et filter som er på i det andre valget); `spoken` sier det samme til VoiceOver. */
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+  testIDPrefix = "segment-",
+}: {
+  value: T;
+  options: { value: T; label: string; icon?: IconName; lang?: string; dot?: boolean; spoken?: string }[];
+  onChange: (v: T) => void;
+  label: string;
+  testIDPrefix?: string;
+}) {
   const lang = useA11yLanguage();
   return (
     <View accessibilityLanguage={lang} style={styles.segmented} accessibilityRole="radiogroup" accessibilityLabel={label}>
@@ -220,11 +237,11 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
         return (
           <Pressable
             key={o.value}
-            testID={`segment-${o.value}`}
+            testID={`${testIDPrefix}${o.value}`}
             onPress={() => onChange(o.value)}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
-            accessibilityLabel={o.label}
+            accessibilityLabel={o.spoken ?? o.label}
             accessibilityLanguage={o.lang ?? lang}
             style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && !selected && { opacity: 0.6 }]}
           >
@@ -232,6 +249,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
             <Text style={[type.calloutStrong, { color: selected ? colors.white : colors.text }]} numberOfLines={1} accessibilityLanguage={o.lang ?? lang}>
               {o.label}
             </Text>
+            {o.dot ? <View style={[styles.segmentDot, { backgroundColor: selected ? colors.white : colors.blue }]} testID={`${testIDPrefix}${o.value}-dot`} /> : null}
           </Pressable>
         );
       })}
@@ -547,7 +565,7 @@ const styles = StyleSheet.create({
   badge: { position: "absolute", top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   badgeText: { fontSize: 11, fontWeight: "700", color: colors.white, fontVariant: ["tabular-nums"] },
 
-  chip: { minHeight: 36, minWidth: TOUCH, paddingHorizontal: 14, borderRadius: radius.pill, alignItems: "center", justifyContent: "center" },
+  chip: { minHeight: 36, minWidth: TOUCH, paddingHorizontal: 14, borderRadius: radius.pill, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" },
   chipDark: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
   chipLight: { backgroundColor: colors.inset, borderWidth: 1, borderColor: colors.lightBorder },
   chipSelected: { backgroundColor: colors.blue, borderColor: colors.blue },
@@ -555,6 +573,7 @@ const styles = StyleSheet.create({
   segmented: { flexDirection: "row", backgroundColor: colors.inset, borderRadius: radius.pill, padding: 4 },
   segment: { flex: 1, minHeight: TOUCH, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", borderRadius: radius.pill, paddingHorizontal: space.md },
   segmentSelected: { backgroundColor: colors.blue },
+  segmentDot: { width: 6, height: 6, borderRadius: 3 },
 
   // Fanene deler raden; får etikettene ikke plass (stor tekst), brytes raden i stedet for at ordene kuttes.
   tabs: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },

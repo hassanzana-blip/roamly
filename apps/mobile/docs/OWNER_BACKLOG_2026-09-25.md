@@ -56,8 +56,8 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 1.9 | Details: baggage and fare conditions per seller visible before the handoff button without tab switching [33][34] | done |
 | 1.10 | Airport picker: other airports in the same city/area offered next to the chosen one (e.g. TRF next to OSL, LGW next to LHR), never merged [14] | done: Torp as its own row under a search for Oslo; same-city airports already list together (MANIFEST «Airport picker») |
 | 1.11 | Airport picker: matched text emphasised; Norwegian city names and IATA both match (server already does the search) | done: emphasis, instant registry matches, English names («Helsingfors (Helsinki)») (MANIFEST «Airport picker») |
-| 1.12 | Filters: connection airports (from the offers), arrival-time bands both ways [29][31] | planned |
-| 1.13 | Filter state visible after the sheet closes: active filters as removable chips [29] | planned |
+| 1.12 | Filters: connection airports (from the offers), arrival-time bands both ways [29][31] | done: «Mellomlanding i» and «Avgang \| Ankomst» per leg (MANIFEST «Filters») |
+| 1.13 | Filter state visible after the sheet closes: active filters as removable chips [29] | done: chips after «Alle», a tap removes (MANIFEST «Filters») |
 | 1.14 | Price basis wording shorter on cards; full basis kept for VoiceOver and details [24] | done |
 | 1.15 | Results: «N reiser» count and sort label never contradict the list after filtering | planned |
 | 1.16 | Error recovery specific to the code, with the search kept (already largely true; verify copy) [18] | verify |

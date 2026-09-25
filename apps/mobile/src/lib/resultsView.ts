@@ -6,10 +6,11 @@ import { groupJourneys, itinerarySignature, type Journey } from "./journeys";
 /**
  * Sortering og filtre på resultatlisten – bare på data tilbudene faktisk har:
  * kronepris (serverens rekkefølge), reisetid, antall mellomlandinger,
- * innsjekket bagasje slik leverandøren oppga den, flyselskap, og avgangstid
- * for utreise og hjemreise (lokal tid på flyplassen, slik leverandøren oppga
- * den). Et filter på pris eller reisetid skjuler tilbud der verdien er ukjent
- * (ingen kronepris, ugyldig varighet): de kan ikke vises å være innenfor.
+ * innsjekket bagasje slik leverandøren oppga den, flyselskap, flyplassene det
+ * byttes i, og avgangs- og ankomsttid for utreise og hjemreise (lokal tid på
+ * flyplassen, slik leverandøren oppga den). Et filter på pris eller reisetid
+ * skjuler tilbud der verdien er ukjent (ingen kronepris, ugyldig varighet): de
+ * kan ikke vises å være innenfor.
  *
  * Tilbud uten pris i kroner står alltid nederst, uansett sortering, så
  * merknaden «står nederst» over listen alltid stemmer.
@@ -32,6 +33,12 @@ export type ResultsView = {
   departBands: TimeBand[];
   /** Hjemreisens avgang (bare tur-retur). */
   returnBands: TimeBand[];
+  /** Utreisens ankomst (lokal tid der du lander). */
+  arriveBands: TimeBand[];
+  /** Hjemreisens ankomst (bare tur-retur). */
+  returnArriveBands: TimeBand[];
+  /** Flyplasser kunden ikke vil bytte fly i (IATA). Direktefly passer alltid. */
+  avoidConnections: string[];
   /** Markedsførende flyselskap (IATA); tomt = alle. Et tilbud passer når minst ett av flyene er med et valgt selskap. */
   airlines: string[];
   /** Høyeste totalpris i øre (kronepris), eller null. */
@@ -41,7 +48,22 @@ export type ResultsView = {
 };
 
 /** Standard: «Best» – som de store metasøkene. «Billigst» er ett trykk unna i fanene over listen. */
-export const DEFAULT_VIEW: ResultsView = { sort: "best", stops: "any", bags: false, departBands: [], returnBands: [], airlines: [], maxPriceMinor: null, maxLegMinutes: null };
+export const DEFAULT_VIEW: ResultsView = {
+  sort: "best",
+  stops: "any",
+  bags: false,
+  departBands: [],
+  returnBands: [],
+  arriveBands: [],
+  returnArriveBands: [],
+  avoidConnections: [],
+  airlines: [],
+  maxPriceMinor: null,
+  maxLegMinutes: null,
+};
+
+/** Tidsfiltrene: avgang og ankomst for utreise og hjemreise. */
+export type BandKey = "departBands" | "arriveBands" | "returnBands" | "returnArriveBands";
 
 /** Filtrene av, sorteringen beholdt. */
 export function clearedFilters(v: ResultsView): ResultsView {
@@ -153,6 +175,54 @@ export function returnBand(o: MobileOffer): TimeBand | null {
   return slices.length > 1 ? bandOf(slices[slices.length - 1]?.departingAt) : null;
 }
 
+/** Tidsrommet utreisen lander i (lokal tid der du lander, slik leverandøren oppga den). */
+export function arriveBand(o: MobileOffer): TimeBand | null {
+  return bandOf(o.offer.slices[0]?.arrivingAt);
+}
+
+/** Tidsrommet hjemreisen lander i, bare når reisen har mer enn én strekning. */
+export function returnArriveBand(o: MobileOffer): TimeBand | null {
+  const slices = o.offer.slices;
+  return slices.length > 1 ? bandOf(slices[slices.length - 1]?.arrivingAt) : null;
+}
+
+const BAND_OF: Record<BandKey, (o: MobileOffer) => TimeBand | null> = { departBands: departBand, arriveBands: arriveBand, returnBands: returnBand, returnArriveBands: returnArriveBand };
+
+/**
+ * Flyplassene reisen bytter fly i: der et fly lander og det neste går fra (to flyplasser ved flyplassbytte). Et
+ * direktefly har ingen.
+ */
+export function connectionsOf(o: MobileOffer): Set<string> {
+  const out = new Set<string>();
+  for (const s of o.offer.slices) {
+    for (let i = 0; i < s.segments.length - 1; i++) {
+      const a = s.segments[i]!.destination.iata;
+      const b = s.segments[i + 1]!.origin.iata;
+      if (a) out.add(a);
+      if (b) out.add(b);
+    }
+  }
+  return out;
+}
+
+export type ConnectionOption = { iata: string; city: string };
+
+/** Flyplassene det byttes i i svaret, flest reiser først. Bynavnet er leverandørens. */
+export function connectionOptions(offers: MobileOffer[]): ConnectionOption[] {
+  const map = new Map<string, { iata: string; city: string; keys: Set<string> }>();
+  for (const o of offers) {
+    const key = itinerarySignature(o.offer);
+    const cities = new Map<string, string>();
+    for (const s of o.offer.slices) for (const g of s.segments) cities.set(g.destination.iata, g.destination.city).set(g.origin.iata, g.origin.city);
+    for (const iata of connectionsOf(o)) {
+      const cur = map.get(iata) ?? { iata, city: cities.get(iata) || iata, keys: new Set<string>() };
+      cur.keys.add(key);
+      map.set(iata, cur);
+    }
+  }
+  return [...map.values()].sort((a, b) => b.keys.size - a.keys.size || a.city.localeCompare(b.city) || a.iata.localeCompare(b.iata)).map(({ iata, city }) => ({ iata, city }));
+}
+
 /** Kroneprisen i øre, eller null når tilbudet ikke har pris i kroner. */
 export function nokMinor(o: MobileOffer): number | null {
   return o.price.nok.kind === "unavailable" ? null : o.price.nok.amountMinor;
@@ -177,17 +247,20 @@ function hasNok(o: MobileOffer): boolean {
   return o.price.nok.kind !== "unavailable";
 }
 
+const BAND_KEYS: readonly BandKey[] = ["departBands", "arriveBands", "returnBands", "returnArriveBands"];
+
 function passes(o: MobileOffer, v: ResultsView): boolean {
   if (v.stops === "direct" && maxStops(o) > 0) return false;
   if (v.stops === "max1" && maxStops(o) > 1) return false;
   if (v.bags && !checkedBagIncluded(o.offer)) return false;
-  if (v.departBands.length) {
-    const band = departBand(o);
-    if (!band || !v.departBands.includes(band)) return false;
+  for (const key of BAND_KEYS) {
+    if (!v[key].length) continue;
+    const band = BAND_OF[key](o);
+    if (!band || !v[key].includes(band)) return false;
   }
-  if (v.returnBands.length) {
-    const band = returnBand(o);
-    if (!band || !v.returnBands.includes(band)) return false;
+  if (v.avoidConnections.length) {
+    const via = connectionsOf(o);
+    if (v.avoidConnections.some((a) => via.has(a))) return false;
   }
   if (v.airlines.length) {
     const mine = airlinesOf(o);
@@ -246,8 +319,8 @@ export function activeFilterCount(v: ResultsView): number {
   return (
     (v.stops !== "any" ? 1 : 0) +
     (v.bags ? 1 : 0) +
-    (v.departBands.length ? 1 : 0) +
-    (v.returnBands.length ? 1 : 0) +
+    BAND_KEYS.filter((k) => v[k].length).length +
+    (v.avoidConnections.length ? 1 : 0) +
     (v.airlines.length ? 1 : 0) +
     (v.maxPriceMinor !== null ? 1 : 0) +
     (v.maxLegMinutes !== null ? 1 : 0)
@@ -307,6 +380,17 @@ export function legThresholds(offers: MobileOffer[]): number[] {
 export function journeyCount(offers: MobileOffer[], v: ResultsView): number {
   const keys = new Set<string>();
   for (const o of offers) if (passes(o, v)) keys.add(itinerarySignature(o.offer));
+  return keys.size;
+}
+
+/**
+ * Reiser som bytter i `iata` og ellers passer filtrene – det som kommer tilbake eller forsvinner når kunden slår
+ * flyplassen på eller av.
+ */
+export function journeysVia(offers: MobileOffer[], v: ResultsView, iata: string): number {
+  const view = { ...v, avoidConnections: v.avoidConnections.filter((x) => x !== iata) };
+  const keys = new Set<string>();
+  for (const o of offers) if (passes(o, view) && connectionsOf(o).has(iata)) keys.add(itinerarySignature(o.offer));
   return keys.size;
 }
 
