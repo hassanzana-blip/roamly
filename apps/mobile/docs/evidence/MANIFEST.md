@@ -1237,3 +1237,35 @@ reading of the progress element on device.
 | `loading-after-390.jpg` | `1cd43490aa09a5bb…` | 780×1916 |
 | `loading-after-430.jpg` | `9b295c70722c87a3…` | 860×2036 |
 | `loading-before-2f4ab8a-390.jpg` | `8aeef44c14aa350c…` | 780×1888 |
+
+## Flight details: the whole journey on one scroll (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) with the hand-made demo fixture. The
+two full-page images use a 390×2900 viewport so the whole scroll fits in one picture (not a real screen size).
+
+**Versions:** before is `2f4ab8a` (details were unchanged up to `0923612`); after is the commit that adds this section.
+Both full-page images show the same journey (Vueling, two sellers).
+
+**What changed**
+- No tabs. Before, only «Oversikt» was visible; baggage, terms and the itinerary each needed a tap on a tab, so a customer
+  could reach the provider without ever seeing the layovers or the baggage.
+- One scroll in decision order: sellers (when more than one) → the itinerary for every leg (each flight, layover time,
+  airport change, +1 day, operating carrier, aircraft) → baggage for the chosen seller → terms for the chosen seller
+  (only when the provider stated any) → price (basis, «ca.» explanation, service fee, seller, expiry).
+- The «Reiseinformasjon» card is gone: everything in it (flight numbers, operator, aircraft, durations, stops) is in the
+  itinerary, and the cabin is in the summary.
+- The sticky bar (price, basis, «Gå til tilbud», seller, «Bestillingen fullføres hos tilbyderen.») is unchanged, so the
+  action is always one tap away.
+- Unused strings for the tabs and the removed card are deleted.
+
+**Tests:** the details tests no longer press tabs; they assert that sellers, itinerary, baggage, terms and price appear in
+that order on one screen (`coreFlowLayout.test.tsx`), that there is no tab list (`edgeCases.test.tsx`), and that the
+itinerary is always present (`screens.test.tsx`). VoiceOver language coverage now walks the whole scroll at once.
+
+**Not verified:** scrolling and VoiceOver order on a real iPhone.
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `details-after-390-first-view.jpg` | `e2b740d4a6d79696…` | 780×1916 |
+| `details-after-390-full.jpg` | `de754c1247d72a6a…` | 780×6056 |
+| `details-before-2f4ab8a-390-full.jpg` | `95865c099d185d4b…` | 780×6028 |

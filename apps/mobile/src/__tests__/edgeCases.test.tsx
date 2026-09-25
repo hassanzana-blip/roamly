@@ -152,7 +152,6 @@ describe.each(["nb", "en"] as const)("fire reisende og lange navn (%s)", (locale
       expect(row.getByText(s.price)).toBeOnTheScreen();
     }
     for (const s of c.sellers) {
-      await fireEvent.press(screen.getByTestId("tab-overview"));
       await fireEvent.press(screen.getByTestId(`seller-${s.id}`));
       expect(screen.getByTestId(`seller-${s.id}`).props.accessibilityState).toMatchObject({ selected: true });
       // Bunnlinjen: pris og grunnlag for alle fire, handlingen og tilbyderen er den valgte selgeren.
@@ -162,19 +161,16 @@ describe.each(["nb", "en"] as const)("fire reisende og lange navn (%s)", (locale
       expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe(c.action(s.name));
       expect(screen.getByTestId("handoff-note")).toHaveTextContent(c.note(s.name));
       expectNoLineCaps("offer-bar");
-      // Bagasje og vilkår fra akkurat denne selgeren.
-      await fireEvent.press(screen.getByTestId("tab-baggage"));
+      // Bagasje og vilkår fra akkurat denne selgeren – på samme rulleflate, uten faner.
       expect(screen.getByTestId("bag-checked")).toHaveTextContent(s.checked);
       if (s.terms) {
-        await fireEvent.press(screen.getByTestId("tab-terms"));
         for (const term of s.terms) expect(within(screen.getByTestId("terms-card")).getByText(term)).toBeOnTheScreen();
       } else {
-        expect(screen.queryByTestId("tab-terms")).toBeNull();
+        expect(screen.queryByTestId("terms-card")).toBeNull();
       }
     }
     // Flyselskapets lange navn står helt, både øverst og i tidslinjen.
     expect(within(screen.getByTestId("journey-summary")).getByText(EDGE_AIRLINE).props.numberOfLines).toBeUndefined();
-    await fireEvent.press(screen.getByTestId("tab-itinerary"));
     const names = screen.getAllByText(EDGE_AIRLINE);
     expect(names.length).toBeGreaterThanOrEqual(1 + 4); // oversikten + fire flyvninger
     for (const el of names) expect(el.props.numberOfLines).toBeUndefined();
@@ -185,13 +181,9 @@ describe.each(["nb", "en"] as const)("fire reisende og lange navn (%s)", (locale
     const [who, duration] = flight.children as HostNode[];
     expect(StyleSheet.flatten(who!.props.style as never)).toMatchObject({ flexGrow: 1, flexShrink: 1, flexBasis: "auto" });
     expect(StyleSheet.flatten(duration!.props.style as never)).toMatchObject({ marginLeft: "auto" });
-    // Fanene: ingen linjegrense, og raden brytes når etikettene ikke får plass (stor tekst).
-    for (const id of ["tab-overview", "tab-baggage", "tab-itinerary"]) {
-      const tab = screen.getByTestId(id);
-      expect(within(tab).getByText(/./).props.numberOfLines).toBeUndefined();
-      expect(StyleSheet.flatten(tab.props.style)).toMatchObject({ flexGrow: 1, flexShrink: 0, flexBasis: "auto" });
-    }
-    expect(StyleSheet.flatten(hostWithRole("tablist")?.props.style)).toMatchObject({ flexDirection: "row", flexWrap: "wrap" });
+    // Ingen faner lenger: alt står på én rulleflate, så ingenting skjules bak et trykk.
+    expect(hostWithRole("tablist")).toBeNull();
+    expectNoLineCaps("itinerary");
   });
 });
 
@@ -271,10 +263,8 @@ describe("selgerraden gir navn, bagasje og vilkår nok bredde", () => {
     expect(within(screen.getByTestId("bar-price")).getByText(airline.price)).toBeOnTheScreen();
     expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe(c.action(EDGE_AIRLINE));
     expect(placement("edge_airline")).toBe("below");
-    // Fanebytte: tilbake på Oversikt står prisen allerede under – ingen ny måling, ingen hopping.
-    await fireEvent.press(screen.getByTestId("tab-baggage"));
+    // Bagasjen følger valget; prisen står fortsatt under – ingen ny måling, ingen hopping.
     expect(screen.getByTestId("bag-checked")).toHaveTextContent(airline.checked);
-    await fireEvent.press(screen.getByTestId("tab-overview"));
     expect(placement("edge_airline")).toBe("below");
   });
 

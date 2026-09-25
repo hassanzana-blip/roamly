@@ -171,16 +171,18 @@ describe("Flydetaljer: kompakt bunnlinje", () => {
     expect(padding()).toBeGreaterThan(260);
   });
 
-  it("gruppert reise: selgerne før den felles reiseinformasjonen, og et bytte flytter pris, bagasje og handling sammen", async () => {
+  it("gruppert reise: selgerne før reiseplanen, og et bytte flytter pris, bagasje og handling sammen", async () => {
     await renderOffer("sek_1", [SEK_OFFER, SAME_TRIP_OTHER_SELLER]);
     const order = screenOrder();
-    expect(order.indexOf("#sellers")).toBeLessThan(order.indexOf("Reiseinformasjon"));
+    // Én rulleflate uten faner: selgerne, så hele reiseplanen, bagasjen, vilkårene og prisen.
+    const at = (id: string) => order.indexOf(`#${id}`);
+    expect([at("sellers") < at("itinerary"), at("itinerary") < at("baggage-card"), at("baggage-card") < at("terms-card"), at("terms-card") < at("price-card")]).toEqual([true, true, true, true]);
+    expect(screen.queryByTestId("tab-overview")).toBeNull();
     const before = screen.getByTestId("handoff-button").props.accessibilityLabel as string;
     await fireEvent.press(screen.getByTestId("seller-gtg_1"));
     expect(screen.getByTestId("handoff-button").props.accessibilityLabel).not.toBe(before);
     expect(screen.getByTestId("bar-provider")).toHaveTextContent("Gotogate ·");
     expect(within(screen.getByTestId("bar-price")).getByText(/^1\s390\skr$/)).toBeOnTheScreen();
-    await fireEvent.press(screen.getByTestId("tab-baggage"));
     expect(screen.getByTestId("bag-checked")).toHaveTextContent(/Innsjekket bagasje.*Inkludert/);
   });
 });

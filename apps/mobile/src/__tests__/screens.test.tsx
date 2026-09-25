@@ -247,17 +247,15 @@ describe("tilbudsdetaljer og videresending", () => {
   it("vilkår: bare leverandørens egne opplysninger – «refundable: false» uten vilkår blir aldri «kan ikke refunderes»", async () => {
     await openOffer("sek_1");
     // SEK-tilbudet har refundable: false, men ingen `conditions` – bare leverandørens erklæring.
-    await fireEvent.press(screen.getByTestId("tab-terms"));
     expect(screen.getByTestId("disclosure")).toHaveTextContent("Billetten kan ikke refunderes.");
     expect(screen.queryByText(/Refusjon før avreise/)).toBeNull();
     expect(screen.queryByText(/Kan endres|Kan ikke endres/)).toBeNull();
 
-    await fireEvent.press(screen.getByTestId("tab-baggage"));
     expect(screen.getByTestId("bag-carryOn")).toHaveTextContent(/Håndbagasje.*Inkludert/);
     expect(screen.getByTestId("bag-checked")).toHaveTextContent(/Innsjekket bagasje.*Ikke oppgitt/);
   });
 
-  it("tilbud HelloSky selger: gebyret nevnes uten beløp i annen valuta; samme søk åpnes på hellosky.no; ingen vilkårsfane uten vilkår", async () => {
+  it("tilbud HelloSky selger: gebyret nevnes uten beløp i annen valuta; samme søk åpnes på hellosky.no; ingen vilkårskort uten vilkår", async () => {
     await openOffer("hs_eur");
     expect(screen.getByTestId("service-fee")).toHaveTextContent("Prisen inkluderer HelloSkys servicegebyr.");
     expect(screen.queryByTestId("seller")).toBeNull();
@@ -266,7 +264,7 @@ describe("tilbudsdetaljer og videresending", () => {
     await fireEvent.press(screen.getByTestId("web-handoff"));
     const [url] = (WebBrowser.openBrowserAsync as jest.Mock).mock.calls.at(-1)!;
     expect(url).toMatch(/^https:\/\/hellosky\.no\/sok\?adults=1&children=0&infants=0&cabin=economy&from=[A-Z]{3}&to=[A-Z]{3}&depart=\d{4}-\d{2}-\d{2}/);
-    expect(screen.queryByTestId("tab-terms")).toBeNull();
+    expect(screen.queryByTestId("terms-card")).toBeNull();
     expectNoForeignAmounts();
     expectNoRawLinks();
   });
@@ -304,10 +302,11 @@ describe("tilbudsdetaljer og videresending", () => {
     expect(rows).toEqual(["seller-gtg_1", "seller-sek_1"]);
     expect(screen.getByTestId("handoff-button").props.accessibilityLabel).toBe("Gå til tilbud hos SAS");
     expect(screen.getByTestId("bar-provider")).toHaveTextContent("SAS ·");
-    // Sammenligningen står først i Oversikt, før den felles reiseinformasjonen.
+    // Sammenligningen står først, før reiseplanen (én rulleflate, ingen faner).
     const overview = screen.getByTestId("offer-screen");
-    const order = within(overview).getAllByText(/^(Tilbydere|Reiseinformasjon)$/).map((el) => el.props.children as string);
-    expect(order).toEqual(["Tilbydere", "Reiseinformasjon"]);
+    const order = within(overview).getAllByText(/^(Tilbydere|Utreise · .+|Bagasje)$/).map((el) => el.props.children as string);
+    expect(order[0]).toBe("Tilbydere");
+    expect(order[1]).toMatch(/^Utreise · /);
     // Hver selgers bagasje står i sin helhet – ingen linjegrense som kan kutte forskjellen.
     for (const id of ["gtg_1", "sek_1"]) {
       const bags = screen.getByTestId(`sellerbags-${id}`);
@@ -321,9 +320,7 @@ describe("tilbudsdetaljer og videresending", () => {
     expect(screen.getByTestId("bar-provider")).toHaveTextContent("Gotogate ·");
     expect(within(screen.getByTestId("bar-price")).getByText(/^1\s390\skr$/)).toBeOnTheScreen();
     expect(within(screen.getByTestId("offer-price")).getByText(/^1\s390\skr$/)).toBeOnTheScreen();
-    await fireEvent.press(screen.getByTestId("tab-baggage"));
     expect(screen.getByTestId("bag-checked")).toHaveTextContent(/Innsjekket bagasje.*Inkludert/);
-    await fireEvent.press(screen.getByTestId("tab-terms"));
     expect(screen.getByText("Refusjon før avreise")).toBeOnTheScreen();
     expect(screen.getByText("Endring før avreise")).toBeOnTheScreen();
   });
@@ -389,8 +386,8 @@ describe("tilbudsdetaljer og videresending", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("offer-screen")).toBeOnTheScreen());
-    await fireEvent.press(screen.getByTestId("tab-itinerary"));
-    expect(screen.getByText("Bytte i København · 1 t 45 min")).toBeOnTheScreen();
+    // Reiseplanen står alltid på skjermen (ingen fane å åpne).
+    expect(within(screen.getByTestId("itinerary")).getByText("Bytte i København · 1 t 45 min")).toBeOnTheScreen();
   });
 
   it("uten søkeresultat: ber kunden søke på nytt", async () => {

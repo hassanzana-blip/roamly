@@ -26,10 +26,8 @@ import { AirlineLogo } from "../../components/AirlineLogo";
 import { BottomFade, PhotoBackdrop } from "../../components/Photo";
 import { RouteLine } from "../../components/OfferCard";
 import { Icon } from "../../components/Icon";
-import { Banner, DarkTabs, IconButton, InfoRow, InformationCard, LinkButton, Notices, PrimaryButton, StateView } from "../../components/ui";
+import { Banner, IconButton, InfoRow, InformationCard, LinkButton, Notices, PrimaryButton, StateView } from "../../components/ui";
 import { colors, radius, space, type } from "../../lib/theme";
-
-type Tab = "overview" | "baggage" | "terms" | "itinerary";
 
 /** «Bytte i København · 1 t 55 min» – uten varighet når tidspunktene ikke kan regnes trygt. */
 function layoverText(city: string, arrive: string, depart: string, { t, f }: Pick<I18n, "t" | "f">): string {
@@ -286,7 +284,6 @@ export default function OfferScreen() {
   const i18n = useI18n();
   const { t, f } = i18n;
   const dt = t.details;
-  const [tab, setTab] = useState<Tab>("overview");
   const [chosen, setChosen] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
   const [openError, setOpenError] = useState(false);
@@ -365,18 +362,8 @@ export default function OfferScreen() {
   // bunnlinjen, prisfeltet, delingsteksten og for VoiceOver.
   const confirmed = totalConfirmed(result);
   const basis = priceBasis(offer, i18n, confirmed);
-  const flightNumbers = [...new Set(offer.slices.flatMap((s) => s.segments.map((g) => `${g.carrier.iata}${g.flightNumber}`)))].join(", ");
-  const operators = [...new Set(offer.slices.flatMap((s) => s.segments.filter((g) => g.operatingCarrier && g.operatingCarrier.iata !== g.carrier.iata).map((g) => g.operatingCarrier!.name)))];
-  const aircraft = [...new Set(offer.slices.flatMap((s) => s.segments.map((g) => g.aircraft).filter(Boolean)))];
   const sliceTitle = (i: number) => (offer.slices.length > 1 ? (i === 0 ? dt.outbound : dt.inbound) : dt.journey);
   const warnings = journeyWarnings(offer);
-
-  const tabs: { value: Tab; label: string }[] = [
-    { value: "overview", label: dt.tabs.overview },
-    { value: "baggage", label: dt.tabs.baggage },
-    ...(hasTerms ? [{ value: "terms" as const, label: dt.tabs.terms }] : []),
-    { value: "itinerary", label: dt.tabs.itinerary },
-  ];
 
   const share = () => {
     const out = offer.slices[0]!;
@@ -444,87 +431,49 @@ export default function OfferScreen() {
               ))}
             </View>
           ) : null}
-          <DarkTabs value={tab} tabs={tabs} onChange={setTab} />
-
-          {tab === "overview" ? (
-            <>
-              {/* Flere selgere av samme reise: sammenligningen først – pris, bagasje og vilkår per selger. */}
-              {journey.sellers.length > 1 ? (
-                <InformationCard title={dt.sellersTitle} testID="sellers">
-                  <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.sellersIntro(journey.sellers.length)}</Text>
-                  <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup">
-                    {journey.sellers.map((s) => (
-                      <SellerOfferRow
-                        key={`${s.item.offer.id}:${fontScale}`}
-                        item={s.item}
-                        selected={s.item.offer.id === offer.id}
-                        onPress={() => setChosen(s.item.offer.id)}
-                        priceBelow={sellerPriceBelow(s.item.offer.id)}
-                        onNeedsRoom={(scale) => moveSellerPriceBelow(s.item.offer.id, scale)}
-                      />
-                    ))}
-                  </View>
-                </InformationCard>
-              ) : null}
-              <InformationCard title={dt.infoTitle}>
-                <InfoRow icon="plane" title={offer.owner.name} subtitle={[flightNumbers, operators.length ? dt.operatedBy(operators.join(", ")) : ""].filter(Boolean).join(" · ")} />
-                <InfoRow icon="seat" title={cabinLabel(offer.cabinClass, i18n)} subtitle={dt.cabinSubtitle} />
-                {offer.slices.map((s, i) => (
-                  <InfoRow
-                    key={s.id || i}
-                    icon={i === 0 ? "clock" : "repeat"}
-                    title={dt.sliceSummary(sliceTitle(i), f.duration(s.durationMinutes))}
-                    subtitle={s.stops ? dt.viaStops(f.stops(s.stops), s.segments.slice(0, -1).map((g) => g.destination.city).join(", ")) : f.stops(0)}
+          {/* Flere selgere av samme reise: sammenligningen først – pris, bagasje og vilkår per selger. */}
+          {journey.sellers.length > 1 ? (
+            <InformationCard title={dt.sellersTitle} testID="sellers">
+              <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.sellersIntro(journey.sellers.length)}</Text>
+              <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup">
+                {journey.sellers.map((s) => (
+                  <SellerOfferRow
+                    key={`${s.item.offer.id}:${fontScale}`}
+                    item={s.item}
+                    selected={s.item.offer.id === offer.id}
+                    onPress={() => setChosen(s.item.offer.id)}
+                    priceBelow={sellerPriceBelow(s.item.offer.id)}
+                    onNeedsRoom={(scale) => moveSellerPriceBelow(s.item.offer.id, scale)}
                   />
                 ))}
-                {aircraft.length ? <InfoRow icon="plane" title={aircraft.join(", ")} subtitle={dt.aircraftSubtitle} /> : null}
-              </InformationCard>
-
-              <InformationCard title={dt.priceTitle} testID="price-card">
-                <View style={{ gap: 2 }}>
-                  <PriceTag price={price} size="large" testID="offer-price" />
-                  <Text style={[type.footnote, { color: colors.textSecondary }]}>{basis}</Text>
-                </View>
-                {price.nok.kind === "converted" ? <Text style={[type.footnote, { color: colors.textSecondary }]} testID="fx-details">{t.price.convertedNotice}</Text> : null}
-                {feeNok !== null ? (
-                  <Text style={[type.footnote, { color: colors.textSecondary }]} testID="service-fee">{t.price.serviceFee(f.nok(feeNok))}</Text>
-                ) : price.serviceFee ? (
-                  <Text style={[type.footnote, { color: colors.textSecondary }]} testID="service-fee">
-                    {t.price.serviceFeeIncluded}
-                  </Text>
-                ) : null}
-                {journey.sellers.length === 1 && handoff.kind === "external" ? (
-                  <InfoRow testID="seller" icon="info" title={dt.soldBy(handoff.providerName)} subtitle={sellerKindLabel(handoff.sellerKind, i18n)} />
-                ) : null}
-                {expired ? (
-                  <Banner tone="warning" testID="offer-expired">
-                    {dt.expired}
-                  </Banner>
-                ) : null}
-              </InformationCard>
-
-            </>
-          ) : null}
-
-          {tab === "baggage" ? (
-            <InformationCard title={dt.baggageTitle} testID="baggage-card">
-              <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.baggageIntro}</Text>
-              {bags.map((b) => (
-                <InfoRow
-                  key={b.key}
-                  testID={`bag-${b.key}`}
-                  icon={b.key === "carryOn" ? "bag" : "luggage"}
-                  title={b.label}
-                  subtitle={b.state === "unknown" ? dt.baggageNotStated : null}
-                  value={b.value}
-                  valueTone={b.state === "included" ? "good" : "muted"}
-                />
-              ))}
-              <Text style={[type.caption, { color: colors.textSecondary }]}>{dt.baggageConfirm}</Text>
+              </View>
             </InformationCard>
           ) : null}
 
-          {tab === "terms" && hasTerms ? (
+          {/* Hele reisen før kunden går videre: hver strekning, hvert fly, bytter, flyplassbytte og døgnskifte. */}
+          <View style={{ gap: space.md }} testID="itinerary">
+            {offer.slices.map((s, i) => (
+              <SliceTimeline key={s.id || i} slice={s} title={sliceTitle(i)} />
+            ))}
+          </View>
+
+          <InformationCard title={dt.baggageTitle} testID="baggage-card">
+            <Text style={[type.footnote, { color: colors.textSecondary, marginTop: -space.sm }]}>{dt.baggageIntro}</Text>
+            {bags.map((b) => (
+              <InfoRow
+                key={b.key}
+                testID={`bag-${b.key}`}
+                icon={b.key === "carryOn" ? "bag" : "luggage"}
+                title={b.label}
+                subtitle={b.state === "unknown" ? dt.baggageNotStated : null}
+                value={b.value}
+                valueTone={b.state === "included" ? "good" : "muted"}
+              />
+            ))}
+            <Text style={[type.caption, { color: colors.textSecondary }]}>{dt.baggageConfirm}</Text>
+          </InformationCard>
+
+          {hasTerms ? (
             <InformationCard title={dt.termsTitle} testID="terms-card">
               {conds.map((c) => (
                 <InfoRow key={c.key} icon={c.state === "allowed" ? "check" : c.state === "fee" ? "info" : "close"} title={c.label} subtitle={c.value} testID={`condition-${c.key}`} />
@@ -534,7 +483,28 @@ export default function OfferScreen() {
             </InformationCard>
           ) : null}
 
-          {tab === "itinerary" ? offer.slices.map((s, i) => <SliceTimeline key={s.id || i} slice={s} title={sliceTitle(i)} />) : null}
+          <InformationCard title={dt.priceTitle} testID="price-card">
+            <View style={{ gap: 2 }}>
+              <PriceTag price={price} size="large" testID="offer-price" />
+              <Text style={[type.footnote, { color: colors.textSecondary }]}>{basis}</Text>
+            </View>
+            {price.nok.kind === "converted" ? <Text style={[type.footnote, { color: colors.textSecondary }]} testID="fx-details">{t.price.convertedNotice}</Text> : null}
+            {feeNok !== null ? (
+              <Text style={[type.footnote, { color: colors.textSecondary }]} testID="service-fee">{t.price.serviceFee(f.nok(feeNok))}</Text>
+            ) : price.serviceFee ? (
+              <Text style={[type.footnote, { color: colors.textSecondary }]} testID="service-fee">
+                {t.price.serviceFeeIncluded}
+              </Text>
+            ) : null}
+            {journey.sellers.length === 1 && handoff.kind === "external" ? (
+              <InfoRow testID="seller" icon="info" title={dt.soldBy(handoff.providerName)} subtitle={sellerKindLabel(handoff.sellerKind, i18n)} />
+            ) : null}
+            {expired ? (
+              <Banner tone="warning" testID="offer-expired">
+                {dt.expired}
+              </Banner>
+            ) : null}
+          </InformationCard>
         </View>
       </ScrollView>
 

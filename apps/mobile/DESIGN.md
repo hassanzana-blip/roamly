@@ -121,8 +121,9 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
    kompakt kort per reise; samme reise hos flere tilbydere vises én gang med billigste pris og «N tilbydere». Flytende
    verktøylinje: Filtrer / Sorter / Datoer (samme kalender som på forsiden).
 3. **Flydetaljer** (`src/app/tilbud/[id].tsx`): fotokort med selskap, utreisen i store tall og hjemreisen under;
-   faner Oversikt / Bagasje / Vilkår (bare når tilbyderen oppga vilkår) / Reiseplan. Flere selgere av samme reise:
-   sammenligningen står først i Oversikt. Fast bunnlinje: pris og grunnlag til venstre, «Gå til tilbud» til høyre,
+   så én rulleflate uten faner: selgerne (når flere selger samme reise), reiseplanen for hver strekning (hvert fly,
+   bytter, flyplassbytte, +1 døgn), bagasjen og vilkårene til valgt selger (vilkår bare når tilbyderen oppga dem) og
+   prisen. Fast bunnlinje: pris og grunnlag til venstre, «Gå til tilbud» til høyre,
    og under «[tilbyder] · Bestillingen fullføres hos tilbyderen.». Handlingen åpner leverandørens egen lenke i
    Safari-visning, målt med nettets `flights.trackProviderClick`. VoiceOver hører «Gå til tilbud hos [tilbyder]».
 

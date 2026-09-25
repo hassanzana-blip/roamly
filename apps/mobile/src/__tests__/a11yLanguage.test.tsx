@@ -111,7 +111,7 @@ describe.each([
     expectAll(lang, 30);
   });
 
-  it("Flydetaljer for en reise hos flere selgere, alle faner", async () => {
+  it("Flydetaljer for en reise hos flere selgere, hele rulleflaten", async () => {
     const { factory } = setup({ ...SEARCH_RESULT, provider: "demo", sandbox: true, offers: [SEK_OFFER, SAME_TRIP_OTHER_SELLER] });
     setParams({ id: "sek_1" });
     await render(
@@ -127,10 +127,6 @@ describe.each([
     await fireEvent(screen.getByTestId("sellername-gtg_1"), "layout", { nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 2 * 20 * Dimensions.get("window").fontScale } } });
     expect(within(screen.getByTestId("sellertext-gtg_1")).getByTestId("sellerprice-gtg_1")).toBeOnTheScreen();
     expectAll(lang, 20);
-    for (const tab of ["tab-baggage", "tab-terms", "tab-itinerary"]) {
-      await fireEvent.press(screen.getByTestId(tab));
-      expectAll(lang, 10);
-    }
   });
 
   it("flyplassvelgeren: forslag, søkefelt, bryter og treff", async () => {

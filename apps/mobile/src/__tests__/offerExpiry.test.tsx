@@ -89,7 +89,6 @@ describe("utløp i Flydetaljer", () => {
     expired("SAS");
     expect(screen.getByTestId("seller-sek_1").props.accessibilityState).toMatchObject({ selected: true });
     expect(screen.getByTestId("bar-provider")).toHaveTextContent("SAS ·");
-    await fireEvent.press(screen.getByTestId("tab-baggage"));
     expect(screen.getByTestId("bag-checked")).toHaveTextContent(/Innsjekket bagasje.*Ikke oppgitt/);
     expect(open).not.toHaveBeenCalled();
   });
