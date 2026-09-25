@@ -117,8 +117,8 @@ interaction patterns, not their colours, copy, prices or features we do not have
 | 4.3 | Profile as a settings list with a sign-in card at the top (truthful: what an account adds today), then language, currency, help and legal as rows (also 2.14) | done (MANIFEST «Profile as a settings list») |
 | 4.4 | Floating tab bar (capsule, 44 pt targets, content padded above it) | done: a capsule with margins above the home indicator; the screens end above it, so nothing hides under it (MANIFEST «Tab bar as a floating capsule») |
 | 4.5 | A sign-in screen before the app (their onboarding) | not doing: search needs no account, and the Apple/Google buttons stay hidden until approved |
-| 4.6 | A deals rail with real prices | proposal for Ali: a server job that caches real NOK prices per route with the time they were checked; needs provider quota and approval. Never invented prices |
-| 4.7 | Price alerts in the app | proposal for Ali: expose the web's `watch.*` through the mobile API; needs the worker and e-mail sending verified first (backlog [39]) |
+| 4.6 | A deals rail with real prices | proposal for Ali (`docs/PROPOSAL_DEALS_AND_ALERTS_2026-09-25.md`): recommended, low prices from recent live searches (`search_events`) with the dates and the time found, no provider cost; or a nightly check that spends quota. Never invented prices |
+| 4.7 | Price alerts in the app | proposal for Ali (same file): the web's `watch.*` on the mobile API; first the worker, a live Duffel key and e-mail must be verified, and account deletion must switch alerts off (today they are kept) |
 | 4.8 | Multi-city and a bags chip in the form | not now: search takes neither (bags are a results filter) |
 
 ## Blocked outside the app
