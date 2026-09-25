@@ -97,7 +97,8 @@ describe("Hjem: første bilde", () => {
 
   it("innlogget: tittelen er hilsenen med navn, og kontoknappen viser initialene", async () => {
     await renderHome({ signedIn: true });
-    await waitFor(() => expect(screen.getByTestId("home-title")).toHaveTextContent(/^God (morgen|formiddag|ettermiddag|kveld|natt), Kari$/));
+    // Hilsenen følger klokken («Hei» om natten).
+    await waitFor(() => expect(screen.getByTestId("home-title")).toHaveTextContent(/^(God (morgen|formiddag|ettermiddag|kveld)|Hei), Kari$/));
     expect(screen.getByTestId("account-button")).toHaveTextContent("KN");
     expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Din profil");
   });

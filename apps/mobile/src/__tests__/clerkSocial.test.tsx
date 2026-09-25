@@ -46,6 +46,8 @@ async function renderProfile(providers: MobileAuthProviders, routes: Routes = {}
     </AppProvider>,
   );
   await waitFor(() => expect(server.calls.some((c) => c.path === "mobileAuth.providers")).toBe(true));
+  // Skjemaet (og Google/Apple) står i innloggingsarket, som åpnes fra kortet øverst i Profil.
+  await fireEvent.press(screen.getByTestId("open-login"));
   return server;
 }
 

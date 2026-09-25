@@ -247,7 +247,8 @@ export function Segmented<T extends string>({
             style={({ pressed }) => [styles.segment, selected && styles.segmentSelected, pressed && !selected && { opacity: 0.6 }]}
           >
             {o.icon ? <Icon name={o.icon} size={16} color={selected ? colors.white : colors.textSecondary} /> : null}
-            <Text style={[type.calloutStrong, { color: selected ? colors.white : colors.text }]} numberOfLines={1} accessibilityLanguage={o.lang ?? lang}>
+            {/* Ingen linjegrense: med stor tekst brytes «Norsk (bokmål)» i stedet for å kuttes, og valget blir høyere. */}
+            <Text style={[type.calloutStrong, { color: selected ? colors.white : colors.text, flexShrink: 1, textAlign: "center" }]} accessibilityLanguage={o.lang ?? lang}>
               {o.label}
             </Text>
             {o.dot ? <View style={[styles.segmentDot, { backgroundColor: selected ? colors.white : colors.blue }]} testID={`${testIDPrefix}${o.value}-dot`} /> : null}

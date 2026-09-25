@@ -137,8 +137,15 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
    Safari-visning, målt med nettets `flights.trackProviderClick`. VoiceOver hører «Gå til tilbud hos [tilbyder]».
 
 I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`; øverst fra-flyplass, datoer og
-reisende som knapper som endrer søket der, i én rad som ruller sideveis) og Profil
-(`(tabs)/profil.tsx`, kundeinnlogging, språk, hjelp og konto).
+reisende som knapper som endrer søket der, i én rad som ruller sideveis) og Profil (`(tabs)/profil.tsx`).
+
+**Profil** er en innstillingsliste, som hos de store søketjenestene: tittelen «Profil», og for gjester et hvitt
+innloggingskort øverst («Logg inn eller opprett en konto», én konto for appen og hellosky.no, søket krever ingen
+konto) med «Logg inn» og «Opprett konto». Skjemaet står i et eget ark (iOS' sidekort, kan dras ned), med «Glemt
+passordet?» lagt over i samme ark. Under: grupper med overskrift på kull og hvite kort med rader – Innstillinger
+(språket som valg, valutaen NOK som informasjon uten pil) og Hjelp og juridisk (lenker til hellosky.no) – og appens
+versjon nederst. Innlogget: «Hei, Kari», Konto (navn, e-post, telefon, «Endre profil»), de samme gruppene, og til
+slutt «Logg ut» og «Slett konto» (handlinger uten pil; slett er rød, med tekst).
 
 Forsiden: etter søk står de andre nylige søkene (ikke passerte, ikke det som står i skjemaet) som små mørke brikker
 under «Søk fly» – «OSL‑LHR 9.–16. okt.», ett trykk søker igjen – der linjen om innlogging står for nye kunder.
@@ -189,7 +196,8 @@ Profil (to bilder) og Utforsk-kart. De ligger ikke i repoet (tredjeparts merkeva
 6. *Profil som en ryddig innstillingsliste:* ett innloggingskort øverst, så grupper med rader som viser verdien
    til høyre («Currency £ (GBP)», «Region»). Hos oss: «Språk – Norsk (bokmål)», «Valuta – NOK» (bare
    informasjon), Hjelp, Personvern, Vilkår, Om oss. De juridiske radene samlet nederst; «Software licenses»
-   (lisenser for åpen kildekode) er en rad vi mangler.
+   (lisenser for åpen kildekode) er en rad vi mangler. *Bygget 25.09.2026* (se Skjermene); språket er fortsatt et valg
+   rett i raden (to trykk færre enn en egen side), og lisensraden mangler fortsatt.
 7. *Utforsk sier hva et prisanslag er* («Estimated cheapest price per person in economy class»), står fast på
    avreisestedet («From OSL · Anytime») og har alltid en listevisning. Hos oss: liste, ikke kart (et kart uten
    ekte priser ville vært dødt), og ingen prisanslag før serveren har dem.

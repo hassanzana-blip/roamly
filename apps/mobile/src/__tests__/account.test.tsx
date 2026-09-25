@@ -133,6 +133,7 @@ describe("glemt passord", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
     await fireEvent.press(screen.getByTestId("open-forgot"));
     // Adressen fra innloggingen er fylt inn.
@@ -152,6 +153,7 @@ describe("glemt passord", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.press(screen.getByTestId("open-forgot"));
     await fireEvent.changeText(screen.getByTestId("forgot-email"), "kari");
     await fireEvent.press(screen.getByTestId("forgot-send"));

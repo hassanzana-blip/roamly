@@ -92,7 +92,7 @@ request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. 
 | 2.11 | Empty results: suggest ±1–3 days only as a new search, never with invented prices [35] | done: «Prøv datoene rundt» (MANIFEST «Results: nothing found») |
 | 2.12 | Performance: memoised cards, stable keys, no per-render regrouping in the filter sheet | done: the sheet counts only while open (MANIFEST «Review fixes for the airport picker …») |
 | 2.13 | Performance: measure search-to-first-card on device (needs a device build) [58] | blocked (device) |
-| 2.14 | Profile: guest state explains what an account adds, truthfully [48] | open |
+| 2.14 | Profile: guest state explains what an account adds, truthfully [48] | done with 4.3: «Én konto for appen og hellosky.no», and that search needs none |
 | 2.15 | Copy review nb/en for every new string (native-sounding, no clipped labels) [52] | ongoing |
 | 2.16 | Figma: new card, sort tabs and calendar components mirrored in the existing file | done: six components and eight icons, frame P6 with six screens from `6935d1d` (`docs/FIGMA_SPECIFICATION.md`) |
 
@@ -114,7 +114,7 @@ interaction patterns, not their colours, copy, prices or features we do not have
 |---|---|---|
 | 4.1 | Home in the big search services' pattern: dark panel, question (or greeting) and profile button, Flights/Hotels as two tiles, trip type as text tabs, from and to stacked in one field with the swap button on the divider, departure ▸ return in one field, travellers and cabin as chips; destinations as white cards without prices | done (MANIFEST «Home in the big search services' pattern») |
 | 4.2 | The form collapses into a «Finn fly» bar when it scrolls away | not now: Home is ~1.3 screens (1020 pt at 390 × 844), so the form never leaves the view at normal text sizes. Comes with a longer Home (4.6) |
-| 4.3 | Profile as a settings list with a sign-in card at the top (truthful: what an account adds today), then language, currency, help and legal as rows (also 2.14) | open (next) |
+| 4.3 | Profile as a settings list with a sign-in card at the top (truthful: what an account adds today), then language, currency, help and legal as rows (also 2.14) | done (MANIFEST «Profile as a settings list») |
 | 4.4 | Floating tab bar (capsule, 44 pt targets, content padded above it) | open |
 | 4.5 | A sign-in screen before the app (their onboarding) | not doing: search needs no account, and the Apple/Google buttons stay hidden until approved |
 | 4.6 | A deals rail with real prices | proposal for Ali: a server job that caches real NOK prices per route with the time they were checked; needs provider quota and approval. Never invented prices |

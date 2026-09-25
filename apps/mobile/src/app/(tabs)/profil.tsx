@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { Icon, type IconName } from "../../components/Icon";
 import { StatusBar } from "expo-status-bar";
+import Constants from "expo-constants";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
 import type { CustomerProfile, MobileSocialProvider } from "@contracts/mobileAuth";
@@ -11,8 +12,9 @@ import { useApp } from "../../lib/appState";
 import { ApiError } from "../../lib/api";
 import { errorText } from "../../lib/errorText";
 import { WEB_PAGES } from "../../lib/config";
-import { Banner, BottomSheet, Field, InfoRow, InformationCard, LinkButton, NavRow, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
-import { a11yLanguage, useI18n } from "../../i18n";
+import { useReducedMotion } from "../../lib/motion";
+import { Banner, BottomSheet, Field, IconButton, LinkButton, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
+import { a11yLanguage, useA11yLanguage, useI18n } from "../../i18n";
 import { LOCALES, LOCALE_NAMES, type Locale } from "../../i18n/types";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
@@ -24,23 +26,75 @@ function openWeb(url: string) {
 }
 
 /**
- * Språkvalget: før og etter innlogging, gjelder med én gang og huskes på
- * telefonen. Valuta, leverandører og søk er uendret – prisene er alltid i NOK.
+ * En gruppe i innstillingslisten, som i iOS' innstillinger: overskrift på kull og et hvitt kort med rader.
+ * `note` står under kortet (f.eks. at nettsidene er på norsk).
  */
-function LanguageCard() {
-  const { t, locale, setLocale } = useI18n();
+function Group({ title, children, testID, note }: { title?: string; children: ReactNode; testID?: string; note?: string | null }) {
   return (
-    <InformationCard title={t.account.language} testID="language-card" style={styles.compactCard}>
-      {/* Hvert språk står på sitt eget språk, og VoiceOver leser det med den stemmen. */}
-      <Segmented<Locale> label={t.account.language} value={locale} options={LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l], lang: a11yLanguage(l) }))} onChange={setLocale} />
-      <Text style={[type.footnote, { color: colors.textSecondary }]}>{t.account.languageHint}</Text>
-    </InformationCard>
+    <View style={styles.group} testID={testID}>
+      {title ? (
+        <Text style={[type.section, { color: colors.onDark }]} accessibilityRole="header">
+          {title}
+        </Text>
+      ) : null}
+      <View style={styles.groupCard}>{children}</View>
+      {note ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{note}</Text> : null}
+    </View>
   );
 }
 
-/** Tett innstillingsrad på mørk flate; hele raden er én stor trykkflate. */
-function DarkLinkRow({ icon, title, onPress, external, danger, testID, accessibilityHint, separated }: { icon: IconName; title: string; onPress: () => void; external?: boolean; danger?: boolean; testID: string; accessibilityHint?: string; separated?: boolean }) {
-  const fg = danger ? "#FFB4AB" : colors.onDark;
+/**
+ * Én rad i en gruppe: ikon, tittel (og ev. en linje under), verdi til høyre og pil. Uten `onPress` er raden bare
+ * informasjon – ingen pil, og VoiceOver leser den som én tekst. En handling (`action`: logg ut, slett) har ingen pil,
+ * for den åpner ingen side. Hele raden er trykkflaten (minst 52 pt).
+ */
+function Row({
+  icon,
+  title,
+  subtitle,
+  value,
+  onPress,
+  external,
+  danger,
+  action,
+  separated,
+  testID,
+  accessibilityHint,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle?: string | null;
+  value?: string | null;
+  onPress?: () => void;
+  external?: boolean;
+  danger?: boolean;
+  action?: boolean;
+  separated?: boolean;
+  testID?: string;
+  accessibilityHint?: string;
+}) {
+  const lang = useA11yLanguage();
+  const fg = danger ? colors.danger : colors.text;
+  const muted = danger ? colors.danger : colors.textSecondary;
+  const inner = (
+    <>
+      <Icon name={icon} size={20} color={muted} strokeWidth={1.75} />
+      <View style={styles.rowText}>
+        {/* Ingen linjegrense: lange titler og stor tekst bryter linjen. */}
+        <Text style={[type.body, { color: fg }]}>{title}</Text>
+        {subtitle ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
+      </View>
+      {value ? <Text style={[type.callout, styles.rowValue]}>{value}</Text> : null}
+      {onPress && !action ? <Icon name={external ? "external" : "chevronRight"} size={18} color={muted} /> : null}
+    </>
+  );
+  if (!onPress) {
+    return (
+      <View accessible accessibilityLanguage={lang} accessibilityLabel={[title, value, subtitle].filter(Boolean).join(", ")} style={[styles.row, separated && styles.rowBorder]} testID={testID}>
+        {inner}
+      </View>
+    );
+  }
   return (
     <Pressable
       onPress={onPress}
@@ -48,31 +102,59 @@ function DarkLinkRow({ icon, title, onPress, external, danger, testID, accessibi
       accessibilityLabel={title}
       accessibilityHint={accessibilityHint}
       testID={testID}
-      style={({ pressed }) => [styles.darkLink, separated && styles.darkLinkBorder, pressed && { backgroundColor: colors.darkBorder }]}
+      style={({ pressed }) => [styles.row, separated && styles.rowBorder, pressed && { backgroundColor: colors.inset }]}
     >
-      <Icon name={icon} size={20} color={danger ? fg : colors.onDarkMuted} strokeWidth={1.75} />
-      <Text style={[type.callout, { color: fg, flex: 1 }]}>{title}</Text>
-      <Icon name={external ? "external" : "chevronRight"} size={18} color={danger ? fg : colors.onDarkMuted} />
+      {inner}
     </Pressable>
   );
 }
 
-/** HelloSkys egne sider for hjelp, kontakt, personvern og vilkår. */
-function HelpCard() {
+/**
+ * Innstillingene: språket (før og etter innlogging, gjelder med én gang og huskes på telefonen) og valutaen, som
+ * alltid er NOK – en informasjonsrad, ikke et valg.
+ */
+function SettingsGroup() {
+  const { t, locale, setLocale } = useI18n();
+  const a = t.account;
+  return (
+    <Group title={a.settingsTitle} testID="settings-group">
+      <View style={styles.block} testID="language-card">
+        <View style={styles.blockHead}>
+          <Icon name="globe" size={20} color={colors.textSecondary} strokeWidth={1.75} />
+          <Text style={[type.body, { color: colors.text }]}>{a.language}</Text>
+        </View>
+        {/* Hvert språk står på sitt eget språk, og VoiceOver leser det med den stemmen. */}
+        <Segmented<Locale> label={a.language} value={locale} options={LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l], lang: a11yLanguage(l) }))} onChange={setLocale} />
+        <Text style={[type.footnote, { color: colors.textSecondary }]}>{a.languageHint}</Text>
+      </View>
+      <Row icon="banknote" title={a.currency} subtitle={a.currencyNote} value={a.currencyValue} separated testID="currency-row" />
+    </Group>
+  );
+}
+
+/** HelloSkys egne sider for hjelp, kontakt, personvern og vilkår (åpnes i Safari-visning). */
+function HelpGroup() {
   const { t, locale } = useI18n();
   const a = t.account;
-  const note = locale === "en" ? a.webNorwegian : null;
   return (
-    <View style={styles.darkSection} testID="help-card">
-      <Text style={[type.section, { color: colors.onDark }]} accessibilityRole="header">{a.helpTitle}</Text>
-      <View style={styles.darkList}>
-        <DarkLinkRow icon="help" title={a.helpCentre} external onPress={() => openWeb(WEB_PAGES.help)} testID="link-help" accessibilityHint={a.webOpens} />
-        <DarkLinkRow icon="lock" title={a.privacy} external separated onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" accessibilityHint={a.webOpens} />
-        <DarkLinkRow icon="info" title={a.terms} external separated onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" accessibilityHint={a.webOpens} />
-        <DarkLinkRow icon="plane" title={a.about} external separated onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" accessibilityHint={a.webOpens} />
-      </View>
-      {note ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{note}</Text> : null}
-    </View>
+    <Group title={a.helpTitle} testID="help-card" note={locale === "en" ? a.webNorwegian : null}>
+      <Row icon="help" title={a.helpCentre} external onPress={() => openWeb(WEB_PAGES.help)} testID="link-help" accessibilityHint={a.webOpens} />
+      <Row icon="lock" title={a.privacy} external separated onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" accessibilityHint={a.webOpens} />
+      <Row icon="info" title={a.terms} external separated onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" accessibilityHint={a.webOpens} />
+      <Row icon="plane" title={a.about} external separated onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" accessibilityHint={a.webOpens} />
+    </Group>
+  );
+}
+
+/** Appens versjon nederst, som i andre innstillinger (til hjelp når kunden kontakter oss). */
+function VersionLine() {
+  const { t } = useI18n();
+  const version = Constants.expoConfig?.version;
+  if (!version) return null;
+  return (
+    <Text style={[type.footnote, styles.version]} testID="app-version">
+      {t.account.version(version)}
+    </Text>
   );
 }
 
@@ -222,15 +304,43 @@ function ForgotPasswordSheet({ visible, onClose, initialEmail }: { visible: bool
   );
 }
 
+/**
+ * Innloggingskortet øverst i Profil for gjester, som hos de store søketjenestene: hva en konto er (samme konto som på
+ * hellosky.no) og at søket ikke krever den. Skjemaet åpnes i et eget ark.
+ */
+function SignInCard({ onLogin, onRegister }: { onLogin: () => void; onRegister: () => void }) {
+  const { t } = useI18n();
+  const a = t.account;
+  return (
+    <View style={styles.signInCard} testID="sign-in-card">
+      <View style={styles.signInIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Icon name="user" size={22} color={colors.blue} />
+      </View>
+      <Text style={[type.section, { color: colors.text }]} accessibilityRole="header">
+        {a.signInTitle}
+      </Text>
+      <Text style={[type.callout, { color: colors.textSecondary }]}>{a.signInBody}</Text>
+      <View style={styles.signInActions}>
+        <PrimaryButton testID="open-login" label={a.loginTitle} onPress={onLogin} accessibilityHint={a.signInHint} />
+        <SecondaryButton testID="open-register" label={a.registerTitle} onPress={onRegister} accessibilityHint={a.registerHint} />
+      </View>
+    </View>
+  );
+}
+
 /** Profil og innstillinger. Vanlig kundeinnlogging; ingen andre roller finnes i appen. */
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
+  const lang = useA11yLanguage();
+  const reduced = useReducedMotion();
   const { auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin } = useApp();
   const [socialBusy, setSocialBusy] = useState<MobileSocialProvider | null>(null);
   const [socialNote, setSocialNote] = useState<string | null>(null);
   const i18n = useI18n();
   const a = i18n.t.account;
   const [mode, setMode] = useState<"login" | "register">("login");
+  // Innloggingsskjemaet står i et eget ark (iOS' sidekort) som åpnes fra kortet øverst.
+  const [authOpen, setAuthOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -247,9 +357,10 @@ export default function AccountScreen() {
     setShownFor(auth.status);
     setSheet(null);
     setSaved(false);
+    setAuthOpen(false);
   }
 
-  // Innloggingsmåtene (Google/Apple) hentes bare når innloggingen faktisk vises.
+  // Innloggingsmåtene (Google/Apple) hentes bare når innloggingen faktisk kan vises.
   const signedOut = auth.status === "signedOut";
   useEffect(() => {
     if (signedOut) requestSocialProviders();
@@ -272,78 +383,92 @@ export default function AccountScreen() {
       <View style={styles.screen}>
         <StatusBar style="light" />
         <ScrollView style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-in">
-        <View style={styles.hello}>
-          <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View style={styles.hello}>
+            <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+            <Text style={[type.title, { color: colors.onDark, flex: 1 }]} accessibilityRole="header">
+              {p ? a.hello(p.firstName) : a.signedIn}
+            </Text>
           </View>
-          <Text style={[type.title, { color: colors.onDark, flex: 1 }]} accessibilityRole="header">
-            {p ? a.hello(p.firstName) : a.signedIn}
-          </Text>
-        </View>
-        {saved ? (
-          <Banner tone="info" dark testID="profile-saved">
-            {a.saved}
-          </Banner>
-        ) : null}
-        {p ? (
-          <InformationCard title={a.accountSection} testID="account-card" style={styles.compactCard}>
-            <InfoRow icon="user" title={`${p.firstName} ${p.lastName}`.trim()} subtitle={a.nameLabel} />
-            {p.email ? <InfoRow icon="mail" title={p.email} subtitle={a.emailLabel} /> : null}
-            {p.phone ? <InfoRow icon="user" title={p.phone} subtitle={a.phoneLabel} /> : null}
-            <NavRow
-              icon="user"
-              title={a.editProfile}
-              onPress={() => {
-                setSaved(false);
-                setSheet("edit");
-              }}
-              testID="open-edit-profile"
-            />
-          </InformationCard>
-        ) : (
-          <Banner tone="warning" dark>
-            {a.profileUnavailable}
-          </Banner>
-        )}
-        <LanguageCard />
-        <HelpCard />
-        <SecondaryButton
-          dark
-          testID="logout-button"
-          label={busy ? a.loggingOut : a.logout}
-          icon="logout"
-          onPress={async () => {
-            if (busy) return;
-            setBusy(true);
-            await logout();
-            setBusy(false);
-          }}
-        />
-        {p ? (
-          <View style={styles.darkList}>
-            <DarkLinkRow icon="close" title={a.deleteRow} danger onPress={() => setSheet("delete")} testID="open-delete-account" />
-          </View>
-        ) : null}
-        {p ? (
-          <>
-            <EditProfileSheet
-              key={`edit-${sheet === "edit"}`}
-              profile={p}
-              visible={sheet === "edit"}
-              onClose={() => setSheet(null)}
-              onSaved={() => {
-                setSheet(null);
-                setSaved(true);
+          {saved ? (
+            <Banner tone="info" dark testID="profile-saved">
+              {a.saved}
+            </Banner>
+          ) : null}
+          {p ? (
+            <Group title={a.accountSection} testID="account-card">
+              <Row icon="user" title={a.nameLabel} value={`${p.firstName} ${p.lastName}`.trim()} />
+              {p.email ? <Row icon="mail" title={a.emailLabel} value={p.email} separated /> : null}
+              {p.phone ? <Row icon="phone" title={a.phoneLabel} value={p.phone} separated /> : null}
+              <Row
+                icon="pencil"
+                title={a.editProfile}
+                separated
+                onPress={() => {
+                  setSaved(false);
+                  setSheet("edit");
+                }}
+                testID="open-edit-profile"
+              />
+            </Group>
+          ) : (
+            <Banner tone="warning" dark>
+              {a.profileUnavailable}
+            </Banner>
+          )}
+          <SettingsGroup />
+          <HelpGroup />
+          <Group>
+            <Row
+              icon="logout"
+              title={busy ? a.loggingOut : a.logout}
+              action
+              testID="logout-button"
+              onPress={async () => {
+                if (busy) return;
+                setBusy(true);
+                await logout();
+                setBusy(false);
               }}
             />
-            <DeleteAccountSheet key={`delete-${sheet === "delete"}`} profile={p} visible={sheet === "delete"} onClose={() => setSheet(null)} />
-          </>
-        ) : null}
+            {p ? <Row icon="close" title={a.deleteRow} danger action separated onPress={() => setSheet("delete")} testID="open-delete-account" /> : null}
+          </Group>
+          <VersionLine />
+          {p ? (
+            <>
+              <EditProfileSheet
+                key={`edit-${sheet === "edit"}`}
+                profile={p}
+                visible={sheet === "edit"}
+                onClose={() => setSheet(null)}
+                onSaved={() => {
+                  setSheet(null);
+                  setSaved(true);
+                }}
+              />
+              <DeleteAccountSheet key={`delete-${sheet === "delete"}`} profile={p} visible={sheet === "delete"} onClose={() => setSheet(null)} />
+            </>
+          ) : null}
         </ScrollView>
         <StatusBarShield />
       </View>
     );
   }
+
+  const openAuth = (m: "login" | "register") => {
+    setMode(m);
+    setError(null);
+    setSocialNote(null);
+    setAuthOpen(true);
+  };
+  // Passordet blir ikke liggende når arket lukkes; e-postadressen står til neste gang.
+  const closeAuth = () => {
+    setAuthOpen(false);
+    setPassword("");
+    setError(null);
+    setSheet(null);
+  };
 
   const submit = async () => {
     if (socialBusy) return;
@@ -390,108 +515,134 @@ export default function AccountScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={styles.screen}>
+    <View style={styles.screen}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={[styles.content, top]} keyboardShouldPersistTaps="handled" testID="account-signed-out">
-        <View style={{ gap: space.xs }}>
-          <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
-            {mode === "login" ? a.loginTitle : a.registerTitle}
-          </Text>
-          <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{a.searchWithoutLogin}</Text>
-        </View>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-out">
+        <Text style={[type.hero, { color: colors.onDark }]} accessibilityRole="header">
+          {a.profileTitle}
+        </Text>
         {auth.notice ? (
           <Banner tone={auth.notice === "expired" ? "warning" : "info"} dark testID={`auth-notice-${auth.notice}`}>
             {auth.notice === "expired" ? a.sessionExpired : a.deleted}
           </Banner>
         ) : null}
-        <InformationCard>
-          <Segmented
-            label={a.modeLabel}
-            value={mode}
-            options={[
-              { value: "login", label: a.modeLogin },
-              { value: "register", label: a.modeRegister },
-            ]}
-            onChange={(m) => {
-              setMode(m);
-              setError(null);
-            }}
-          />
-          {socialProviders.length ? (
-            <View style={{ gap: space.sm }} testID="social-sign-in">
-              {socialProviders.map((p) => (
-                <SecondaryButton
-                  key={p}
-                  label={socialBusy === p ? a.socialBusy(PROVIDER_NAME[p]) : a.socialContinue(PROVIDER_NAME[p])}
-                  icon={socialBusy === p ? "refresh" : "user"}
-                  onPress={() => void social(p)}
-                  accessibilityHint={a.socialHint}
-                  testID={`social-${p}`}
-                />
-              ))}
-              {socialNote ? (
-                <Banner tone="info" testID="social-note">
-                  {socialNote}
-                </Banner>
-              ) : null}
-              <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{a.orEmail}</Text>
-            </View>
-          ) : null}
-          {mode === "register" ? (
-            <>
-              <Field label={a.firstName} icon="user" value={firstName} onChangeText={setFirstName} textContentType="givenName" autoComplete="given-name" testID="first-name" />
-              <Field label={a.lastName} icon="user" value={lastName} onChangeText={setLastName} textContentType="familyName" autoComplete="family-name" testID="last-name" />
-            </>
-          ) : null}
-          <Field
-            label={a.email}
-            icon="mail"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType="emailAddress"
-            autoComplete="email"
-            testID="email"
-          />
-          <Field
-            label={a.password}
-            icon="lock"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            textContentType={mode === "login" ? "password" : "newPassword"}
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            placeholder={mode === "register" ? a.passwordMin : undefined}
-            testID="password"
-          />
-          {error ? (
-            <Banner tone="error" testID="auth-error">
-              {error}
-            </Banner>
-          ) : null}
-          <PrimaryButton testID="auth-submit" label={mode === "login" ? a.submitLogin : a.submitRegister} onPress={submit} loading={busy} />
-          {mode === "login" ? <LinkButton label={a.forgot} onPress={() => setSheet("forgot")} testID="open-forgot" /> : null}
-        </InformationCard>
-        <LanguageCard />
-        <HelpCard />
-        <ForgotPasswordSheet key={`forgot-${sheet === "forgot"}`} visible={sheet === "forgot"} onClose={() => setSheet(null)} initialEmail={email} />
+        <SignInCard onLogin={() => openAuth("login")} onRegister={() => openAuth("register")} />
+        <SettingsGroup />
+        <HelpGroup />
+        <VersionLine />
       </ScrollView>
       <StatusBarShield />
-    </KeyboardAvoidingView>
+
+      {/* Innlogging og ny konto i iOS' sidekort (dras ned for å lukke). Tastaturet: listen slutter der det begynner. */}
+      <Modal visible={authOpen} animationType={reduced ? "fade" : "slide"} presentationStyle="pageSheet" allowSwipeDismissal onRequestClose={closeAuth}>
+        <View style={styles.modal} accessibilityLanguage={lang} testID="auth-modal">
+          <View style={styles.modalHead}>
+            <IconButton icon="close" label={i18n.t.common.close} variant="light" onPress={closeAuth} testID="auth-close" />
+            <Text style={[type.headline, styles.modalTitle]} accessibilityRole="header">
+              {mode === "login" ? a.loginTitle : a.registerTitle}
+            </Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <ScrollView contentContainerStyle={[styles.modalBody, { paddingBottom: insets.bottom + space.xxl }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets testID="auth-form">
+            <Segmented
+              label={a.modeLabel}
+              value={mode}
+              options={[
+                { value: "login", label: a.modeLogin },
+                { value: "register", label: a.modeRegister },
+              ]}
+              onChange={(m) => {
+                setMode(m);
+                setError(null);
+              }}
+            />
+            {socialProviders.length ? (
+              <View style={{ gap: space.sm }} testID="social-sign-in">
+                {socialProviders.map((p) => (
+                  <SecondaryButton
+                    key={p}
+                    label={socialBusy === p ? a.socialBusy(PROVIDER_NAME[p]) : a.socialContinue(PROVIDER_NAME[p])}
+                    icon={socialBusy === p ? "refresh" : "user"}
+                    onPress={() => void social(p)}
+                    accessibilityHint={a.socialHint}
+                    testID={`social-${p}`}
+                  />
+                ))}
+                {socialNote ? (
+                  <Banner tone="info" testID="social-note">
+                    {socialNote}
+                  </Banner>
+                ) : null}
+                <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{a.orEmail}</Text>
+              </View>
+            ) : null}
+            {mode === "register" ? (
+              <>
+                <Field label={a.firstName} icon="user" value={firstName} onChangeText={setFirstName} textContentType="givenName" autoComplete="given-name" testID="first-name" />
+                <Field label={a.lastName} icon="user" value={lastName} onChangeText={setLastName} textContentType="familyName" autoComplete="family-name" testID="last-name" />
+              </>
+            ) : null}
+            <Field
+              label={a.email}
+              icon="mail"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="emailAddress"
+              autoComplete="email"
+              testID="email"
+            />
+            <Field
+              label={a.password}
+              icon="lock"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              textContentType={mode === "login" ? "password" : "newPassword"}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              placeholder={mode === "register" ? a.passwordMin : undefined}
+              testID="password"
+            />
+            {error ? (
+              <Banner tone="error" testID="auth-error">
+                {error}
+              </Banner>
+            ) : null}
+            <PrimaryButton testID="auth-submit" label={mode === "login" ? a.submitLogin : a.submitRegister} onPress={submit} loading={busy} />
+            {mode === "login" ? <LinkButton label={a.forgot} onPress={() => setSheet("forgot")} testID="open-forgot" /> : null}
+            <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{a.searchWithoutLogin}</Text>
+          </ScrollView>
+          {/* «Glemt passordet?» legges over skjemaet, i samme sidekort. */}
+          <ForgotPasswordSheet key={`forgot-${sheet === "forgot"}`} visible={sheet === "forgot"} onClose={() => setSheet(null)} initialEmail={email} />
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: "center", justifyContent: "center" },
-  content: { paddingHorizontal: space.lg, gap: space.lg, paddingBottom: space.xxxl },
-  compactCard: { padding: space.lg, gap: space.md },
-  darkSection: { gap: space.md },
-  darkList: { backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.lg, overflow: "hidden" },
-  darkLink: { minHeight: TOUCH + 8, flexDirection: "row", alignItems: "center", gap: space.md },
-  darkLinkBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.darkBorder },
+  content: { paddingHorizontal: space.lg, gap: space.xl, paddingBottom: space.xxxl },
+  // Innstillingslisten: overskrift på kull, hvitt kort med rader og hårfine streker mellom dem.
+  group: { gap: space.sm },
+  groupCard: { backgroundColor: colors.white, borderRadius: radius.input, overflow: "hidden" },
+  row: { minHeight: TOUCH + 8, flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm },
+  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lightBorder },
+  rowText: { flex: 1, gap: 2 },
+  rowValue: { color: colors.textSecondary, flexShrink: 1, textAlign: "right" },
+  block: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: space.md },
+  blockHead: { flexDirection: "row", alignItems: "center", gap: space.md },
+  version: { color: colors.onDarkDim, textAlign: "center" },
+  signInCard: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.xl, gap: space.sm },
+  signInIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.blueSoft, alignItems: "center", justifyContent: "center", marginBottom: space.xs },
+  signInActions: { gap: space.sm, marginTop: space.md },
+  modal: { flex: 1, backgroundColor: colors.white, paddingTop: space.lg },
+  modalHead: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.md },
+  modalTitle: { flex: 1, textAlign: "center", color: colors.text },
+  modalBody: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.md },
   hello: { flexDirection: "row", alignItems: "center", gap: space.md },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 18, fontWeight: "700", color: colors.white },

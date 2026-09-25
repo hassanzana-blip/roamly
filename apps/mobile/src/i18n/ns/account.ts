@@ -1,7 +1,18 @@
 /** Profil, innlogging og språk. */
 const en = {
   language: "Language",
-  languageHint: "Changes the app's language right away. Prices stay in Norwegian kroner (NOK).",
+  languageHint: "Changes the app's language right away.",
+  /** Profil som en innstillingsliste. */
+  profileTitle: "Profile",
+  signInTitle: "Log in or create an account",
+  signInBody: "One account for the app and hellosky.no. You don't need an account to search and compare flights.",
+  signInHint: "Opens the login form",
+  registerHint: "Opens the form for a new account",
+  settingsTitle: "Settings",
+  currency: "Currency",
+  currencyValue: "NOK",
+  currencyNote: "All prices are shown in Norwegian kroner.",
+  version: (v: string) => `HelloSky ${v}`,
   loginTitle: "Log in",
   registerTitle: "Create account",
   searchWithoutLogin: "You can search for flights without logging in.",
@@ -76,7 +87,17 @@ const en = {
 
 const nb: typeof en = {
   language: "Språk",
-  languageHint: "Endrer appens språk med én gang. Prisene er fortsatt i norske kroner (NOK).",
+  languageHint: "Endrer appens språk med én gang.",
+  profileTitle: "Profil",
+  signInTitle: "Logg inn eller opprett en konto",
+  signInBody: "Én konto for appen og hellosky.no. Du trenger ikke konto for å søke og sammenligne fly.",
+  signInHint: "Åpner innloggingen",
+  registerHint: "Åpner skjemaet for ny konto",
+  settingsTitle: "Innstillinger",
+  currency: "Valuta",
+  currencyValue: "NOK",
+  currencyNote: "Alle priser vises i norske kroner.",
+  version: (v) => `HelloSky ${v}`,
   loginTitle: "Logg inn",
   registerTitle: "Opprett konto",
   searchWithoutLogin: "Du kan søke etter fly uten å logge inn.",

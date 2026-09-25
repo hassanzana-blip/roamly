@@ -44,6 +44,8 @@ async function renderProfile({ providers, routes = {}, native, locale = "nb" }: 
   );
   await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
   await waitFor(() => expect(server.calls.some((c) => c.path === "mobileAuth.providers")).toBe(true));
+  // Skjemaet (og Google/Apple) står i innloggingsarket, som åpnes fra kortet øverst i Profil.
+  await fireEvent.press(screen.getByTestId("open-login"));
   return server;
 }
 

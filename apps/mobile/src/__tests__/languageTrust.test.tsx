@@ -97,13 +97,13 @@ describe("språkvalget", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    expect(screen.getByText("Du kan søke etter fly uten å logge inn.")).toBeOnTheScreen();
+    expect(screen.getByText("Logg inn eller opprett en konto")).toBeOnTheScreen();
     // Ny installasjon: bokmål er valgt i velgeren, men ingenting er lagret bare av å vise Profil.
     expect(screen.getByTestId("segment-nb").props.accessibilityState).toMatchObject({ selected: true });
     expect(screen.getByTestId("segment-en").props.accessibilityState).toMatchObject({ selected: false });
     expect(readPref("locale", (v) => v)).toBeNull();
     await fireEvent.press(screen.getByTestId("segment-en"));
-    expect(screen.getByText("You can search for flights without logging in.")).toBeOnTheScreen();
+    expect(screen.getByText("Log in or create an account")).toBeOnTheScreen();
     expect(readPref("locale", (v) => v as string)).toBe("en");
     await screen.unmount();
     __resetLocalStoreForTests(); // som en ekte omstart: minnet er tomt, valget må leses fra filen
@@ -114,7 +114,7 @@ describe("språkvalget", () => {
         <AccountScreen />
       </AppProvider>,
     );
-    await waitFor(() => expect(screen.getByText("You can search for flights without logging in.")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText("Log in or create an account")).toBeOnTheScreen());
     await fireEvent.press(screen.getByTestId("segment-nb"));
     expect(readPref("locale", (v) => v as string)).toBe("nb");
   });
@@ -141,6 +141,7 @@ describe("språkvalget", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.press(screen.getByTestId("segment-register"));
     await fireEvent.changeText(screen.getByTestId("first-name"), "Sam");
     await fireEvent.changeText(screen.getByTestId("last-name"), "Smith");
@@ -165,6 +166,7 @@ describe("språkvalget", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.changeText(screen.getByTestId("email"), "sam@example.com");
     await fireEvent.changeText(screen.getByTestId("password"), "wrong-password");
     await fireEvent.press(screen.getByTestId("auth-submit"));

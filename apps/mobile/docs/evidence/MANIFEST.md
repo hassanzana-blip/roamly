@@ -1810,3 +1810,60 @@ chips).
 | `home-v2-after-390-large.jpg` | `cc5d68821b6604f6…` | 780×1860 |
 | `home-v2-after-390-xlarge.jpg` | `42828e6cf2fc19a0…` | 780×1860 |
 | `home-v2-after-390-en.jpg` | `41a4a0bc08337bb3…` | 780×1826 |
+
+## Profile as a settings list (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock. The
+signed-in shots use a preview test customer (Kari Nordmann, `kari@example.no`) that exists only in the local mock;
+on the web the token sits in the browser's session storage instead of the iOS keychain (a preview-only patch).
+
+**Versions:** before is `8bea822` (captured at `9c0317f`; the Profile screen did not change in between); after is the
+commit that adds this section.
+
+**What changed (owner backlog 4.3 and 2.14)**
+- **Guests see a settings list, not a login form.** The title «Profil», then a white sign-in card: «Logg inn eller
+  opprett en konto», what an account is («Én konto for appen og hellosky.no») and that search needs none, with
+  «Logg inn» and «Opprett konto». Nothing is promised that the app does not do.
+- **The form opens in its own sheet** (on iPhone the system page sheet, which can be dragged down; a drag closes it
+  like «Lukk»). «Opprett konto» opens it on a new account. «Glemt passordet?» lies over the form in the same sheet.
+  Closing clears the password; the e-mail stays. A successful login closes the sheet and shows the account.
+- **Groups like iOS settings:** a heading on charcoal and a white card with rows. Innstillinger: the language as a
+  choice in the row (one tap), and the currency as information – «Valuta · NOK · Alle priser vises i norske
+  kroner» – with no arrow, because it cannot be changed. Hjelp og juridisk: the four hellosky.no pages as links. The
+  app's version at the bottom (from app.json; hidden when not known).
+- **Signed in:** «Hei, Kari», then Konto (name, e-mail, phone as rows, «Endre profil»), the same groups, and «Logg
+  ut» and «Slett konto» as actions without an arrow (delete in red, with its text).
+- **Large text:** «Norsk (bokmål)» in the language choice now wraps instead of being cut to «Norsk (bok…» (the
+  segmented control had a one-line limit; it affected every segmented choice).
+- Auth, the social buttons (still hidden until approved), forgot password, edit and delete are unchanged; the tests
+  that fill the form now open the sheet first.
+
+**Tests:** `profileList.test.tsx` (new: the card before any form, the sheet opening on login or a new account, the
+page sheet with swipe-to-close, the password cleared on close, the sheet closing after login, settings rows,
+links, version, the signed-in order and the red delete row), plus the existing account, social, Apple, Clerk,
+language and VoiceOver-language tests through the sheet.
+
+- **Fixed from the Home stage:** its signed-in test expected «God …» and failed between 00:00 and 05:00, when the
+  greeting is «Hei». It now accepts every greeting the clock can give.
+
+**Checks:** Jest 581 passed, 3 skipped (UTC and Oslo). Typecheck and lint clean. iOS bundle 4 948 283 bytes
+(+5 660). Bundle check OK.
+
+**Not verified:** a real iPhone (the page sheet, dragging it down, the keyboard in it, VoiceOver in the sheet).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `profile-v2-before-390.jpg` | `ecab0d3bf74636f8…` | 780×1894 |
+| `profile-v2-after-375.jpg` | `2a085642464d6268…` | 750×1796 |
+| `profile-v2-after-390.jpg` | `0cabfcc504fcb1e4…` | 780×1860 |
+| `profile-v2-after-430.jpg` | `2b09e8033c76a002…` | 860×2002 |
+| `profile-v2-after-390-scrolled.jpg` | `dfd97e55804737a2…` | 780×1894 |
+| `profile-v2-after-390-login.jpg` | `3c5f7040ecb02307…` | 780×1894 |
+| `profile-v2-after-390-login-error.jpg` | `b39b2e90301b4cdb…` | 780×1860 |
+| `profile-v2-after-390-register.jpg` | `3e2fec4b93c68f56…` | 780×1860 |
+| `profile-v2-after-390-signed-in.jpg` | `580f54a87e4a0a93…` | 780×1860 |
+| `profile-v2-after-390-signed-in-scrolled.jpg` | `4d7cca5448367da5…` | 780×1860 |
+| `profile-v2-after-390-large.jpg` | `a6ae05da30fac630…` | 780×1860 |
+| `profile-v2-after-390-large-settings.jpg` | `70bd28e70b1c31c3…` | 780×1860 |
+| `profile-v2-after-390-en.jpg` | `2a7cda05e6fda699…` | 780×1826 |
+| `profile-v2-after-390-en-login.jpg` | `bc2c7044f2b3b18d…` | 780×1826 |

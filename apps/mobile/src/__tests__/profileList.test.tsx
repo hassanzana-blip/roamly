@@ -1,0 +1,182 @@
+import { StyleSheet } from "react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
+import * as SecureStore from "expo-secure-store";
+import { AppProvider, type ApiFactory } from "../lib/appState";
+import { createApiClient } from "../lib/api";
+import { fakeServer } from "../test/fakeServer";
+import { AUTH_RESULT, PROFILE, TOKEN } from "../test/fixtures";
+import { colors } from "../lib/theme";
+import AccountScreen from "../app/(tabs)/profil";
+
+// Profil som en innstillingsliste, som hos de store søketjenestene: for gjester et innloggingskort øverst (skjemaet
+// åpnes i et eget ark), så innstillinger og hjelp som grupper med rader. Innlogget: konto, innstillinger, hjelp og
+// til slutt «Logg ut» og «Slett konto».
+
+const keychain = (SecureStore as unknown as { __store: Map<string, { value: string; options: unknown }> }).__store;
+
+// Versjonen kommer fra app.json via expo-constants; i Jest er den innebygde konfigurasjonen tom, så den settes her.
+const mockConstants: { expoConfig: { version?: string } | null } = { expoConfig: { version: "1.0.0" } };
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    get expoConfig() {
+      return mockConstants.expoConfig;
+    },
+  },
+}));
+
+async function renderProfile({ signedIn = false, locale = "nb", routes = {} }: { signedIn?: boolean; locale?: "nb" | "en"; routes?: Parameters<typeof fakeServer>[0] } = {}) {
+  if (signedIn) keychain.set("hellosky.customer-session", { value: JSON.stringify({ token: TOKEN, expiresAt: "2099-01-01T00:00:00Z" }), options: {} });
+  const server = fakeServer({ "mobileAuth.me": () => ({ data: signedIn ? PROFILE : null }), ...routes });
+  const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
+  await render(
+    <AppProvider initialLocale={locale} apiFactory={factory}>
+      <AccountScreen />
+    </AppProvider>,
+  );
+  await waitFor(() => expect(screen.getByTestId(signedIn ? "account-card" : "account-signed-out")).toBeOnTheScreen());
+  return server;
+}
+
+/** testID-ene i skjermrekkefølge. */
+function idsInOrder(): string[] {
+  const out: string[] = [];
+  const walk = (n: unknown): void => {
+    if (n == null || typeof n === "string") return;
+    if (Array.isArray(n)) return n.forEach(walk);
+    const x = n as { props?: { testID?: string }; children?: unknown };
+    if (x.props?.testID) out.push(x.props.testID);
+    walk(x.children);
+  };
+  walk(screen.toJSON());
+  return out;
+}
+const inOrder = (ids: string[]) => {
+  const all = idsInOrder();
+  const at = ids.map((id) => all.indexOf(id));
+  expect(at.every((i) => i >= 0)).toBe(true);
+  expect([...at].sort((x, y) => x - y)).toEqual(at);
+};
+
+beforeEach(() => keychain.clear());
+
+describe("Profil for gjester", () => {
+  it("en innstillingsliste med innloggingskortet øverst – ikke et skjema med én gang", async () => {
+    await renderProfile();
+    expect(screen.getByText("Profil")).toHaveProp("accessibilityRole", "header");
+    const card = screen.getByTestId("sign-in-card");
+    expect(within(card).getByText("Logg inn eller opprett en konto")).toHaveProp("accessibilityRole", "header");
+    expect(card).toHaveTextContent(/Én konto for appen og hellosky\.no\. Du trenger ikke konto for å søke og sammenligne fly\./);
+    expect(screen.getByTestId("open-login")).toHaveProp("accessibilityHint", "Åpner innloggingen");
+    expect(screen.getByTestId("open-register")).toHaveProp("accessibilityHint", "Åpner skjemaet for ny konto");
+    expect(screen.queryByTestId("email")).toBeNull();
+    expect(screen.queryByTestId("auth-modal")).toBeNull();
+    // Rekkefølgen: kortet, innstillingene, hjelpen – og appens versjon nederst (fra app.json).
+    inOrder(["sign-in-card", "settings-group", "help-card", "app-version"]);
+    expect(screen.getByTestId("app-version")).toHaveTextContent("HelloSky 1.0.0");
+  });
+
+  it("uten en innebygd versjon står ingen versjonslinje (ingen tom eller oppdiktet verdi)", async () => {
+    mockConstants.expoConfig = null;
+    try {
+      await renderProfile();
+      expect(screen.queryByTestId("app-version")).toBeNull();
+    } finally {
+      mockConstants.expoConfig = { version: "1.0.0" };
+    }
+  });
+
+  it("«Logg inn» åpner skjemaet i et eget ark; «Lukk» lukker det, og passordet blir ikke liggende", async () => {
+    await renderProfile();
+    await fireEvent.press(screen.getByTestId("open-login"));
+    expect(screen.getByTestId("auth-modal")).toBeOnTheScreen();
+    expect(within(screen.getByTestId("auth-modal")).getAllByRole("header")[0]).toHaveTextContent("Logg inn");
+    expect(screen.getByTestId("segment-login")).toBeSelected();
+    await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
+    await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
+    await fireEvent.press(screen.getByTestId("auth-close"));
+    expect(screen.queryByTestId("auth-modal")).toBeNull();
+    await fireEvent.press(screen.getByTestId("open-login"));
+    expect(screen.getByTestId("email").props.value).toBe("kari@example.no");
+    expect(screen.getByTestId("password").props.value).toBe("");
+  });
+
+  it("arket er iOS' sidekort som kan dras ned; å dra det ned lukker det som «Lukk»", async () => {
+    await renderProfile();
+    await fireEvent.press(screen.getByTestId("open-login"));
+    type Node = { type: string; props: Record<string, unknown>; children: (Node | string)[] | null };
+    const find = (n: Node | string | null): Node | null => {
+      if (!n || typeof n === "string") return null;
+      if (n.props.presentationStyle) return n;
+      for (const c of n.children ?? []) {
+        const hit = find(c);
+        if (hit) return hit;
+      }
+      return null;
+    };
+    const tree = screen.toJSON() as Node | Node[];
+    const modal = (Array.isArray(tree) ? tree : [tree]).map(find).find(Boolean)!;
+    expect(modal.props).toMatchObject({ presentationStyle: "pageSheet", allowSwipeDismissal: true, visible: true });
+    await act(async () => (modal.props.onRequestClose as () => void)());
+    expect(screen.queryByTestId("auth-modal")).toBeNull();
+  });
+
+  it("«Opprett konto» åpner arket rett på ny konto", async () => {
+    await renderProfile();
+    await fireEvent.press(screen.getByTestId("open-register"));
+    expect(screen.getByTestId("segment-register")).toBeSelected();
+    expect(screen.getByTestId("first-name")).toBeOnTheScreen();
+    expect(screen.getByTestId("auth-submit")).toHaveProp("accessibilityLabel", "Opprett konto");
+  });
+
+  it("vellykket innlogging: arket lukkes, og Profil viser kontoen", async () => {
+    await renderProfile({ routes: { "mobileAuth.login": () => ({ data: AUTH_RESULT }) } });
+    await fireEvent.press(screen.getByTestId("open-login"));
+    await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
+    await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
+    await fireEvent.press(screen.getByTestId("auth-submit"));
+    await waitFor(() => expect(screen.getByTestId("account-signed-in")).toBeOnTheScreen());
+    expect(screen.queryByTestId("auth-modal")).toBeNull();
+  });
+
+  it("innstillingene: språket med begge språk, og valutaen som informasjon (NOK) – ingen knapp", async () => {
+    await renderProfile();
+    const settings = within(screen.getByTestId("settings-group"));
+    expect(settings.getByText("Innstillinger")).toHaveProp("accessibilityRole", "header");
+    expect(settings.getByTestId("segment-nb")).toBeSelected();
+    expect(settings.getByTestId("segment-en")).not.toBeSelected();
+    // Med stor tekst brytes språknavnet i stedet for å kuttes («Norsk (bok…»).
+    for (const id of ["segment-nb", "segment-en"]) expect(within(screen.getByTestId(id)).getByText(/./).props.numberOfLines).toBeUndefined();
+    const currency = screen.getByTestId("currency-row");
+    expect(currency).toHaveProp("accessibilityLabel", "Valuta, NOK, Alle priser vises i norske kroner.");
+    expect(currency.props.accessibilityRole).toBeUndefined();
+    expect(currency.props.onClick ?? currency.props.onPress).toBeUndefined();
+  });
+
+  it("hjelp og juridisk er lenker med hele raden som trykkflate (minst 44 pt), på engelsk med beskjed om at sidene er på norsk", async () => {
+    await renderProfile({ locale: "en" });
+    const help = within(screen.getByTestId("help-card"));
+    expect(help.getByText("Help & legal")).toHaveProp("accessibilityRole", "header");
+    for (const id of ["link-help", "link-privacy", "link-terms", "link-about"]) {
+      expect(screen.getByTestId(id)).toHaveProp("accessibilityRole", "link");
+      expect(StyleSheet.flatten(screen.getByTestId(id).props.style).minHeight).toBeGreaterThanOrEqual(44);
+    }
+    expect(help.getByText("Opens hellosky.no (in Norwegian)")).toBeOnTheScreen();
+  });
+});
+
+describe("Profil innlogget", () => {
+  it("konto som rader (navn og e-post), så innstillinger og hjelp; «Logg ut» og «Slett konto» nederst", async () => {
+    await renderProfile({ signedIn: true });
+    const account = within(screen.getByTestId("account-card"));
+    expect(account.getByText("Konto")).toHaveProp("accessibilityRole", "header");
+    expect(account.getByLabelText("Navn, Kari Nordmann")).toBeOnTheScreen();
+    expect(account.getByLabelText("E-post, kari@example.no")).toBeOnTheScreen();
+    expect(screen.getByTestId("open-edit-profile")).toHaveProp("accessibilityRole", "button");
+    expect(screen.getByTestId("logout-button")).toHaveProp("accessibilityRole", "button");
+    // «Slett konto» er rød – med tekst, ikke bare farge.
+    const del = within(screen.getByTestId("open-delete-account")).getByText("Slett konto");
+    expect(StyleSheet.flatten(del.props.style).color).toBe(colors.danger);
+    inOrder(["account-card", "settings-group", "help-card", "logout-button", "open-delete-account"]);
+  });
+});

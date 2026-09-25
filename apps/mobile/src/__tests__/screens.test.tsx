@@ -417,6 +417,7 @@ describe("kundekonto", () => {
     const tree = renderedStrings();
     for (const word of ["admin", "Admin", "ansatt", "staff", "Staff", "eier"]) expect(tree).not.toContain(word);
 
+    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
     await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
     await fireEvent.press(screen.getByTestId("auth-submit"));
@@ -450,6 +451,7 @@ describe("kundekonto", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
     await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
     await fireEvent.press(screen.getByTestId("auth-submit"));
@@ -469,7 +471,9 @@ describe("kundekonto", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    await fireEvent.press(screen.getByLabelText("Ny konto"));
+    // «Opprett konto» i kortet åpner arket rett på ny konto.
+    await fireEvent.press(screen.getByTestId("open-register"));
+    expect(screen.getByTestId("segment-register")).toBeSelected();
     await fireEvent.changeText(screen.getByTestId("first-name"), "Kari");
     await fireEvent.changeText(screen.getByTestId("last-name"), "Nordmann");
     await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
@@ -492,6 +496,8 @@ describe("kundekonto", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    // «Logg inn» i kortet, så «Ny konto» i arket.
+    await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.press(screen.getByLabelText("Ny konto"));
     await fireEvent.changeText(screen.getByTestId("first-name"), "Kari");
     await fireEvent.changeText(screen.getByTestId("last-name"), "Nordmann");
