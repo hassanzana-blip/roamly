@@ -68,7 +68,8 @@ export function BottomNavigation({ state, navigation }: TabBarProps) {
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: colors.bg, paddingTop: space.xs, paddingHorizontal: space.lg },
+  // Grunnen rundt kapselen er den lyse appgrunnen; kapselen selv er grafitt («Cloud + Graphite»).
+  bar: { backgroundColor: colors.canvas, paddingTop: space.xs, paddingHorizontal: space.lg },
   capsule: { flexDirection: "row", backgroundColor: colors.raised, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.darkBorder, padding: space.xs, boxShadow: "0px 6px 20px rgba(0, 0, 0, 0.35)" },
   item: { flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 48, paddingHorizontal: 2, borderRadius: radius.pill },
   pill: { width: 52, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },

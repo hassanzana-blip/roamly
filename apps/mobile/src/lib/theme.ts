@@ -1,16 +1,22 @@
 import type { TextStyle } from "react-native";
 
 /**
- * HelloSkys app-uttrykk: kull/svart grunn, hvite flater og HelloSky-blått
- * bare som handlingsfarge. Svart og hvitt bærer identiteten; blått er aksent.
+ * HelloSkys app-uttrykk, «Cloud + Graphite» (25.09.2026): lys grunn (`canvas`), hvite flater, grafittøyer for
+ * søket, fanemenyen, ruteoverskrifter og prislinjer, og HelloSky-blått bare som handlingsfarge. Omtrent 70 % lyst,
+ * 20 % grafitt og 10 % blått.
  *
- * Tekstpar sjekket mot WCAG AA (minst 4,5:1): hvit på blå 5,8 · blå på hvit 5,8 ·
- * sekundær på hvit 5,8 og på innfelt flate 5,4 · onDarkMuted på grunnen 9,5 og
- * på hevet flate 8,4 · blueOnDark på grunnen 6,1 og på hevet flate 5,4.
- * #0754F8 er for mørk som liten tekst på kull (3,4) – der brukes blueOnDark.
+ * Tekstpar sjekket mot WCAG AA (minst 4,5:1): hvit på blå 5,8 · blå på hvit 5,8 og på grunnen 5,3 · sekundær på
+ * hvit 5,8, på innfelt flate 5,4 og på grunnen 5,3 · onDarkMuted på `bg` 9,5 og på `raised` 8,4 · blueOnDark på
+ * `bg` 6,1 og på `raised` 5,4. #0754F8 er for mørk som liten tekst på grafitt (3,4) – der brukes blueOnDark.
  */
 export const colors = {
-  // Mørke flater
+  // Lys grunn og flater («Cloud»)
+  /** Appens grunn bak kort og lister. */
+  canvas: "#F3F4F6",
+  /** Myk flate på grunnen (grupper, felt i lister). */
+  surfaceSoft: "#F7F8FA",
+
+  // Grafitt («Graphite»): øyene – søket, fanemenyen, ruteoverskrifter, prislinjer – og det som ligger på dem.
   bg: "#0C0D0F",
   raised: "#191B1F",
   darkBorder: "#2B2D32",

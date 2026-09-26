@@ -6,7 +6,7 @@ import { colors } from "../../lib/theme";
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.canvas } }}
       tabBar={(props) => <BottomNavigation state={props.state} navigation={props.navigation as unknown as Parameters<typeof BottomNavigation>[0]["navigation"]} />}
     >
       <Tabs.Screen name="index" options={{ title: "Hjem" }} />

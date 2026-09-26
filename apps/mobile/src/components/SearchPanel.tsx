@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
 import { Pressable, Text } from "./a11y";
 import { useRouter } from "expo-router";
@@ -96,11 +96,11 @@ function PanelChip({ label, onPress, testID, accessibilityLabel, accessibilityHi
 }
 
 /**
- * Søkeskjemaet på forsiden, på mørk grunn: reisetype som tekstfaner, fra og til under hverandre i ett hvitt felt med
+ * Søkeskjemaet i forsidens grafittøy: reisetype som tekstfaner, fra og til under hverandre i ett hvitt felt med
  * bytt-knappen på skillelinjen, avreise ▸ retur i ett felt, reisende og klasse som brikker, og én blå knapp. Alt leses
  * fra og skrives til appens søkeskjema.
  */
-export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
+export function SearchPanel() {
   const router = useRouter();
   const { form, setForm, runSearch } = useApp();
   const i18n = useI18n();
@@ -234,7 +234,6 @@ export function SearchPanel({ footer }: { footer?: ReactNode } = {}) {
         </Banner>
       ) : null}
       <PrimaryButton testID="search-button" label={h.searchButton} onPress={submit} />
-      {footer}
 
       <DateRangeSheet
         visible={calendar !== null}

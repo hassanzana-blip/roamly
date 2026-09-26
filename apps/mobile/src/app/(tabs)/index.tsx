@@ -17,6 +17,7 @@ import { ServiceSwitch } from "../../components/ServiceSwitch";
 import { DestinationRailCard } from "../../components/DestinationCard";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { Icon } from "../../components/Icon";
+import { useHotelsStatus } from "../../lib/useHotelsStatus";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
 /** Kundens initialer, eller ingenting (gjest). Aldri et oppdiktet navn eller bilde. */
@@ -25,9 +26,9 @@ function initialsOf(first?: string | null, last?: string | null): string {
 }
 
 /**
- * Andre nylige søk som én rad med små brikker under «Søk fly», i stedet for linjen om innlogging (den er for
- * nye kunder, som ikke har nylige søk). Et trykk søker igjen. Hele listen – også søk med passerte datoer – står i
- * Lagret. En liste med kort her presset reisemålene ut av første bilde (122 pt per søk); raden er 44 pt.
+ * Andre nylige søk som én rad med små hvite brikker rett under søkeøya, i stedet for linjen om innlogging (den er
+ * for nye kunder, som ikke har nylige søk). Et trykk søker igjen. Hele listen – også søk med passerte datoer – står
+ * i Lagret. En liste med kort her presset reisemålene ut av første bilde (122 pt per søk); raden er 44 pt.
  */
 function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (r: RecentSearch) => void }) {
   const i18n = useI18n();
@@ -55,10 +56,10 @@ function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (
             testID={`home-recent-${r.origin.iata}-${r.destination.iata}-${r.departDate}`}
             style={({ pressed }) => [styles.recentPill, pressed && { opacity: 0.7 }]}
           >
-            <Icon name="clock" size={14} color={colors.onDarkMuted} />
-            <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{`${r.origin.iata}\u2011${r.destination.iata}`}</Text>
-            <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{f.dateSpan(r.departDate, back)}</Text>
-            {extra ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{`· ${extra}`}</Text> : null}
+            <Icon name="clock" size={14} color={colors.textSecondary} />
+            <Text style={[type.footnoteStrong, { color: colors.text }]}>{`${r.origin.iata}\u2011${r.destination.iata}`}</Text>
+            <Text style={[type.footnote, { color: colors.textSecondary }]}>{f.dateSpan(r.departDate, back)}</Text>
+            {extra ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{`· ${extra}`}</Text> : null}
           </Pressable>
         );
       })}
@@ -67,9 +68,10 @@ function RecentSearchesRow({ items, onPick }: { items: RecentSearch[]; onPick: (
 }
 
 /**
- * Forsiden, som de store søketjenestene: rolig mørk flate, kort spørsmål (eller hilsen) og profilknapp, fly eller
- * hotell, og søket rett under – fra og til, datoer, reisende og «Søk fly». Under: reisemål som hvite kort (uten
- * priser – dem har vi ikke før det er søkt).
+ * Forsiden i «Cloud + Graphite»: lys grunn med spørsmålet (eller hilsenen) og profilknappen øverst, og søket i en
+ * grafittøy – fly eller hotell (bare når hotellsøket er slått på), turtype, fra og til, datoer, reisende og «Søk
+ * fly». Under øya: nylige søk eller linjen om at søk ikke krever konto, og reisemål som hvite kort (uten priser –
+ * dem har vi ikke før det er søkt).
  */
 export default function HomeScreen() {
   const router = useRouter();
@@ -79,6 +81,9 @@ export default function HomeScreen() {
   const { t, f, locale } = i18n;
   const [cardProblem, setCardProblem] = useState<FormErrorCode | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  // Hotell vises bare når serveren sier at hotellsøket er på – ingen stor knapp til en tjeneste som ikke virker.
+  const { state: hotels } = useHotelsStatus();
+  const hotelsOn = hotels.kind === "ok" && hotels.status.enabled;
 
   const profile = auth.status === "signedIn" ? auth.profile : null;
   const name = profile?.firstName?.trim();
@@ -107,55 +112,58 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <ScrollView
         testID="home-scroll"
         style={styles.screen}
-        contentContainerStyle={{ paddingBottom: space.xxxl }}
+        contentContainerStyle={{ paddingTop: insets.top + space.sm, paddingBottom: space.xxxl }}
         keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
         onScroll={(event) => setScrolled(event.nativeEvent.contentOffset.y > 24)}
       >
-        <View style={[styles.panel, { paddingTop: insets.top + space.sm }]} testID="home-sheet">
-          <View style={styles.headRow}>
-            {/* Innlogget: hilsen med navn. Gjest: spørsmålet søket svarer på. */}
-            <Text style={[type.hero, styles.title]} accessibilityRole="header" testID="home-title">
-              {name ? t.home.greetingName(f.greeting(), name) : t.home.title}
-            </Text>
-            {auth.status === "signedIn" ? (
-              <Pressable onPress={() => router.push("/profil")} accessibilityRole="button" accessibilityLabel={t.home.profileButton} testID="account-button" style={({ pressed }) => [styles.avatar, pressed && { opacity: 0.8 }]}>
-                {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
-              </Pressable>
-            ) : (
-              // Gjest: knappen går til Profil (innloggingskortet står øverst der), så den heter det den åpner.
-              <IconButton icon="user" label={t.home.profileButton} variant="dark" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
-            )}
-          </View>
-          <ServiceSwitch variant="tiles" active="flights" onSelect={() => router.push("/hotell")} />
-          <SearchPanel
-            footer={
-              again.length ? (
-                <RecentSearchesRow items={again} onPick={searchAgain} />
-              ) : (
-                <Text style={[type.footnote, { color: colors.onDarkMuted, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
-              )
-            }
-          />
+        <View style={styles.headRow}>
+          {/* Innlogget: hilsen med navn. Gjest: spørsmålet søket svarer på. */}
+          <Text style={[type.hero, styles.title]} accessibilityRole="header" testID="home-title">
+            {name ? t.home.greetingName(f.greeting(), name) : t.home.title}
+          </Text>
+          {auth.status === "signedIn" ? (
+            <Pressable onPress={() => router.push("/profil")} accessibilityRole="button" accessibilityLabel={t.home.profileButton} testID="account-button" style={({ pressed }) => [styles.avatar, pressed && { opacity: 0.8 }]}>
+              {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
+            </Pressable>
+          ) : (
+            // Gjest: knappen går til Profil (innloggingskortet står øverst der), så den heter det den åpner.
+            <IconButton icon="user" label={t.home.profileButton} variant="light" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
+          )}
+        </View>
+
+        {/* Søkeøya: grafitt på lys grunn, med de hvite feltene og den blå knappen inni. */}
+        <View style={styles.island} testID="home-sheet">
+          {hotelsOn ? <ServiceSwitch variant="island" active="flights" onSelect={() => router.push("/hotell")} /> : null}
+          <SearchPanel />
+        </View>
+
+        <View style={styles.afterIsland}>
+          {again.length ? (
+            <RecentSearchesRow items={again} onPick={searchAgain} />
+          ) : (
+            <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{t.home.noLoginNeeded}</Text>
+          )}
         </View>
 
         <View style={styles.sectionHead}>
-          <Text style={[type.title, { color: colors.onDark, flex: 1 }]} accessibilityRole="header">
+          <Text style={[type.title, { color: colors.text, flex: 1 }]} accessibilityRole="header">
             {t.home.exploreTitle}
           </Text>
-          <LinkButton dark label={t.home.seeAll} accessibilityLabel={t.home.seeAllLabel} onPress={() => router.push("/utforsk")} />
+          <LinkButton label={t.home.seeAll} accessibilityLabel={t.home.seeAllLabel} onPress={() => router.push("/utforsk")} />
         </View>
         {cardProblem ? (
           <View style={styles.cardError}>
-            <Banner tone="error" dark testID="card-error">
+            <Banner tone="error" testID="card-error">
               {formErrorText(cardProblem, i18n)}
             </Banner>
           </View>
         ) : null}
+        {/* Luft under kortene, så skyggen ikke klippes av den vannrette listen. */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
           {FEATURED.map((d) => (
             <DestinationRailCard key={d.id} destination={d} onPress={() => searchTo(d)} testID={`destination-${d.id}`} />
@@ -166,26 +174,27 @@ export default function HomeScreen() {
           {t.home.howItWorks}
         </Text>
       </ScrollView>
-      <StatusBarShield visible={scrolled} />
+      <StatusBarShield visible={scrolled} tone="light" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  // Søket i et litt lysere mørkt panel med runde hjørner nederst; siden under er kull.
-  panel: { backgroundColor: colors.raised, borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingBottom: space.xl, gap: space.lg },
-  headRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: TOUCH },
-  title: { color: colors.onDark, flex: 1 },
-  avatar: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(255, 255, 255, 0.85)" },
+  screen: { flex: 1, backgroundColor: colors.canvas },
+  headRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: TOUCH, paddingHorizontal: space.lg, marginBottom: space.md },
+  title: { color: colors.text, flex: 1 },
+  avatar: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 15, fontWeight: "700", color: colors.white },
-  // Raden går helt ut til kanten (under panelets marg), så brikkene kan rulles uten å klippes ved margen. Luft over og
-  // under brikkene, så hitSlop (4 pt) når 44 pt – en ScrollView klipper det som stikker utenfor.
-  recentScroll: { marginHorizontal: -space.lg },
+  // Grafittøya med søket: marg til kantene, runde hjørner og en myk skygge, så den ligger på den lyse grunnen.
+  island: { marginHorizontal: space.md, padding: space.lg, gap: space.md, borderRadius: radius.sheet, backgroundColor: colors.raised, boxShadow: "0px 10px 30px rgba(16, 17, 20, 0.18)" },
+  afterIsland: { paddingTop: space.md, minHeight: TOUCH, justifyContent: "center" },
+  // Raden går helt ut til skjermkanten, så brikkene kan rulles uten å klippes ved margen. Luft over og under
+  // brikkene, så hitSlop (4 pt) når 44 pt – en ScrollView klipper det som stikker utenfor.
+  recentScroll: {},
   recentRow: { paddingHorizontal: space.lg, gap: space.sm, paddingVertical: 4 },
-  recentPill: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.darkBorder },
-  sectionHead: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingTop: space.xxl, paddingBottom: space.md },
+  recentPill: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lightBorder },
+  sectionHead: { flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.sm },
   cardError: { paddingHorizontal: space.lg, paddingBottom: space.md },
-  rail: { paddingHorizontal: space.lg, gap: space.md },
-  howItWorks: { color: colors.onDarkMuted, paddingHorizontal: space.lg, marginTop: space.xl },
+  rail: { paddingHorizontal: space.lg, gap: space.md, paddingBottom: space.md },
+  howItWorks: { color: colors.textSecondary, paddingHorizontal: space.lg, marginTop: space.md },
 });

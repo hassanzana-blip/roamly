@@ -51,9 +51,10 @@ const NBSP = " ";
 beforeEach(() => openBrowser.mockClear());
 
 describe("inngang fra forsiden", () => {
-  it("Hotell-brikken åpner hotellsøket; Fly er valgt", async () => {
-    const { factory } = setup({});
+  it("når hotellsøket er på: Hotell i søkeøya åpner hotellsøket; Fly er valgt", async () => {
+    const { factory } = setup({ "hotels.status": () => ({ data: STATUS_LIVE }) });
     await renderWith(factory, <HomeScreen />);
+    await waitFor(() => expect(screen.getByTestId("service-flights")).toBeOnTheScreen());
     expect(screen.getByTestId("service-flights")).toBeSelected();
     expect(screen.getByTestId("service-hotels")).not.toBeSelected();
     await fireEvent.press(screen.getByTestId("service-hotels"));

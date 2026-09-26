@@ -6,7 +6,7 @@ import { AppProvider, useApp, type ApiFactory } from "../lib/appState";
 import { createApiClient } from "../lib/api";
 import { fakeServer } from "../test/fakeServer";
 import { PROFILE, SEARCH_RESULT, TOKEN } from "../test/fixtures";
-import { colors, space } from "../lib/theme";
+import { colors, radius, space } from "../lib/theme";
 import HomeScreen from "../app/(tabs)/index";
 import { pinClock } from "../test/clock";
 
@@ -24,9 +24,14 @@ function Probe() {
   return <RNText testID="probe">{`${form.tripType} ${form.origin?.iata ?? "-"}→${form.destination?.iata ?? "-"} ${form.departDate}/${form.returnDate} a${form.adults} ${form.cabinClass}`}</RNText>;
 }
 
-async function renderHome({ signedIn = false, initial }: { signedIn?: boolean; initial?: Record<string, unknown> } = {}) {
+/** `hotels`: serverens svar på om hotellsøket er på (standard: på, så Fly/Hotell vises). */
+async function renderHome({ signedIn = false, initial, hotels = true }: { signedIn?: boolean; initial?: Record<string, unknown>; hotels?: boolean } = {}) {
   if (signedIn) keychain.set("hellosky.customer-session", { value: JSON.stringify({ token: TOKEN, expiresAt: "2099-01-01T00:00:00Z" }), options: {} });
-  const server = fakeServer({ "mobileAuth.me": () => ({ data: signedIn ? PROFILE : null }), "flights.search": () => ({ data: SEARCH_RESULT }) });
+  const server = fakeServer({
+    "mobileAuth.me": () => ({ data: signedIn ? PROFILE : null }),
+    "flights.search": () => ({ data: SEARCH_RESULT }),
+    "hotels.status": () => ({ data: { enabled: hotels, mode: "sandbox", externalBooking: true } }),
+  });
   const factory: ApiFactory = (getToken) => createApiClient({ baseUrl: "https://api.hellosky.test", getToken, fetchImpl: server.fetchImpl });
   await render(
     <AppProvider initialLocale="nb" apiFactory={factory} initial={initial}>
@@ -96,10 +101,11 @@ describe("Hjem: første bilde", () => {
     expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Din profil");
     await fireEvent.press(screen.getByTestId("account-button"));
     expect(router.push).toHaveBeenLastCalledWith("/profil");
-    // Panelet med søket: tett luft mellom delene, og ingen luft over tittelen utover statuslinjen.
-    const sheet = flat("home-sheet");
-    expect(sheet.gap).toBeLessThanOrEqual(space.lg);
-    expect(sheet.paddingTop).toBeLessThanOrEqual(space.md);
+    // Søket i en grafittøy på den lyse grunnen, med tett luft mellom delene.
+    const island = flat("home-sheet");
+    expect(island).toMatchObject({ backgroundColor: colors.raised, borderRadius: radius.sheet });
+    expect(island.gap).toBeLessThanOrEqual(space.lg);
+    expect(flat("home-scroll").backgroundColor).toBe(colors.canvas);
   });
 
   it("innlogget: tittelen er hilsenen med navn, og kontoknappen viser initialene", async () => {
@@ -208,15 +214,22 @@ describe("Hjem: skjemaet som hos de store søketjenestene", () => {
     expect([line("segment-roundtrip"), line("segment-oneway")]).toEqual([colors.blueOnDark, "transparent"]);
   });
 
-  it("Fly/Hotell som to like brede ruter: den valgte med svak blå flate og blå kant; helblått er forbeholdt «Søk fly»", async () => {
+  it("Fly/Hotell som et todelt valg i øya: den valgte er hvit; helblått er forbeholdt «Søk fly»", async () => {
     await renderHome();
     const flights = flat("service-flights");
     const hotels = flat("service-hotels");
     expect([flights.flex, hotels.flex]).toEqual([1, 1]);
-    expect([flights.backgroundColor, flights.borderColor]).toEqual([colors.blueOnDarkTint, colors.blueOnDark]);
-    expect(hotels.backgroundColor).toBe(colors.bg);
+    expect(flights.backgroundColor).toBe(colors.white);
+    expect(hotels.backgroundColor).toBe("transparent");
     expect(screen.getByTestId("service-flights")).toHaveProp("accessibilityRole", "tab");
     expect(flat("search-button").backgroundColor).toBe(colors.blue);
+  });
+
+  it("hotellsøket er av (eller svaret mangler): ingen Fly/Hotell-bryter – bare flysøket, ingen knapp til noe som ikke virker", async () => {
+    await renderHome({ hotels: false });
+    await waitFor(() => expect(screen.getByTestId("search-button")).toBeOnTheScreen());
+    expect(screen.queryByTestId("service-switch")).toBeNull();
+    expect(screen.queryByTestId("service-hotels")).toBeNull();
   });
 
   it("brikkene: reisende og klasse – med «Bare direktefly» når det er på – åpner det samme arket", async () => {
