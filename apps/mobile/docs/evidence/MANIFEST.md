@@ -2077,3 +2077,52 @@ and the web login).
 | `minside-after-390-large.jpg` | `31f9c9c2041f88ba…` | 780×1832 |
 | `minside-after-390-en.jpg` | `1389bd2137e47acd…` | 780×1798 |
 | `minside-after-390-home-airport.jpg` | `e83fc40c5b29583e…` | 780×1832 |
+
+## Search transformation: the results header edits the search in place, with motion (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web against the local mock (DEMO prices). Motion cannot be
+judged in these stills; it is described below and covered by tests of its configuration.
+
+**Versions:** before is `af7ed8a` (the Min side commit does not touch the results screen); after is the commit that adds
+this section.
+
+**What changed (master brief: the Home search continues into a compact results header with tappable route, dates
+and passengers)**
+- **Compact header:** back, the route as a button («Endre søk: Oslo til Barcelona»), «Endre søk», and two chips: the
+  dates («10.–17. okt.», or «Én vei · 10. okt.») and travellers and class («1 voksen · Økonomi», plus «Direkte» for a
+  direct-only search). VoiceOver hears full dates with the number of nights. The DEMO mark stands on the route's line.
+- **The route opens the header into the Home search island** – the same `SearchPanel` – with «Lukk». «Søk fly» searches
+  right there (no second results screen on the stack), and the island closes back into the header with the new route.
+  Every edit starts from the search that is shown; «Lukk» leaves the list as it was.
+- **The chips open their sheets directly:** the calendar or travellers and class, each with «Søk på nytt»; «Ferdig»
+  closes without searching. A form error (a date that has passed) shows in the sheet.
+- **Motion:** opening and closing the island animates its size and the list below together (260 ms, ease-out);
+  arriving from Home, the route and chips fade in and rise 8 pt; swapping from and to on Home, the two airports visibly
+  change rows while the icon turns. With Reduce Motion: no movement or size animation, only a short cross-fade.
+- **Sorting:** «Senest avgang» next to «Tidligst avgang» (the real outbound departure time, latest first).
+- **Not done:** haptics – `expo-haptics` is not a dependency of the app (package.json is Ali's); a comment marks where
+  the swap's light tick belongs.
+
+**Tests:** `searchTransformation.test.tsx` (25: the header describes the shown search, 44 pt chips with full labels,
+the editor opening and searching in place without a new screen, errors kept in the panel, «Lukk», the date and
+travellers sheets searching again, the swap's movement and Reduce Motion, «Senest avgang»), and updated
+`flightScreensLook`, `resultsEmpty`, `filters` and `resultsView` tests.
+
+**Checks (tree with the Min side and this stage):** Jest 706 passed, 3 skipped. Typecheck and lint clean. iOS bundle
+4 996 695 bytes (+47 360 since `b5c5172`, for Cloud + Graphite, the welcome, Min side and this stage). Bundle check OK.
+The Min side commit alone: Jest 678 passed, 3 skipped; typecheck and lint clean.
+
+**Not verified:** a real iPhone (LayoutAnimation on the device, VoiceOver focus moving into and out of the island, the
+feel of the motion).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `transform-before-390.jpg` | `d40929c2a5dbbdc1…` | 780×1860 |
+| `transform-after-390-compact.jpg` | `934b5883f4545092…` | 780×1860 |
+| `transform-after-390-editor.jpg` | `a66c405a68a45215…` | 780×1832 |
+| `transform-after-390-dates.jpg` | `257f1a4070b579c0…` | 780×1798 |
+| `transform-after-390-travellers.jpg` | `1b0e6452f49e95c8…` | 780×1832 |
+| `transform-after-375-compact.jpg` | `d52e9d46f344f9a0…` | 750×1762 |
+| `transform-after-430-editor.jpg` | `fc7893a5874b9fe7…` | 860×1974 |
+| `transform-after-390-large.jpg` | `52f6a4ebf73cd41e…` | 780×1798 |
+| `transform-after-390-en.jpg` | `789fc9e79c305db1…` | 780×1798 |

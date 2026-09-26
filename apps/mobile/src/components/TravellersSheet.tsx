@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Switch, Text } from "./a11y";
 import { useApp } from "../lib/appState";
@@ -8,17 +9,18 @@ import { Icon } from "./Icon";
 import { colors, space, type } from "../lib/theme";
 
 /**
- * Reisende, reiseklasse og «bare direktefly» i ett ark – på forsiden og i Utforsk. Sammendraget står øverst, og en
- * regel som stopper en knapp (spedbarn per voksen, ni reisende) står rett under den. Alt skrives til søkeskjemaet.
+ * Reisende, reiseklasse og «bare direktefly» i ett ark – på forsiden, i Utforsk og fra søket i toppen av resultatene.
+ * Sammendraget står øverst, og en regel som stopper en knapp (spedbarn per voksen, ni reisende) står rett under den.
+ * Alt skrives til søkeskjemaet. `footer`: handlingen nederst der valget skal bekreftes (resultatene: «Søk på nytt»).
  */
-export function TravellersSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function TravellersSheet({ visible, onClose, footer }: { visible: boolean; onClose: () => void; footer?: ReactNode }) {
   const { form, setForm } = useApp();
   const i18n = useI18n();
   const h = i18n.t.home;
   const total = passengerCount(form);
   const infants = form.infantAges.length;
   return (
-    <BottomSheet visible={visible} title={h.travellersSheet} onClose={onClose} testID="travellers-sheet">
+    <BottomSheet visible={visible} title={h.travellersSheet} onClose={onClose} testID="travellers-sheet" footer={footer}>
       <ScrollView contentContainerStyle={{ gap: space.xs, paddingBottom: space.md }}>
         {/* Hva som er valgt, samlet øverst – også når barnas alder har skjøvet resten nedover. */}
         <Text style={[type.footnote, { color: colors.textSecondary }]} testID="travellers-summary">

@@ -228,6 +228,20 @@ describe("«Best», tidligst avgang og fanene over listen", () => {
     expect(ids(applyView(server, { ...DEFAULT_VIEW, sort: "departure" }))).toEqual(["tidlig", "likbillig", "likdyr", "sen", "ukjent"]);
   });
 
+  it("senest avgang: samme klokkeslett snudd; lik tid avgjøres fortsatt av prisen; uleselig tid og uten kronepris sist", () => {
+    const tidlig = trip("tidlig", 2500, 300, 1, "06:00");
+    const sen = trip("sen", 900, 300, 1, "21:30");
+    const likDyr = trip("likdyr", 2000, 300, 1, "09:15");
+    const likBillig = trip("likbillig", 1500, 300, 1, "09:15");
+    const ukjent = { ...trip("ukjent", 100, 300, 1), offer: { ...trip("ukjent", 100, 300, 1).offer, slices: [{ ...trip("u", 1, 1, 0).offer.slices[0]!, departingAt: "?" }] } };
+    const server = [ukjent, sen, likBillig, likDyr, tidlig];
+    expect(SORTS.indexOf("latest")).toBe(SORTS.indexOf("departure") + 1);
+    expect(ids(applyView(server, { ...DEFAULT_VIEW, sort: "latest" }))).toEqual(["sen", "likbillig", "likdyr", "tidlig", "ukjent"]);
+    // Avgang dagen etter (etter midnatt) er senere enn en kveldsavgang samme dag – hele tidspunktet teller, ikke bare klokken.
+    const nattTil = { ...tidlig, offer: { ...tidlig.offer, id: "natt", slices: [{ ...tidlig.offer.slices[0]!, departingAt: "2026-10-24T00:30:00" }, ...tidlig.offer.slices.slice(1)] } };
+    expect(ids(applyView([sen, nattTil, D], { ...DEFAULT_VIEW, sort: "latest" }))).toEqual(["natt", "sen", "d"]);
+  });
+
   it("fanene: Best, Billigst og Raskest, hver med reisen som står øverst med filtrene som gjelder", () => {
     expect(SORT_TABS).toEqual(["best", "price", "duration"]);
     const billig = withLayover(trip("billig", 1600, 776, 1, "19:50"), 535);

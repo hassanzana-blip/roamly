@@ -7,6 +7,7 @@ const en = {
     price: { label: "Cheapest", summary: "Lowest total price first" },
     duration: { label: "Fastest", summary: "Shortest travel time first" },
     departure: { label: "Earliest departure", summary: "Earliest outbound departure first" },
+    latest: { label: "Latest departure", summary: "Latest outbound departure first" },
     stops: { label: "Fewest stops", summary: "Fewest stops first" },
   } satisfies Record<SortKey, { label: string; summary: string }>,
   /** Fanene over listen: toppen for hver avveining, med ekte pris og reisetid. */
@@ -49,6 +50,23 @@ const en = {
     fallbackTitle: "Flights",
     back: "Back",
     editSearch: "Edit search",
+    /**
+     * Søket i toppen: ruten (et trykk åpner hele søket i øya) og to brikker – datoer og reisende – som endrer søket
+     * direkte. VoiceOver hører hele datoene og hele teksten, og hva et trykk gjør.
+     */
+    header: {
+      routeLabel: (route: string) => `Edit search: ${route}`,
+      routeSpoken: (from: string, to: string) => `${from} to ${to}`,
+      editHint: "Opens the search here so you can change it",
+      datesOneWay: (date: string) => `One way · ${date}`,
+      datesOneWaySpoken: (summary: string) => `${summary}, one way`,
+      datesHint: "Choose new dates and search again",
+      travellersSpoken: (text: string) => `Travellers and cabin: ${text}`,
+      directOnlySpoken: "direct flights only",
+      travellersHint: "Choose travellers and cabin and search again",
+      close: "Close",
+      closeHint: "Closes the form without searching",
+    },
     idleTitle: "No search yet",
     idleBody: "Choose a destination and dates, and we'll compare prices for you.",
     startSearch: "Start a search",
@@ -154,6 +172,7 @@ const nb: typeof en = {
     price: { label: "Billigst", summary: "Laveste pris først" },
     duration: { label: "Raskest", summary: "Korteste reisetid først" },
     departure: { label: "Tidligst avgang", summary: "Tidligste avgang på utreisen først" },
+    latest: { label: "Senest avgang", summary: "Seneste avgang på utreisen først" },
     stops: { label: "Færrest mellomlandinger", summary: "Færrest mellomlandinger først" },
   },
   tabs: {
@@ -192,6 +211,19 @@ const nb: typeof en = {
     fallbackTitle: "Flyreiser",
     back: "Tilbake",
     editSearch: "Endre søk",
+    header: {
+      routeLabel: (route) => `Endre søk: ${route}`,
+      routeSpoken: (from, to) => `${from} til ${to}`,
+      editHint: "Åpner søket her, så du kan endre det",
+      datesOneWay: (date) => `Én vei · ${date}`,
+      datesOneWaySpoken: (summary) => `${summary}, én vei`,
+      datesHint: "Velg nye datoer og søk på nytt",
+      travellersSpoken: (text) => `Reisende og reiseklasse: ${text}`,
+      directOnlySpoken: "bare direktefly",
+      travellersHint: "Velg reisende og reiseklasse og søk på nytt",
+      close: "Lukk",
+      closeHint: "Lukker skjemaet uten å søke",
+    },
     idleTitle: "Ingen søk ennå",
     idleBody: "Velg reisemål og datoer, så sammenligner vi prisene for deg.",
     startSearch: "Start et søk",

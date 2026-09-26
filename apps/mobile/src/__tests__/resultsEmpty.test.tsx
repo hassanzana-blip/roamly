@@ -9,7 +9,7 @@ import { SEARCH_RESULT } from "../test/fixtures";
 import ResultsScreen from "../app/resultater";
 
 // Ingen reiser: «Prøv datoene rundt» – samme reise noen dager før eller etter, som nye søk uten priser. Og søket i
-// toppen kan trykkes for å endre det.
+// toppen kan trykkes for å endre det, der det står.
 
 const router = (globalThis as unknown as { __router: { navigate: jest.Mock } }).__router;
 const BCN = { iata: "BCN", name: "Barcelona El Prat", city: "Barcelona", country: "Spania" };
@@ -102,12 +102,21 @@ describe("ingen reiser", () => {
 });
 
 describe("søket i toppen", () => {
-  it("et trykk på ruten åpner søkeskjemaet; for VoiceOver er ruten en overskrift og knappen gjør jobben", async () => {
+  it("et trykk på ruten åpner søkeskjemaet der det står – ingen tur til forsiden; ruten er en knapp som sier at den endrer søket", async () => {
     await show(SEARCH_RESULT, { departDate: "2026-10-23", returnDate: "2026-10-30" });
-    const head = screen.getByTestId("header-edit");
-    expect(head.props.accessible).toBe(false);
-    expect(within(head).getByRole("header")).toHaveTextContent("Oslo → Barcelona");
-    await fireEvent.press(head);
-    expect(router.navigate).toHaveBeenCalledWith("/");
+    const route = screen.getByTestId("header-route");
+    expect(route).toHaveProp("accessibilityRole", "button");
+    expect(route).toHaveProp("accessibilityLabel", "Endre søk: Oslo til Barcelona");
+    expect(within(route).getByRole("header")).toHaveTextContent("Oslo → Barcelona");
+    await fireEvent.press(route);
+    expect(screen.getByTestId("results-header-editor")).toBeOnTheScreen();
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it("ingen reiser: «Endre søk» i tilstanden åpner også søket i øya", async () => {
+    await show(EMPTY, { departDate: "2026-10-23", returnDate: "2026-10-30" });
+    await fireEvent.press(within(screen.getByTestId("results-none")).getByTestId("edit-search-state"));
+    expect(within(screen.getByTestId("results-header")).getByTestId("results-header-editor")).toBeOnTheScreen();
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 });

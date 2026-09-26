@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-native";
 import { Pressable, Text } from "./a11y";
 import { useRouter } from "expo-router";
@@ -11,15 +11,18 @@ import { Banner, PrimaryButton } from "./ui";
 import { DateRangeSheet } from "./RangeCalendar";
 import { TravellersSheet } from "./TravellersSheet";
 import { Icon, type IconName } from "./Icon";
-import { useReducedMotion } from "../lib/motion";
+import { MOTION_MS, useReducedMotion } from "../lib/motion";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
+
+/** Verdien i en rad mens fra og til bytter plass: glir fra der den sto, og tones litt ned der de to krysser. */
+type RowMotion = { key: number; style: { opacity: Animated.AnimatedInterpolation<number>; transform: { translateY: Animated.AnimatedInterpolation<number> }[] } };
 
 /**
  * Én ende av ruten, som en rad i det hvite rutefeltet: avgang- eller landingsikon og «Oslo (OSL)», eller et spørsmål
  * når ingenting er valgt. Ikonet sier hvilken ende det er uten en egen etikett. Plass til høyre for bytt-knappen, som
- * står på skillelinjen.
+ * står på skillelinjen. `motion`: verdien glir inn fra den andre raden etter et bytte (ikonet står stille).
  */
-function AirportRow({ label, placeholder, icon, value, onPress, testID, onHeight }: { label: string; placeholder: string; icon: IconName; value: AirportChoice | null; onPress: () => void; testID: string; onHeight?: (h: number) => void }) {
+function AirportRow({ label, placeholder, icon, value, onPress, testID, onHeight, motion }: { label: string; placeholder: string; icon: IconName; value: AirportChoice | null; onPress: () => void; testID: string; onHeight?: (h: number) => void; motion?: RowMotion | null }) {
   const { t } = useI18n();
   return (
     <Pressable
@@ -32,15 +35,18 @@ function AirportRow({ label, placeholder, icon, value, onPress, testID, onHeight
       style={({ pressed }) => [styles.airportRow, pressed && { backgroundColor: colors.inset }]}
     >
       <Icon name={icon} size={20} color={colors.textSecondary} />
-      {/* Lange bynavn og stor tekst bryter linjen i stedet for å kuttes. */}
-      {value ? (
-        <Text style={[type.bodyStrong, styles.airportText, { color: colors.text }]}>
-          {value.city}
-          <Text style={[type.body, { color: colors.textSecondary }]}>{`  (${value.iata})`}</Text>
-        </Text>
-      ) : (
-        <Text style={[type.body, styles.airportText, { color: colors.textSecondary }]}>{placeholder}</Text>
-      )}
+      {/* Ny nøkkel for hvert bytte: verdien tegnes på sin nye rad og starter der den sto, i samme bilde – ingen hopp. */}
+      <Animated.View key={motion?.key ?? 0} style={[styles.airportValue, motion?.style]} testID={`route-value-${testID}`}>
+        {/* Lange bynavn og stor tekst bryter linjen i stedet for å kuttes. */}
+        {value ? (
+          <Text style={[type.bodyStrong, styles.airportText, { color: colors.text }]}>
+            {value.city}
+            <Text style={[type.body, { color: colors.textSecondary }]}>{`  (${value.iata})`}</Text>
+          </Text>
+        ) : (
+          <Text style={[type.body, styles.airportText, { color: colors.textSecondary }]}>{placeholder}</Text>
+        )}
+      </Animated.View>
     </Pressable>
   );
 }
@@ -96,11 +102,15 @@ function PanelChip({ label, onPress, testID, accessibilityLabel, accessibilityHi
 }
 
 /**
- * Søkeskjemaet i forsidens grafittøy: reisetype som tekstfaner, fra og til under hverandre i ett hvitt felt med
- * bytt-knappen på skillelinjen, avreise ▸ retur i ett felt, reisende og klasse som brikker, og én blå knapp. Alt leses
- * fra og skrives til appens søkeskjema.
+ * Søkeskjemaet i en grafittøy – på forsiden, og i ruteoverskriften på resultatsiden når kunden åpner søket der:
+ * reisetype som tekstfaner, fra og til under hverandre i ett hvitt felt med bytt-knappen på skillelinjen, avreise ▸
+ * retur i ett felt, reisende og klasse som brikker, og én blå knapp. Alt leses fra og skrives til appens søkeskjema.
+ *
+ * `onSearched`: skjemaet står allerede på resultatsiden. Et gyldig søk kjøres da der, og `onSearched` kalles i stedet
+ * for å legge en ny resultatside oppå (tilbake skal gå til forsiden, ikke til forrige søk). En feil i skjemaet vises i
+ * panelet, som på forsiden, og `onSearched` kalles ikke.
  */
-export function SearchPanel() {
+export function SearchPanel({ onSearched }: { onSearched?: () => void }) {
   const router = useRouter();
   const { form, setForm, runSearch } = useApp();
   const i18n = useI18n();
@@ -111,23 +121,49 @@ export function SearchPanel() {
   const [travellersOpen, setTravellersOpen] = useState(false);
   // Kalenderen: én for begge datoene; åpnet på avreise eller retur, etter hvilken rute kunden trykket på.
   const [calendar, setCalendar] = useState<PickMode | null>(null);
-  // Fra-radens høyde: bytt-knappen står midt på skillelinjen under den, også når en rad brytes (stor tekst).
+  // Radenes høyde: bytt-knappen står midt på skillelinjen under fra-raden, også når en rad brytes (stor tekst), og
+  // verdiene i et bytte glir akkurat den avstanden.
   const [originHeight, setOriginHeight] = useState(56);
+  const [destinationHeight, setDestinationHeight] = useState(56);
 
   const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
 
-  // Bytt fra og til: pilene snur en halv runde (ikke med «Reduser bevegelse»), og VoiceOver hører den nye ruten.
+  // Bytt fra og til: pilene snur en halv runde, og de to verdiene bytter plass synlig – fra-teksten glir ned til
+  // til-raden og til-teksten opp til fra-raden. Skjemaet byttes med én gang (et raskt «Søk fly» søker alltid den nye
+  // ruten); bare tegningen starter der verdiene sto. Med «Reduser bevegelse»: ingen snuing og ingen glidning, bare
+  // byttet. VoiceOver hører den nye ruten uansett.
+  // Haptikk: et lett «tikk» (expo-haptics, selectionAsync) hører hjemme her, men pakken er ikke installert i appen.
   const reduced = useReducedMotion();
   const [spin] = useState(() => new Animated.Value(0));
   const turns = useRef(0);
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"], extrapolate: "extend" });
+  // Ett bytte: 1 = verdiene står der de var før byttet, 0 = på plass. Avstanden måles når kunden trykker, så en
+  // rad som endrer høyde under glidningen (ny tekst brytes annerledes) ikke flytter målet midt i bevegelsen.
+  const [exchange, setExchange] = useState<{ key: number; progress: Animated.Value; distance: number } | null>(null);
+  const rowMotion = useMemo(() => {
+    if (!exchange) return null;
+    const { key, progress, distance } = exchange;
+    // Litt nedtonet der de to krysser hverandre på skillelinjen, så de ikke blir én uleselig klump.
+    const opacity = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0.55, 1] });
+    const from = (dy: number): RowMotion => ({ key, style: { opacity, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, dy] }) }] } });
+    // Ny fra-verdi kom fra til-raden (under), ny til-verdi fra fra-raden (over).
+    return { origin: from(distance), destination: from(-distance) };
+  }, [exchange]);
+  useEffect(() => {
+    if (!exchange) return;
+    const anim = Animated.timing(exchange.progress, { toValue: 0, duration: MOTION_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+    anim.start();
+    return () => anim.stop();
+  }, [exchange]);
   const swap = () => {
     const from = form.destination;
     const to = form.origin;
     setForm((f) => ({ ...f, origin: f.destination, destination: f.origin }));
     if (!reduced) {
       turns.current += 1;
-      Animated.timing(spin, { toValue: turns.current, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      Animated.timing(spin, { toValue: turns.current, duration: MOTION_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      // Fra midten av den ene teksten til midten av den andre: halve radene og skillelinjen mellom dem.
+      setExchange({ key: turns.current, progress: new Animated.Value(1), distance: originHeight / 2 + StyleSheet.hairlineWidth + destinationHeight / 2 });
     }
     AccessibilityInfo.announceForAccessibility(h.swapped(from?.city ?? h.notChosen, to?.city ?? h.notChosen));
   };
@@ -135,7 +171,9 @@ export function SearchPanel() {
   const submit = () => {
     const err = runSearch();
     setProblem(err ? { code: err, form } : null);
-    if (!err) router.push("/resultater");
+    if (err) return;
+    if (onSearched) onSearched();
+    else router.push("/resultater");
   };
 
   const dayParts = (iso: string) => {
@@ -162,9 +200,27 @@ export function SearchPanel() {
 
       {/* Fra og til under hverandre i ett hvitt felt, som de store søketjenestene; bytt-knappen står på skillelinjen. */}
       <View style={styles.routeCard}>
-        <AirportRow testID="origin" label={h.from} placeholder={h.fromPlaceholder} icon="takeoff" value={form.origin} onHeight={setOriginHeight} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "fra" } })} />
+        <AirportRow
+          testID="origin"
+          label={h.from}
+          placeholder={h.fromPlaceholder}
+          icon="takeoff"
+          value={form.origin}
+          onHeight={setOriginHeight}
+          motion={rowMotion?.origin}
+          onPress={() => router.push({ pathname: "/flyplass", params: { felt: "fra" } })}
+        />
         <View style={styles.routeDivider} />
-        <AirportRow testID="destination" label={h.to} placeholder={h.toPlaceholder} icon="landing" value={form.destination} onPress={() => router.push({ pathname: "/flyplass", params: { felt: "til" } })} />
+        <AirportRow
+          testID="destination"
+          label={h.to}
+          placeholder={h.toPlaceholder}
+          icon="landing"
+          value={form.destination}
+          onHeight={setDestinationHeight}
+          motion={rowMotion?.destination}
+          onPress={() => router.push({ pathname: "/flyplass", params: { felt: "til" } })}
+        />
         <Pressable onPress={swap} accessibilityRole="button" accessibilityLabel={h.swap} style={({ pressed }) => [styles.swap, { top: originHeight - TOUCH / 2 }, pressed && { backgroundColor: colors.inset }]} testID="swap">
           <Animated.View style={{ transform: [{ rotate }] }} testID="swap-icon">
             <Icon name="swap" size={20} color={colors.text} />
@@ -258,6 +314,8 @@ const styles = StyleSheet.create({
   routeCard: { borderRadius: radius.input, backgroundColor: colors.white, overflow: "hidden" },
   // Plass til høyre for bytt-knappen; minHeight, så stor tekst gjør raden høyere i stedet for å kutte.
   airportRow: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: space.md, paddingLeft: space.lg, paddingRight: 64, paddingVertical: space.sm },
+  // Verdien (teksten) i raden: kan krympe og bryte linjen; det er den som glir i et bytte.
+  airportValue: { flexShrink: 1 },
   airportText: { flexShrink: 1 },
   // Streken starter under teksten, ikke under ikonet.
   routeDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.lightBorder, marginLeft: space.lg + 20 + space.md },

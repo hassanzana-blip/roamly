@@ -103,7 +103,9 @@ describe("Resultater: ruteoverskriften er en grafittøy, listen står på den ly
     expect(StyleSheet.flatten(header.props.style).marginHorizontal).toBeUndefined();
     const inside = within(header);
     expect(inside.getByRole("header")).toHaveTextContent("Oslo → Barcelona");
-    expect(inside.getByTestId("header-edit")).toHaveTextContent(/1 voksen/);
+    expect(inside.getByTestId("header-route")).toHaveTextContent("Oslo → Barcelona");
+    expect(inside.getByTestId("header-dates")).toHaveTextContent("23.–30. okt.");
+    expect(inside.getByTestId("header-travellers")).toHaveTextContent("1 voksen · Økonomi");
     expect(inside.getByTestId("header-back")).toBeOnTheScreen();
     expect(inside.getByTestId("edit-search")).toBeOnTheScreen();
     expect(inside.getByTestId("price-status")).toHaveTextContent(/^Ekte priser · sjekket kl\. \d\d:\d\d$/);

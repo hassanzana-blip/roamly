@@ -1,5 +1,19 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from "react";
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Animated,
+  Easing,
+  FlatList,
+  Pressable as RNPressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text as RNText,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -8,12 +22,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { MobileOffer } from "@contracts/mobileSearch";
 import { shownAnswer, useApp } from "../lib/appState";
 import { fxNotice, priceDisplay } from "../lib/price";
-import { formatClock } from "../lib/format";
+import { formatClock, keepDatesTogether } from "../lib/format";
 import { ApiError } from "../lib/api";
 import { errorText } from "../lib/errorText";
 import { exclusionSummary, pricesStale, providerDisplayName, resultKind, totalConfirmed } from "../lib/resultStatus";
 import { useA11yLanguage, useI18n } from "../i18n";
-import { cabinLabel, passengerSummary } from "../lib/searchForm";
+import type { FormErrorCode } from "../i18n/ns/search";
+import { cabinLabel, formErrorText, passengerSummary, type SearchForm } from "../lib/searchForm";
+import { nightsBetween } from "../lib/calendar";
+import { animateNextLayout, MOTION_MS, reducedMotionNow, useReducedMotion } from "../lib/motion";
 import {
   activeFilterCount,
   airlineOptions,
@@ -38,9 +55,11 @@ import {
 } from "../lib/resultsView";
 import { activeFilterChips } from "../lib/filterChips";
 import { nearbyDates } from "../lib/nearbyDates";
-import { groupJourneys } from "../lib/journeys";
+import { groupJourneys, type Journey } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
 import { DateRangeSheet } from "../components/RangeCalendar";
+import { TravellersSheet } from "../components/TravellersSheet";
+import { SearchPanel } from "../components/SearchPanel";
 import { SortTabs, type SortTab } from "../components/SortTabs";
 import { ResultsSkeleton } from "../components/ResultsSkeleton";
 import { Banner, BottomSheet, Chip, DemoBadge, IconButton, PrimaryButton, SecondaryButton, Segmented, StateView, type NoticeItem } from "../components/ui";
@@ -70,6 +89,21 @@ function ToolButton({ icon, label, onPress, badge, testID, primary }: { icon: Ic
         ) : null}
       </View>
       <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/**
+ * Datoene eller de reisende i ruteoverskriften: en lys brikke på grafitt (som brikkene i søkeøya på forsiden), selv
+ * 44 pt høy. Et trykk åpner arket som endrer akkurat det. Synlig: kort («23.–30. okt.»); VoiceOver hører hele datoene
+ * eller hele teksten, og hva et trykk gjør. Teksten brytes heller enn å kuttes (stor tekst).
+ */
+function SummaryChip({ icon, label, spoken, hint, onPress, testID }: { icon: IconName; label: string; spoken: string; hint: string; onPress: () => void; testID: string }) {
+  return (
+    <Pressable testID={testID} onPress={onPress} accessibilityRole="button" accessibilityLabel={spoken} accessibilityHint={hint} style={({ pressed }) => [styles.summaryChip, pressed && { opacity: 0.7 }]}>
+      <Icon name={icon} size={15} color={colors.onDarkMuted} />
+      <Text style={[type.footnoteStrong, styles.summaryText]}>{label}</Text>
+      <Icon name="chevronDown" size={14} color={colors.onDarkMuted} />
     </Pressable>
   );
 }
@@ -370,8 +404,7 @@ export default function ResultsScreen() {
   const { t, f } = i18n;
   const r = t.results.screen;
   const reiser = t.results.journeys;
-  // «Endre søk» går alltid til søkeskjemaet på forsiden – også når søket startet fra Utforsk.
-  const editSearch = () => router.navigate("/");
+  const reduced = useReducedMotion();
   // Stabil, så kortene (memo) ikke tegnes på nytt ved hver endring i listen.
   const openOffer = useCallback((id: string) => router.push({ pathname: "/tilbud/[id]", params: { id } }), [router]);
   const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
@@ -381,7 +414,96 @@ export default function ResultsScreen() {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
-  const [sheet, setSheet] = useState<null | "filter" | "sort" | "dates">(null);
+  const [sheet, setSheet] = useState<null | "filter" | "sort" | "dates" | "travellers">(null);
+  const listRef = useRef<FlatList<Journey>>(null);
+
+  // Ankomst etter et søk: ruten og brikkene tones inn og glir 8 pt på plass mens skjermen skyves inn, så søkeøya fra
+  // forsiden «blir» overskriften. Skyvingen mellom skjermene er iOS' egen og er urørt. Bare når vi vet at «Reduser
+  // bevegelse» er av – ellers (eller før iOS har svart) står alt på plass fra første bilde.
+  const [arrival] = useState(() => {
+    const moving = reducedMotionNow() === false;
+    return { moving, progress: new Animated.Value(moving ? 0 : 1) };
+  });
+  useEffect(() => {
+    if (!arrival.moving) return;
+    let active = true;
+    const anim = Animated.timing(arrival.progress, { toValue: 1, duration: MOTION_MS, delay: 80, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+    // Avbrutt mens skjermen står: rett på plass, aldri halvveis gjennomsiktig. (Når lastingen blir til en liste midt i
+    // ankomsten, bygges øya på nytt i samme tegning; React Native kobler da verdien over uten å stoppe animasjonen.)
+    anim.start(({ finished }) => {
+      if (!finished && active) arrival.progress.setValue(1);
+    });
+    return () => {
+      active = false;
+      anim.stop();
+    };
+  }, [arrival]);
+  const settle = useMemo(() => ({ opacity: arrival.progress, transform: [{ translateY: arrival.progress.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }), [arrival]);
+
+  // ─── Søket i toppen: kompakt (ruten og to brikker) eller åpent som hele søkeskjemaet ───────────────────────────
+  // «Endre søk» (ruten, søkeknappen, knappene i tomme tilstander) åpner søket der det står – ruteoverskriften vokser til
+  // den samme søkeøya som på forsiden, og krymper tilbake når kunden søker eller lukker. Ingen tur til forsiden.
+  const [editing, setEditing] = useState(false);
+  // Endringer herfra starter alltid fra søket som vises (overskriften) – ikke fra et skjema som er endret uten å søke –
+  // så «Søk fly» og «Søk på nytt» aldri tar med noe kunden ikke ser. Uten et søk (åpnet fra en lenke) er skjemaet det
+  // som vises.
+  const fromShown = () => {
+    if (search.status !== "idle") setForm(() => search.query);
+  };
+  // VoiceOver følger forvandlingen: til overskriften i skjemaet når det åpnes, tilbake til ruten når det lukkes.
+  const focusAfter = useRef<"editor" | "route" | null>(null);
+  const editorTitle = useRef<ComponentRef<typeof RNText>>(null);
+  const routeButton = useRef<ComponentRef<typeof RNPressable>>(null);
+  useEffect(() => {
+    const target = focusAfter.current;
+    if (!target) return;
+    focusAfter.current = null;
+    const node = target === "editor" ? editorTitle.current : routeButton.current;
+    if (node) AccessibilityInfo.sendAccessibilityEvent?.(node, "focus");
+  }, [editing]);
+  const openEditor = () => {
+    fromShown();
+    // Ruten og brikkene forsvinner nå; kommer de tilbake, skal de stå helt på plass – også om kunden var raskere enn
+    // ankomsten.
+    if (arrival.moving) arrival.progress.setValue(1);
+    // Øya vokser der den står; er listen rullet ned, går den først til toppen, så hele skjemaet synes.
+    listRef.current?.scrollToOffset({ offset: 0, animated: !reduced });
+    animateNextLayout(reduced);
+    focusAfter.current = "editor";
+    setEditing(true);
+  };
+  const collapse = () => {
+    animateNextLayout(reduced);
+    focusAfter.current = "route";
+    setEditing(false);
+  };
+  // «Lukk» uten å søke: skjemaet blir igjen søket som vises, og listen står som før.
+  const closeEditor = () => {
+    fromShown();
+    collapse();
+  };
+  // Et gyldig søk fra skjemaet i øya er allerede startet (SearchPanel); øya krymper til ruten og brikkene, som nå
+  // viser det nye søket, og listen under viser at det lastes – samme flyt som et søk fra forsiden.
+  const searched = collapse;
+
+  // Datoer og reisende rett fra brikkene (og «Datoer» i verktøylinjen): arket endrer skjemaet, og «Søk på nytt» søker
+  // med én gang. «Ferdig» lukker uten å søke. En feil i skjemaet (f.eks. en dato som har passert mens appen sto åpen)
+  // står i arket, over knappen, til skjemaet endres.
+  const [sheetProblem, setSheetProblem] = useState<{ code: FormErrorCode; form: SearchForm } | null>(null);
+  const quickEdit = (which: "dates" | "travellers") => {
+    fromShown();
+    setSheetProblem(null);
+    setSheet(which);
+  };
+  const searchFromSheet = () => {
+    const err = runSearch();
+    if (err) {
+      setSheetProblem({ code: err, form });
+      return;
+    }
+    setSheet(null);
+  };
+
   // Den flytende linjens faktiske høyde (stor tekst gjør den høyere), så det siste kortet kan rulles helt over den.
   const [toolbarHeight, setToolbarHeight] = useState(0);
   // Statuslinjen følger det som står under den: lys tekst over grafittøya øverst. Når øya har rullet ut under
@@ -469,14 +591,81 @@ export default function ResultsScreen() {
   // Overskriften beskriver søket som vises – ikke et skjema som er endret etterpå uten å søke.
   const q = search.status === "idle" ? form : search.query;
   const title = q.origin && q.destination ? `${q.origin.city} → ${q.destination.city}` : r.fallbackTitle;
-  const dates = q.tripType === "roundtrip" ? `${f.shortDay(q.departDate)} – ${f.shortDay(q.returnDate)}` : f.shortDay(q.departDate);
-  const subtitle = `${dates} · ${passengerSummary(q, i18n)} · ${cabinLabel(q.cabinClass, i18n)}`;
+  const routeSpoken = q.origin && q.destination ? r.header.routeSpoken(q.origin.city, q.destination.city) : r.fallbackTitle;
+  // Datoene: kort på brikken («23.–30. okt.»; én vei sier det), hele datoene og antall netter for VoiceOver.
+  const roundTrip = q.tripType === "roundtrip";
+  const span = keepDatesTogether(f.dateSpan(q.departDate, roundTrip ? q.returnDate : null));
+  const datesLabel = roundTrip ? span : r.header.datesOneWay(span);
+  const datesSummary = t.calendar.summarySpoken(f.longDay(q.departDate), roundTrip ? f.longDay(q.returnDate) : null, roundTrip ? t.calendar.nights(nightsBetween(q.departDate, q.returnDate)) : null);
+  const datesSpoken = roundTrip ? datesSummary : r.header.datesOneWaySpoken(datesSummary);
+  // Reisende og klasse (og «Direkte» når søket bare gjaldt direktefly); tallet og ordet holdes sammen («2 voksne»).
+  const travellersLabel = [passengerSummary(q, i18n).replace(/(\d) /g, "$1\u00A0"), cabinLabel(q.cabinClass, i18n), ...(q.directOnly ? [r.chips.direct] : [])].join(" · ");
+  const travellersSpoken = r.header.travellersSpoken([passengerSummary(q, i18n), cabinLabel(q.cabinClass, i18n), ...(q.directOnly ? [r.header.directOnlySpoken] : [])].join(", "));
   const kind = answer ? resultKind(answer.result) : null;
   const demo = kind === "demo" || kind === "sandbox";
 
+  // Kompakt: tilbake, ruten (en knapp som åpner søket her; teksten er skjermens overskrift) og søkeknappen, og under
+  // dem datoene og de reisende som brikker. «DEMO» står ved ruten, som eget element for VoiceOver. Ingen linjegrense:
+  // stor tekst og lange bynavn brytes i stedet for å kuttes.
+  const compact = (
+    <>
+      <View style={styles.headerRow}>
+        <IconButton icon="chevronLeft" label={r.back} variant="plain" onPress={() => router.back()} testID="header-back" />
+        <Animated.View style={[styles.routeWrap, settle]}>
+          {/* iOS gir ett element én rolle: for VoiceOver er ruten knappen «Endre søk: Oslo til Barcelona». Teksten inni
+              er skjermens overskrift i treet; «Endre søk» til høyre gjør det samme. */}
+          <RNPressable
+            ref={routeButton}
+            testID="header-route"
+            onPress={openEditor}
+            accessibilityRole="button"
+            accessibilityLabel={r.header.routeLabel(routeSpoken)}
+            accessibilityHint={r.header.editHint}
+            accessibilityLanguage={lang}
+            style={({ pressed }) => [styles.route, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={[type.headline, styles.title]} accessibilityRole="header">
+              {title}
+            </Text>
+            <Icon name="chevronDown" size={16} color={colors.onDarkMuted} />
+          </RNPressable>
+          {/* Merket er laget for å stå øverst i en kolonne (alignSelf: flex-start); her står det midt på linjen med ruten. */}
+          {demo ? (
+            <View style={styles.demoWrap}>
+              <DemoBadge />
+            </View>
+          ) : null}
+        </Animated.View>
+        <IconButton icon="search" label={r.editSearch} onPress={openEditor} testID="edit-search" />
+      </View>
+      <Animated.View style={[styles.summary, settle]} testID="header-summary">
+        <SummaryChip testID="header-dates" icon="calendar" label={datesLabel} spoken={datesSpoken} hint={r.header.datesHint} onPress={() => quickEdit("dates")} />
+        <SummaryChip testID="header-travellers" icon="user" label={travellersLabel} spoken={travellersSpoken} hint={r.header.travellersHint} onPress={() => quickEdit("travellers")} />
+      </Animated.View>
+    </>
+  );
+
+  // Åpent: hele søkeskjemaet fra forsiden i den samme øya, med «Lukk» øverst til høyre. Et søk kjøres her (ingen ny
+  // resultatside oppå), og en feil i skjemaet står i panelet. Flyplassradene åpner flyplassøket, som kommer tilbake hit
+  // med skjemaet endret – øya står åpen imens. VoiceOvers «tilbake»-gest (to fingre, Z) lukker som «Lukk».
+  const editor = (
+    <View style={styles.editor} testID="results-header-editor" onAccessibilityEscape={closeEditor}>
+      <View style={styles.editorHead}>
+        <RNText ref={editorTitle} style={[type.headline, styles.editorTitle]} accessibilityRole="header" accessibilityLanguage={lang}>
+          {r.editSearch}
+        </RNText>
+        <Pressable testID="header-editor-close" onPress={closeEditor} accessibilityRole="button" accessibilityLabel={r.header.close} accessibilityHint={r.header.closeHint} style={({ pressed }) => [styles.editorClose, pressed && { opacity: 0.7 }]}>
+          <Text style={[type.bodyStrong, { color: colors.blueOnDark }]}>{r.header.close}</Text>
+        </Pressable>
+      </View>
+      <SearchPanel onSearched={searched} />
+    </View>
+  );
+
   // Ruteoverskriften («Cloud + Graphite»): en grafittøy helt ut til kantene og opp under statuslinjen, med runde
-  // hjørner nederst. Tilbake, ruten med datoer og reisende (et trykk åpner søkeskjemaet) og søkeknappen; med et svar
-  // også prisstatusen og fanene Best / Billigst / Raskest (`extra`). Alt under øya står på den lyse grunnen.
+  // hjørner nederst – kompakt eller åpen. Kompakt med et svar står også prisstatusen og fanene Best / Billigst /
+  // Raskest (`extra`) i den. Øya klipper innholdet, så skjemaet avdekkes mens den vokser og dekkes mens den krymper.
+  // Alt under øya står på den lyse grunnen.
   const headerIsland = (extra?: ReactNode) => (
     <View
       style={[styles.header, { paddingTop: insets.top + space.sm }]}
@@ -485,31 +674,58 @@ export default function ResultsScreen() {
         headerHeight.current = e.nativeEvent.layout.height;
       }}
     >
-      <View style={styles.headerRow}>
-        <IconButton icon="chevronLeft" label={r.back} variant="plain" onPress={() => router.back()} testID="header-back" />
-        {/* Et trykk på søket åpner søkeskjemaet, som søkeknappen til høyre. For VoiceOver er det knappen som gjør det;
-            overskriften forblir en overskrift. Ingen linjegrense: stor tekst og lange bynavn brytes i stedet for å kuttes. */}
-        <Pressable style={({ pressed }) => [styles.headerText, pressed && { opacity: 0.7 }]} onPress={editSearch} accessible={false} testID="header-edit">
-          <View style={styles.titleRow}>
-            <Text style={[type.headline, styles.title]} accessibilityRole="header">
-              {title}
-            </Text>
-            {demo ? <DemoBadge /> : null}
-          </View>
-          <Text style={[type.caption, styles.subtitle]}>{subtitle}</Text>
-        </Pressable>
-        <IconButton icon="search" label={r.editSearch} onPress={editSearch} testID="edit-search" />
-      </View>
-      {extra}
+      {editing ? editor : compact}
+      {editing ? null : extra}
     </View>
   );
 
-  // Uten liste står øya fast øverst, og ingenting ruller inn under statuslinjen: lys tekst, ingen skjerm.
+  // En feil i skjemaet fra et av arkene under, over «Søk på nytt» (hvit flate: lys melding).
+  const sheetError =
+    sheetProblem && sheetProblem.form === form ? (
+      <Banner tone="error" testID="sheet-error">
+        {formErrorText(sheetProblem.code, i18n)}
+      </Banner>
+    ) : null;
+  // Datoer og reisende kan endres i alle tilstandene (også mens et søk lastes eller etter en feil), så arkene står her.
+  const quickSheets = (
+    <>
+      <DateRangeSheet
+        testID="dates-sheet"
+        visible={sheet === "dates"}
+        roundTrip={form.tripType === "roundtrip"}
+        dates={{ departDate: form.departDate, returnDate: form.returnDate }}
+        onChange={onDates}
+        onClose={() => setSheet(null)}
+        footer={
+          <View style={{ gap: space.sm }}>
+            {sheetError}
+            <PrimaryButton testID="dates-search" label={r.searchAgain} icon="search" onPress={searchFromSheet} />
+          </View>
+        }
+      />
+      <TravellersSheet
+        visible={sheet === "travellers"}
+        onClose={() => setSheet(null)}
+        footer={
+          <View style={{ gap: space.sm }}>
+            {sheetError}
+            <PrimaryButton testID="travellers-search" label={r.searchAgain} icon="search" onPress={searchFromSheet} />
+          </View>
+        }
+      />
+    </>
+  );
+
+  // Uten liste står øya fast øverst, og ingenting ruller inn under statuslinjen: lys tekst, ingen skjerm. Innholdet
+  // kan likevel rulles når søket står åpent i øya og ikke får plass (liten skjerm, stor tekst), så «Søk fly» alltid nås.
   const shell = (children: ReactNode) => (
     <View style={styles.screen} testID="results-screen">
       <StatusBar style="light" />
-      {headerIsland()}
-      {children}
+      <ScrollView style={styles.fill} contentContainerStyle={styles.shellContent} alwaysBounceVertical={false} testID="results-shell">
+        {headerIsland()}
+        {children}
+      </ScrollView>
+      {quickSheets}
     </View>
   );
 
@@ -548,14 +764,15 @@ export default function ResultsScreen() {
     return shell(
       <View style={styles.errorBox} testID="results-error">
         <Banner tone="error">{errorText(search.error, i18n)}</Banner>
-        {/* «Prøv igjen» bare når et nytt forsøk kan hjelpe; ellers er «Endre søk» hovedvalget. */}
+        {/* «Prøv igjen» bare når et nytt forsøk kan hjelpe; ellers er «Endre søk» hovedvalget. «Endre søk» åpner søket
+            i øya rett over, som ruten og søkeknappen. */}
         {canRetry(search.error) ? (
           <>
             <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch()} testID="retry-search" />
-            <SecondaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+            <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
           </>
         ) : (
-          <PrimaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+          <PrimaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
         )}
       </View>,
     );
@@ -721,6 +938,7 @@ export default function ResultsScreen() {
           lyse grunnen åpner seg over den, og iOS' spinner står på grafitt. Lenger ned er grunnen lys. */}
       <View style={styles.backdrop} pointerEvents="none" />
       <FlatList
+        ref={listRef}
         testID="results-list"
         style={styles.list}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + space.sm + (toolbarHeight || 60) + space.lg }]}
@@ -751,12 +969,12 @@ export default function ResultsScreen() {
           ) : excluded ? (
             <StateView icon="plane" title={r.status.excludedEmptyTitle} body={r.status.excludedEmptyBody(excluded.count, excluded.why)} testID="results-excluded-empty" dark={false}>
               {nearbyRow}
-              <SecondaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+              <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
             </StateView>
           ) : (
             <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody} testID="results-none" dark={false}>
               {nearbyRow}
-              <SecondaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+              <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
             </StateView>
           )
         }
@@ -768,14 +986,15 @@ export default function ResultsScreen() {
         )}
       />
 
-      {all.length ? (
+      {/* Mens søket står åpent i øya, er verktøylinjen borte: den gjelder listen, og skjemaet har sine egne datoer. */}
+      {all.length && !editing ? (
         <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
           <View style={styles.toolbar} onLayout={(e) => setToolbarHeight(e.nativeEvent.layout.height)} testID="results-toolbar">
             <ToolButton icon="filter" label={r.filter} primary badge={filters} onPress={() => setSheet("filter")} testID="open-filters" />
             <View style={styles.toolDivider} />
             <ToolButton icon="swap" label={r.sort} onPress={() => setSheet("sort")} testID="open-sort-toolbar" />
             <View style={styles.toolDivider} />
-            <ToolButton icon="calendar" label={r.dates} onPress={() => setSheet("dates")} testID="open-dates" />
+            <ToolButton icon="calendar" label={r.dates} onPress={() => quickEdit("dates")} testID="open-dates" />
           </View>
         </View>
       ) : null}
@@ -816,25 +1035,7 @@ export default function ResultsScreen() {
         </View>
       </BottomSheet>
 
-      <DateRangeSheet
-        testID="dates-sheet"
-        visible={sheet === "dates"}
-        roundTrip={form.tripType === "roundtrip"}
-        dates={{ departDate: form.departDate, returnDate: form.returnDate }}
-        onChange={onDates}
-        onClose={() => setSheet(null)}
-        footer={
-          <PrimaryButton
-            testID="dates-search"
-            label={r.searchAgain}
-            icon="search"
-            onPress={() => {
-              setSheet(null);
-              runSearch();
-            }}
-          />
-        }
-      />
+      {quickSheets}
 
       {/* Når øya har rullet ut under statuslinjen: en lys skjerm bak klokken (mørk tekst), som på forsiden. */}
       <StatusBarShield visible={pastHeader} tone="light" />
@@ -845,14 +1046,30 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   // «Cloud + Graphite»: lys grunn bak brikker, meldinger og de hvite kortene.
   screen: { flex: 1, backgroundColor: colors.canvas },
-  // Ruteoverskriften: grafittøy helt ut til kantene og opp under statuslinjen, med runde hjørner nederst.
-  header: { backgroundColor: colors.raised, borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, paddingBottom: space.md, gap: space.sm },
+  // Ruteoverskriften: grafittøy helt ut til kantene og opp under statuslinjen, med runde hjørner nederst. Den klipper
+  // innholdet, så søkeskjemaet avdekkes mens øya vokser og dekkes mens den krymper (ingen flate utenfor øya).
+  header: { backgroundColor: colors.raised, borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, paddingBottom: space.md, gap: space.sm, overflow: "hidden" },
   headerRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md },
-  headerText: { flex: 1, alignItems: "center", gap: 2, minHeight: TOUCH, justifyContent: "center" },
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, maxWidth: "100%" },
+  // Ruten (og «DEMO») midt mellom tilbake og søkeknappen; ruten er selv minst 44 pt høy.
+  routeWrap: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm },
+  demoWrap: { alignSelf: "center" },
+  route: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, minHeight: TOUCH, flexShrink: 1, paddingHorizontal: space.xs },
   // På øya (`raised`): onDark 16,4:1, onDarkMuted 8,4:1. Midtstilt også når teksten brytes over flere linjer.
   title: { color: colors.onDark, flexShrink: 1, textAlign: "center" },
-  subtitle: { color: colors.onDarkMuted, textAlign: "center" },
+  // Datoer og reisende under ruten: midtstilt, og under hverandre når de ikke får plass side om side (stor tekst).
+  summary: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: space.sm, paddingHorizontal: space.lg },
+  // Som brikkene i søkeøya på forsiden: `bg` med mørk kant, lys tekst (onDark på `bg` 18,4:1) – og selv 44 pt høy.
+  summaryChip: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH, maxWidth: "100%", paddingHorizontal: space.md, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, backgroundColor: colors.bg },
+  summaryText: { color: colors.onDark, flexShrink: 1 },
+  // Søket åpent i øya: samme luft som søkeøya på forsiden.
+  editor: { paddingHorizontal: space.lg, gap: space.md },
+  editorHead: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: TOUCH },
+  editorTitle: { color: colors.onDark, flex: 1 },
+  // «Lukk» er en lenke på grafitt (blueOnDark 5,4:1), selv minst 44 × 44 pt.
+  editorClose: { minHeight: TOUCH, minWidth: TOUCH, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xs },
+  fill: { flex: 1 },
+  // Innholdet uten liste fyller skjermen (lasting og feil under øya), men kan bli høyere enn den.
+  shellContent: { flexGrow: 1 },
   // Grafitt bak listens øvre del (synlig bare når listen dras ned forbi toppen); lenger ned er skjermen lys.
   backdrop: { position: "absolute", top: 0, left: 0, right: 0, height: "50%", backgroundColor: colors.raised },
   list: { flex: 1 },

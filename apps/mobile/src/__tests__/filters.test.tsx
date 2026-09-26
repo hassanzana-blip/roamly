@@ -79,15 +79,27 @@ describe("sortering", () => {
     expect(screen.getByText("Laveste pris først")).toBeOnTheScreen();
   });
 
-  it("«Sorter»: fem valg, «Best» forklart åpent; tidligst avgang velges der, og da er ingen fane valgt", async () => {
+  it("«Sorter»: seks valg, «Best» forklart åpent; tidligst avgang velges der, og da er ingen fane valgt", async () => {
     await renderResults(withDirect());
     await fireEvent.press(screen.getByTestId("open-sort-toolbar"));
-    for (const key of ["best", "price", "duration", "departure", "stops"]) expect(screen.getByTestId(`sort-${key}`)).toBeOnTheScreen();
+    const options = screen.getAllByTestId(/^sort-(best|price|duration|departure|latest|stops)$/).map((el) => el.props.testID as string);
+    expect(options).toEqual(["sort-best", "sort-price", "sort-duration", "sort-departure", "sort-latest", "sort-stops"]);
     expect(screen.getByTestId("best-explained")).toHaveTextContent(/pris.*reisetid.*mellomlandinger.*Ingen betaler for plassering\./);
     await fireEvent.press(screen.getByTestId("sort-departure"));
     // Alle testreisene går 07:05 unntatt direkteruten (14:20); lik tid avgjøres av prisen, uten kronepris sist.
     expect(cardIds()).toEqual(["offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-direct_1", "offer-thb_1"]);
     expect(screen.getByTestId("sort-summary")).toHaveTextContent("Tidligste avgang på utreisen først");
+    for (const key of ["best", "price", "duration"]) expect(screen.getByTestId(`sort-tab-${key}`).props.accessibilityState?.selected).toBe(false);
+  });
+
+  it("«Senest avgang» rett etter «Tidligst avgang»: den seneste utreisen først, lik tid i prisrekkefølge, uten kronepris sist", async () => {
+    await renderResults(withDirect());
+    await fireEvent.press(screen.getByTestId("open-sort-toolbar"));
+    expect(screen.getByTestId("sort-latest")).toHaveProp("accessibilityLabel", "Senest avgang, Seneste avgang på utreisen først");
+    await fireEvent.press(screen.getByTestId("sort-latest"));
+    // Direkteruten går 14:20, resten 07:05 (serverens rekkefølge står ved lik tid); THB uten kronepris står nederst.
+    expect(cardIds()).toEqual(["offer-direct_1", "offer-sek_1", "offer-hs_eur", "offer-nok_1", "offer-unsafe_1", "offer-thb_1"]);
+    expect(screen.getByTestId("sort-summary")).toHaveTextContent("Seneste avgang på utreisen først");
     for (const key of ["best", "price", "duration"]) expect(screen.getByTestId(`sort-tab-${key}`).props.accessibilityState?.selected).toBe(false);
   });
 
@@ -293,12 +305,14 @@ describe("mellomlanding, ankomsttid og aktive filtre", () => {
 });
 
 describe("endre søket", () => {
-  it("«Endre søk» går til søkeskjemaet på forsiden, også når søket startet fra Utforsk", async () => {
-    const router = (globalThis as unknown as { __router: { navigate: jest.Mock; back: jest.Mock } }).__router;
+  it("«Endre søk» åpner søket i øya der det står – ingen tur til forsiden eller tilbake, uansett hvor søket startet", async () => {
+    const router = (globalThis as unknown as { __router: { navigate: jest.Mock; back: jest.Mock; push: jest.Mock } }).__router;
     await renderResults(SEARCH_RESULT);
     await fireEvent.press(screen.getByTestId("edit-search"));
-    expect(router.navigate).toHaveBeenCalledWith("/");
+    expect(within(screen.getByTestId("results-header")).getByTestId("results-header-editor")).toBeOnTheScreen();
+    expect(router.navigate).not.toHaveBeenCalled();
     expect(router.back).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
   });
 });
 

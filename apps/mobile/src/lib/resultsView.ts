@@ -15,6 +15,10 @@ import { groupJourneys, itinerarySignature, type Journey } from "./journeys";
  * Tilbud uten pris i kroner står alltid nederst, uansett sortering, så
  * merknaden «står nederst» over listen alltid stemmer.
  *
+ * Tidligst og senest avgang er utreisens avgang (lokal tid, slik leverandøren
+ * oppga den), den ene veien og den andre; en tid som ikke kan leses, står sist
+ * i begge.
+ *
  * «Best» er nettets egen avveining (src/lib/offers.ts, «Best totalt»): pris og
  * samlet reisetid sett mot det billigste og raskeste i svaret, flest bytter på
  * én strekning, et straffepoeng for bytter over 5 timer og et lite dytt mot
@@ -22,7 +26,7 @@ import { groupJourneys, itinerarySignature, type Journey } from "./journeys";
  * kunden. Ingen betalt plassering og ingen skjult faktor.
  */
 
-export type SortKey = "best" | "price" | "duration" | "departure" | "stops";
+export type SortKey = "best" | "price" | "duration" | "departure" | "latest" | "stops";
 export type StopsFilter = "any" | "direct" | "max1";
 export type TimeBand = "night" | "morning" | "afternoon" | "evening";
 
@@ -70,8 +74,8 @@ export function clearedFilters(v: ResultsView): ResultsView {
   return { ...DEFAULT_VIEW, sort: v.sort };
 }
 
-/** Rekkefølgen valgene vises i; tekstene står i ordboken (t.results). */
-export const SORTS: readonly SortKey[] = ["best", "price", "duration", "departure", "stops"];
+/** Rekkefølgen valgene vises i; tekstene står i ordboken (t.results). Senest avgang står rett etter tidligst. */
+export const SORTS: readonly SortKey[] = ["best", "price", "duration", "departure", "latest", "stops"];
 
 /** Fanene over listen: de tre avveiningene kunden oftest veksler mellom. De to andre står i «Sorter». */
 export const SORT_TABS: readonly SortKey[] = ["best", "price", "duration"];
@@ -290,6 +294,11 @@ export function applyView(offers: MobileOffer[], v: ResultsView): MobileOffer[] 
     if (v.sort === "best") return bestScore(o, ctx!);
     if (v.sort === "duration") return totalDuration(o) ?? Number.POSITIVE_INFINITY;
     if (v.sort === "departure") return departureKey(o) ?? Number.POSITIVE_INFINITY;
+    if (v.sort === "latest") {
+      // Samme klokkeslett, snudd: den seneste avgangen først. En uleselig tid står fortsatt sist.
+      const at = departureKey(o);
+      return at === null ? Number.POSITIVE_INFINITY : -at;
+    }
     return totalStops(o);
   };
   const keys = new Map(kept.map(({ o }) => [o, key(o)]));
