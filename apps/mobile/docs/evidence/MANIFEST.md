@@ -1940,3 +1940,83 @@ the divider, «Din profil»), `savedLibrary.test.tsx` (exact distances, «tabbar
 Typecheck and lint clean. iOS bundle 4 949 335 bytes. Bundle check OK.
 
 **Not verified:** a real iPhone (the keyboard over the sheets, VoiceOver's reading of the tab bar).
+
+## Cloud + Graphite: light canvas, graphite islands (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock. Prices
+are the mock's DEMO data; the saved destinations and recent searches are fixtures in the preview's local storage.
+
+**Versions:** before is `b5c5172`, after is `af7ed8a` (the three stage commits `a264f54`, `82472a0` and `a6ed8db`;
+`af7ed8a` adds only the welcome on top). This section was written afterwards, with the Min side stage.
+
+**What changed (Ali's direction of 25.09: about 70 % light, 20 % graphite, 10 % blue)**
+- **Tokens:** a light canvas `#F3F4F6` and a soft surface `#F7F8FA` are new; white stays the card colour. Graphite
+  (`raised` `#191B1F`, `bg` `#0C0D0F`) is kept for the islands only. Blue `#0754F8` is kept for actions: 5.8:1 on
+  white and 5.3:1 on the canvas (the requested `#075BFF` would be 5.3:1 / 4.8:1).
+- **Home:** title and profile button on the canvas; the search is a graphite island with white fields and the blue
+  «Søk fly». Flights/Hotels is a compact two-part choice inside the island, shown only when the server says hotel
+  search is on. Recent searches and the no-account line sit under the island.
+- **Results:** the route header is a graphite island to the edges and up under the status bar (route, dates, price
+  status, Best / Billigst / Raskest); the list, chips and notices sit on the canvas. The status bar turns dark over
+  the canvas once the island has scrolled away.
+- **Details:** light sections, the photo summary as before, and a graphite price and action bar at the bottom.
+- **Explore, Saved and hotels:** light screens with white groups; the list/map choice is a light two-part choice.
+- **Kept graphite:** the tab bar capsule, the search island, route headers and the price bar.
+
+**Tests:** `flightScreensLook.test.tsx` (13: results header, list, chips, details bar), `exploreSavedHotelsLook.test.tsx`
+(18), `homeFirstView.test.tsx` (the island, the switch only with hotels on), `hotels.test.tsx`.
+
+**Checks at `af7ed8a`:** Jest 645 passed, 3 skipped. Typecheck and lint clean. (The iOS export was run again at the Min
+side stage; see there.)
+
+**Not verified:** a real iPhone (status bar colours over the islands, the shadow under the island).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `cg-before-390-home.jpg` | `59fb82c4f4f51840…` | 780×1798 |
+| `cg-after-390-home.jpg` | `da75752cb30fd004…` | 780×1832 |
+| `cg-before-390-results.jpg` | `1ad5124c69a7e147…` | 780×1826 |
+| `cg-after-390-results.jpg` | `c5e21e5b52212b99…` | 780×1860 |
+| `cg-before-390-details.jpg` | `cb31253688fed82a…` | 780×1826 |
+| `cg-after-390-details.jpg` | `a568ab57e9a24689…` | 780×1860 |
+| `cg-before-390-explore.jpg` | `37b6f65b9902f4fd…` | 780×1798 |
+| `cg-after-390-explore.jpg` | `f894ca267306cd41…` | 780×1798 |
+| `cg-before-390-saved.jpg` | `1598270e5cbae7cd…` | 780×1826 |
+| `cg-after-390-saved.jpg` | `3177164906f0d223…` | 780×1860 |
+
+## First-launch welcome with Apple, Google and e-mail (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web. The Apple and Google buttons are shown here only with the
+preview switch (`SOCIAL_PREVIEW=1` and the mock's `social=on`); in the preview a tap does not sign in.
+
+**Versions:** after is `af7ed8a`. Before, a new install opened straight on Home.
+
+**What changed**
+- **A welcome at first launch** (`WelcomeGate`), over the app until the guest skips or signs in: the HelloSky mark on a
+  graphite island, one sentence on what the app does, then «Fortsett med Apple», «Fortsett med Google», «Fortsett med
+  e-post», «Opprett konto» and «Hopp over». It is seen once (a flag on the phone); search never needs an account.
+- **Apple and Google appear only when they work:** the server must say the provider is set up (`mobileAuth.providers`)
+  and the build must support it. Apple uses the system button when the native module is linked (app.json now enables
+  Sign in with Apple). Google is a white pill waiting for Google's official logo asset. Production shows e-mail and
+  skip today.
+- **One sign-in sheet** (`SignInSheet`) shared by the welcome and Profile, with the same rules (page sheet, swipe to
+  close, password cleared on close).
+
+**Tests:** `welcome.test.tsx` (26: once only, skip, e-mail sheet, providers only when available, VoiceOver labels and
+language, large text), `profileList.test.tsx` (+1), corrected names in `clerkSocial.test.tsx` and `socialAuth.test.tsx`.
+
+**Checks at `af7ed8a`:** Jest 645 passed, 3 skipped. Typecheck and lint clean.
+
+**Not verified:** a real iPhone; Apple and Google sign-in end to end (needs Apple's capability, the Clerk setup and
+Google's logo asset from Ali).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `welcome-after-390-plain.jpg` | `4495fb1eb7ba1c19…` | 780×1832 |
+| `welcome-after-390-social.jpg` | `c28201fb5d481580…` | 780×1860 |
+| `welcome-after-375-social.jpg` | `f3f0b857351f45e7…` | 750×1762 |
+| `welcome-after-430-social.jpg` | `1c9e03a80e2d0c1d…` | 860×1974 |
+| `welcome-after-390-email-sheet.jpg` | `b7ed52ca5f0c7729…` | 780×1798 |
+| `welcome-after-390-large.jpg` | `14c5645b02f27876…` | 780×1798 |
+| `welcome-after-390-en.jpg` | `4c552578ae812516…` | 780×1798 |
+| `welcome-after-390-after-skip.jpg` | `5b8049574a6905da…` | 780×1832 |
