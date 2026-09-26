@@ -27,6 +27,7 @@ const en = {
   hiddenByFilters: (n: number) => `${n} hidden by filters`,
   providers: (n: number) => `${n} ${n === 1 ? "provider" : "providers"}`,
   card: {
+    avoided: (names: string) => `You'd rather avoid ${names}`,
     detailsHint: "Shows flight details",
     out: (day: string) => `Out · ${day}`,
     back: (day: string) => `Return · ${day}`,
@@ -123,6 +124,12 @@ const en = {
     /** Arkets knapp når ingenting er søkt ennå (skjermen er åpnet fra en lenke): det første søket, ikke «på nytt». */
     firstSearch: "Search",
     chips: { all: "All", direct: "Direct", max1: "Max 1 stop", bags: "Bags included" },
+    /** Reisepreferansene som ett valg: settes som vanlige filtre, synlige og ett og ett avtakbare. */
+    prefs: "My preferences",
+    prefsHint: "Sets your travel preferences as filters. You can remove them one by one.",
+    prefsNone: "None of these trips match your preferences.",
+    prefsApplied: (journeys: string) => `Your preferences are applied. ${journeys}.`,
+    prefsCleared: (journeys: string) => `Filters removed. ${journeys}.`,
     /** Aktive filtre fra arket, som brikker over listen; et trykk fjerner filteret. */
     active: {
       what: { departBands: "Outbound departure", arriveBands: "Outbound arrival", returnBands: "Return departure", returnArriveBands: "Return arrival", depart: "Departure", arrive: "Arrival" },
@@ -190,6 +197,7 @@ const nb: typeof en = {
   hiddenByFilters: (n) => `${n} skjult av filtre`,
   providers: (n) => `${n} ${n === 1 ? "tilbyder" : "tilbydere"}`,
   card: {
+    avoided: (names) => `Du vil helst unngå ${names}`,
     detailsHint: "Viser flydetaljer",
     out: (day) => `Ut · ${day}`,
     back: (day) => `Hjem · ${day}`,
@@ -278,6 +286,11 @@ const nb: typeof en = {
     searchAgain: "Søk på nytt",
     firstSearch: "Søk",
     chips: { all: "Alle", direct: "Direkte", max1: "Maks 1 mellomlanding", bags: "Bagasje inkludert" },
+    prefs: "Mine preferanser",
+    prefsHint: "Setter reisepreferansene dine som filtre. Du kan fjerne dem ett og ett.",
+    prefsNone: "Ingen av disse reisene passer preferansene dine.",
+    prefsApplied: (journeys) => `Preferansene dine er brukt. ${journeys}.`,
+    prefsCleared: (journeys) => `Filtrene er fjernet. ${journeys}.`,
     active: {
       what: { departBands: "Avgang ut", arriveBands: "Ankomst ut", returnBands: "Avgang hjem", returnArriveBands: "Ankomst hjem", depart: "Avgang", arrive: "Ankomst" },
       time: (what, bands) => `${what}: ${bands}`,

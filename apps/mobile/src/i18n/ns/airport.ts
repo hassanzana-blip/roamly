@@ -31,6 +31,9 @@ const en = {
   /** Åpnet fra Min side for å velge den vanlige avreiseflyplassen: valget er den, så bryteren over trengs ikke. */
   homeTitle: "Usual departure airport",
   homeQuestion: "Where do you usually fly from?",
+  altTitle: "Other airport",
+  altQuestion: "Which airport do you also fly from?",
+  altHint: "Saved in your travel preferences on this phone. Your search and usual departure airport stay as they are.",
 };
 
 const nb: typeof en = {
@@ -60,6 +63,9 @@ const nb: typeof en = {
   rowLabel: (city, name, country, iata) => `${city}, ${name}, ${country}, kode ${iata}`,
   homeTitle: "Vanlig avreiseflyplass",
   homeQuestion: "Hvor reiser du vanligvis fra?",
+  altTitle: "Annen flyplass",
+  altQuestion: "Hvilken flyplass reiser du også fra?",
+  altHint: "Lagres i reisepreferansene på denne telefonen. Søket og den vanlige avreiseflyplassen står som de er.",
 };
 
 export const airport = { en, nb };

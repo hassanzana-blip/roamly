@@ -168,7 +168,7 @@ describe("Min side innlogget", () => {
   it("konto som rader (navn og e-post), så innstillinger og hjelp; «Logg ut» og «Slett konto» nederst", async () => {
     await renderProfile({ signedIn: true });
     const account = within(screen.getByTestId("account-card"));
-    expect(account.getByText("Konto")).toHaveProp("accessibilityRole", "header");
+    expect(account.getByText("Konto og sikkerhet")).toHaveProp("accessibilityRole", "header");
     // Verdien øverst og hva den er under; VoiceOver hører «Navn: Kari Nordmann».
     expect(account.getByLabelText("Navn: Kari Nordmann")).toHaveTextContent(/^Kari Nordmann\s*Navn$/);
     expect(account.getByLabelText("E-post: kari@example.no")).toHaveTextContent(/^kari@example\.no\s*E-post$/);
@@ -177,7 +177,7 @@ describe("Min side innlogget", () => {
     // «Slett konto» er rød – med tekst, ikke bare farge.
     const del = within(screen.getByTestId("open-delete-account")).getByText("Slett konto");
     expect(StyleSheet.flatten(del.props.style).color).toBe(colors.danger);
-    inOrder(["account-card", "web-account-group", "settings-group", "help-card", "logout-button", "open-delete-account"]);
+    inOrder(["alerts-group", "account-card", "settings-group", "help-card", "logout-button", "open-delete-account"]);
   });
 });
 

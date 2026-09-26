@@ -8,6 +8,7 @@ import * as WebBrowser from "expo-web-browser";
 import type { MobileOffer } from "@contracts/mobileSearch";
 import type { OfferSlice, Segment } from "@contracts/types";
 import { shownAnswer, useApp } from "../../lib/appState";
+import { SaveFlightButton } from "../../components/SaveFlightButton";
 import { applyView } from "../../lib/resultsView";
 import { journeyByKey, journeyOf, sellerLabel } from "../../lib/journeys";
 import { baggageFacts, baggageShort, conditionFacts, handoffLabel, offerExpired, priceBasis, providerHandoff, sellerKindLabel } from "../../lib/offer";
@@ -418,11 +419,17 @@ export default function OfferScreen() {
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={{ paddingBottom: (barHeight || insets.bottom + 160) + space.lg }} testID="offer-screen">
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
-          <IconButton icon="chevronLeft" label={dt.back} variant="light" onPress={() => router.back()} testID="header-back" />
+          {/* Like brede sider (tilbake | lagre og del), så tittelen står midt på. */}
+          <View style={styles.topSide}>
+            <IconButton icon="chevronLeft" label={dt.back} variant="light" onPress={() => router.back()} testID="header-back" />
+          </View>
           <Text style={[type.headline, styles.topTitle]} accessibilityRole="header">
             {dt.title}
           </Text>
-          <IconButton icon="share" label={dt.share} variant="light" onPress={share} testID="share" />
+          <View style={[styles.topSide, styles.topActions]}>
+            <SaveFlightButton item={selected} query={search.status === "idle" ? null : search.query} />
+            <IconButton icon="share" label={dt.share} variant="light" onPress={share} testID="share" />
+          </View>
         </View>
 
         <JourneySummary item={selected} />
@@ -595,6 +602,8 @@ const styles = StyleSheet.create({
   // «Cloud + Graphite»: lys grunn bak tittellinjen, fotokortet og de hvite kortene; bunnlinjen er grafitt.
   screen: { flex: 1, backgroundColor: colors.canvas },
   topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.lg, paddingBottom: space.md, gap: space.md },
+  topSide: { width: 88, flexDirection: "row", alignItems: "center" },
+  topActions: { justifyContent: "flex-end", gap: space.sm },
   topTitle: { flex: 1, textAlign: "center", color: colors.text },
   summary: { marginHorizontal: space.lg, borderRadius: radius.card, padding: space.lg, paddingBottom: space.xxl, gap: space.lg, minHeight: 240, justifyContent: "space-between" },
   summaryTop: { flexDirection: "row", alignItems: "center", gap: space.md },

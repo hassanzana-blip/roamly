@@ -10,7 +10,7 @@ import { CABINS, CHILD_AGES, INFANT_AGES, MAX_PASSENGERS, initialForm, type Airp
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const IATA = /^[A-Z]{3}$/;
 
-function airport(v: unknown): AirportChoice | null {
+export function parseAirportChoice(v: unknown): AirportChoice | null {
   if (!v || typeof v !== "object") return null;
   const a = v as Record<string, unknown>;
   if (typeof a.iata !== "string" || !IATA.test(a.iata)) return null;
@@ -51,8 +51,8 @@ export function parseDraft(raw: unknown, today: Date = new Date(), { keepPastDat
 
   return {
     tripType,
-    origin: airport(d.origin),
-    destination: airport(d.destination),
+    origin: parseAirportChoice(d.origin),
+    destination: parseAirportChoice(d.destination),
     departDate,
     returnDate,
     adults,

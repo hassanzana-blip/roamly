@@ -1,15 +1,19 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { Icon, type IconName } from "../../components/Icon";
+import { Group, Row } from "../../components/SettingsList";
+import { AlertsGroup, NextTrip, openWeb } from "../../components/minside/AccountModules";
+import { HOME_AIRPORT_PICKER, PreferencesSection, useHomeAirportText } from "../../components/minside/Preferences";
+import { TravellersSection } from "../../components/minside/Travellers";
+import { useAccountData } from "../../lib/accountData";
 import { SignInSheet, type SignInMode } from "../../components/SignInSheet";
 import { DestinationCard } from "../../components/DestinationCard";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { FocusStatusBar } from "../../components/FocusStatusBar";
 import Constants from "expo-constants";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as WebBrowser from "expo-web-browser";
 import type { CustomerProfile } from "@contracts/mobileAuth";
 import { useApp } from "../../lib/appState";
 import { ApiError } from "../../lib/api";
@@ -24,125 +28,15 @@ import { cabinLabel, formErrorText, passengerSummary, validateForm } from "../..
 import { greetingName } from "../../lib/customerName";
 import type { FormErrorCode } from "../../i18n/ns/search";
 import { Banner, BottomSheet, Field, LinkButton, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
-import { a11yLanguage, useA11yLanguage, useI18n } from "../../i18n";
+import { a11yLanguage, useI18n } from "../../i18n";
 import { LOCALES, LOCALE_NAMES, type Locale } from "../../i18n/types";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
-/** Nettsidene åpnes i Safari-visning, som tilbydernes sider. */
-function openWeb(url: string) {
-  WebBrowser.openBrowserAsync(url, { controlsColor: colors.blue, dismissButtonStyle: "close" }).catch(() => undefined);
-}
-
-/** Flyplassøket i «vanlig avreiseflyplass»-modus (se app/flyplass.tsx): valget huskes og blir «Fra» i skjemaet. */
-const HOME_AIRPORT_PICKER = { pathname: "/flyplass", params: { felt: "fra", hjem: "1" } };
-
-/** Fra denne tekststørrelsen (iOS' «xxxLarge» er 1,35) står en rads verdi under tittelen i stedet for til høyre. */
-const STACK_VALUE_AT = 1.3;
-
-/** Hver flis i oversikten er minst så bred (ganger tekststørrelsen), så det lengste ordet i etiketten får plass. */
-const TILE_BASIS = 88;
-
-/** Den vanlige avreiseflyplassen som «Oslo (OSL)», med byen på appens språk – eller null når kunden ikke har valgt en. */
-function useHomeAirport(): { iata: string; text: string } | null {
-  const { homeAirport } = useApp();
-  const { locale } = useI18n();
-  if (!homeAirport) return null;
-  const a = localizedChoice(homeAirport, locale);
-  return { iata: a.iata, text: `${a.city} (${a.iata})` };
-}
-
 /**
- * En gruppe i listen, som i iOS' innstillinger: overskrift på den lyse grunnen og et hvitt kort med rader.
- * `note` står under kortet (f.eks. at nettsidene er på norsk). Overskriften har samme stil som modulene over
- * («Fortsett søket», «Lagrede reisemål») og seksjonene i Lagret – små versaler – så siden leses som én liste.
+ * Hver flis i oversikten er minst så bred (ganger tekststørrelsen), så det lengste ordet i etiketten får plass. To
+ * fliser står side om side på alle iPhone-bredder (375–430 pt); med stor tekst står de én og én.
  */
-function Group({ title, children, testID, note }: { title?: string; children: ReactNode; testID?: string; note?: string | null }) {
-  return (
-    <View style={styles.group} testID={testID}>
-      {title ? (
-        <Text style={styles.groupTitle} accessibilityRole="header">
-          {title}
-        </Text>
-      ) : null}
-      <View style={styles.groupCard}>{children}</View>
-      {note ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{note}</Text> : null}
-    </View>
-  );
-}
-
-/**
- * Én rad i en gruppe: ikon, tittel (og ev. en linje under), verdi til høyre og pil. Uten `onPress` er raden bare
- * informasjon – ingen pil, og VoiceOver leser den som én tekst. En handling (`action`: logg ut, slett) har ingen pil,
- * for den åpner ingen side. Hele raden er trykkflaten (minst 52 pt); VoiceOver hører tittelen og linjen under.
- */
-function Row({
-  icon,
-  title,
-  subtitle,
-  value,
-  onPress,
-  external,
-  danger,
-  action,
-  separated,
-  testID,
-  accessibilityHint,
-  accessibilityLabel,
-}: {
-  icon: IconName;
-  title: string;
-  subtitle?: string | null;
-  value?: string | null;
-  onPress?: () => void;
-  external?: boolean;
-  danger?: boolean;
-  action?: boolean;
-  separated?: boolean;
-  testID?: string;
-  accessibilityHint?: string;
-  /** VoiceOver-etiketten når den synlige rekkefølgen ikke er den beste å høre (f.eks. «Navn: Kari Nordmann»). */
-  accessibilityLabel?: string;
-}) {
-  const lang = useA11yLanguage();
-  const { fontScale } = useWindowDimensions();
-  const fg = danger ? colors.danger : colors.text;
-  const muted = danger ? colors.danger : colors.textSecondary;
-  // Med stor tekst står verdien under tittelen, som i iOS' innstillinger: ved siden av fikk et langt ord i tittelen
-  // («avreiseflyplass») ikke plass og ble delt midt i ordet.
-  const stacked = !!value && fontScale >= STACK_VALUE_AT;
-  const inner = (
-    <>
-      <Icon name={icon} size={20} color={muted} strokeWidth={1.75} />
-      <View style={styles.rowText}>
-        {/* Ingen linjegrense: lange titler og stor tekst bryter linjen. */}
-        <Text style={[type.body, { color: fg }]}>{title}</Text>
-        {subtitle ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
-        {stacked ? <Text style={[type.callout, { color: colors.textSecondary }]}>{value}</Text> : null}
-      </View>
-      {value && !stacked ? <Text style={[type.callout, styles.rowValue]}>{value}</Text> : null}
-      {onPress && !action ? <Icon name={external ? "external" : "chevronRight"} size={18} color={muted} /> : null}
-    </>
-  );
-  if (!onPress) {
-    return (
-      <View accessible accessibilityLanguage={lang} accessibilityLabel={accessibilityLabel ?? [title, value, subtitle].filter(Boolean).join(", ")} style={[styles.row, separated && styles.rowBorder]} testID={testID}>
-        {inner}
-      </View>
-    );
-  }
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole={external ? "link" : "button"}
-      accessibilityLabel={accessibilityLabel ?? [title, subtitle].filter(Boolean).join(", ")}
-      accessibilityHint={accessibilityHint}
-      testID={testID}
-      style={({ pressed }) => [styles.row, separated && styles.rowBorder, pressed && { backgroundColor: colors.inset }]}
-    >
-      {inner}
-    </Pressable>
-  );
-}
+const TILE_BASIS = 130;
 
 /**
  * Innstillingene: språket (før og etter innlogging, gjelder med én gang og huskes på telefonen) og valutaen, som
@@ -177,49 +71,6 @@ function HelpGroup() {
       <Row icon="lock" title={a.privacy} external separated onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" accessibilityHint={a.webOpens} />
       <Row icon="info" title={a.terms} external separated onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" accessibilityHint={a.webOpens} />
       <Row icon="plane" title={a.about} external separated onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" accessibilityHint={a.webOpens} />
-    </Group>
-  );
-}
-
-/**
- * Kundens egne sider på hellosky.no – reiser, lagrede reisende, prisvarsler og sikkerhet. Appen har dem ikke selv, så
- * den viser ingen tall eller lister herfra; lenkene åpner nettets sider i Safari-visning, der kunden logger inn med
- * samme konto første gang. «Mine reiser» er bestillinger gjort på nettet – linjen under sier det, så ingen leter etter
- * søkene fra appen der.
- */
-function WebAccountGroup() {
-  const { t } = useI18n();
-  const a = t.account;
-  return (
-    <Group title={a.webAccountTitle} testID="web-account-group" note={a.webAccountNote}>
-      <Row icon="luggage" title={a.trips} subtitle={a.tripsNote} external onPress={() => openWeb(WEB_PAGES.trips)} testID="link-trips" accessibilityHint={a.webOpens} />
-      <Row icon="users" title={a.travellers} external separated onPress={() => openWeb(WEB_PAGES.travellers)} testID="link-travellers" accessibilityHint={a.webOpens} />
-      <Row icon="bell" title={a.priceAlerts} external separated onPress={() => openWeb(WEB_PAGES.priceAlerts)} testID="link-price-alerts" accessibilityHint={a.webOpens} />
-      <Row icon="lock" title={a.security} external separated onPress={() => openWeb(WEB_PAGES.security)} testID="link-security" accessibilityHint={a.webOpens} />
-    </Group>
-  );
-}
-
-/**
- * Reisevaner: den vanlige avreiseflyplassen, som nye søk starter fra. Raden åpner flyplassøket i «vanlig
- * avreiseflyplass»-modus; valget lagres bare på denne telefonen.
- */
-function PreferencesGroup() {
-  const router = useRouter();
-  const { t } = useI18n();
-  const a = t.account;
-  const home = useHomeAirport();
-  return (
-    <Group title={a.habitsTitle} testID="preferences-group" note={t.airport.rememberHint}>
-      <Row
-        icon="takeoff"
-        title={a.homeAirport}
-        value={home?.text ?? a.notChosen}
-        accessibilityLabel={a.homeAirportLabel(home?.text ?? null)}
-        accessibilityHint={a.homeAirportHint}
-        onPress={() => router.push(HOME_AIRPORT_PICKER)}
-        testID="home-airport-row"
-      />
     </Group>
   );
 }
@@ -395,7 +246,7 @@ function Identity({ profile }: { profile: CustomerProfile | null }) {
 }
 
 /** Én flis i oversikten: et tall (eller en flyplasskode) og hva det er. Hele flisen er knappen, minst 72 pt høy. */
-function HubTile({ value, label, accessibilityLabel, accessibilityHint, onPress, basis, testID }: { value: string; label: string; accessibilityLabel: string; accessibilityHint: string; onPress: () => void; basis: number; testID: string }) {
+function HubTile({ icon, value, label, accessibilityLabel, accessibilityHint, onPress, basis, testID }: { icon: IconName; value: string; label: string; accessibilityLabel: string; accessibilityHint: string; onPress: () => void; basis: number; testID: string }) {
   return (
     <Pressable
       onPress={onPress}
@@ -405,7 +256,10 @@ function HubTile({ value, label, accessibilityLabel, accessibilityHint, onPress,
       testID={testID}
       style={({ pressed }) => [styles.tile, { flexBasis: basis }, pressed && { opacity: 0.7 }]}
     >
-      <Text style={[type.title, type.tabular, { color: colors.onDark }]}>{value}</Text>
+      <View style={styles.tileTop}>
+        <Text style={[type.title, type.tabular, { color: colors.onDark, flex: 1 }]}>{value}</Text>
+        <Icon name={icon} size={18} color={colors.blueOnDark} />
+      </View>
       {/* Ingen linjegrense: med stor tekst brytes etiketten, og flisene i raden blir like høye. */}
       <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{label}</Text>
     </Pressable>
@@ -417,21 +271,28 @@ function HubTile({ value, label, accessibilityLabel, accessibilityHint, onPress,
  * ligger her, aldri anslag. Tre like fliser på én rad; med stor tekst trenger hver mer bredde, og raden brytes i stedet
  * for at et ord deles eller kuttes.
  */
-function Overview() {
+function Overview({ onTravellers }: { onTravellers: () => void }) {
   const router = useRouter();
-  const { recent, saved } = useApp();
+  const { recent, saved, savedFlights, savedRoutes, travellers, auth } = useApp();
+  const account = useAccountData();
   const { t, f } = useI18n();
   const a = t.account;
+  const h = t.hub;
   const { fontScale } = useWindowDimensions();
-  const home = useHomeAirport();
-  const count = savedDestinations(saved).length;
+  const home = useHomeAirportText();
+  // Det som ligger i Lagret på telefonen: fly, ruter og reisemål.
+  const savedCount = savedFlights.length + savedRoutes.length + savedDestinations(saved).length;
+  // Reisende: kontoens når den svarte, ellers telefonens.
+  const people = auth.status === "signedIn" && account.status === "ready" && account.travellers ? account.travellers.length : travellers.length;
   const basis = TILE_BASIS * Math.max(1, fontScale);
   return (
     <View style={styles.tiles} testID="hub-overview">
-      <HubTile testID="hub-recent" value={f.int(recent.length)} label={a.hubRecent} accessibilityLabel={a.hubRecentLabel(recent.length)} accessibilityHint={a.hubOpensSaved} onPress={() => router.navigate("/lagret")} basis={basis} />
-      <HubTile testID="hub-saved" value={f.int(count)} label={a.hubSaved} accessibilityLabel={a.hubSavedLabel(count)} accessibilityHint={a.hubOpensSaved} onPress={() => router.navigate("/lagret")} basis={basis} />
+      <HubTile testID="hub-saved" icon="bookmark" value={f.int(savedCount)} label={h.tileSaved} accessibilityLabel={h.tileSavedLabel(savedCount)} accessibilityHint={a.hubOpensSaved} onPress={() => router.navigate("/lagret")} basis={basis} />
+      <HubTile testID="hub-recent" icon="clock" value={f.int(recent.length)} label={a.hubRecent} accessibilityLabel={a.hubRecentLabel(recent.length)} accessibilityHint={a.hubOpensSaved} onPress={() => router.navigate({ pathname: "/lagret", params: { vis: "sok" } })} basis={basis} />
+      <HubTile testID="hub-travellers" icon="users" value={f.int(people)} label={h.tileTravellers} accessibilityLabel={h.tileTravellersLabel(people)} accessibilityHint={h.tileTravellersHint} onPress={onTravellers} basis={basis} />
       <HubTile
         testID="hub-home-airport"
+        icon="takeoff"
         value={home?.iata ?? "–"}
         label={a.hubHomeAirport}
         accessibilityLabel={a.homeAirportLabel(home?.text ?? null)}
@@ -576,6 +437,23 @@ export default function AccountScreen() {
   const [problem, setProblem] = useState<{ code: FormErrorCode; key: string } | null>(null);
   const [heroHeight, setHeroHeight] = useState(0);
   const [pastHero, setPastHero] = useState(false);
+  const account = useAccountData();
+  const scroll = useRef<ScrollView>(null);
+  const [travellersY, setTravellersY] = useState(0);
+  // Kontoens data hentes på nytt når siden vises igjen (en reise bestilt på nettet, et nytt prisvarsel). Første gang
+  // henter AppProvider selv ved innloggingen.
+  // Bare et nytt fokus henter (ikke innloggingen selv, som allerede henter): siste refresh ligger i en ref.
+  const focused = useIsFocused();
+  const seenFocus = useRef(false);
+  const refreshAccount = useRef(account.refresh);
+  useEffect(() => {
+    refreshAccount.current = account.refresh;
+  }, [account.refresh]);
+  useEffect(() => {
+    if (!focused) return;
+    if (seenFocus.current) refreshAccount.current();
+    seenFocus.current = true;
+  }, [focused]);
 
   // Et ark eller en «lagret»-melding hører til kontoen som var logget inn da:
   // etter utlogging, sletting eller utløpt økt skal ingenting dukke opp igjen.
@@ -651,6 +529,7 @@ export default function AccountScreen() {
       <FocusStatusBar style={pastHero ? "dark" : "light"} animated />
       {/* Egen nøkkel per tilstand: etter innlogging, utlogging, sletting eller utløpt økt starter siden øverst. */}
       <ScrollView
+        ref={scroll}
         key={signedIn ? "signed-in" : "signed-out"}
         testID={signedIn ? "account-signed-in" : "account-signed-out"}
         style={styles.screen}
@@ -664,7 +543,7 @@ export default function AccountScreen() {
           {/* Grafitten fortsetter over toppen, så et drag nedover (iOS' sprett) aldri viser lys grunn bak statuslinjen. */}
           <View style={styles.heroBleed} pointerEvents="none" />
           {signedIn ? <Identity profile={p} /> : <GuestIntro onLogin={() => setAuthOpen("login")} onRegister={() => setAuthOpen("register")} />}
-          <Overview />
+          <Overview onTravellers={() => scroll.current?.scrollTo({ y: Math.max(0, travellersY - space.lg), animated: true })} />
         </View>
 
         <View style={styles.content}>
@@ -678,8 +557,19 @@ export default function AccountScreen() {
               {formErrorText(shownProblem, i18n)}
             </Banner>
           ) : null}
+          {signedIn && account.status === "error" ? (
+            <View style={styles.accountNotice} testID="account-data-error">
+              <Text style={[type.footnote, { color: colors.text, flex: 1 }]}>{t.hub.accountError}</Text>
+              <LinkButton label={t.hub.retry} onPress={account.refresh} testID="account-data-retry" />
+            </View>
+          ) : null}
+          <NextTrip />
           <Hub onContinue={continueSearch} onSearchTo={searchTo} />
-          <PreferencesGroup />
+          <View onLayout={(e) => setTravellersY(e.nativeEvent.layout.y)}>
+            <TravellersSection />
+          </View>
+          <PreferencesSection />
+          {signedIn ? <AlertsGroup /> : null}
           {signedIn ? (
             <>
               {/* Meldingen står ved kontoen, der kunden er når arket lukkes. */}
@@ -689,7 +579,7 @@ export default function AccountScreen() {
                 </Banner>
               ) : null}
               {p ? (
-                <Group title={a.accountSection} testID="account-card">
+                <Group title={t.hub.securityTitle} testID="account-card" note={a.webAccountNote}>
                   {/* Verdien øverst og hva den er under, så lange navn og e-poster får hele bredden. */}
                   <Row icon="user" title={`${p.firstName} ${p.lastName}`.trim()} subtitle={a.nameLabel} accessibilityLabel={`${a.nameLabel}: ${`${p.firstName} ${p.lastName}`.trim()}`} />
                   {p.email ? <Row icon="mail" title={p.email} subtitle={a.emailLabel} accessibilityLabel={`${a.emailLabel}: ${p.email}`} separated /> : null}
@@ -704,11 +594,22 @@ export default function AccountScreen() {
                     }}
                     testID="open-edit-profile"
                   />
+                  <Row
+                    icon="luggage"
+                    title={a.trips}
+                    subtitle={a.tripsNote}
+                    value={account.status === "ready" && account.hub ? t.hub.upcomingTrips(account.hub.upcomingTrips) : null}
+                    external
+                    separated
+                    onPress={() => openWeb(WEB_PAGES.trips)}
+                    testID="link-trips"
+                    accessibilityHint={a.webOpens}
+                  />
+                  <Row icon="lock" title={a.security} external separated onPress={() => openWeb(WEB_PAGES.security)} testID="link-security" accessibilityHint={a.webOpens} />
                 </Group>
               ) : (
                 <Banner tone="warning">{a.profileUnavailable}</Banner>
               )}
-              <WebAccountGroup />
             </>
           ) : null}
           <SettingsGroup />
@@ -771,6 +672,7 @@ const styles = StyleSheet.create({
   signInAction: { flexGrow: 1, minWidth: 140 },
   pairButton: { minHeight: TOUCH },
   tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  tileTop: { flexDirection: "row", alignItems: "center", gap: space.sm },
   tile: { flexGrow: 1, flexShrink: 1, minHeight: 72, padding: space.md, gap: 2, borderRadius: radius.input, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.darkBorder },
   content: { paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxxl, gap: space.xl },
   module: { gap: 0 },
@@ -789,17 +691,8 @@ const styles = StyleSheet.create({
   // «Kom i gang»: samme hvite flate som gruppene; lenkene er selv 44 pt høye og trenger ingen ekstra luft under seg.
   startCard: { backgroundColor: colors.white, borderRadius: radius.input, paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.xs, gap: space.xs },
   startLinks: { flexDirection: "row", flexWrap: "wrap", columnGap: space.xl },
-  // Innstillingslisten: overskrift på grunnen, hvitt kort med rader og hårfine streker mellom dem.
-  group: { gap: space.sm },
-  // Like langt fra overskriften til kortet som i modulene (der «Se alle» gjør overskriftsraden 44 pt høy).
-  groupTitle: { ...type.footnoteStrong, color: colors.text, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: space.xs },
-  groupCard: { backgroundColor: colors.white, borderRadius: radius.input, overflow: "hidden" },
-  row: { minHeight: TOUCH + 8, flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm },
-  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lightBorder },
-  rowText: { flex: 1, gap: 2 },
-  // Verdien tar aldri mer enn litt over halve raden, så etiketten ikke presses til ingenting (lange verdier bryter).
-  rowValue: { color: colors.textSecondary, flexShrink: 1, maxWidth: "55%", textAlign: "right" },
   block: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: space.md },
   blockHead: { flexDirection: "row", alignItems: "center", gap: space.md },
   version: { color: colors.textSecondary, textAlign: "center" },
+  accountNotice: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: space.sm, paddingHorizontal: space.md, borderRadius: radius.input, backgroundColor: colors.warningSoft },
 });

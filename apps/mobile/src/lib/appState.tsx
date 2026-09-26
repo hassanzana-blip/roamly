@@ -15,6 +15,10 @@ import { readPref, writePref } from "./localStore";
 import { addRecent, parseHomeAirport, parseRecent, recentIsPast, recentKey, type RecentSearch } from "./recent";
 import { parseSaved, toggleSaved as toggleSavedList, type SavedDestination } from "./saved";
 import type { Destination } from "./destinations";
+import { isEmptyPrefs, parsePrefs, withPrefDefaults, type TravelPrefs } from "./preferences";
+import { parseTravellers, removeTraveller as removeTravellerFrom, upsertTraveller, type Traveller } from "./travellers";
+import { parseSavedFlights, parseSavedRoutes, toggleFlight as toggleFlightList, toggleRoute as toggleRouteList, type SavedFlight, type SavedRoute } from "./savedTrips";
+import { AccountDataProvider } from "./accountData";
 import { I18nProvider } from "../i18n";
 import type { Locale } from "../i18n/types";
 import type { FormErrorCode } from "../i18n/ns/search";
@@ -104,6 +108,19 @@ type AppContextValue = {
   setHomeAirport: (a: AirportChoice | null) => void;
   /** Anonym UUID for denne app-økten (KAYAKs userTrackId), delt av fly- og hotellsøk. Aldri knyttet til konto. */
   sessionId: string;
+  /** Reisepreferansene (lib/preferences.ts), bare på denne telefonen. */
+  prefs: TravelPrefs;
+  setPrefs: (update: (p: TravelPrefs) => TravelPrefs) => void;
+  /** Lagrede reisende (navn, type, klasse – aldri ID-data), bare på denne telefonen. */
+  travellers: Traveller[];
+  saveTraveller: (t: Traveller) => void;
+  removeTraveller: (id: string) => void;
+  /** Lagrede fly (et bilde av reisen og prisen da den ble lagret), bare på denne telefonen. */
+  savedFlights: SavedFlight[];
+  toggleFlight: (f: SavedFlight) => void;
+  /** Lagrede ruter (to flyplasser), bare på denne telefonen. */
+  savedRoutes: SavedRoute[];
+  toggleRoute: (origin: AirportChoice, destination: AirportChoice) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -136,13 +153,15 @@ const defaultFactory: ApiFactory = (getToken) => {
  * holder på å planlegge: det står som det var. Om avreisen har passert, sjekkes på datoene slik de ble lagret –
  * parseDraft flytter passerte datoer fram, så etter den ville et gammelt utkast aldri se gammelt ut.
  */
-function startForm(raw: unknown, home: AirportChoice | null, today: Date = new Date()): SearchForm {
+function startForm(raw: unknown, home: AirportChoice | null, prefs: TravelPrefs, today: Date = new Date()): SearchForm {
   const draft = parseDraft(raw, today);
-  if (!home) return draft ?? initialForm(today);
+  // Uten utkast starter skjemaet med preferansenes reiseklasse; et utkast beholder sin egen.
+  const fresh = withPrefDefaults(initialForm(today), prefs);
+  if (!home) return draft ?? fresh;
   const asStored = parseDraft(raw, today, { keepPastDates: true });
   const planning = Boolean(draft?.destination) && asStored !== null && !recentIsPast(asStored, today);
   if (draft && planning) return draft;
-  const base = draft ?? initialForm(today);
+  const base = draft ?? fresh;
   // Reisemålet fra et gammelt utkast kan stå – men aldri det samme som «Fra».
   return { ...base, origin: home, destination: base.destination?.iata === home.iata ? null : base.destination };
 }
@@ -170,7 +189,41 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
   // Søkeutkastet fra forrige gang (bare skjemaet), ellers standardskjemaet – med den vanlige avreiseflyplassen i «Fra»
   // når det ikke er en reise under planlegging (se startForm).
   const [homeAirport, setHomeAirportState] = useState<AirportChoice | null>(() => readPref("homeAirport", parseHomeAirport));
-  const [form, setFormState] = useState<SearchForm>(() => ({ ...startForm(readPref("draft", (v) => v), homeAirport), ...initial }));
+  const [prefs, setPrefsState] = useState<TravelPrefs>(() => readPref("travelPrefs", parsePrefs) ?? parsePrefs(null));
+  const [form, setFormState] = useState<SearchForm>(() => ({ ...startForm(readPref("draft", (v) => v), homeAirport, prefs), ...initial }));
+  const setPrefs = useCallback((update: (p: TravelPrefs) => TravelPrefs) => {
+    setPrefsState((p) => {
+      const next = parsePrefs(update(p));
+      writePref("travelPrefs", isEmptyPrefs(next) ? null : next);
+      return next;
+    });
+  }, []);
+  const [travellers, setTravellers] = useState<Traveller[]>(() => readPref("travellers", parseTravellers) ?? []);
+  const saveTravellers = useCallback((update: (l: Traveller[]) => Traveller[]) => {
+    setTravellers((l) => {
+      const next = update(l);
+      writePref("travellers", next.length ? next : null);
+      return next;
+    });
+  }, []);
+  const saveTraveller = useCallback((t: Traveller) => saveTravellers((l) => upsertTraveller(l, t)), [saveTravellers]);
+  const removeTraveller = useCallback((id: string) => saveTravellers((l) => removeTravellerFrom(l, id)), [saveTravellers]);
+  const [savedFlights, setSavedFlights] = useState<SavedFlight[]>(() => readPref("savedFlights", (v) => parseSavedFlights(v)) ?? []);
+  const toggleFlight = useCallback((f: SavedFlight) => {
+    setSavedFlights((l) => {
+      const next = toggleFlightList(l, f);
+      writePref("savedFlights", next.length ? next : null);
+      return next;
+    });
+  }, []);
+  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>(() => readPref("savedRoutes", parseSavedRoutes) ?? []);
+  const toggleRoute = useCallback((origin: AirportChoice, destination: AirportChoice) => {
+    setSavedRoutes((l) => {
+      const next = toggleRouteList(l, origin, destination);
+      writePref("savedRoutes", next.length ? next : null);
+      return next;
+    });
+  }, []);
   const [recent, setRecent] = useState<RecentSearch[]>(() => readPref("recent", (v) => parseRecent(v)) ?? []);
   const saveRecent = useCallback((next: RecentSearch[]) => {
     setRecent(next);
@@ -423,12 +476,14 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
   );
 
   const value = useMemo<AppContextValue>(
-    () => ({ api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId }),
-    [api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId],
+    () => ({ api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId, prefs, setPrefs, travellers, saveTraveller, removeTraveller, savedFlights, toggleFlight, savedRoutes, toggleRoute }),
+    [api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId, prefs, setPrefs, travellers, saveTraveller, removeTraveller, savedFlights, toggleFlight, savedRoutes, toggleRoute],
   );
   return (
     <AppContext.Provider value={value}>
-      {children}
+      <AccountDataProvider api={api} signedIn={auth.status === "signedIn"} onSessionEnded={sessionEnded}>
+        {children}
+      </AccountDataProvider>
       {/* Clerk monteres bare når en leverandør faktisk kan vises (se lib/nativeSocial.ios.tsx). */}
       {SocialHost && hostKey ? <SocialHost publishableKey={hostKey} /> : null}
     </AppContext.Provider>

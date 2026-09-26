@@ -55,6 +55,7 @@ import {
   type TimeBand,
 } from "../lib/resultsView";
 import { activeFilterChips } from "../lib/filterChips";
+import { airlineName, avoidedIn, hasFilterPrefs, prefsApplied, prefsView } from "../lib/preferences";
 import { nearbyDates } from "../lib/nearbyDates";
 import { groupJourneys, type Journey } from "../lib/journeys";
 import { OfferCard } from "../components/OfferCard";
@@ -400,7 +401,7 @@ export default function ResultsScreen() {
   const lang = useA11yLanguage();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { search, runSearch, cancelSearch, form, setForm, view: storedView, setView } = useApp();
+  const { search, runSearch, cancelSearch, form, setForm, view: storedView, setView, prefs } = useApp();
   const i18n = useI18n();
   const { t, f } = i18n;
   const r = t.results.screen;
@@ -783,8 +784,20 @@ export default function ResultsScreen() {
     setView(chip.clear);
     AccessibilityInfo.announceForAccessibility(r.active.removed(chip.label, reiser(journeyCount(all, chip.clear(view)))));
   };
-  const chips: { key: string; label: string; selected: boolean; count: number; onPress: () => void }[] = [
+  // Reisepreferansene (Min side) som ett valg: aldri satt av seg selv; et trykk setter dem som vanlige, synlige filtre.
+  const prefsOn = hasFilterPrefs(prefs) && prefsApplied(view, prefs, all);
+  const togglePrefs = () => {
+    const next = prefsOn ? clearedFilters(view) : prefsView(view, prefs, all);
+    setView(() => next);
+    AccessibilityInfo.announceForAccessibility((prefsOn ? r.prefsCleared : r.prefsApplied)(reiser(journeyCount(all, next))));
+  };
+  // Passer ingen reiser preferansene, står valget likevel – avslått, og det sies hvorfor – i stedet for å forsvinne.
+  const prefsCount = hasFilterPrefs(prefs) ? journeyCount(all, prefsView(view, prefs, all)) : 0;
+  const chips: { key: string; label: string; selected: boolean; count: number; onPress: () => void; spoken?: string; always?: boolean; disabled?: boolean }[] = [
     { key: "all", label: r.chips.all, selected: filters === 0, count: all.length, onPress: clearFilters },
+    ...(hasFilterPrefs(prefs)
+      ? [{ key: "prefs", label: r.prefs, selected: prefsOn, count: prefsCount, onPress: togglePrefs, spoken: prefsOn || prefsCount ? `${r.prefs}. ${r.prefsHint}` : `${r.prefs}. ${r.prefsNone}`, always: true, disabled: !prefsOn && prefsCount === 0 }]
+      : []),
     { key: "direct", label: r.chips.direct, selected: view.stops === "direct", count: countWith(all, view, { stops: "direct" }), onPress: () => toggleStops("direct") },
     { key: "max1", label: r.chips.max1, selected: view.stops === "max1", count: countWith(all, view, { stops: "max1" }), onPress: () => toggleStops("max1") },
     { key: "bags", label: r.chips.bags, selected: view.bags, count: countWith(all, view, { bags: true }), onPress: () => setView((v) => ({ ...v, bags: !v.bags })) },
@@ -858,9 +871,9 @@ export default function ResultsScreen() {
       {all.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} testID="results-chips">
           {chips
-            .filter((c) => c.key === "all" || c.selected || c.count > 0)
+            .filter((c) => c.key === "all" || c.always || c.selected || c.count > 0)
             .flatMap((c) => {
-              const chip = <Chip key={c.key} testID={`chip-${c.key}`} label={c.label} selected={c.selected} dark={false} onPress={c.onPress} />;
+              const chip = <Chip key={c.key} testID={`chip-${c.key}`} label={c.label} accessibilityLabel={c.spoken} selected={c.selected} disabled={c.disabled} dark={false} onPress={c.onPress} />;
               // De aktive filtrene fra arket rett etter «Alle», så de synes uten å rulle.
               return c.key === "all"
                 ? [chip, ...activeChips.map((a) => <Chip key={`active-${a.key}`} testID={`active-${a.key}`} label={a.label} accessibilityLabel={a.spoken} selected removable dark={false} onPress={() => removeFilter(a)} />)]
@@ -1033,7 +1046,7 @@ export default function ResultsScreen() {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item }) => (
           <View style={styles.item} {...inert}>
-            <OfferCard journey={item} totalConfirmed={confirmed} searchedCabin={(shownQuery ?? form).cabinClass} onOpen={openOffer} />
+            <OfferCard journey={item} totalConfirmed={confirmed} searchedCabin={(shownQuery ?? form).cabinClass} onOpen={openOffer} avoided={avoidedIn(item.best.offer, prefs).map(airlineName).join(", ") || undefined} />
           </View>
         )}
       />

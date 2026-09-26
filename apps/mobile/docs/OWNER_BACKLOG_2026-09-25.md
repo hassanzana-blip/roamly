@@ -137,8 +137,26 @@ The master brief (58 sections). Priority order from the brief; each item names i
 | 5.6 | «Senest avreise» sort | done: «Senest avgang» in «Sorter» (`09404b2`) |
 | 5.7 | Figma as the design source of truth: variables and key screens | done for this round: frame P7 «Cloud + Graphite» (Home, results compact/open, Min side, guest, welcome) and new components (`docs/evidence/figma-p7-cloud-graphite.jpg`) |
 | 5.8 | The status bar follows the tab that is showing | done: `FocusStatusBar` (`e7629b6`); light over page sheets (`d62cac3`) |
-| 5.9 | Next: saved flights and routes, traveller profiles and price alerts through the mobile API (server routes exist for the web) | open P1, needs the API work to be approved before deploy |
+| 5.9 | Next: saved flights and routes, traveller profiles and price alerts through the mobile API (server routes exist for the web) | built: `mobileAccount.*` routes and migration 0009 in `b9a3853` (**not deployed**, Ali); the app uses them when present (section 6). Price alerts stay a proposal |
 | 5.10 | Next: destination themes in Explore (curated facts, no prices); Norway holiday dates (verified per municipality) | open P1/P2 |
+
+## Owner brief, 26 September: «Min side + Saved»
+
+Min side as the customer's travel hub and Lagret as a product area, with real data only. Each item names its commit and
+MANIFEST section («Min side as a travel hub, traveller profiles, travel preferences and Lagret»).
+
+| # | Item | Status |
+|---|---|---|
+| 6.1 | Mobile API for the account: hub (next booking, counts), travellers, saved items – reusing the web's tables | done `b9a3853`, **not deployed** (`docs/SERVER_MOBILE_ACCOUNT_2026-09-26.md`); migration 0009 additive |
+| 6.2 | Min side shows the account's real data when the server has it (next trip, travellers, active price alerts, unread messages, upcoming trips) and only phone data otherwise | done (app commit); verified against a mock and in Jest, not against staging |
+| 6.3 | Traveller profiles: name, adult/child/infant, preferred cabin; never passport, ID, personnummer or scans | done: phone for guests, account when signed in, «Flytt til kontoen» |
+| 6.4 | Travel preferences: home + other airports, stops, cabin, baggage, departure/arrival time, preferred and avoided airlines – improve defaults, never hide results | done: cabin as the new search's default; «Mine preferanser» in results sets visible filters; avoided airlines marked, not hidden. On the phone only (account mapping later) |
+| 6.5 | Lagret: saved flights, saved routes, recent searches, price alerts, favourite destinations, with search again / open / remove / share / follow price and good empty states | done: filters, flight snapshot with the price seen and its date, routes, route bookmark on recent searches, alerts section honest about the app |
+| 6.6 | Save a flight from the offer details | done: bookmark next to «Del» |
+| 6.7 | Sync saved flights/routes/destinations with the account | open P1: routes exist; needs deploy, then a union on sign-in like travellers |
+| 6.8 | Preferences on the account (`customer_travel_profiles`) | open P2: needs a field mapping or two JSON fields (Ali) |
+| 6.9 | Use saved travellers in the travellers sheet (counts by type) | open P2: ages for children are not stored (by design); needs a choice of how to ask |
+| 6.10 | Price alerts in the app | blocked: proposal waits for Ali |
 
 ## Blocked outside the app
 
@@ -151,5 +169,6 @@ The master brief (58 sections). Priority order from the brief; each item names i
 
 - Real device, simulator, VoiceOver and Dynamic Type verification (no Mac or iPhone in this environment).
 - Live KAYAK inventory (affiliate access); staging answers with demo data.
-- Price alerts and synced saved trips (server routes exist for the web only).
+- Price alerts in the app (proposal). Synced saved items and account travellers: the mobile routes are built but not
+  deployed (Ali).
 - Social sign-in (owner configuration; see `social-login-handoff.md`).

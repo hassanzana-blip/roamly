@@ -1,5 +1,6 @@
 import type { Offer, OfferPassenger } from "@contracts/types";
 import { WEB_BASE } from "./config";
+import type { SearchForm } from "./searchForm";
 
 const IATA = /^[A-Z]{3}$/;
 const DAY = /^(\d{4}-\d{2}-\d{2})/;
@@ -46,5 +47,27 @@ export function webSearchUrl(offer: Offer): string | null {
   params.push(["from", from], ["to", to], ["depart", depart]);
   if (ret) params.push(["ret", ret]);
   // Bygget for hånd: React Natives URLSearchParams mangler set().
+  return `${WEB_BASE}/sok?${params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")}`;
+}
+
+/**
+ * Et søk fra appens skjema som lenke til hellosky.no (/sok): samme parametere som webSearchUrl – strekning, datoer,
+ * reisende (antall og alder) og klasse. Brukes for å dele et lagret fly eller en lagret rute; en rute har ingen datoer,
+ * så den deles med skjemaets datoer, som nettets egne rutelenker gjør. Ingen konto, token, økt eller pris er med.
+ * null når skjemaet mangler en flyplass.
+ */
+export function webSearchUrlForForm(f: SearchForm): string | null {
+  if (!f.origin || !f.destination || !IATA.test(f.origin.iata) || !IATA.test(f.destination.iata)) return null;
+  const params: [string, string][] = [
+    ["adults", String(f.adults)],
+    ["children", String(f.childAges.length)],
+    ["infants", String(f.infantAges.length)],
+    ["cabin", f.cabinClass],
+  ];
+  if (f.childAges.length) params.push(["childAges", f.childAges.join(",")]);
+  if (f.infantAges.length) params.push(["infantAges", f.infantAges.join(",")]);
+  params.push(["from", f.origin.iata], ["to", f.destination.iata], ["depart", f.departDate]);
+  if (f.tripType === "roundtrip") params.push(["ret", f.returnDate]);
+  if (f.directOnly) params.push(["direct", "1"]);
   return `${WEB_BASE}/sok?${params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")}`;
 }

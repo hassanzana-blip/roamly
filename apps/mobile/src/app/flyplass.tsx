@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Airport } from "@contracts/airports";
 import { useApp } from "../lib/appState";
+import { addAltAirport } from "../lib/preferences";
 import { normalizeQuery, type AirportChoice } from "../lib/searchForm";
 import { recentAirports } from "../lib/recent";
 import { countryFor, norwayAirports } from "../lib/norwayAirports";
@@ -111,14 +112,18 @@ function Suggestions({ field, choose }: { field: "origin" | "destination"; choos
  *
  * `hjem=1` (sammen med `felt=fra`): åpnet fra Min side for å velge den vanlige avreiseflyplassen. Da er valget
  * den – det huskes og blir «Fra» i skjemaet – så bryteren «Husk …» står ikke, bare hva det betyr.
+ *
+ * `ekstra=1` (sammen med `felt=fra`): åpnet fra reisepreferansene for å legge til en annen flyplass kunden også reiser
+ * fra. Valget lagres bare i preferansene; skjemaet og den vanlige avreiseflyplassen står urørt.
  */
 export default function AirportPicker() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { felt, hjem } = useLocalSearchParams<{ felt?: string; hjem?: string }>();
+  const { felt, hjem, ekstra } = useLocalSearchParams<{ felt?: string; hjem?: string; ekstra?: string }>();
   const field = felt === "til" ? "destination" : "origin";
-  const homeMode = felt === "fra" && hjem === "1";
-  const { api, setForm, homeAirport, setHomeAirport } = useApp();
+  const altMode = felt === "fra" && ekstra === "1";
+  const homeMode = felt === "fra" && hjem === "1" && !altMode;
+  const { api, setForm, homeAirport, setHomeAirport, setPrefs } = useApp();
   // Bare når kunden selv slår det på (eller velger den fra Min side), huskes «Fra» som vanlig avreiseflyplass.
   const [remember, setRemember] = useState(false);
   const i18n = useI18n();
@@ -162,6 +167,11 @@ export default function AirportPicker() {
 
   const choose = (a: AirportChoice) => {
     const choice = { iata: a.iata, name: a.name, city: a.city, country: a.country };
+    if (altMode) {
+      setPrefs((p) => addAltAirport(p, choice, homeAirport));
+      router.back();
+      return;
+    }
     setForm((f) => ({ ...f, [field]: choice }));
     if (field === "origin" && (remember || homeMode)) setHomeAirport(choice);
     router.back();
@@ -169,7 +179,7 @@ export default function AirportPicker() {
   // Raden viser – og skjemaet får – navnene på appens språk.
   const choiceFor = (row: Row): AirportChoice => ({ iata: row.airport.iata, ...airportNames(row.airport, locale) });
 
-  const question = homeMode ? a.homeQuestion : field === "origin" ? a.from : a.to;
+  const question = altMode ? a.altQuestion : homeMode ? a.homeQuestion : field === "origin" ? a.from : a.to;
   // Den vanlige avreiseflyplassen med byen på appens språk, som på Min side (lagret «København», vist «Copenhagen»).
   const home = homeAirport ? localizedChoice(homeAirport, locale) : null;
 
@@ -184,7 +194,7 @@ export default function AirportPicker() {
       <View style={styles.head}>
         <IconButton icon="close" label={a.close} variant="light" onPress={() => router.back()} testID="header-back" />
         <Text style={[type.headline, styles.title]} accessibilityRole="header">
-          {homeMode ? a.homeTitle : a.title}
+          {altMode ? a.altTitle : homeMode ? a.homeTitle : a.title}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -221,7 +231,11 @@ export default function AirportPicker() {
           ListHeaderComponent={
             <View style={styles.listHead} testID="airport-list-head">
               <Text style={[type.caption, { color: colors.textSecondary }]}>{a.exactOnly}</Text>
-              {field === "origin" ? (
+              {altMode ? (
+                <Text style={[type.footnote, { color: colors.textSecondary }]} testID="alt-airport-note">
+                  {a.altHint}
+                </Text>
+              ) : field === "origin" ? (
                 <View style={{ gap: space.xs }}>
                   {home ? (
                     <View style={styles.homeRow} testID="home-airport">

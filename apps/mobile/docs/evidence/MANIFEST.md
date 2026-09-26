@@ -2171,3 +2171,89 @@ instances; the only unbound paints are Apple's black button and the «Hopp over�
 | `review2-after-390-results.jpg` | `453062615d5a3992…` | 780×1860 |
 | `review2-after-390-editor.jpg` | `180bc2af9e02f86d…` | 780×1860 |
 | `figma-p7-cloud-graphite.jpg` | `469dbedd255ae67e…` | 2400×2286 |
+
+## Min side as a travel hub, traveller profiles, travel preferences and Lagret (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against a local mock API. Everything
+shown is a **fixture**: the customer «Kari Nordmann», the booking HS7K2Q, the account's travellers Ola and Emma, the
+counts (2 price alerts, 1 unread) and the search answer (marked DEMO in the app). The phone data (saved flights, route,
+recent searches, destinations, preferences) is a seed made with the app's own `flightFromOffer` from the test fixtures.
+In the preview only, the keychain and the settings file are backed by the browser's localStorage (a scratch shim, not
+in the repository).
+
+**Versions:** before is `deb7898` (see `minside-after-390-*` and `review2-*`); after is the commit that adds this
+section. The server stage is `b9a3853` (routes and migration, **not deployed** – `docs/SERVER_MOBILE_ACCOUNT_2026-09-26.md`).
+
+**What changed (owner brief 26.09: «Min side + Saved», real data only)**
+- **Server-backed when the server has it:** `lib/accountData.tsx` calls `mobileAccount.hub` and `mobileAccount.travellers`
+  when signed in. A server without the routes (404, today's production) gives no numbers and no error – Min side shows
+  what is on the phone and the links (`hub-minside-390-server-without-routes.jpg`). A server error shows one line with
+  «Prøv igjen». UNAUTHORIZED ends the session as elsewhere. Refreshed when the tab is focused again.
+- **Min side:** the graphite hero with four tiles – Lagret (flights + routes + destinations on the phone), Nylige søk,
+  Reisende (the account's or the phone's) and Vanlig avreise – then **Neste reise** (the account's nearest booking on
+  hellosky.no, with booking reference and «Bestilt på hellosky.no»; without one, the next saved flight marked «Lagret –
+  ikke bestilt»; without either, nothing), Fortsett søket, favourite destinations, **Reisende**, **Reisepreferanser**,
+  **Varsler** (signed in: price alerts and messages with the account's counts, e-mail choices, and a line that the app
+  sends no push yet), **Konto og sikkerhet** (name, e-mail, edit, Mine reiser with the number of upcoming trips,
+  security), settings, help, log out/delete, version. No bonus, tier, points or statistics.
+- **Traveller profiles:** name, type (adult, child 2–11, infant under 2) and preferred cabin – nothing else. The sheet
+  says passport or ID is given to the airline or agency at booking. Guests: on the phone (`lib/travellers.ts`). Signed in
+  with the routes: the account's list (same as hellosky.no); travellers left on the phone get «Flytt til kontoen».
+- **Travel preferences** (`lib/preferences.ts`, on the phone): usual and up to three other departure airports (the airport
+  picker has a new `ekstra=1` mode that never touches the search form), stops, cabin, checked bag, departure and arrival
+  times, preferred and avoided airlines (the 17 airlines the web's flight status knows; tap cycles prefer → avoid →
+  none). **They never hide results by themselves:** the cabin becomes the default of a new search; in the results a
+  «Mine preferanser» chip sets the rest as ordinary, removable filters (only airlines present in the answer); when no
+  trip matches, the chip stays, disabled, and VoiceOver hears why; avoided airlines are **marked** on the card («Du vil
+  helst unngå SAS»), never hidden.
+- **Lagret:** filters Alle · Fly · Ruter · Søk · Prisvarsler · Reisemål (with counts; Min side opens it on a filter).
+  **Lagrede fly** – saved from the offer details (a bookmark next to «Del»): a snapshot of the trip (airports, times,
+  airlines, flight numbers, stops) and the search it came from; the price shown is **the one the customer saw, with the
+  date** («2 100,50 kr da du lagret · 25. sep.», «ca.» when converted, «Ingen pris i NOK» when there was none), never as
+  today's price; DEMO when the data was demo; «Reisen har gått» after departure. The sheet: both legs, the time it was
+  seen, «Søk igjen» (or «Søk med nye datoer» after departure – fills Home, does not search), Del (hellosky.no link, no
+  price), Lagre ruten, Følg prisen (on hellosky.no until the app has alerts) and Fjern. **Lagrede ruter** – two airports:
+  use in the search, share, remove; saved from a recent search's bookmark or a saved flight. **Nylige søk** as before plus
+  the route bookmark. **Prisvarsler** – says plainly that alerts are not in the app yet; signed in with the routes: the
+  account's number of active alerts and the link. **Favorittreisemål** as before. Every empty section says what goes there.
+- **Code:** Min side's rows moved to `components/SettingsList.tsx`; new `components/minside/*`, `components/SaveFlightButton.tsx`,
+  `lib/savedTrips.ts`, `lib/airlines.ts` (a copy of the contract list; a test keeps them equal), `i18n/ns/hub.ts`.
+
+**Tests:** `travelHub.test.tsx` (22: the account's next trip, counts and travellers, moving phone travellers to the
+account, a server without the routes, a server error and retry, guests make no account calls, phone travellers with
+validation and persistence, preferences persisted and used as the new search's cabin, airline cycling, other airports,
+the next saved flight, Lagret empty and filtered, a saved flight's price and sheet actions, a departed trip, routes from
+recent searches, alerts signed in, saving from the details, the results chip applied/removed/disabled and the avoided
+mark), `preferences.test.ts` (8), `savedTrips.test.ts` (9), `travellers.test.ts` (4), the airport picker's `ekstra=1` mode
+in `minSide.test.tsx`, and updated `minSide`, `profileList` and `savedLibrary` tests. Server:
+`api/test/mobileAccountHub.it.ts` (15) and the updated router-shape and staff-matrix tests.
+
+**Checks:** Jest 784 passed, 3 skipped (TZ=UTC and TZ=Europe/Oslo). Typecheck and lint clean. iOS export 5 113 158 bytes
+(+116 463 since `09404b2`) and bundle check OK. Server: integration suite 19 files / 225 tests on local MariaDB 10.11,
+root unit tests 538, `tsc -p tsconfig.server.json`, ESLint and `migrate:check` clean.
+
+**Widths:** 375, 390 and 430 pt (tiles two by two at all three; nothing clipped). **Not verified:** a real iPhone or
+simulator (sheets, keyboard over the traveller form, VoiceOver order, Dynamic Type at the largest sizes – the tiles
+stack by the same rule as before), the routes against staging or production (not deployed).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `hub-minside-390-guest-empty.jpg` | `7479b834246beba1…` | 780×1688 |
+| `hub-minside-390-guest-data.jpg` | `3a1827b4080b1500…` | 780×1688 |
+| `hub-minside-375-signed-in.jpg` | `f40d71c97b90698e…` | 750×1688 |
+| `hub-minside-390-signed-in.jpg` | `a51e0c154bd7b97f…` | 780×1688 |
+| `hub-minside-390-signed-in-2.jpg` | `263408906a41897c…` | 780×1688 |
+| `hub-minside-390-signed-in-3.jpg` | `1ba6171edeb8a020…` | 780×1688 |
+| `hub-minside-390-signed-in-4.jpg` | `493bfbf2d673ab2d…` | 780×1688 |
+| `hub-minside-430-signed-in.jpg` | `45cf37bf13a7c012…` | 860×1688 |
+| `hub-minside-390-traveller-sheet.jpg` | `bd42fadb2f627754…` | 780×1688 |
+| `hub-minside-390-prefs-airlines.jpg` | `d96656664ddc53ab…` | 780×1688 |
+| `hub-minside-390-server-without-routes.jpg` | `4f02e9f0a7836365…` | 780×1688 |
+| `hub-lagret-390-empty.jpg` | `3b75dab2531d6af2…` | 780×1688 |
+| `hub-lagret-375-data.jpg` | `bccaba137c6c0b02…` | 750×1688 |
+| `hub-lagret-390-data.jpg` | `00b1c6f210409bee…` | 780×1688 |
+| `hub-lagret-430-data.jpg` | `c195f5e4a5292c85…` | 860×1688 |
+| `hub-lagret-390-flight-sheet.jpg` | `49231bc6d63944dc…` | 780×1688 |
+| `hub-lagret-390-filter-alerts-signed-in.jpg` | `8167e330d60a0baa…` | 780×1688 |
+| `hub-results-390-prefs-none-match.jpg` | `5c931f121fc73d85…` | 780×1688 |
+| `hub-results-390-prefs-applied.jpg` | `cfb3598b0c114209…` | 780×1688 |

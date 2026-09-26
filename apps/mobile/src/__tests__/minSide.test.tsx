@@ -147,7 +147,7 @@ beforeEach(() => {
   pinClock();
   keychain.clear();
   (WebBrowser.openBrowserAsync as jest.Mock).mockClear();
-  for (const key of ["recent", "saved", "homeAirport", "draft"]) writePref(key, null);
+  for (const key of ["recent", "saved", "homeAirport", "draft", "travelPrefs", "travellers", "savedFlights", "savedRoutes"]) writePref(key, null);
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -172,7 +172,7 @@ describe("Min side for gjester", () => {
     expect(screen.queryByTestId("web-account-group")).toBeNull();
   });
 
-  it("oversikten uten noe lagret: 0, 0 og «–», med etiketter VoiceOver kan si, og hver flis går dit den sier", async () => {
+  it("oversikten uten noe lagret: 0, 0, 0 og «–», med etiketter VoiceOver kan si, og hver flis går dit den sier", async () => {
     await renderMinSide();
     const recent = screen.getByTestId("hub-recent");
     expect(within(recent).getByText("0")).toBeOnTheScreen();
@@ -182,16 +182,22 @@ describe("Min side for gjester", () => {
     expect(recent).toHaveProp("accessibilityHint", "Åpner Lagret");
     const saved = screen.getByTestId("hub-saved");
     expect(within(saved).getByText("0")).toBeOnTheScreen();
-    expect(within(saved).getByText("Lagrede reisemål")).toBeOnTheScreen();
-    expect(saved).toHaveProp("accessibilityLabel", "Ingen lagrede reisemål");
+    expect(within(saved).getByText("Lagret")).toBeOnTheScreen();
+    expect(saved).toHaveProp("accessibilityLabel", "Ingenting lagret");
+    const people = screen.getByTestId("hub-travellers");
+    expect(within(people).getByText("0")).toBeOnTheScreen();
+    expect(within(people).getByText("Reisende")).toBeOnTheScreen();
+    expect(people).toHaveProp("accessibilityLabel", "Ingen reisende");
+    expect(people).toHaveProp("accessibilityHint", "Viser de reisende");
     const home = screen.getByTestId("hub-home-airport");
     expect(within(home).getByText("–")).toBeOnTheScreen();
     expect(within(home).getByText("Vanlig avreise")).toBeOnTheScreen();
     expect(home).toHaveProp("accessibilityLabel", "Vanlig avreiseflyplass: ikke valgt");
     expect(home).toHaveProp("accessibilityHint", "Velg flyplass");
 
+    // Nylige søk åpner Lagret på søkene; «Lagret» åpner hele Lagret.
     await fireEvent.press(recent);
-    expect(router.navigate).toHaveBeenLastCalledWith("/lagret");
+    expect(router.navigate).toHaveBeenLastCalledWith({ pathname: "/lagret", params: { vis: "sok" } });
     await fireEvent.press(saved);
     expect(router.navigate).toHaveBeenCalledTimes(2);
     expect(router.navigate).toHaveBeenLastCalledWith("/lagret");
@@ -226,7 +232,8 @@ describe("Min side for gjester", () => {
     await renderMinSide({ locale: "en" });
     expect(within(screen.getByTestId("sign-in-card")).getByText("Profile")).toHaveProp("accessibilityRole", "header");
     expect(screen.getByTestId("hub-recent")).toHaveProp("accessibilityLabel", "1 recent search");
-    expect(screen.getByTestId("hub-saved")).toHaveProp("accessibilityLabel", "1 saved destination");
+    expect(screen.getByTestId("hub-saved")).toHaveProp("accessibilityLabel", "1 saved item");
+    expect(screen.getByTestId("hub-travellers")).toHaveProp("accessibilityLabel", "No travellers");
     expect(screen.getByTestId("hub-home-airport")).toHaveProp("accessibilityLabel", "Usual departure airport: not chosen");
     expect(screen.getByTestId("hub-recent")).toHaveProp("accessibilityHint", "Opens Saved");
     expect(screen.getByRole("header", { name: "Continue your search" })).toBeOnTheScreen();
@@ -248,17 +255,17 @@ describe("Min side med søk, reisemål og vanlig avreiseflyplass", () => {
     });
   }
 
-  it("flisene teller alt på telefonen (4 søk, 2 reisemål) og viser den vanlige avreiseflyplassen", async () => {
+  it("flisene teller alt på telefonen (4 søk, 2 lagret, 0 reisende) og viser den vanlige avreiseflyplassen", async () => {
     seedAll();
     await renderMinSide();
     expect(within(screen.getByTestId("hub-recent")).getByText("4")).toBeOnTheScreen();
     expect(screen.getByTestId("hub-recent")).toHaveProp("accessibilityLabel", "4 nylige søk");
     expect(within(screen.getByTestId("hub-saved")).getByText("2")).toBeOnTheScreen();
-    expect(screen.getByTestId("hub-saved")).toHaveProp("accessibilityLabel", "2 lagrede reisemål");
+    expect(screen.getByTestId("hub-saved")).toHaveProp("accessibilityLabel", "2 lagret");
     expect(within(screen.getByTestId("hub-home-airport")).getByText("OSL")).toBeOnTheScreen();
     expect(screen.getByTestId("hub-home-airport")).toHaveProp("accessibilityLabel", "Vanlig avreiseflyplass: Oslo (OSL)");
     expect(screen.queryByTestId("hub-start")).toBeNull();
-    inOrder(["account-hero", "hub-overview", "hub-continue", "hub-saved-destinations", "preferences-group", "settings-group"]);
+    inOrder(["account-hero", "hub-overview", "hub-continue", "hub-saved-destinations", "travellers-section", "preferences-group", "settings-group"]);
   });
 
   it("«Fortsett søket»: de tre nyeste som kan kjøres, i rekkefølge – det passerte står bare i Lagret", async () => {
@@ -336,12 +343,11 @@ describe("Min side med søk, reisemål og vanlig avreiseflyplass", () => {
     expect(input.slices[0]).toMatchObject({ origin: "OSL", destination: "LHR" });
   });
 
-  it("«Reisevaner»: vanlig avreiseflyplass med verdien, og raden åpner flyplassøket for den", async () => {
+  it("«Reisepreferanser»: vanlig avreiseflyplass med verdien, og raden åpner flyplassøket for den (regelen står der)", async () => {
     seedAll();
     await renderMinSide();
     const group = within(screen.getByTestId("preferences-group"));
-    expect(group.getByText("Reisevaner")).toHaveProp("accessibilityRole", "header");
-    expect(group.getByText(HOME_HINT)).toBeOnTheScreen();
+    expect(group.getByText("Reisepreferanser")).toHaveProp("accessibilityRole", "header");
     const row = screen.getByTestId("home-airport-row");
     expect(within(row).getByText("Vanlig avreiseflyplass")).toBeOnTheScreen();
     expect(within(row).getByText("Oslo (OSL)")).toBeOnTheScreen();
@@ -463,15 +469,16 @@ describe("Min side innlogget", () => {
     expect(hero.getByTestId("hub-overview")).toBeOnTheScreen();
   });
 
-  it("rekkefølgen: grafitten, oversikten, modulene, reisevaner, kontoen, hellosky.no, innstillinger, hjelp, logg ut, slett, versjon", async () => {
+  it("rekkefølgen: grafitten, oversikten, modulene, reisende, preferanser, varsler, konto og sikkerhet, innstillinger, hjelp, logg ut, slett, versjon", async () => {
     await renderMinSide({ signedIn: true });
     inOrder([
       "account-hero",
       "hub-overview",
       "hub-start",
+      "travellers-section",
       "preferences-group",
+      "alerts-group",
       "account-card",
-      "web-account-group",
       "settings-group",
       "help-card",
       "logout-button",
@@ -480,18 +487,23 @@ describe("Min side innlogget", () => {
     ]);
   });
 
-  it("«På hellosky.no»: kundens sider som lenker med hint, åpnet i Safari-visning", async () => {
+  it("kundens sider på hellosky.no: lenker med hint, åpnet i Safari-visning – «Mine reiser» og sikkerhet ved kontoen, prisvarsler og meldinger under «Varsler»", async () => {
     await renderMinSide({ signedIn: true });
-    const group = within(screen.getByTestId("web-account-group"));
-    expect(group.getByText("På hellosky.no")).toHaveProp("accessibilityRole", "header");
-    expect(group.getByText("Sidene åpnes på hellosky.no. Første gang logger du inn der med samme konto.")).toBeOnTheScreen();
+    const account = within(screen.getByTestId("account-card"));
+    expect(account.getByText("Konto og sikkerhet")).toHaveProp("accessibilityRole", "header");
+    expect(account.getByText("Sidene åpnes på hellosky.no. Første gang logger du inn der med samme konto.")).toBeOnTheScreen();
+    const alerts = within(screen.getByTestId("alerts-group"));
+    expect(alerts.getByText("Varsler")).toHaveProp("accessibilityRole", "header");
+    // Appen sender ikke pushvarsler – det står, i stedet for en bryter som ikke gjør noe.
+    expect(alerts.getByText("Appen sender ikke pushvarsler ennå. Prisvarsler og meldinger kommer på e-post og på hellosky.no.")).toBeOnTheScreen();
     // «Mine reiser» er bestillinger gjort på nettet – linjen under sier det, så ingen leter etter appens søk der.
     expect(within(screen.getByTestId("link-trips")).getByText("Bestillinger gjort på hellosky.no")).toBeOnTheScreen();
     for (const [id, label, url] of [
       ["link-trips", "Mine reiser, Bestillinger gjort på hellosky.no", WEB_PAGES.trips],
-      ["link-travellers", "Reisende", WEB_PAGES.travellers],
-      ["link-price-alerts", "Prisvarsler", WEB_PAGES.priceAlerts],
       ["link-security", "Sikkerhet og innlogging", WEB_PAGES.security],
+      ["link-price-alerts", "Prisvarsler, Opprettes og styres på hellosky.no", WEB_PAGES.priceWatches],
+      ["link-inbox", "Meldinger fra HelloSky", WEB_PAGES.notifications],
+      ["link-notification-settings", "E-post og varselvalg", WEB_PAGES.notificationSettings],
     ] as const) {
       const link = screen.getByTestId(id);
       expect(link).toHaveProp("accessibilityRole", "link");
@@ -501,18 +513,21 @@ describe("Min side innlogget", () => {
       await fireEvent.press(link);
       expect(WebBrowser.openBrowserAsync).toHaveBeenLastCalledWith(url, expect.anything());
     }
-    expect([WEB_PAGES.trips, WEB_PAGES.travellers, WEB_PAGES.priceAlerts, WEB_PAGES.security]).toEqual([
+    expect([WEB_PAGES.trips, WEB_PAGES.security, WEB_PAGES.priceWatches, WEB_PAGES.notifications, WEB_PAGES.notificationSettings]).toEqual([
       "https://hellosky.no/reiser",
-      "https://hellosky.no/profil/reisende",
-      "https://hellosky.no/profil/prisvarsler",
       "https://hellosky.no/profil/sikkerhet",
+      "https://hellosky.no/profil/prisovervaking",
+      "https://hellosky.no/profil/varsler",
+      "https://hellosky.no/profil/innstillinger",
     ]);
+    // Reisende har egen seksjon i appen; ingen lenke til nettets side.
+    expect(screen.queryByTestId("link-travellers")).toBeNull();
   });
 
   it("engelsk: sidene på hellosky.no er på norsk, og det sies", async () => {
     await renderMinSide({ signedIn: true, locale: "en" });
-    const group = within(screen.getByTestId("web-account-group"));
-    expect(group.getByText("On hellosky.no")).toBeOnTheScreen();
+    const group = within(screen.getByTestId("account-card"));
+    expect(group.getByText("Account and security")).toBeOnTheScreen();
     expect(group.getByText("These pages open on hellosky.no and are in Norwegian. The first time, you log in there with the same account.")).toBeOnTheScreen();
     expect(screen.getByTestId("link-trips")).toHaveProp("accessibilityLabel", "My trips, Bookings made on hellosky.no");
   });
@@ -520,7 +535,7 @@ describe("Min side innlogget", () => {
   it("«Profilen er lagret» står rett over kontoen (der kunden er når arket lukkes), som et lyst varsel", async () => {
     await renderMinSide({ signedIn: true, routes: { "mobileAuth.updateProfile": (req) => ({ data: { ...PROFILE, ...(req.input as object) } }) } });
     expect(screen.queryByTestId("profile-saved")).toBeNull();
-    expect(colorOf(within(screen.getByTestId("account-card")).getByText("Konto"))).toBe(colors.text);
+    expect(colorOf(within(screen.getByTestId("account-card")).getByText("Konto og sikkerhet"))).toBe(colors.text);
     await fireEvent.press(screen.getByTestId("open-edit-profile"));
     await fireEvent.changeText(screen.getByTestId("edit-first-name"), "Karianne");
     await fireEvent.press(screen.getByTestId("edit-save"));
@@ -603,7 +618,7 @@ describe("Min side i «Cloud + Graphite»", () => {
     expect(colorOf(within(screen.getByTestId("sign-in-card")).getByText("Min side"))).toBe(colors.onDark);
     // Gruppene under står på den lyse grunnen: overskrifter i tekstfarge, merknader og versjon sekundærfarget.
     expect(colorOf(within(screen.getByTestId("settings-group")).getByText("Innstillinger"))).toBe(colors.text);
-    expect(colorOf(within(screen.getByTestId("preferences-group")).getByText(HOME_HINT))).toBe(colors.textSecondary);
+    expect(colorOf(within(screen.getByTestId("preferences-group")).getByText(/^Preferansene gjør standardvalgene bedre\./))).toBe(colors.textSecondary);
     expect(colorOf(screen.getByTestId("app-version"))).toBe(colors.textSecondary);
     expect(flat("hub-start").backgroundColor).toBe(colors.white);
   });
@@ -734,6 +749,21 @@ describe("flyplassøket fra Min side (vanlig avreiseflyplass)", () => {
     await fireEvent.press(within(screen.getByTestId("airport-suggestions")).getByTestId("airport-TOS"));
     expect(readPref("homeAirport", (v) => (v as { iata: string }).iata)).toBe("TOS");
     expect(screen.getByTestId("probe")).toHaveTextContent(/^roundtrip TOS→/);
+  });
+
+  it("med ekstra=1 (reisepreferansene): egen tittel; valget blir en annen flyplass – skjemaet og den vanlige står urørt", async () => {
+    seed({ homeAirport: OSL });
+    await renderPicker({ felt: "fra", ekstra: "1" });
+    expect(screen.getByRole("header", { name: "Annen flyplass" })).toBeOnTheScreen();
+    expect(screen.getByTestId("airport-query")).toHaveProp("accessibilityLabel", "Hvilken flyplass reiser du også fra?");
+    expect(screen.getByTestId("alt-airport-note")).toHaveTextContent("Lagres i reisepreferansene på denne telefonen. Søket og den vanlige avreiseflyplassen står som de er.");
+    expect(screen.queryByTestId("remember-home-airport")).toBeNull();
+    const before = screen.getByTestId("probe").props.children as string;
+    await fireEvent.press(within(screen.getByTestId("airport-suggestions")).getByTestId("airport-BGO"));
+    expect(readPref("travelPrefs", (v) => (v as { altAirports: { iata: string }[] }).altAirports.map((a) => a.iata))).toEqual(["BGO"]);
+    expect(readPref("homeAirport", (v) => (v as { iata: string }).iata)).toBe("OSL");
+    expect(screen.getByTestId("probe").props.children).toBe(before);
+    expect(router.back).toHaveBeenCalledTimes(1);
   });
 
   it("uten hjem=1: som før – «Velg flyplass», bryteren står, og et valg uten den huskes ikke", async () => {

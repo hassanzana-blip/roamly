@@ -85,10 +85,11 @@ describe("lagre reisemål fra Utforsk", () => {
 });
 
 describe("Lagret-fanen", () => {
-  it("tom: forklarer at alt bare ligger på telefonen og ikke er bestillinger, priser, varsler eller synket", async () => {
+  it("tom: forklarer at alt bare ligger på telefonen, ikke er bestillinger, holdte priser eller varsler, og ikke er synket", async () => {
     await renderApp(<SavedScreen />);
     // Én kort, sann setning øverst; hele forklaringen bak «Om Lagret».
-    expect(screen.getByTestId("saved-note")).toHaveTextContent("Bare på denne telefonen – ikke bestillinger eller priser.");
+    // Prisene i Lagret er de kunden så da et fly ble lagret – setningen sier det.
+    expect(screen.getByTestId("saved-note")).toHaveTextContent("Bare på denne telefonen – ikke bestillinger. Prisene er de du så.");
     expect(screen.queryByTestId("saved-note-detail")).toBeNull();
     const info = screen.getByTestId("saved-info");
     expect(info).toHaveProp("accessibilityLabel", "Om Lagret");
@@ -98,7 +99,7 @@ describe("Lagret-fanen", () => {
     expect(screen.getByTestId("saved-note-detail")).toHaveTextContent(/bare på denne telefonen.*ikke bestillinger, holdte priser eller prisvarsler.*synkroniseres ikke med kontoen/);
     await fireEvent.press(screen.getByTestId("saved-info"));
     expect(screen.queryByTestId("saved-note-detail")).toBeNull();
-    expect(screen.getByTestId("saved-destinations-empty")).toHaveTextContent(/^Ingen lagrede reisemål ennå. Lagre et fra Utforsk./);
+    expect(screen.getByTestId("saved-destinations-empty")).toHaveTextContent(/Ingen lagrede reisemål ennå. Lagre et fra Utforsk./);
     await fireEvent.press(screen.getByTestId("saved-to-explore"));
     expect(router.navigate).toHaveBeenCalledWith("/utforsk");
     expect(screen.getByTestId("recent-empty")).toBeOnTheScreen();
@@ -253,7 +254,7 @@ describe("Lagret-fanen", () => {
     expect(within(again).queryAllByRole("button")).toHaveLength(0);
 
     // Seksjonsoverskriftene er overskrifter med antall.
-    expect(screen.getByTestId("saved-destinations-title")).toHaveProp("accessibilityLabel", "Reisemål, 1");
+    expect(screen.getByTestId("saved-destinations-title")).toHaveProp("accessibilityLabel", "Favorittreisemål, 1");
     expect(screen.getByTestId("recent-title")).toHaveProp("accessibilityLabel", "Nylige søk, 2");
     expect(screen.getByTestId("recent-title")).toHaveProp("accessibilityRole", "header");
   });

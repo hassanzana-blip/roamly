@@ -6,9 +6,8 @@ last sections of `docs/evidence/MANIFEST.md`.
 ## Where the work is
 
 - **Branch:** `claude/bold-shannon-0wuhsd` (PR #8). Never push to, merge into or rebase onto `main`.
-- **Base on GitHub:** `2f4ab8a`. Everything after it is local to the session and delivered as a git bundle, because
-  pushing from the cloud session is refused (403: the session's GitHub access does not include writing to
-  `hassanzana-blip/roamly`). Ali can grant it or push the bundle himself.
+- **On GitHub:** the whole branch. The bundle up to `5e4ac0b` was pushed on 26.09 (fast-forward from `2f4ab8a`); later
+  stages are pushed directly to the same branch.
 - **Latest commit:** see `git log -1`; the milestone list below names each one.
 
 ## Ground rules (from Ali's briefs)
@@ -49,22 +48,32 @@ last sections of `docs/evidence/MANIFEST.md`.
   `docs/PROPOSAL_DEALS_AND_ALERTS_2026-09-25.md`).
 - Hotels: behind `hotels.status`; the app shows hotels only when the server says they are on.
 - Apple/Google sign-in: built and gated off until Apple's entitlement and Clerk are configured (Ali).
-- On the phone only: recent searches (max 6), saved destinations, usual departure airport, draft form, language.
-  Min side shows only these (and the account); the customer's web pages (trips, travellers, price alerts, security)
-  are links to hellosky.no, with no numbers or lists in the app.
+- **Account data through the mobile API (`mobileAccount.*`, `b9a3853`): built and tested, NOT deployed.** When the
+  server has the routes, Min side shows the account's next booking, travellers, active price alerts, unread messages and
+  upcoming trips; without them (production today: 404) it shows phone data and links only – never guessed numbers.
+  Handoff: `docs/SERVER_MOBILE_ACCOUNT_2026-09-26.md`.
+- On the phone only: recent searches (max 6), saved destinations, saved flights (snapshot + the price seen and when,
+  max 30), saved routes (max 20), travel preferences, travellers for guests, usual departure airport, draft form,
+  language. Saved items do not sync to the account yet (routes exist; needs deploy).
 
 ## Test state
 
-- Jest: 740 passed, 3 skipped at `deb7898` (UTC and Oslo, also with the clock at 24 Oct 2026 and 1 Jun 2027).
-  Typecheck and lint clean; iOS export 4 996 695 bytes and bundle check OK (tree of `09404b2`).
-- Browser preview harness (session only): `/home/claude/preview` (`harness/sync.sh`, `harness/metro-restart.sh`,
-  mock API on :3999, Playwright scripts). NOT a simulator.
+- Jest: 784 passed, 3 skipped at the Min side + Lagret stage (TZ=UTC and Europe/Oslo). Typecheck and lint clean; iOS
+  export 5 113 158 bytes and bundle check OK.
+- Server: integration suite 19 files / 225 tests on a local MariaDB 10.11 (`IT_ROOT_DATABASE_URL`), root unit tests 538,
+  `tsc -p tsconfig.server.json`, ESLint and `migrate:check` clean.
+- Browser preview harness (session scratch only, rebuilt each session): a copy of `apps/mobile` with `react-native-web`,
+  localStorage shims for the keychain and the settings file, `app.json` with `web`, a mock API on :3999 and Playwright
+  scripts. NOT a simulator. The repo's `app.json` and `package.json` are never changed for it.
 - Never tested on a simulator or an iPhone.
 
 ## Milestones on this branch (newest first)
 
 | Commit | What |
 |---|---|
+| (this stage) | Min side as a travel hub (next trip, travellers, preferences, notifications, account and security), traveller profiles, travel preferences with «Mine preferanser» in results, Lagret with flights/routes/searches/alerts/destinations, save a flight from the details |
+| `b9a3853` | Mobile API `mobileAccount.*` (hub, travellers, saved items) and migration 0009 – not deployed |
+| `5e4ac0b` | Docs: Cloud + Graphite in DESIGN.md, status, backlog, review-fix evidence and Figma P7 |
 | `deb7898` | Review fixes: search transformation (one stable results tree, inert list under the open editor, «Prøv igjen», heading) |
 | `d62cac3` | Review fixes: Min side (usual-airport rule, status bar over sheets, name placeholder, cards grow with text) |
 | `09404b2` | Search transformation: compact results header with route, date and traveller chips; editor in place; motion |
@@ -103,10 +112,10 @@ Status: **done** (on this branch), **partial**, **open** (buildable now), **bloc
 | 21 | Return-flight clarity | done | – | Both legs on the card |
 | 22–24 | Layover, airport-change, next-day warnings | done | – | |
 | 25 | Self-transfer indicator | blocked | P2 | Only if the provider says so |
-| 26 | Price alerts | blocked | P1 | Server exists for the web; needs Ali (proposal) |
-| 27 | Saved flights | open | P1 | Server `saved_items` exists for the web; mobile route needed |
-| 28 | Saved searches | partial | P1 | Recent searches on the phone |
-| 29 | Saved routes | open | P1 | With 27 |
+| 26 | Price alerts | blocked | P1 | Server exists for the web; needs Ali (proposal). Lagret says so and shows the account's count when the routes are deployed |
+| 27 | Saved flights | done | – | On the phone with the price seen and its date; account sync needs deploy (routes built) |
+| 28 | Saved searches | partial | P2 | Recent searches and saved routes on the phone |
+| 29 | Saved routes | done | – | Two airports; use, share, remove |
 | 30 | Recent searches | done | – | |
 | 31 | Explore Anywhere | partial | P1 | Curated destinations + map, no prices |
 | 32 | Weekend finder | open | P2 | Real dates; prices only from a real source |
@@ -115,17 +124,21 @@ Status: **done** (on this branch), **partial**, **open** (buildable now), **bloc
 | 35 | Norway holiday discovery | open | P2 | Needs verified school-holiday dates per municipality |
 | 36–37 | Price history, good-price intelligence | blocked | P3 | Needs history |
 | 38 | Shareable travel cards | partial | P2 | Share text exists; card image later |
-| 39 | Personal travel dashboard (Min side) | done | P1 | Local data and web links now; server data (next trip, saved flights) next |
-| 40 | Traveler profiles | open | P1 | Server `saved_travelers` exists; mobile route needed; no ID data |
-| 41 | Travel preferences | partial | P1 | Usual departure airport (starts new searches); more later |
+| 39 | Personal travel dashboard (Min side) | done | – | Account data when the routes are deployed; phone data otherwise |
+| 40 | Traveler profiles | done | – | Name, type, cabin; phone or account; never ID data |
+| 41 | Travel preferences | done | – | On the phone; never hide results; account mapping later |
 | 42 | Home airport | done | – | |
-| 43 | Preferred airlines | open | P2 | With 41 |
-| 44 | Notification center | open | P2 | Server `customer_notifications` exists |
+| 43 | Preferred airlines | done | – | Prefer / avoid (marked, never hidden) |
+| 44 | Notification center | partial | P2 | Unread count and link on Min side (with the routes); no push (no `expo-notifications`) |
 | 45–46 | Widget, Live Activities | later | P3 | Native work |
 | 47 | Collaborative shortlist | later | P3 | Server has boards/match for the web |
 | 48 | Natural-language search | later | P3 | |
 | 49 | Comparison explanation | partial | P2 | «Best» explained; per-card «why» later |
 | 50 | Personal travel graph | later | P3 | |
+
+**Min side + Saved (26.09):** Min side is the customer's travel hub with the account's real data when the server has it;
+traveller profiles and travel preferences; Lagret with flights, routes, searches, alerts and destinations. Server routes
+built, not deployed.
 
 **P0 of 25.09 is done (26.09):** Cloud + Graphite across the app, Home's graphite search island, the first-launch
 welcome with Apple/Google (visible in the preview), Min side as a travel hub, the search transformation into the
@@ -133,9 +146,12 @@ results header with motion, and Figma P7 in step. Independent reviews of Min sid
 
 ## Next priority
 
-1. The mobile API hub for Min side (reuse the web's `account.hub`: next trip, saved count, watches) and saved
-   flights/routes and traveller profiles through the mobile API – server routes exist for the web; deploy needs Ali.
-2. Destination themes in Explore (curated facts, no prices).
-3. VoiceOver tab roles (backlog 4.9) and a device pass (simulator/iPhone) for status bars, sheets and motion.
-4. Owner items: Google's logo asset, Apple capability + Clerk, push access (or push the bundle), `expo-haptics`,
-   the deals/alerts proposal.
+1. **Ali: approve deploying `mobileAccount.*` and running migration 0009** (additive). Until then Min side and Lagret
+   show phone data only. Handoff: `docs/SERVER_MOBILE_ACCOUNT_2026-09-26.md`.
+2. After deploy: sync Lagret (flights, routes, destinations) with the account – a union on sign-in and save/unsave
+   through the API, like «Flytt til kontoen» for travellers (6.7).
+3. Destination themes in Explore (curated facts, no prices) – next P1 that needs no approval.
+4. VoiceOver tab roles (backlog 4.9) and a device pass (simulator/iPhone) for status bars, sheets, the traveller form
+   with the keyboard, and motion.
+5. Owner items: Google's logo asset, Apple capability + Clerk, `expo-haptics`, the deals/alerts proposal, preferences
+   on the account (6.8).

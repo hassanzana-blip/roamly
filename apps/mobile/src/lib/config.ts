@@ -39,5 +39,10 @@ export const WEB_PAGES = {
   trips: `${WEB_BASE}/reiser`,
   travellers: `${WEB_BASE}/profil/reisende`,
   priceAlerts: `${WEB_BASE}/profil/prisvarsler`,
+  /** Prisovervåking (kontoens price_watches) – det mobileAccount.hub teller som aktive prisvarsler. */
+  priceWatches: `${WEB_BASE}/profil/prisovervaking`,
+  notifications: `${WEB_BASE}/profil/varsler`,
+  /** E-post- og varselvalg for kontoen. */
+  notificationSettings: `${WEB_BASE}/profil/innstillinger`,
   security: `${WEB_BASE}/profil/sikkerhet`,
 } as const;

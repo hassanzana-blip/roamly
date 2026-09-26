@@ -3,6 +3,7 @@ import type { Airport } from "@contracts/airports";
 import type { CabinClass, SearchPassengerInput, SearchSliceInput } from "@contracts/types";
 import type { MobileSearchResult } from "@contracts/mobileSearch";
 import type { HotelDetailResult, HotelPlace, HotelSearchResult, HotelsStatus } from "@contracts/hotels";
+import type { MobileAccountHub, MobileSavedItem, MobileSavedKind, MobileSaveItemInput, MobileSaveTravellerInput, MobileTraveller, MobileUnsaveItemInput } from "@contracts/mobileAccount";
 import type { CustomerProfile, MobileAuthProviders, MobileAuthResult, MobileSocialAuthResult, MobileDeleteAccountInput, MobileLocale, MobileOkResult, MobileUpdateProfileInput } from "@contracts/mobileAuth";
 
 /**
@@ -198,6 +199,17 @@ export function createApiClient({ baseUrl, getToken, fetchImpl = fetch, timeoutM
      */
     trackProviderClick: (offerId: string, sessionId?: string) =>
       call<{ clickRef: string | null }>("mutation", "flights.trackProviderClick", { offerId, ...(sessionId ? { sessionId } : {}) }, { timeoutMs: 8_000 }),
+    /**
+     * Min side og Lagret (mobileAccount.*, bare innlogget). En server uten disse rutene svarer 404 (appCode
+     * BAD_RESPONSE, status 404): appen viser da bare det som ligger på telefonen (se lib/accountData.ts).
+     */
+    accountHub: () => call<MobileAccountHub>("query", "mobileAccount.hub", undefined, { auth: true, timeoutMs: 10_000 }),
+    travellers: () => call<MobileTraveller[]>("query", "mobileAccount.travellers", undefined, { auth: true }),
+    saveTraveller: (input: MobileSaveTravellerInput) => call<MobileTraveller>("mutation", "mobileAccount.saveTraveller", input, { auth: true }),
+    removeTraveller: (id: number) => call<{ ok: true }>("mutation", "mobileAccount.removeTraveller", { id }, { auth: true }),
+    savedItems: (kind?: MobileSavedKind) => call<MobileSavedItem[]>("query", "mobileAccount.saved", kind ? { kind } : undefined, { auth: true }),
+    saveItem: (input: MobileSaveItemInput) => call<{ ok: true }>("mutation", "mobileAccount.save", input, { auth: true }),
+    unsaveItem: (input: MobileUnsaveItemInput) => call<{ ok: true }>("mutation", "mobileAccount.unsave", input, { auth: true }),
   };
 }
 

@@ -168,7 +168,8 @@ function airlineNames(journey: Journey): string {
  * både utreise og hjemreise, så prisen aldri står ved bare halve reisen. Reiseklassen står bare når den er en annen
  * enn den kunden søkte. VoiceOver leser alt (se accessibilityLabel).
  */
-export const OfferCard = memo(function OfferCard({ journey, onOpen, totalConfirmed = true, searchedCabin }: { journey: Journey; onOpen: (offerId: string) => void; totalConfirmed?: boolean; searchedCabin?: CabinClass }) {
+/** `avoided`: flyselskaper i reisen kunden helst vil unngå (reisepreferansene), som tekst – merkes, skjules aldri. */
+export const OfferCard = memo(function OfferCard({ journey, onOpen, totalConfirmed = true, searchedCabin, avoided }: { journey: Journey; onOpen: (offerId: string) => void; totalConfirmed?: boolean; searchedCabin?: CabinClass; avoided?: string }) {
   const item = journey.best;
   const { offer, price } = item;
   const i18n = useI18n();
@@ -192,6 +193,7 @@ export const OfferCard = memo(function OfferCard({ journey, onOpen, totalConfirm
     [names, cabinDiffers].filter(Boolean).join(", "),
     legs,
     ...risks,
+    ...(avoided ? [t.results.card.avoided(avoided)] : []),
     facts.map((b) => baggageShort(b, i18n)).join(". "),
     `${d.accessibilityLabel}, ${basis.toLowerCase()}`,
   ].join(". ");
@@ -232,6 +234,13 @@ export const OfferCard = memo(function OfferCard({ journey, onOpen, totalConfirm
               <Text style={[type.caption, { color: colors.warning, fontWeight: "600", flexShrink: 1 }]}>{r}</Text>
             </View>
           ))}
+        </View>
+      ) : null}
+
+      {avoided ? (
+        <View style={styles.risk} testID={`avoided-${offer.id}`}>
+          <Icon name="minus" size={13} color={colors.textSecondary} />
+          <Text style={[type.caption, { color: colors.textSecondary, fontWeight: "600", flexShrink: 1 }]}>{t.results.card.avoided(avoided)}</Text>
         </View>
       ) : null}
 
