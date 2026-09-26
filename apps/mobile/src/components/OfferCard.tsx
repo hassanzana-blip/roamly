@@ -162,7 +162,7 @@ function airlineNames(journey: Journey): string {
 }
 
 /**
- * Reisen som kompakt kort på den mørke resultatlisten, bygget for å sammenligne raskt: selskap øverst, hver
+ * Reisen som kompakt hvitt kort på resultatlistens lyse grunn, bygget for å sammenligne raskt: selskap øverst, hver
  * strekning på to linjer (med byttested), det som bør vekke oppmerksomhet (bytte over natten, flyplassbytte, lang
  * ventetid) med ord og ikon, og bagasjen ved siden av en tydelig totalpris. Hele kortet er knappen. Tur-retur viser
  * både utreise og hjemreise, så prisen aldri står ved bare halve reisen. Reiseklassen står bare når den er en annen

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, FlatList, RefreshControl, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -43,7 +43,8 @@ import { OfferCard } from "../components/OfferCard";
 import { DateRangeSheet } from "../components/RangeCalendar";
 import { SortTabs, type SortTab } from "../components/SortTabs";
 import { ResultsSkeleton } from "../components/ResultsSkeleton";
-import { Banner, BottomSheet, Chip, DemoBadge, IconButton, Notices, PrimaryButton, SecondaryButton, Segmented, StateView, type NoticeItem } from "../components/ui";
+import { Banner, BottomSheet, Chip, DemoBadge, IconButton, PrimaryButton, SecondaryButton, Segmented, StateView, type NoticeItem } from "../components/ui";
+import { LightNotices } from "../components/LightNotices";
 import { Icon, type IconName } from "../components/Icon";
 import { colors, radius, space, TOUCH, type } from "../lib/theme";
 
@@ -383,6 +384,14 @@ export default function ResultsScreen() {
   const [sheet, setSheet] = useState<null | "filter" | "sort" | "dates">(null);
   // Den flytende linjens faktiske høyde (stor tekst gjør den høyere), så det siste kortet kan rulles helt over den.
   const [toolbarHeight, setToolbarHeight] = useState(0);
+  // Statuslinjen følger det som står under den: lys tekst over grafittøya øverst. Når øya har rullet ut under
+  // statuslinjen, mørk tekst og en lys skjerm over grunnen, så kortene ikke glir inn under klokken (som på forsiden).
+  const headerHeight = useRef(0);
+  const [pastHeader, setPastHeader] = useState(false);
+  const onListScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => setPastHeader(headerHeight.current > 0 && e.nativeEvent.contentOffset.y > headerHeight.current - insets.top),
+    [insets.top],
+  );
   // En treg leverandør: si fra etter en stund, i stedet for å bare vise en
   // spinner. Tidtakeren merker akkurat dette søket; et nytt søk starter på nytt.
   const [slowSearch, setSlowSearch] = useState<object | null>(null);
@@ -400,6 +409,8 @@ export default function ResultsScreen() {
   // over fanene nok – listen skal ikke hoppe ned.
   const [pulled, setPulled] = useState(false);
   if (pulled && !refreshing) setPulled(false);
+  // Uten et svar vises ingen liste; neste liste starter øverst, med øya under statuslinjen.
+  if (pastHeader && !answer) setPastHeader(false);
   const offers = answer ? answer.result.offers : null;
   // Ubekreftet total: et prisfilter («Opptil 3 000 kr») ville vært et løfte om en total. Det tas bort – også i den
   // første tegningen av svaret, før effekten under har rukket å nullstille det lagrede valget (liste, tall og brikker).
@@ -463,31 +474,41 @@ export default function ResultsScreen() {
   const kind = answer ? resultKind(answer.result) : null;
   const demo = kind === "demo" || kind === "sandbox";
 
-  const header = (
-    <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
-      <IconButton icon="chevronLeft" label={r.back} variant="plain" onPress={() => router.back()} testID="header-back" />
-      {/* Et trykk på søket åpner søkeskjemaet, som søkeknappen til høyre. For VoiceOver er det knappen som gjør det;
-          overskriften forblir en overskrift. */}
-      <Pressable style={({ pressed }) => [styles.headerText, pressed && { opacity: 0.7 }]} onPress={editSearch} accessible={false} testID="header-edit">
-        <View style={styles.titleRow}>
-          <Text style={[type.headline, { color: colors.onDark }]} numberOfLines={1} accessibilityRole="header">
-            {title}
-          </Text>
-          {demo ? <DemoBadge /> : null}
-        </View>
-        <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={2}>
-          {subtitle}
-        </Text>
-      </Pressable>
-      <IconButton icon="search" label={r.editSearch} onPress={editSearch} testID="edit-search" />
+  // Ruteoverskriften («Cloud + Graphite»): en grafittøy helt ut til kantene og opp under statuslinjen, med runde
+  // hjørner nederst. Tilbake, ruten med datoer og reisende (et trykk åpner søkeskjemaet) og søkeknappen; med et svar
+  // også prisstatusen og fanene Best / Billigst / Raskest (`extra`). Alt under øya står på den lyse grunnen.
+  const headerIsland = (extra?: ReactNode) => (
+    <View
+      style={[styles.header, { paddingTop: insets.top + space.sm }]}
+      testID="results-header"
+      onLayout={(e) => {
+        headerHeight.current = e.nativeEvent.layout.height;
+      }}
+    >
+      <View style={styles.headerRow}>
+        <IconButton icon="chevronLeft" label={r.back} variant="plain" onPress={() => router.back()} testID="header-back" />
+        {/* Et trykk på søket åpner søkeskjemaet, som søkeknappen til høyre. For VoiceOver er det knappen som gjør det;
+            overskriften forblir en overskrift. Ingen linjegrense: stor tekst og lange bynavn brytes i stedet for å kuttes. */}
+        <Pressable style={({ pressed }) => [styles.headerText, pressed && { opacity: 0.7 }]} onPress={editSearch} accessible={false} testID="header-edit">
+          <View style={styles.titleRow}>
+            <Text style={[type.headline, styles.title]} accessibilityRole="header">
+              {title}
+            </Text>
+            {demo ? <DemoBadge /> : null}
+          </View>
+          <Text style={[type.caption, styles.subtitle]}>{subtitle}</Text>
+        </Pressable>
+        <IconButton icon="search" label={r.editSearch} onPress={editSearch} testID="edit-search" />
+      </View>
+      {extra}
     </View>
   );
 
+  // Uten liste står øya fast øverst, og ingenting ruller inn under statuslinjen: lys tekst, ingen skjerm.
   const shell = (children: ReactNode) => (
-    <View style={styles.screen}>
+    <View style={styles.screen} testID="results-screen">
       <StatusBar style="light" />
-      <StatusBarShield />
-      {header}
+      {headerIsland()}
       {children}
     </View>
   );
@@ -495,7 +516,7 @@ export default function ResultsScreen() {
   if (search.status === "idle") {
     // Åpnet uten et søk (lenke, omstart eller tilbakestilt tilstand): ingen evig spinner.
     return shell(
-      <StateView icon="search" title={r.idleTitle} body={r.idleBody} testID="results-empty">
+      <StateView icon="search" title={r.idleTitle} body={r.idleBody} testID="results-empty" dark={false}>
         <PrimaryButton testID="start-search" label={r.startSearch} onPress={() => router.replace("/")} />
       </StateView>,
     );
@@ -503,7 +524,7 @@ export default function ResultsScreen() {
 
   if (search.status === "loading" && !answer) {
     // Søket står i toppen; under: hva som skjer og plassholderkort i samme form som svaret. «Stopp søket» står der
-    // verktøylinjen kommer, innen rekkevidde for tommelen.
+    // verktøylinjen kommer, innen rekkevidde for tommelen – og i grafitt, som den.
     return shell(
       <View style={styles.loading}>
         <ResultsSkeleton title={r.loadingTitle} body={slow ? r.loadingSlow : r.loadingBody} testID="results-loading" />
@@ -526,14 +547,12 @@ export default function ResultsScreen() {
   if (search.status === "error") {
     return shell(
       <View style={styles.errorBox} testID="results-error">
-        <Banner tone="error" dark>
-          {errorText(search.error, i18n)}
-        </Banner>
+        <Banner tone="error">{errorText(search.error, i18n)}</Banner>
         {/* «Prøv igjen» bare når et nytt forsøk kan hjelpe; ellers er «Endre søk» hovedvalget. */}
         {canRetry(search.error) ? (
           <>
             <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch()} testID="retry-search" />
-            <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+            <SecondaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
           </>
         ) : (
           <PrimaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
@@ -604,7 +623,7 @@ export default function ResultsScreen() {
   const nearby = all.length ? [] : nearbyDates(search.query);
   const nearbyRow = nearby.length ? (
     <View style={styles.nearby} testID="nearby-dates">
-      <Text style={[type.footnoteStrong, { color: colors.onDark, textAlign: "center" }]}>{r.nearbyTitle}</Text>
+      <Text style={[type.footnoteStrong, { color: colors.text, textAlign: "center" }]}>{r.nearbyTitle}</Text>
       <View style={styles.nearbyRow}>
         {nearby.map((d) => {
           const back = search.query.tripType === "roundtrip" ? d.returnDate : null;
@@ -615,6 +634,7 @@ export default function ResultsScreen() {
               label={back ? f.dateSpan(d.departDate, back) : f.day(d.departDate)}
               accessibilityLabel={r.nearbySpoken(f.day(d.departDate), back ? f.day(back) : null)}
               selected={false}
+              dark={false}
               // Søket som vises, med nye datoer – ikke et skjema som kan være endret etterpå.
               onPress={() => runSearch({ ...search.query, departDate: d.departDate, returnDate: d.returnDate })}
             />
@@ -626,77 +646,86 @@ export default function ResultsScreen() {
 
   const listHeader = (
     <View>
-      {header}
-      {all.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} testID="results-chips">
-          {chips
-            .filter((c) => c.key === "all" || c.selected || c.count > 0)
-            .flatMap((c) => {
-              const chip = <Chip key={c.key} testID={`chip-${c.key}`} label={c.label} selected={c.selected} onPress={c.onPress} />;
-              // De aktive filtrene fra arket rett etter «Alle», så de synes uten å rulle.
-              return c.key === "all"
-                ? [chip, ...activeChips.map((a) => <Chip key={`active-${a.key}`} testID={`active-${a.key}`} label={a.label} accessibilityLabel={a.spoken} selected removable onPress={() => removeFilter(a)} />)]
-                : [chip];
-            })}
-        </ScrollView>
-      ) : null}
-      {notices.length ? (
-        <View style={styles.notices}>
-          <Notices items={notices} />
-        </View>
-      ) : null}
-      {refreshing ? (
-        // Samme søk kjøres på nytt: listen står, og linjen sier hva som skjer og hvor gamle prisene som vises er.
-        <View style={styles.statusRow} testID="price-refreshing">
-          <ActivityIndicator size="small" color={colors.onDarkMuted} />
-          <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.refreshing(checkedAt)}</Text>
-        </View>
-      ) : (kind === "live" || kind === "unverified") && all.length ? (
-        <View style={styles.statusRow} testID="price-status">
-          {stale ? (
-            <>
-              <Icon name="clock" size={14} color={colors.warningOnDark} />
-              <Text style={[type.footnote, { color: colors.warningOnDark, flex: 1 }]}>{r.status.stale(checkedAt)}</Text>
-              <Pressable onPress={refreshShown} accessibilityRole="button" hitSlop={10} style={styles.sortLink} testID="refresh-prices">
-                <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{r.status.refresh}</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              {kind === "live" ? <View style={styles.liveDot} /> : null}
-              <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{kind === "live" ? r.status.live(checkedAt) : r.status.checked(checkedAt)}</Text>
-            </>
-          )}
-        </View>
-      ) : null}
-      {journeys.length > 1 ? (
-        <View style={styles.tabs}>
-          <SortTabs tabs={sortTabs} value={view.sort} label={t.results.tabs.label} note={hasReturn ? t.results.tabs.averageNote : null} onChange={(sort) => setView((v) => ({ ...v, sort }))} />
-        </View>
-      ) : null}
-      {journeys.length ? (
-        <View style={styles.countRow}>
-          <Text style={[type.footnote, { color: colors.onDarkMuted, flexShrink: 1 }]} testID="result-count">
-            {`${reiser(journeys.length)} · ${t.results.offers(shown.length)}`}
-            {all.length - shown.length > 0 ? ` · ${t.results.hiddenByFilters(all.length - shown.length)}` : ""}
-          </Text>
-          {/* Gjeldende sortering som tekst; den endres med «Sorter» i den flytende linjen (én kontroll, 44 pt). */}
-          <Text style={[type.footnote, styles.sortSummary]} testID="sort-summary">
-            {sortLabel}
-          </Text>
-        </View>
-      ) : null}
+      {headerIsland(
+        <>
+          {refreshing ? (
+            // Samme søk kjøres på nytt: listen står, og linjen sier hva som skjer og hvor gamle prisene som vises er.
+            <View style={styles.statusRow} testID="price-refreshing">
+              <ActivityIndicator size="small" color={colors.onDarkMuted} />
+              <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.refreshing(checkedAt)}</Text>
+            </View>
+          ) : (kind === "live" || kind === "unverified") && all.length ? (
+            <View style={styles.statusRow} testID="price-status">
+              {stale ? (
+                <>
+                  <Icon name="clock" size={14} color={colors.warningOnDark} />
+                  <Text style={[type.footnote, { color: colors.warningOnDark, flex: 1 }]}>{r.status.stale(checkedAt)}</Text>
+                  {/* Lenken er selv 44 pt høy; luften til sidene når ikke naboene (søkeknappen over, fanene under). */}
+                  <Pressable onPress={refreshShown} accessibilityRole="button" hitSlop={{ left: 10, right: 10 }} style={styles.sortLink} testID="refresh-prices">
+                    <Text style={[type.footnoteStrong, { color: colors.blueOnDark }]}>{r.status.refresh}</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  {kind === "live" ? <View style={styles.liveDot} /> : null}
+                  <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{kind === "live" ? r.status.live(checkedAt) : r.status.checked(checkedAt)}</Text>
+                </>
+              )}
+            </View>
+          ) : null}
+          {journeys.length > 1 ? (
+            <SortTabs tabs={sortTabs} value={view.sort} label={t.results.tabs.label} note={hasReturn ? t.results.tabs.averageNote : null} onChange={(sort) => setView((v) => ({ ...v, sort }))} />
+          ) : null}
+        </>,
+      )}
+      {/* Under øya, på den lyse grunnen: filterbrikkene, meldingene og antallet – så de hvite kortene. */}
+      <View style={styles.belowHeader}>
+        {all.length > 1 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} testID="results-chips">
+            {chips
+              .filter((c) => c.key === "all" || c.selected || c.count > 0)
+              .flatMap((c) => {
+                const chip = <Chip key={c.key} testID={`chip-${c.key}`} label={c.label} selected={c.selected} dark={false} onPress={c.onPress} />;
+                // De aktive filtrene fra arket rett etter «Alle», så de synes uten å rulle.
+                return c.key === "all"
+                  ? [chip, ...activeChips.map((a) => <Chip key={`active-${a.key}`} testID={`active-${a.key}`} label={a.label} accessibilityLabel={a.spoken} selected removable dark={false} onPress={() => removeFilter(a)} />)]
+                  : [chip];
+              })}
+          </ScrollView>
+        ) : null}
+        {notices.length ? (
+          <View style={styles.notices}>
+            <LightNotices items={notices} testID="results-notices" />
+          </View>
+        ) : null}
+        {journeys.length ? (
+          <View style={styles.countRow}>
+            <Text style={[type.footnote, { color: colors.textSecondary, flexShrink: 1 }]} testID="result-count">
+              {`${reiser(journeys.length)} · ${t.results.offers(shown.length)}`}
+              {all.length - shown.length > 0 ? ` · ${t.results.hiddenByFilters(all.length - shown.length)}` : ""}
+            </Text>
+            {/* Gjeldende sortering som tekst; den endres med «Sorter» i den flytende linjen (én kontroll, 44 pt). */}
+            <Text style={[type.footnote, styles.sortSummary]} testID="sort-summary">
+              {sortLabel}
+            </Text>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="light" />
-      <StatusBarShield />
+    <View style={styles.screen} testID="results-screen">
+      <StatusBar style={pastHeader ? "dark" : "light"} animated />
+      {/* Bak listen, øverst: samme grafitt som øya. Dras listen ned (oppdater), strekker øya seg i stedet for at den
+          lyse grunnen åpner seg over den, og iOS' spinner står på grafitt. Lenger ned er grunnen lys. */}
+      <View style={styles.backdrop} pointerEvents="none" />
       <FlatList
         testID="results-list"
-        style={styles.screen}
-        contentContainerStyle={{ paddingBottom: insets.bottom + space.sm + (toolbarHeight || 60) + space.lg }}
+        style={styles.list}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + space.sm + (toolbarHeight || 60) + space.lg }]}
+        onScroll={onListScroll}
+        scrollEventThrottle={16}
         data={journeys}
         keyExtractor={(j) => j.key}
         // Dra ned: samme søk på nytt, som «Oppdater prisene». Listen står til de nye prisene er her.
@@ -716,18 +745,18 @@ export default function ResultsScreen() {
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
           all.length ? (
-            <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(doneCount ?? all.length))}>
+            <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(doneCount ?? all.length))} dark={false}>
               <PrimaryButton label={r.clearFilters} testID="reset-filters" onPress={clearFilters} />
             </StateView>
           ) : excluded ? (
-            <StateView icon="plane" title={r.status.excludedEmptyTitle} body={r.status.excludedEmptyBody(excluded.count, excluded.why)} testID="results-excluded-empty">
+            <StateView icon="plane" title={r.status.excludedEmptyTitle} body={r.status.excludedEmptyBody(excluded.count, excluded.why)} testID="results-excluded-empty" dark={false}>
               {nearbyRow}
-              <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+              <SecondaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
             </StateView>
           ) : (
-            <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody} testID="results-none">
+            <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody} testID="results-none" dark={false}>
               {nearbyRow}
-              <SecondaryButton dark label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
+              <SecondaryButton label={r.editSearch} onPress={editSearch} testID="edit-search-state" />
             </StateView>
           )
         }
@@ -806,26 +835,41 @@ export default function ResultsScreen() {
           />
         }
       />
+
+      {/* Når øya har rullet ut under statuslinjen: en lys skjerm bak klokken (mørk tekst), som på forsiden. */}
+      <StatusBarShield visible={pastHeader} tone="light" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md },
+  // «Cloud + Graphite»: lys grunn bak brikker, meldinger og de hvite kortene.
+  screen: { flex: 1, backgroundColor: colors.canvas },
+  // Ruteoverskriften: grafittøy helt ut til kantene og opp under statuslinjen, med runde hjørner nederst.
+  header: { backgroundColor: colors.raised, borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, paddingBottom: space.md, gap: space.sm },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md },
   headerText: { flex: 1, alignItems: "center", gap: 2, minHeight: TOUCH, justifyContent: "center" },
+  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, maxWidth: "100%" },
+  // På øya (`raised`): onDark 16,4:1, onDarkMuted 8,4:1. Midtstilt også når teksten brytes over flere linjer.
+  title: { color: colors.onDark, flexShrink: 1, textAlign: "center" },
+  subtitle: { color: colors.onDarkMuted, textAlign: "center" },
+  // Grafitt bak listens øvre del (synlig bare når listen dras ned forbi toppen); lenger ned er skjermen lys.
+  backdrop: { position: "absolute", top: 0, left: 0, right: 0, height: "50%", backgroundColor: colors.raised },
+  list: { flex: 1 },
+  // Listens innhold fyller minst hele skjermen med den lyse grunnen, så grafitten bak bare synes over toppen.
+  listContent: { flexGrow: 1, backgroundColor: colors.canvas },
+  belowHeader: { paddingTop: space.sm },
   nearby: { gap: space.sm, alignSelf: "stretch", paddingBottom: space.xs },
   nearbyRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: space.sm },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: space.sm, maxWidth: "100%" },
   // Luft over og under brikkene inne i rullefeltet, så hitSlop (4 pt) når 44 pt – en ScrollView klipper det som stikker utenfor.
   chips: { paddingHorizontal: space.lg, gap: space.sm, paddingTop: space.xs, paddingBottom: 6 },
   notices: { paddingHorizontal: space.lg, gap: space.sm, paddingBottom: space.xs },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingBottom: space.xs, minHeight: 28 },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, minHeight: 28 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#3DDC84" },
   // Antallet og sorteringen deler raden; blir teksten stor, legger forklaringen seg under i stedet for å presse antallet.
   countRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space.md, rowGap: 2, paddingHorizontal: space.lg, paddingVertical: 6 },
-  sortSummary: { color: colors.onDarkMuted, textAlign: "right", flexGrow: 1, flexShrink: 1, flexBasis: 150 },
-  tabs: { paddingTop: space.xs, paddingBottom: 2 },
+  // På grunnen: textSecondary 5,3:1.
+  sortSummary: { color: colors.textSecondary, textAlign: "right", flexGrow: 1, flexShrink: 1, flexBasis: 150 },
   sortLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH },
   item: { paddingHorizontal: space.lg },
   errorBox: { padding: space.lg, gap: space.md },

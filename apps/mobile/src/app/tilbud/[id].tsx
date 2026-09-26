@@ -26,7 +26,9 @@ import { AirlineLogo } from "../../components/AirlineLogo";
 import { BottomFade, PhotoBackdrop } from "../../components/Photo";
 import { RouteLine } from "../../components/OfferCard";
 import { Icon } from "../../components/Icon";
-import { Banner, IconButton, InfoRow, InformationCard, LinkButton, Notices, PrimaryButton, StateView } from "../../components/ui";
+import { StatusBarShield } from "../../components/StatusBarShield";
+import { LightNotices } from "../../components/LightNotices";
+import { Banner, IconButton, InfoRow, InformationCard, LinkButton, PrimaryButton, StateView } from "../../components/ui";
 import { colors, radius, space, type } from "../../lib/theme";
 
 /** «Bytte i København · 1 t 55 min» – uten varighet når tidspunktene ikke kan regnes trygt. */
@@ -346,14 +348,15 @@ export default function OfferScreen() {
 
   if (!result || !journey) {
     return (
-      <View style={styles.screen}>
-        <StatusBar style="light" />
+      <View style={styles.screen} testID="offer-details">
+        {/* Toppen er den lyse grunnen: mørk tekst i statuslinjen. */}
+        <StatusBar style="dark" />
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
-          <IconButton icon="chevronLeft" label={dt.back} onPress={() => router.back()} testID="header-back" />
+          <IconButton icon="chevronLeft" label={dt.back} variant="light" onPress={() => router.back()} testID="header-back" />
           <Text style={[type.headline, styles.topTitle]}>{dt.title}</Text>
           <View style={{ width: 40 }} />
         </View>
-        <StateView icon="refresh" title={dt.goneTitle} body={dt.goneBody}>
+        <StateView icon="refresh" title={dt.goneTitle} body={dt.goneBody} dark={false}>
           <PrimaryButton label={dt.toSearch} onPress={() => router.replace("/")} />
         </StateView>
       </View>
@@ -409,22 +412,25 @@ export default function OfferScreen() {
     kind === "demo" ? dt.demo : kind === "sandbox" ? dt.sandbox(providerDisplayName(result.provider)) : kind === "unverified" ? dt.unverified : null;
 
   return (
-    <View style={styles.screen}>
-      <StatusBar style="light" />
+    <View style={styles.screen} testID="offer-details">
+      {/* Toppen er den lyse grunnen (tittellinjen over fotokortet): mørk tekst i statuslinjen, og en lys skjerm bak
+          klokken, så fotokortet og kortene ikke glir inn under den når skjermen rulles. */}
+      <StatusBar style="dark" />
       <ScrollView contentContainerStyle={{ paddingBottom: (barHeight || insets.bottom + 160) + space.lg }} testID="offer-screen">
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
-          <IconButton icon="chevronLeft" label={dt.back} onPress={() => router.back()} testID="header-back" />
+          <IconButton icon="chevronLeft" label={dt.back} variant="light" onPress={() => router.back()} testID="header-back" />
           <Text style={[type.headline, styles.topTitle]} accessibilityRole="header">
             {dt.title}
           </Text>
-          <IconButton icon="share" label={dt.share} onPress={share} testID="share" />
+          <IconButton icon="share" label={dt.share} variant="light" onPress={share} testID="share" />
         </View>
 
         <JourneySummary item={selected} />
 
         <View style={styles.body}>
           {statusNotice || !confirmed ? (
-            <Notices
+            <LightNotices
+              testID="offer-notices"
               items={[
                 ...(statusNotice ? [{ key: "demo", tone: "warning" as const, text: statusNotice, testID: "demo-banner" }] : []),
                 ...(!confirmed ? [{ key: "basis", tone: "warning" as const, text: t.offer.priceUnverifiedExplained, testID: "price-basis-notice" }] : []),
@@ -433,11 +439,11 @@ export default function OfferScreen() {
           ) : null}
           {warnings.length ? (
             <View accessibilityLanguage={lang} style={styles.warnings} testID="journey-warnings" accessibilityRole="summary">
-              <Text style={[type.footnoteStrong, { color: colors.warningOnDark }]}>{dt.warningsTitle}</Text>
+              <Text style={[type.footnoteStrong, { color: colors.warning }]}>{dt.warningsTitle}</Text>
               {warnings.map((w, i) => (
                 <View key={i} style={styles.row6}>
-                  <Icon name={w.kind === "airportChange" ? "alert" : w.kind === "longLayover" ? "clock" : "moon"} size={14} color={colors.warningOnDark} />
-                  <Text style={[type.footnote, { color: colors.onDark, flex: 1 }]} testID={`warning-${w.kind}`}>
+                  <Icon name={w.kind === "airportChange" ? "alert" : w.kind === "longLayover" ? "clock" : "moon"} size={14} color={colors.warning} />
+                  <Text style={[type.footnote, { color: colors.text, flex: 1 }]} testID={`warning-${w.kind}`}>
                     {warningText(w, sliceTitle, i18n)}
                   </Text>
                 </View>
@@ -522,9 +528,9 @@ export default function OfferScreen() {
       </ScrollView>
 
       {/*
-        Én rad: pris og grunnlag til venstre, handlingen til høyre. Blir teksten stor
-        eller knappen bred, brytes raden – knappen legger seg under i full bredde i
-        stedet for å kuttes. Valgt tilbyder står rett under, ved handlingen.
+        Bunnlinjen er en grafittøy med runde hjørner øverst («Cloud + Graphite»). Én rad: pris og grunnlag til
+        venstre, handlingen til høyre. Blir teksten stor eller knappen bred, brytes raden – knappen legger seg under
+        i full bredde i stedet for å kuttes. Valgt tilbyder står rett under, ved handlingen.
       */}
       <View style={[styles.bar, { paddingBottom: insets.bottom + space.sm }]} testID="offer-bar" onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}>
         {openError ? (
@@ -579,14 +585,17 @@ export default function OfferScreen() {
           {barNote}
         </Text>
       </View>
+
+      <StatusBarShield tone="light" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  // «Cloud + Graphite»: lys grunn bak tittellinjen, fotokortet og de hvite kortene; bunnlinjen er grafitt.
+  screen: { flex: 1, backgroundColor: colors.canvas },
   topBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.lg, paddingBottom: space.md, gap: space.md },
-  topTitle: { flex: 1, textAlign: "center", color: colors.onDark },
+  topTitle: { flex: 1, textAlign: "center", color: colors.text },
   summary: { marginHorizontal: space.lg, borderRadius: radius.card, padding: space.lg, paddingBottom: space.xxl, gap: space.lg, minHeight: 240, justifyContent: "space-between" },
   summaryTop: { flexDirection: "row", alignItems: "center", gap: space.md },
   summaryRoute: { flexDirection: "row", alignItems: "flex-start" },
@@ -599,7 +608,8 @@ const styles = StyleSheet.create({
   returnLabel: { color: colors.onDarkMuted, fontWeight: "600", letterSpacing: 0.6 },
   body: { paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.md },
   row6: { flexDirection: "row", alignItems: "center", gap: 6 },
-  warnings: { gap: space.xs, backgroundColor: colors.raised, borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, padding: space.md },
+  // «Før du går videre» på grunnen: hvit flate, tittel og ikoner i advarselsfarge (6,5:1 på hvitt), linjene i tekstfarge.
+  warnings: { gap: space.xs, backgroundColor: colors.white, borderRadius: radius.input, padding: space.md },
   tlRow: { flexDirection: "row", alignItems: "stretch" },
   tlTime: { width: 58, color: colors.text, paddingTop: 1 },
   plus: { fontSize: 11, fontWeight: "600", color: colors.blue },
@@ -615,7 +625,9 @@ const styles = StyleSheet.create({
   sellerOn: { borderColor: colors.blue, backgroundColor: colors.blueSoft },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.lightBorder, alignItems: "center", justifyContent: "center" },
   radioOn: { backgroundColor: colors.blue, borderColor: colors.blue },
-  bar: { position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: colors.bg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.darkBorder, paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm },
+  // Grafittøya nederst: `raised`, helt ut til kantene, runde hjørner øverst (speiler ruteoverskriften i resultatene).
+  // Tekst på den: onDark 16,4:1, onDarkMuted 8,4:1; lenken blueOnDark 5,4:1.
+  bar: { position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: colors.raised, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm },
   // Brytes når pris (minst 120 pt) og knapp ikke får plass på én linje; da får begge full bredde.
   barRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.md, rowGap: space.sm },
   // Samme linje: prisen tar nesten all ledig plass og knappen beholder sin bredde. Alene på en linje tar knappen hele.

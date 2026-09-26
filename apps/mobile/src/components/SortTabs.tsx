@@ -22,8 +22,9 @@ const PRICE_LINE = 21;
 
 /**
  * Best / Billigst / Raskest over resultatlisten. Hver fane viser hva toppen av listen blir med den sorteringen –
- * ekte pris og reisetid fra svaret – så avveiningen står åpent før kunden velger. Valgt fane er hvit på kull,
- * som fanene i flydetaljene.
+ * ekte pris og reisetid fra svaret – så avveiningen står åpent før kunden velger. Fanene står nederst i
+ * ruteoverskriftens grafittøy («Cloud + Graphite»): som alt som ligger i en øy er de `bg` med mørk kant, og den
+ * valgte er hvit med mørk tekst – som det valgte i søkeøya på forsiden.
  *
  * Stor tekst: fanene står side om side så lenge prisen og reisetiden får plass på én linje. Brytes en av dem, står
  * fanene under hverandre (én rad hver) for denne tekststørrelsen – et beløp deles aldri over to linjer.
@@ -83,11 +84,14 @@ export function SortTabs({ tabs, value, onChange, label, note }: { tabs: SortTab
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: space.sm, paddingHorizontal: space.lg },
   column: { flexDirection: "column" },
-  tab: { borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, backgroundColor: colors.raised, paddingHorizontal: space.md - 2, paddingVertical: space.sm },
+  // I øya (`raised`): fanene er `bg` med mørk kant. Tekst på `bg`: onDark 18,4:1, onDarkMuted 9,5:1.
+  tab: { borderRadius: radius.input, borderWidth: 1, borderColor: colors.darkBorder, backgroundColor: colors.bg, paddingHorizontal: space.md - 2, paddingVertical: space.sm },
   tabRow: { flex: 1, minHeight: TOUCH + 18, gap: 1, justifyContent: "center" },
   tabStacked: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.md, minHeight: TOUCH },
+  // Valgt: hvit med mørk tekst (text 18,7:1, textSecondary 5,8:1).
   tabSelected: { backgroundColor: colors.white, borderColor: colors.white },
   valuesStacked: { alignItems: "flex-end", flexShrink: 1 },
   price: { fontSize: 16, lineHeight: PRICE_LINE, fontWeight: "700", letterSpacing: -0.2, fontVariant: ["tabular-nums"] },
+  // Rett på øya (`raised`): onDarkMuted 8,4:1.
   note: { color: colors.onDarkMuted, paddingHorizontal: space.lg },
 });
