@@ -274,7 +274,7 @@ describe("ansatte kan ikke være kunder", () => {
 
   it("appens API har ingen staff-/admin-ruter og leser aldri staff-cookien", async () => {
     const keys = Object.keys(mobileAppRouter._def.record);
-    expect(keys.sort()).toEqual(["flights", "hotels", "mobileAuth", "ping"]);
+    expect(keys.sort()).toEqual(["flights", "hotels", "mobileAccount", "mobileAuth", "ping"]);
     for (const excluded of ["staffAuth", "admin", "team", "partners", "expenses", "checkout", "orders", "account", "watch", "tripPlans", "customerAuth"]) expect(keys).not.toContain(excluded);
 
     await seedStaff();

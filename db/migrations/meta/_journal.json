@@ -64,6 +64,13 @@
       "when": 1790156838543,
       "tag": "0008_eierprofil",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1790401665064,
+      "tag": "0009_reisende_type_klasse",
+      "breakpoints": true
     }
   ]
 }

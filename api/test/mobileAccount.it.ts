@@ -1175,6 +1175,14 @@ describe("ansatte og staff-sesjoner avvises på hver eneste prosedyre i appens A
       "hotels.status": async (m) => expect(await m.hotels.status()).toMatchObject({ enabled: false, externalBooking: true }),
       "hotels.places": async (m) => expect(await m.hotels.places({ query: "Oslo" })).toEqual([]),
       "hotels.search": (m) => expectAppCode(m.hotels.search({ destination: "kplace:58075", checkin: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10), checkout: new Date(Date.now() + 32 * 86_400_000).toISOString().slice(0, 10), rooms: [{ adults: 2 }] }), "SUPPLIER_REJECTED"),
+      // Min side og Lagret (api/mobileAccount.ts): bare for kunder – en ansatt kommer aldri inn.
+      "mobileAccount.hub": (m) => expectAppCode(m.mobileAccount.hub(), "UNAUTHORIZED"),
+      "mobileAccount.travellers": (m) => expectAppCode(m.mobileAccount.travellers(), "UNAUTHORIZED"),
+      "mobileAccount.saveTraveller": (m) => expectAppCode(m.mobileAccount.saveTraveller({ firstName: "Hack", lastName: "Er", kind: "adult", cabin: null }), "UNAUTHORIZED"),
+      "mobileAccount.removeTraveller": (m) => expectAppCode(m.mobileAccount.removeTraveller({ id: 1 }), "UNAUTHORIZED"),
+      "mobileAccount.saved": (m) => expectAppCode(m.mobileAccount.saved(), "UNAUTHORIZED"),
+      "mobileAccount.save": (m) => expectAppCode(m.mobileAccount.save({ kind: "route", refId: "OSL-BCN" }), "UNAUTHORIZED"),
+      "mobileAccount.unsave": (m) => expectAppCode(m.mobileAccount.unsave({ kind: "route", refId: "OSL-BCN" }), "UNAUTHORIZED"),
       "hotels.detail": (m) => expectAppCode(m.hotels.detail({ hotelKey: "khotel:2589314", checkin: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10), checkout: new Date(Date.now() + 32 * 86_400_000).toISOString().slice(0, 10), rooms: [{ adults: 2 }] }), "SUPPLIER_REJECTED"),
     };
     // Legges det til en prosedyre i appens API, må den få en staff-sjekk her.

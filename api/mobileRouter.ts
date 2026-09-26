@@ -2,6 +2,7 @@ import { createRouter, publicQuery } from "./middleware";
 import { mobileAuthRouter } from "./mobileAuth";
 import { mobileFlightsRouter } from "./mobileFlights";
 import { mobileHotelsRouter } from "./mobileHotels";
+import { mobileAccountRouter } from "./mobileAccount";
 
 /**
  * Appens API (/api/mobile/trpc): fly- og hotellsøk/sammenligning og vanlig kundekonto.
@@ -15,6 +16,10 @@ import { mobileHotelsRouter } from "./mobileHotels";
  * cookie.
  * hotels (api/mobileHotels.ts) er nettets hotellsøk – status, stedsøk, søk og
  * detaljer – med valuta låst til NOK; bestillingen skjer hos leverandøren.
+ * mobileAccount (api/mobileAccount.ts) er Min side og Lagret: oversikten
+ * (nærmeste bestilling og tall fra kontoen), lagrede reisende (navn, type,
+ * klasse) og lagrede reisemål, fly og ruter – en smal ruter over nettets
+ * tabeller, ikke nettets account-ruter.
  * Bestilling (checkout, orders), prisovervåking, reiseplaner, nettets
  * account-/customerAuth-rutere og alle interne ruter (staffAuth, admin,
  * team, partners, expenses …) finnes ikke her – de kan verken kalles eller ses
@@ -26,6 +31,7 @@ export const mobileAppRouter = createRouter({
   mobileAuth: mobileAuthRouter,
   flights: mobileFlightsRouter,
   hotels: mobileHotelsRouter,
+  mobileAccount: mobileAccountRouter,
 });
 
 export type MobileAppRouter = typeof mobileAppRouter;

@@ -153,11 +153,12 @@ async function upsertProfile(customerId: number, patch: Partial<typeof customerT
     .onDuplicateKeyUpdate({ set: patch });
 }
 
-const savedKindSchema = z.enum(["destination", "flight", "article", "trip_idea"]);
+// «route» er appens lagrede ruter (mobileAccount.save): to flyplasser, uten datoer eller pris.
+const savedKindSchema = z.enum(["destination", "flight", "article", "trip_idea", "route"]);
 export type SavedKind = z.infer<typeof savedKindSchema>;
-const MAX_SAVED = 200;
+export const MAX_SAVED = 200;
 
-function tripsFromBookings(rows: (typeof bookings.$inferSelect)[]) {
+export function tripsFromBookings(rows: (typeof bookings.$inferSelect)[]) {
   const now = Date.now();
   return rows
     .map((b) => {
