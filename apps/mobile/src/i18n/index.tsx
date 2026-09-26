@@ -30,6 +30,7 @@ import { airport } from "./ns/airport";
 import { hotels } from "./ns/hotels";
 import { saved } from "./ns/saved";
 import { calendar } from "./ns/calendar";
+import { welcome } from "./ns/welcome";
 
 /**
  * Oversettelser. Hvert område har én fil med engelsk og norsk side om side;
@@ -38,8 +39,8 @@ import { calendar } from "./ns/calendar";
  * flertall bøyes riktig på begge språk.
  */
 const dictionaries = {
-  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en, hotels: hotels.en, saved: saved.en, calendar: calendar.en },
-  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb, hotels: hotels.nb, saved: saved.nb, calendar: calendar.nb },
+  en: { common: common.en, search: search.en, results: results.en, offer: offer.en, price: price.en, errors: errors.en, home: home.en, explore: explore.en, account: account.en, details: details.en, airport: airport.en, hotels: hotels.en, saved: saved.en, calendar: calendar.en, welcome: welcome.en },
+  nb: { common: common.nb, search: search.nb, results: results.nb, offer: offer.nb, price: price.nb, errors: errors.nb, home: home.nb, explore: explore.nb, account: account.nb, details: details.nb, airport: airport.nb, hotels: hotels.nb, saved: saved.nb, calendar: calendar.nb, welcome: welcome.nb },
 } satisfies Record<Locale, unknown>;
 
 export type Dictionary = typeof dictionaries.en;
@@ -108,7 +109,7 @@ export function I18nProvider({ children, initialLocale }: { children: ReactNode;
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
     setChosen(true);
-    // Et bevisst valg: det eneste som får skrive inn i en innstillingsfil fra en annen appversjon.
+    // Et bevisst valg (som også «Hopp over» på velkomsten): bare slike får skrive inn i en innstillingsfil fra en annen appversjon.
     writePref(PREF_KEY, l, { userChoice: true });
   }, []);
   const value = useMemo(() => ({ ...i18nFor(locale), setLocale, chosen }), [locale, setLocale, chosen]);

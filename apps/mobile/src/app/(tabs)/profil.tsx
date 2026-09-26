@@ -1,24 +1,22 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { Icon, type IconName } from "../../components/Icon";
+import { SignInSheet, type SignInMode } from "../../components/SignInSheet";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
-import type { CustomerProfile, MobileSocialProvider } from "@contracts/mobileAuth";
+import type { CustomerProfile } from "@contracts/mobileAuth";
 import { useApp } from "../../lib/appState";
 import { ApiError } from "../../lib/api";
 import { errorText } from "../../lib/errorText";
 import { WEB_PAGES } from "../../lib/config";
-import { useReducedMotion } from "../../lib/motion";
-import { Banner, BottomSheet, Field, IconButton, LinkButton, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
+import { Banner, BottomSheet, Field, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
 import { a11yLanguage, useA11yLanguage, useI18n } from "../../i18n";
 import { LOCALES, LOCALE_NAMES, type Locale } from "../../i18n/types";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
-
-const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /** Nettsidene åpnes i Safari-visning, som tilbydernes sider. */
 function openWeb(url: string) {
@@ -259,54 +257,6 @@ function DeleteAccountSheet({ profile, visible, onClose }: { profile: CustomerPr
   );
 }
 
-/** «Glemt passordet?»: nettets egen tilbakestilling. Svaret er alltid det samme. */
-function ForgotPasswordSheet({ visible, onClose, initialEmail }: { visible: boolean; onClose: () => void; initialEmail: string }) {
-  const { api } = useApp();
-  const i18n = useI18n();
-  const a = i18n.t.account;
-  const [email, setEmail] = useState(initialEmail);
-  const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const send = async () => {
-    setError(null);
-    if (!EMAIL.test(email.trim())) return setError(a.invalidEmail);
-    setBusy(true);
-    try {
-      await api.requestPasswordReset(email, i18n.locale);
-      setSent(true);
-    } catch (e) {
-      setError(errorText(e, i18n));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <BottomSheet visible={visible} title={a.forgotTitle} onClose={onClose} testID="forgot-password">
-      <View style={{ gap: space.md }}>
-        {sent ? (
-          <Banner tone="info" testID="forgot-sent">
-            {a.forgotSent}
-          </Banner>
-        ) : (
-          <>
-            <Text style={[type.callout, { color: colors.text }]}>{a.forgotBody}</Text>
-            <Field label={a.email} icon="mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} textContentType="emailAddress" autoComplete="email" testID="forgot-email" />
-            {error ? (
-              <Banner tone="error" testID="forgot-error">
-                {error}
-              </Banner>
-            ) : null}
-            <PrimaryButton testID="forgot-send" label={a.forgotSend} onPress={send} loading={busy} />
-          </>
-        )}
-      </View>
-    </BottomSheet>
-  );
-}
-
 /**
  * Innloggingskortet øverst i Profil for gjester, som hos de store søketjenestene: hva en konto er (samme konto som på
  * hellosky.no) og at søket ikke krever den. Skjemaet åpnes i et eget ark.
@@ -334,37 +284,24 @@ function SignInCard({ onLogin, onRegister }: { onLogin: () => void; onRegister: 
 /** Profil og innstillinger. Vanlig kundeinnlogging; ingen andre roller finnes i appen. */
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
-  const lang = useA11yLanguage();
-  const reduced = useReducedMotion();
-  const { auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin } = useApp();
-  const [socialBusy, setSocialBusy] = useState<MobileSocialProvider | null>(null);
-  const [socialNote, setSocialNote] = useState<string | null>(null);
+  const { auth, logout, requestSocialProviders } = useApp();
   const i18n = useI18n();
   const a = i18n.t.account;
-  const [mode, setMode] = useState<"login" | "register">("login");
-  // Innloggingsskjemaet står i et eget ark (iOS' sidekort) som åpnes fra kortet øverst.
-  const [authOpen, setAuthOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  // Innloggingsskjemaet står i et eget ark (iOS' sidekort) som åpnes fra kortet øverst, i innlogging eller ny konto.
+  const [authOpen, setAuthOpen] = useState<SignInMode | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<null | "edit" | "delete" | "forgot">(null);
+  const [sheet, setSheet] = useState<null | "edit" | "delete">(null);
   const [saved, setSaved] = useState(false);
 
   // Et ark eller en «lagret»-melding hører til kontoen som var logget inn da:
   // etter utlogging, sletting eller utløpt økt skal ingenting dukke opp igjen.
+  // (Innloggingsarket rydder sitt eget skjema, også passordet – se components/SignInSheet.tsx.)
   const [shownFor, setShownFor] = useState(auth.status);
   if (shownFor !== auth.status) {
     setShownFor(auth.status);
     setSheet(null);
     setSaved(false);
-    setAuthOpen(false);
-    // Også etter Google/Apple (som ikke går via skjemaet): et passord som ble skrevet, blir ikke liggende.
-    setPassword("");
-    setError(null);
-    setSocialNote(null);
+    setAuthOpen(null);
   }
 
   // Innloggingsmåtene (Google/Apple) hentes bare når innloggingen faktisk kan vises.
@@ -375,10 +312,15 @@ export default function AccountScreen() {
 
   const top = { paddingTop: insets.top + space.lg };
 
+  // Innloggingsarket står i alle tilstander med samme nøkkel, så det beholder skjemaet (e-postadressen står til neste
+  // gang, også etter innlogging og utlogging). Det vises bare for gjester.
+  const signIn = <SignInSheet key="sign-in-sheet" visible={authOpen !== null} initialMode={authOpen ?? "login"} onClose={() => setAuthOpen(null)} />;
+
   if (auth.status === "loading") {
     return (
       <View style={[styles.screen, styles.center]}>
         <ActivityIndicator color={colors.onDark} />
+        {signIn}
       </View>
     );
   }
@@ -461,67 +403,10 @@ export default function AccountScreen() {
           ) : null}
         </ScrollView>
         <StatusBarShield />
+        {signIn}
       </View>
     );
   }
-
-  const openAuth = (m: "login" | "register") => {
-    setMode(m);
-    setError(null);
-    setSocialNote(null);
-    setAuthOpen(true);
-  };
-  // Passordet blir ikke liggende når arket lukkes; e-postadressen står til neste gang.
-  const closeAuth = () => {
-    setAuthOpen(false);
-    setPassword("");
-    setError(null);
-    setSheet(null);
-  };
-
-  const submit = async () => {
-    if (socialBusy) return;
-    setError(null);
-    setSocialNote(null);
-    if (!EMAIL.test(email.trim())) return setError(a.invalidEmail);
-    if (mode === "register") {
-      if (!firstName.trim() || !lastName.trim()) return setError(a.namesRequired);
-      if (password.length < 10) return setError(a.passwordTooShort);
-    } else if (!password) {
-      return setError(a.passwordRequired);
-    }
-    setBusy(true);
-    try {
-      if (mode === "login") await login(email, password);
-      else await register({ email, password, firstName, lastName, locale: i18n.locale });
-      setPassword("");
-    } catch (e) {
-      setError(errorText(e, i18n, mode === "login" ? { UNAUTHORIZED: a.wrongCredentials } : undefined));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const PROVIDER_NAME: Record<MobileSocialProvider, string> = { google: "Google", apple: "Apple" };
-  const social = async (provider: MobileSocialProvider) => {
-    if (socialBusy || busy) return;
-    setError(null);
-    setSocialNote(null);
-    setSocialBusy(provider);
-    try {
-      const outcome = await socialLogin(provider, i18n.locale);
-      if (outcome === "cancelled") setSocialNote(a.socialCancelled);
-    } catch (e) {
-      // Serverens egne svar (ansatts adresse, lookalike) på kundens språk; alt annet er en ærlig, generell feil.
-      const reason = e instanceof ApiError ? e.reason : undefined;
-      if (e instanceof ApiError && e.code === "FORBIDDEN") setError(a.socialBlocked);
-      else if (e instanceof ApiError && e.code === "CONFLICT" && reason === "email_lookalike") setError(a.socialLookalike);
-      else if (e instanceof ApiError && ["NETWORK", "TIMEOUT", "RATE_LIMITED"].includes(e.code)) setError(errorText(e, i18n));
-      else setError(a.socialFailed);
-    } finally {
-      setSocialBusy(null);
-    }
-  };
 
   return (
     <View style={styles.screen}>
@@ -536,107 +421,13 @@ export default function AccountScreen() {
             {auth.notice === "expired" ? a.sessionExpired : a.deleted}
           </Banner>
         ) : null}
-        <SignInCard onLogin={() => openAuth("login")} onRegister={() => openAuth("register")} />
+        <SignInCard onLogin={() => setAuthOpen("login")} onRegister={() => setAuthOpen("register")} />
         <SettingsGroup />
         <HelpGroup />
         <VersionLine />
       </ScrollView>
       <StatusBarShield />
-
-      {/* Innlogging og ny konto i iOS' sidekort (dras ned for å lukke). Tastaturet: listen slutter der det begynner. */}
-      <Modal visible={authOpen} animationType={reduced ? "fade" : "slide"} presentationStyle="pageSheet" allowSwipeDismissal onRequestClose={closeAuth}>
-        <View style={styles.modal} accessibilityLanguage={lang} onAccessibilityEscape={closeAuth} testID="auth-modal">
-          <View style={styles.modalHead}>
-            <IconButton icon="close" label={i18n.t.common.close} variant="light" onPress={closeAuth} testID="auth-close" />
-            <Text style={[type.headline, styles.modalTitle]} accessibilityRole="header">
-              {mode === "login" ? a.loginTitle : a.registerTitle}
-            </Text>
-            <View style={{ width: 40 }} />
-          </View>
-          <ScrollView contentContainerStyle={[styles.modalBody, { paddingBottom: insets.bottom + space.xxl }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets testID="auth-form">
-            <Segmented
-              label={a.modeLabel}
-              value={mode}
-              options={[
-                { value: "login", label: a.modeLogin },
-                { value: "register", label: a.modeRegister },
-              ]}
-              onChange={(m) => {
-                if (busy || socialBusy) return;
-                setMode(m);
-                setError(null);
-              }}
-            />
-            {socialProviders.length ? (
-              <View style={{ gap: space.sm }} testID="social-sign-in">
-                {socialProviders.map((p) => (
-                  <SecondaryButton
-                    key={p}
-                    label={socialBusy === p ? a.socialBusy(PROVIDER_NAME[p]) : a.socialContinue(PROVIDER_NAME[p])}
-                    icon={socialBusy === p ? "refresh" : "user"}
-                    onPress={() => void social(p)}
-                    accessibilityHint={a.socialHint}
-                    testID={`social-${p}`}
-                  />
-                ))}
-                {socialNote ? (
-                  <Banner tone="info" testID="social-note">
-                    {socialNote}
-                  </Banner>
-                ) : null}
-                <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{a.orEmail}</Text>
-              </View>
-            ) : null}
-            {mode === "register" ? (
-              <>
-                <Field label={a.firstName} icon="user" value={firstName} onChangeText={setFirstName} textContentType="givenName" autoComplete="given-name" testID="first-name" />
-                <Field label={a.lastName} icon="user" value={lastName} onChangeText={setLastName} textContentType="familyName" autoComplete="family-name" testID="last-name" />
-              </>
-            ) : null}
-            <Field
-              label={a.email}
-              icon="mail"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="emailAddress"
-              autoComplete="email"
-              testID="email"
-            />
-            <Field
-              label={a.password}
-              icon="lock"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              textContentType={mode === "login" ? "password" : "newPassword"}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              placeholder={mode === "register" ? a.passwordMin : undefined}
-              testID="password"
-            />
-            {error ? (
-              <Banner tone="error" testID="auth-error">
-                {error}
-              </Banner>
-            ) : null}
-            <PrimaryButton testID="auth-submit" label={mode === "login" ? a.submitLogin : a.submitRegister} onPress={submit} loading={busy} />
-            {mode === "login" ? (
-              <LinkButton
-                label={a.forgot}
-                onPress={() => {
-                  if (!busy && !socialBusy) setSheet("forgot");
-                }}
-                testID="open-forgot"
-              />
-            ) : null}
-            <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{a.searchWithoutLogin}</Text>
-          </ScrollView>
-          {/* «Glemt passordet?» legges over skjemaet, i samme sidekort. */}
-          <ForgotPasswordSheet key={`forgot-${sheet === "forgot"}`} visible={sheet === "forgot"} onClose={() => setSheet(null)} initialEmail={email} />
-        </View>
-      </Modal>
+      {signIn}
     </View>
   );
 }
@@ -659,10 +450,6 @@ const styles = StyleSheet.create({
   signInCard: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.xl, gap: space.sm },
   signInIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.blueSoft, alignItems: "center", justifyContent: "center", marginBottom: space.xs },
   signInActions: { gap: space.sm, marginTop: space.md },
-  modal: { flex: 1, backgroundColor: colors.white, paddingTop: space.lg },
-  modalHead: { flexDirection: "row", alignItems: "center", paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.md },
-  modalTitle: { flex: 1, textAlign: "center", color: colors.text },
-  modalBody: { paddingHorizontal: space.lg, paddingTop: space.sm, gap: space.md },
   hello: { flexDirection: "row", alignItems: "center", gap: space.md },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 18, fontWeight: "700", color: colors.white },

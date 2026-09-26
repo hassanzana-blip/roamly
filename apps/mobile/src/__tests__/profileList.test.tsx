@@ -198,6 +198,20 @@ describe("Profil: tilstand mellom innlogging og utlogging", () => {
     expect(screen.getByTestId("account-signed-out")).not.toBe(signedIn);
   });
 
+  it("e-postadressen står til neste gang også etter innlogging og utlogging – passordet gjør det aldri", async () => {
+    await renderProfile({ routes: { "mobileAuth.login": () => ({ data: AUTH_RESULT }), "mobileAuth.logout": () => ({ data: { ok: true } }) } });
+    await fireEvent.press(screen.getByTestId("open-login"));
+    await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
+    await fireEvent.changeText(screen.getByTestId("password"), "passord-123456");
+    await fireEvent.press(screen.getByTestId("auth-submit"));
+    await waitFor(() => expect(screen.getByTestId("account-signed-in")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("logout-button"));
+    await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId("open-login"));
+    expect(screen.getByTestId("email").props.value).toBe("kari@example.no");
+    expect(screen.getByTestId("password").props.value).toBe("");
+  });
+
   const GOOGLE_READY = { password: true, social: [{ provider: "google" as const, available: true, reason: null }, { provider: "apple" as const, available: false, reason: "not_configured" as const }], clerkPublishableKey: "pk_live_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk" };
 
   it("et passord som ble skrevet, blir ikke liggende når innloggingen skjer uten skjemaet (Google)", async () => {

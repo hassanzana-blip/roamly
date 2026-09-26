@@ -61,7 +61,7 @@ beforeEach(() => {
 });
 
 describe("iOS-builden: hva som vises, og når Clerk lastes", () => {
-  it("Google støttes av builden, Apple ikke (krever Sign in with Apple-rettighet som ikke finnes)", () => {
+  it("Google støttes av adapteren; Apple bare med Apples native modul, som ikke finnes i testmiljøet", () => {
     expect(nativeSocialSignIn.supports("google")).toBe(true);
     expect(nativeSocialSignIn.supports("apple")).toBe(false);
     expect(nativeSocialSignIn.Host).toBeDefined();

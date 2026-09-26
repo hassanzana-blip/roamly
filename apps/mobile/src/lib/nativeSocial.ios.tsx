@@ -14,7 +14,7 @@ import { appleBuildReady } from "./appleSupport";
  * innlogging via expo-apple-authentication, identitetstokenet byttes hos Clerk
  * («oauth_token_apple»). Bruker ingen native Clerk-modul, så den virker med
  * @clerk/expo utelatt fra autolinking og iOS 16.4. Støttes bare når builden
- * faktisk kan (lib/appleSupport.ts); i dag er den ikke det.
+ * faktisk kan (lib/appleSupport.ts); med dagens app.json kan den det, og knappen vises når serveren sier at Apple er klar.
  *
  * Clerk-koden (lib/clerkSocial.ios.tsx) lastes først når Host monteres – det
  * skjer bare når mobileAuth.providers har gitt en publiserbar nøkkel. Et

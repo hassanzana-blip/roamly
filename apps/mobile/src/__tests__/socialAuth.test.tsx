@@ -52,7 +52,7 @@ async function renderProfile({ providers, routes = {}, native, locale = "nb" }: 
 beforeEach(() => keychain.clear());
 
 describe("hvilke knapper Profil viser", () => {
-  it("iOS-builden (ekte adapter): Google kan vises, Apple aldri – og ingenting når serveren sier nei", async () => {
+  it("den ekte adapteren uten Apples native modul (som i tester): Google kan vises, Apple ikke – og ingenting når serveren sier nei", async () => {
     expect(nativeSocialSignIn.supports("google")).toBe(true);
     expect(nativeSocialSignIn.supports("apple")).toBe(false);
     await renderProfile({ providers: PROD_TODAY });
