@@ -483,7 +483,7 @@ describe("knappene for Google og Apple (også i innloggingsarket)", () => {
 });
 
 describe.each([
-  ["nb", "nb-NO", { title: "Sammenlign flypriser fra flyselskaper og reisebyråer – i norske kroner.", skip: "Hopp over", skipHint: "Går videre uten konto. Du kan logge inn senere i Profil.", email: "Fortsett med e-post", register: "Opprett konto", note: "Du kan søke uten konto.", google: "Fortsett med Google", apple: "Fortsett med Apple" }],
+  ["nb", "nb-NO", { title: "Sammenlign flypriser fra flyselskaper og reisebyråer – i norske kroner.", skip: "Hopp over", skipHint: "Går videre uten konto. Du kan logge inn senere på Min side.", email: "Fortsett med e-post", register: "Opprett konto", note: "Du kan søke uten konto.", google: "Fortsett med Google", apple: "Fortsett med Apple" }],
   ["en", "en-GB", { title: "Compare flight prices from airlines and travel agencies – in Norwegian kroner.", skip: "Skip", skipHint: "Continues without an account. You can log in later in Profile.", email: "Continue with e-mail", register: "Create account", note: "You can search without an account.", google: "Continue with Google", apple: "Continue with Apple" }],
 ] as const)("språk og VoiceOver (%s)", (locale, lang, c) => {
   it("tekstene, overskriften og VoiceOver-språket på roten og på hvert element", async () => {

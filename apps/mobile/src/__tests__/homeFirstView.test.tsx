@@ -91,14 +91,14 @@ describe("Hjem: første bilde", () => {
     expect(screen.queryByText(/\bkr\b|NOK|\d+\s?,-/)).toBeNull();
   });
 
-  it("gjest: spørsmålet søket svarer på er overskriften, uten en generell hilsen; kontoknappen går til Profil", async () => {
+  it("gjest: spørsmålet søket svarer på er overskriften, uten en generell hilsen; kontoknappen går til Min side", async () => {
     await renderHome();
     const title = screen.getByTestId("home-title");
     expect(title).toHaveTextContent("Hvor vil du reise?");
     expect(title).toHaveProp("accessibilityRole", "header");
     expect(screen.queryByText(/^God (morgen|formiddag|ettermiddag|kveld|natt)/)).toBeNull();
-    // Knappen heter det den åpner: Profil (med innloggingskortet øverst).
-    expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Din profil");
+    // Knappen heter det den åpner: Min side (med innloggingen øverst).
+    expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Min side");
     await fireEvent.press(screen.getByTestId("account-button"));
     expect(router.push).toHaveBeenLastCalledWith("/profil");
     // Søket i en grafittøy på den lyse grunnen, med tett luft mellom delene.
@@ -113,7 +113,7 @@ describe("Hjem: første bilde", () => {
     // Hilsenen følger klokken («Hei» om natten).
     await waitFor(() => expect(screen.getByTestId("home-title")).toHaveTextContent(/^(God (morgen|formiddag|ettermiddag|kveld)|Hei), Kari$/));
     expect(screen.getByTestId("account-button")).toHaveTextContent("KN");
-    expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Din profil");
+    expect(screen.getByTestId("account-button")).toHaveProp("accessibilityLabel", "Min side");
   });
 
   it("44 pt: konto, Fly/Hotell (uten hitSlop), reisetype, bytt, fra/til, datoer og «Søk fly»; brikkene med hitSlop som ikke når naboene", async () => {

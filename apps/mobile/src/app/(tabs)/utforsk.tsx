@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { FocusStatusBar } from "../../components/FocusStatusBar";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
@@ -234,7 +234,7 @@ export default function ExploreScreen() {
     const mapProps = { points: shownPoints, selectedId: selected ? selectedId : null, onSelect: setSelectedId, bottomInset: selected ? cardHeight : 0, area: searching ? null : area, areaRequest, onLeaveArea: () => setArea(null), fitToPoints: searching };
     return (
       <View style={[styles.screen, { paddingTop: insets.top + space.lg }]} testID="explore-screen">
-        <StatusBar style="dark" />
+        <FocusStatusBar style="dark" />
         <StatusBarShield tone="light" />
         {head}
         <Text style={[type.caption, styles.mapNote]} testID="map-note">
@@ -301,7 +301,7 @@ export default function ExploreScreen() {
       automaticallyAdjustKeyboardInsets
       testID="explore-screen"
     >
-      <StatusBar style="dark" />
+      <FocusStatusBar style="dark" />
       {head}
       {empty}
       <View style={styles.grid}>

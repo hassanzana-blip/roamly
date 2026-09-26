@@ -24,6 +24,9 @@ const en = {
   usual: (city: string, iata: string) => `Usual departure airport: ${city} (${iata})`,
   forget: "Forget",
   clearQuery: "Clear the search",
+  /** Åpnet fra Min side for å velge den vanlige avreiseflyplassen: valget er den, så bryteren over trengs ikke. */
+  homeTitle: "Usual departure airport",
+  homeQuestion: "Where do you usually fly from?",
 };
 
 const nb: typeof en = {
@@ -51,6 +54,8 @@ const nb: typeof en = {
   forget: "Glem",
   clearQuery: "Tøm søket",
   rowLabel: (city, name, country, iata) => `${city}, ${name}, ${country}, kode ${iata}`,
+  homeTitle: "Vanlig avreiseflyplass",
+  homeQuestion: "Hvor reiser du vanligvis fra?",
 };
 
 export const airport = { en, nb };

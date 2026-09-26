@@ -10,7 +10,7 @@ const en = {
 
 const nb: typeof en = {
   skip: "Hopp over",
-  skipHint: "Går videre uten konto. Du kan logge inn senere i Profil.",
+  skipHint: "Går videre uten konto. Du kan logge inn senere på Min side.",
   title: "Sammenlign flypriser fra flyselskaper og reisebyråer – i norske kroner.",
   email: "Fortsett med e-post",
   noAccountNeeded: "Du kan søke uten konto.",

@@ -25,12 +25,15 @@ function ConfigError() {
   );
 }
 
-/** Skjermene, med titler på brukerens språk. */
+/**
+ * Skjermene, med titler på brukerens språk. Grunnen bak dem er den lyse («Cloud + Graphite»): det er den som skimtes
+ * mens en skjerm skyves inn eller ut, og nesten alle skjermene er lyse (grafitt bare i øyene).
+ */
 function AppStack() {
   const { t } = useI18n();
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.canvas } }}>
         <Stack.Screen name="(tabs)" options={{ title: t.common.tabs.home }} />
         <Stack.Screen name="resultater" options={{ title: t.results.screen.fallbackTitle }} />
         <Stack.Screen name="tilbud/[id]" options={{ title: t.details.title }} />
@@ -44,7 +47,7 @@ function AppStack() {
 }
 
 /**
- * Roten: fanene (Hjem, Utforsk, Profil) nederst i stacken; resultater,
+ * Roten: fanene (Hjem, Utforsk, Lagret, Min side) nederst i stacken; resultater,
  * flydetaljer, flyplassøk og hotellsøket (hotell/…) legges oppå. Systemskriften (SF Pro) brukes
  * overalt, så ingen skrift skal lastes før appen vises. Ved første oppstart står velkomsten over
  * alt (WelcomeGate) til gjesten hopper over eller logger inn.
@@ -63,7 +66,8 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <StatusBar style="light" />
+        {/* Grunnlaget før en skjerm har sagt sitt: mørk tekst på den lyse grunnen. Hver skjerm setter sin egen. */}
+        <StatusBar style="dark" />
         <AppStack />
         {/* Første oppstart: Apple, Google, e-post – eller «Hopp over» (søk krever aldri konto). */}
         <WelcomeGate />

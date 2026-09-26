@@ -218,7 +218,7 @@ export function WelcomeGate() {
         </View>
       </ScrollView>
       <StatusBarShield visible={pastIsland} tone="light" />
-      {/* E-post: samme ark som i Profil. Logger kunden inn der, lukkes arket og velkomsten sammen. */}
+      {/* E-post: samme ark som på Min side. Logger kunden inn der, lukkes arket og velkomsten sammen. */}
       {open ? <SignInSheet visible={sheet !== null} initialMode={sheet ?? "login"} onClose={() => setSheet(null)} /> : null}
     </Animated.View>
   );

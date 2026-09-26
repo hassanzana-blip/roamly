@@ -1,6 +1,6 @@
 /**
  * Appens språk. Norsk bokmål er standard ved første oppstart; engelsk er et
- * eget valg i Profil som lagres på telefonen og beholdes.
+ * eget valg på Min side som lagres på telefonen og beholdes.
  */
 export type Locale = "en" | "nb";
 

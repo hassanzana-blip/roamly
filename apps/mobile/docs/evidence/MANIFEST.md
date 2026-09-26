@@ -2020,3 +2020,60 @@ Google's logo asset from Ali).
 | `welcome-after-390-large.jpg` | `14c5645b02f27876…` | 780×1798 |
 | `welcome-after-390-en.jpg` | `4c552578ae812516…` | 780×1798 |
 | `welcome-after-390-after-skip.jpg` | `5b8049574a6905da…` | 780×1832 |
+
+## Min side: the profile tab as a personal travel hub (browser preview)
+
+**NON-NATIVE: not an iPhone.** Chromium renderings of Expo web (production bundle) against the local mock. The recent
+searches, saved destinations and usual departure airport are fixtures in the preview's local storage (no prices). The
+signed-in shots use the preview customer (Kari Nordmann) that exists only in the local mock.
+
+**Versions:** before is `af7ed8a` (the dark settings list, see `profile-v2-after-390.jpg`); after is the commit that
+adds this section.
+
+**What changed (master brief: «Min side must be rich», real data only)**
+- **The tab is called «Min side»** (English «Profile»), like the account area on hellosky.no; Home's account button
+  has the same name.
+- **A graphite hero at the top**, up under the status bar: «Hei, Kari» with initials and e-mail when signed in; for
+  guests «Min side», one sentence on the account (same as on hellosky.no, never needed to search), «Logg inn» and
+  «Opprett konto».
+- **An overview of what is really on the phone:** three tiles – recent searches, saved destinations, the usual departure
+  airport (or «–»). Each opens where it is managed (Lagret, or the airport picker).
+- **«Fortsett søket»:** the three newest recent searches whose dates have not passed; one tap searches again.
+  **«Lagrede reisemål»:** photo tiles; one tap searches flights there. With neither: «Kom i gang» with «Søk etter fly»
+  and «Utforsk reisemål».
+- **«Reisevaner»:** the usual departure airport as a row. The airport picker has a mode for it (`hjem=1`): its own
+  title and question, no switch – the choice is saved on the phone and becomes «Fra».
+- **Signed in, «På hellosky.no»:** Mine reiser, Reisende, Prisvarsler, and Sikkerhet og innlogging open the customer's
+  own pages on hellosky.no in Safari view (the first time the web asks for a login). The app shows no numbers or lists
+  from them, because it does not have them yet.
+- **Then** Konto, Innstillinger (language, NOK), Hjelp og juridisk, log out / delete and the version. All section titles
+  share one style (small capitals, as in Lagret).
+- **The status bar follows the tab that is showing** (`FocusStatusBar`). The tabs stay mounted, and React Native lets
+  the last mounted StatusBar win app-wide: after a visit to the (graphite) profile tab, Home had white status-bar text
+  on its light background. Only the focused tab's StatusBar is mounted now. The root stack is on the light canvas.
+- **Large text:** the tiles wrap (two and one) instead of splitting words; the buttons stack when their labels need it.
+
+**Tests:** `minSide.test.tsx` (30: guest and signed-in hero, tile values and VoiceOver labels, «Fortsett søket» with only
+upcoming searches, searching from a row and a tile, the error when a search cannot run, «Kom i gang», the picker's home
+mode, the web links, the order of the page, no line limits), `focusStatusBar.test.tsx` (3), and the renamed tab and
+headers in `profileList`, `savedLibrary`, `homeFirstView`, `languageTrust` and `welcome`.
+
+**Checks:** see the commit's verification in the search-transformation section below (the full suite and the iOS
+export ran on the tree with both stages).
+
+**Not verified:** a real iPhone (the status bar across tabs, the hero under the status bar and the bounce, Safari view
+and the web login).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `minside-after-390-guest-empty.jpg` | `14b95f2979165bdf…` | 780×1832 |
+| `minside-after-390-guest-data.jpg` | `8b55fb98f5db8f5f…` | 780×1860 |
+| `minside-after-390-guest-scrolled.jpg` | `82b009e19dd02997…` | 780×1832 |
+| `minside-after-375-guest-data.jpg` | `f85c3f47579a9f96…` | 750×1762 |
+| `minside-after-430-guest-data.jpg` | `eab5d69ee8ed66ae…` | 860×1974 |
+| `minside-after-390-signed-in.jpg` | `53e0c403de846ecc…` | 780×1826 |
+| `minside-after-390-signed-in-scrolled.jpg` | `82c3b9474129365e…` | 780×1832 |
+| `minside-after-390-signed-in-bottom.jpg` | `a4546c7d4a664324…` | 780×1798 |
+| `minside-after-390-large.jpg` | `31f9c9c2041f88ba…` | 780×1832 |
+| `minside-after-390-en.jpg` | `1389bd2137e47acd…` | 780×1798 |
+| `minside-after-390-home-airport.jpg` | `e83fc40c5b29583e…` | 780×1832 |

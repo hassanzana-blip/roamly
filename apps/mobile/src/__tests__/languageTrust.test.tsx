@@ -97,13 +97,13 @@ describe("språkvalget", () => {
       </AppProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("account-signed-out")).toBeOnTheScreen());
-    expect(screen.getByText("Logg inn eller opprett en konto")).toBeOnTheScreen();
-    // Ny installasjon: bokmål er valgt i velgeren, men ingenting er lagret bare av å vise Profil.
+    expect(screen.getByRole("header", { name: "Min side" })).toBeOnTheScreen();
+    // Ny installasjon: bokmål er valgt i velgeren, men ingenting er lagret bare av å vise Min side.
     expect(screen.getByTestId("segment-nb").props.accessibilityState).toMatchObject({ selected: true });
     expect(screen.getByTestId("segment-en").props.accessibilityState).toMatchObject({ selected: false });
     expect(readPref("locale", (v) => v)).toBeNull();
     await fireEvent.press(screen.getByTestId("segment-en"));
-    expect(screen.getByText("Log in or create an account")).toBeOnTheScreen();
+    expect(screen.getByRole("header", { name: "Profile" })).toBeOnTheScreen();
     expect(readPref("locale", (v) => v as string)).toBe("en");
     await screen.unmount();
     __resetLocalStoreForTests(); // som en ekte omstart: minnet er tomt, valget må leses fra filen
@@ -114,7 +114,7 @@ describe("språkvalget", () => {
         <AccountScreen />
       </AppProvider>,
     );
-    await waitFor(() => expect(screen.getByText("Log in or create an account")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByRole("header", { name: "Profile" })).toBeOnTheScreen());
     await fireEvent.press(screen.getByTestId("segment-nb"));
     expect(readPref("locale", (v) => v as string)).toBe("nb");
   });

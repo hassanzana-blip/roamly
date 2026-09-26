@@ -290,11 +290,11 @@ describe("fire faner", () => {
   }
   afterEach(() => jest.restoreAllMocks());
 
-  it("Hjem, Utforsk, Lagret, Profil – én valgt (for skjermleser og med pille), og et trykk bytter fane", async () => {
+  it("Hjem, Utforsk, Lagret, Min side – én valgt (for skjermleser og med pille), og et trykk bytter fane", async () => {
     const { navigation } = renderBar(2);
     await waitFor(() => expect(screen.getByTestId("tab-lagret")).toBeOnTheScreen());
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.props.accessibilityLabel)).toEqual(["Hjem", "Utforsk", "Lagret", "Profil"]);
+    expect(tabs.map((t) => t.props.accessibilityLabel)).toEqual(["Hjem", "Utforsk", "Lagret", "Min side"]);
     expect(tabs.map((t) => !!t.props.accessibilityState?.selected)).toEqual([false, false, true, false]);
     expect(screen.getByTestId("tab-lagret-selected")).toBeOnTheScreen();
     expect(screen.queryByTestId("tab-index-selected")).toBeNull();

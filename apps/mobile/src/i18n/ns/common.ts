@@ -37,7 +37,7 @@ const nb: typeof en = {
   loading: "Laster …",
   demoBadge: "DEMO",
   demoBadgeLabel: "Demo: prisene er ikke ekte",
-  tabs: { home: "Hjem", explore: "Utforsk", saved: "Lagret", profile: "Profil" },
+  tabs: { home: "Hjem", explore: "Utforsk", saved: "Lagret", profile: "Min side" },
   activeCount: (label, n) => `${label}, ${n} aktive`,
   fewer: (label) => `Færre ${label.toLowerCase()}`,
   more: (label) => `Flere ${label.toLowerCase()}`,

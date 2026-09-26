@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { Icon, type IconName } from "../../components/Icon";
 import { SignInSheet, type SignInMode } from "../../components/SignInSheet";
-import { StatusBar } from "expo-status-bar";
+import { DestinationCard } from "../../components/DestinationCard";
+import { useRouter } from "expo-router";
+import { FocusStatusBar } from "../../components/FocusStatusBar";
 import Constants from "expo-constants";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as WebBrowser from "expo-web-browser";
@@ -13,7 +15,14 @@ import { useApp } from "../../lib/appState";
 import { ApiError } from "../../lib/api";
 import { errorText } from "../../lib/errorText";
 import { WEB_PAGES } from "../../lib/config";
-import { Banner, BottomSheet, Field, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
+import { destinationChoice, type Destination } from "../../lib/destinations";
+import { savedDestinations } from "../../lib/saved";
+import { recentIsPast, recentKey, withFreshDates, type RecentSearch } from "../../lib/recent";
+import { localizedChoice } from "../../lib/airportIndex";
+import { keepDatesTogether } from "../../lib/format";
+import { cabinLabel, formErrorText, passengerSummary, type SearchForm } from "../../lib/searchForm";
+import type { FormErrorCode } from "../../i18n/ns/search";
+import { Banner, BottomSheet, Field, LinkButton, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
 import { a11yLanguage, useA11yLanguage, useI18n } from "../../i18n";
 import { LOCALES, LOCALE_NAMES, type Locale } from "../../i18n/types";
 import { colors, radius, space, TOUCH, type } from "../../lib/theme";
@@ -23,20 +32,36 @@ function openWeb(url: string) {
   WebBrowser.openBrowserAsync(url, { controlsColor: colors.blue, dismissButtonStyle: "close" }).catch(() => undefined);
 }
 
+/** Flyplassøket i «vanlig avreiseflyplass»-modus (se app/flyplass.tsx): valget huskes og blir «Fra» i skjemaet. */
+const HOME_AIRPORT_PICKER = { pathname: "/flyplass", params: { felt: "fra", hjem: "1" } };
+
+/** Hver flis i oversikten er minst så bred (ganger tekststørrelsen), så det lengste ordet i etiketten får plass. */
+const TILE_BASIS = 88;
+
+/** Den vanlige avreiseflyplassen som «Oslo (OSL)», med byen på appens språk – eller null når kunden ikke har valgt en. */
+function useHomeAirport(): { iata: string; text: string } | null {
+  const { homeAirport } = useApp();
+  const { locale } = useI18n();
+  if (!homeAirport) return null;
+  const a = localizedChoice(homeAirport, locale);
+  return { iata: a.iata, text: `${a.city} (${a.iata})` };
+}
+
 /**
- * En gruppe i innstillingslisten, som i iOS' innstillinger: overskrift på kull og et hvitt kort med rader.
- * `note` står under kortet (f.eks. at nettsidene er på norsk).
+ * En gruppe i listen, som i iOS' innstillinger: overskrift på den lyse grunnen og et hvitt kort med rader.
+ * `note` står under kortet (f.eks. at nettsidene er på norsk). Overskriften har samme stil som modulene over
+ * («Fortsett søket», «Lagrede reisemål») og seksjonene i Lagret – små versaler – så siden leses som én liste.
  */
 function Group({ title, children, testID, note }: { title?: string; children: ReactNode; testID?: string; note?: string | null }) {
   return (
     <View style={styles.group} testID={testID}>
       {title ? (
-        <Text style={[type.section, { color: colors.onDark }]} accessibilityRole="header">
+        <Text style={styles.groupTitle} accessibilityRole="header">
           {title}
         </Text>
       ) : null}
       <View style={styles.groupCard}>{children}</View>
-      {note ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{note}</Text> : null}
+      {note ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{note}</Text> : null}
     </View>
   );
 }
@@ -143,6 +168,48 @@ function HelpGroup() {
       <Row icon="lock" title={a.privacy} external separated onPress={() => openWeb(WEB_PAGES.privacy)} testID="link-privacy" accessibilityHint={a.webOpens} />
       <Row icon="info" title={a.terms} external separated onPress={() => openWeb(WEB_PAGES.terms)} testID="link-terms" accessibilityHint={a.webOpens} />
       <Row icon="plane" title={a.about} external separated onPress={() => openWeb(WEB_PAGES.about)} testID="link-about" accessibilityHint={a.webOpens} />
+    </Group>
+  );
+}
+
+/**
+ * Kundens egne sider på hellosky.no – reiser, lagrede reisende, prisvarsler og sikkerhet. Appen har dem ikke selv, så
+ * den viser ingen tall eller lister herfra; lenkene åpner nettets sider i Safari-visning, der kunden logger inn med
+ * samme konto første gang.
+ */
+function WebAccountGroup() {
+  const { t } = useI18n();
+  const a = t.account;
+  return (
+    <Group title={a.webAccountTitle} testID="web-account-group" note={a.webAccountNote}>
+      <Row icon="luggage" title={a.trips} external onPress={() => openWeb(WEB_PAGES.trips)} testID="link-trips" accessibilityHint={a.webOpens} />
+      <Row icon="users" title={a.travellers} external separated onPress={() => openWeb(WEB_PAGES.travellers)} testID="link-travellers" accessibilityHint={a.webOpens} />
+      <Row icon="bell" title={a.priceAlerts} external separated onPress={() => openWeb(WEB_PAGES.priceAlerts)} testID="link-price-alerts" accessibilityHint={a.webOpens} />
+      <Row icon="lock" title={a.security} external separated onPress={() => openWeb(WEB_PAGES.security)} testID="link-security" accessibilityHint={a.webOpens} />
+    </Group>
+  );
+}
+
+/**
+ * Reisevaner: den vanlige avreiseflyplassen, som nye søk starter fra. Raden åpner flyplassøket i «vanlig
+ * avreiseflyplass»-modus; valget lagres bare på denne telefonen.
+ */
+function PreferencesGroup() {
+  const router = useRouter();
+  const { t } = useI18n();
+  const a = t.account;
+  const home = useHomeAirport();
+  return (
+    <Group title={a.habitsTitle} testID="preferences-group" note={t.airport.rememberHint}>
+      <Row
+        icon="takeoff"
+        title={a.homeAirport}
+        value={home?.text ?? a.notChosen}
+        accessibilityLabel={a.homeAirportLabel(home?.text ?? null)}
+        accessibilityHint={a.homeAirportHint}
+        onPress={() => router.push(HOME_AIRPORT_PICKER)}
+        testID="home-airport-row"
+      />
     </Group>
   );
 }
@@ -258,50 +325,255 @@ function DeleteAccountSheet({ profile, visible, onClose }: { profile: CustomerPr
 }
 
 /**
- * Innloggingskortet øverst i Profil for gjester, som hos de store søketjenestene: hva en konto er (samme konto som på
- * hellosky.no) og at søket ikke krever den. Skjemaet åpnes i et eget ark.
+ * Gjest, øverst i grafitten: tittelen, hva en konto er (samme konto som på hellosky.no) og at søket ikke krever den,
+ * og de to valgene. Knappene står side om side når etikettene får plass, ellers under hverandre (stor tekst).
+ * Skjemaet åpnes i et eget ark.
  */
-function SignInCard({ onLogin, onRegister }: { onLogin: () => void; onRegister: () => void }) {
+function GuestIntro({ onLogin, onRegister }: { onLogin: () => void; onRegister: () => void }) {
   const { t } = useI18n();
   const a = t.account;
   return (
-    <View style={styles.signInCard} testID="sign-in-card">
-      <View style={styles.signInIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Icon name="user" size={22} color={colors.blue} />
-      </View>
-      <Text style={[type.section, { color: colors.text }]} accessibilityRole="header">
-        {a.signInTitle}
+    <View style={styles.guest} testID="sign-in-card">
+      <Text style={[type.hero, { color: colors.onDark }]} accessibilityRole="header">
+        {a.profileTitle}
       </Text>
-      <Text style={[type.callout, { color: colors.textSecondary }]}>{a.signInBody}</Text>
-      <View style={styles.signInActions}>
-        <PrimaryButton testID="open-login" label={a.loginTitle} onPress={onLogin} accessibilityHint={a.signInHint} />
-        <SecondaryButton testID="open-register" label={a.registerTitle} onPress={onRegister} accessibilityHint={a.registerHint} />
+      <Text style={[type.callout, { color: colors.onDarkMuted }]}>{a.signInBody}</Text>
+      <View style={styles.signInActions} testID="sign-in-actions">
+        <View style={styles.signInAction}>
+          {/* Like høy som «Opprett konto» (44 pt), så paret står på linje når de er side om side. */}
+          <PrimaryButton testID="open-login" label={a.loginTitle} onPress={onLogin} accessibilityHint={a.signInHint} style={styles.pairButton} />
+        </View>
+        <View style={styles.signInAction}>
+          <SecondaryButton dark testID="open-register" label={a.registerTitle} onPress={onRegister} accessibilityHint={a.registerHint} />
+        </View>
       </View>
     </View>
   );
 }
 
-/** Profil og innstillinger. Vanlig kundeinnlogging; ingen andre roller finnes i appen. */
-export default function AccountScreen() {
-  const insets = useSafeAreaInsets();
-  const { auth, logout, requestSocialProviders } = useApp();
+/** Innlogget, øverst i grafitten: initialene (bare pynt – VoiceOver hører hilsenen), hilsenen og kontoens adresse. */
+function Identity({ profile }: { profile: CustomerProfile | null }) {
+  const { t } = useI18n();
+  const a = t.account;
+  const initials = profile ? `${profile.firstName.trim().slice(0, 1)}${profile.lastName.trim().slice(0, 1)}`.toUpperCase() : "";
+  const address = profile ? (profile.email ?? profile.phone) : null;
+  return (
+    <View style={styles.identity}>
+      <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {/* Pynt i en fast sirkel: vokser litt med stor tekst, men renner aldri ut (navnet står i full størrelse ved siden av). */}
+        {initials ? (
+          <Text style={styles.avatarText} maxFontSizeMultiplier={1.3}>
+            {initials}
+          </Text>
+        ) : (
+          <Icon name="user" size={24} color={colors.white} />
+        )}
+      </View>
+      <View style={styles.identityText}>
+        <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
+          {profile ? a.hello(profile.firstName) : a.signedIn}
+        </Text>
+        {address ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{address}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+/** Én flis i oversikten: et tall (eller en flyplasskode) og hva det er. Hele flisen er knappen, minst 72 pt høy. */
+function HubTile({ value, label, accessibilityLabel, accessibilityHint, onPress, basis, testID }: { value: string; label: string; accessibilityLabel: string; accessibilityHint: string; onPress: () => void; basis: number; testID: string }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      testID={testID}
+      style={({ pressed }) => [styles.tile, { flexBasis: basis }, pressed && { opacity: 0.7 }]}
+    >
+      <Text style={[type.title, type.tabular, { color: colors.onDark }]}>{value}</Text>
+      {/* Ingen linjegrense: med stor tekst brytes etiketten, og flisene i raden blir like høye. */}
+      <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/**
+ * Oversikten øverst: nylige søk og lagrede reisemål på telefonen, og den vanlige avreiseflyplassen – tall som faktisk
+ * ligger her, aldri anslag. Tre like fliser på én rad; med stor tekst trenger hver mer bredde, og raden brytes i stedet
+ * for at et ord deles eller kuttes.
+ */
+function Overview() {
+  const router = useRouter();
+  const { recent, saved } = useApp();
+  const { t, f } = useI18n();
+  const a = t.account;
+  const { fontScale } = useWindowDimensions();
+  const home = useHomeAirport();
+  const count = savedDestinations(saved).length;
+  const basis = TILE_BASIS * Math.max(1, fontScale);
+  return (
+    <View style={styles.tiles} testID="hub-overview">
+      <HubTile testID="hub-recent" value={f.int(recent.length)} label={a.hubRecent} accessibilityLabel={a.hubRecentLabel(recent.length)} accessibilityHint={a.hubOpensSaved} onPress={() => router.navigate("/lagret")} basis={basis} />
+      <HubTile testID="hub-saved" value={f.int(count)} label={a.hubSaved} accessibilityLabel={a.hubSavedLabel(count)} accessibilityHint={a.hubOpensSaved} onPress={() => router.navigate("/lagret")} basis={basis} />
+      <HubTile
+        testID="hub-home-airport"
+        value={home?.iata ?? "–"}
+        label={a.hubHomeAirport}
+        accessibilityLabel={a.homeAirportLabel(home?.text ?? null)}
+        accessibilityHint={a.homeAirportHint}
+        onPress={() => router.push(HOME_AIRPORT_PICKER)}
+        basis={basis}
+      />
+    </View>
+  );
+}
+
+/** Seksjonsoverskrift som i Lagret (små versaler) med «Se alle» til høyre; lenken sier til VoiceOver hvor den går. */
+function SectionHead({ title, linkLabel, onPress, testID }: { title: string; linkLabel: string; onPress: () => void; testID: string }) {
+  const { t } = useI18n();
+  return (
+    <View style={styles.sectionHead}>
+      <Text style={styles.sectionTitle} accessibilityRole="header">
+        {title}
+      </Text>
+      <LinkButton label={t.account.seeAll} accessibilityLabel={linkLabel} onPress={onPress} testID={testID} />
+    </View>
+  );
+}
+
+/**
+ * Et nylig søk å fortsette: rute, flyplasskoder og det korte datospennet, reisende og klasse. Hele raden er én knapp;
+ * VoiceOver hører hele datoene med ukedag, som på Hjem.
+ */
+function ContinueRow({ search: r, separated, onPress }: { search: RecentSearch; separated: boolean; onPress: () => void }) {
   const i18n = useI18n();
-  const a = i18n.t.account;
-  // Innloggingsskjemaet står i et eget ark (iOS' sidekort) som åpnes fra kortet øverst, i innlogging eller ny konto.
+  const { t, f, locale } = i18n;
+  const h = t.home;
+  const route = `${localizedChoice(r.origin, locale).city} → ${localizedChoice(r.destination, locale).city}`;
+  const back = r.tripType === "roundtrip" ? r.returnDate : null;
+  // Synlig: det korte spennet («9.–16. okt.»), der hver dato holdes samlet; én vei sies, så raden ikke ser ut som en
+  // tur-retur samme dag.
+  const span = keepDatesTogether(f.dateSpan(r.departDate, back));
+  const when = back ? span : `${h.oneway} · ${span}`;
+  // «Bare direktefly» står med, så to søk som bare skiller seg der, aldri ser like ut.
+  const people = [passengerSummary(r, i18n), cabinLabel(r.cabinClass, i18n), ...(r.directOnly ? [h.directOnly] : [])].join(" · ");
+  const dates = back ? `${f.day(r.departDate)} – ${f.day(back)}` : `${h.oneway} · ${f.day(r.departDate)}`;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t.saved.searchAgainLabel(route, `${dates} · ${people}`)}
+      accessibilityHint={h.recentHint}
+      testID={`hub-recent-${r.origin.iata}-${r.destination.iata}-${r.departDate}`}
+      style={({ pressed }) => [styles.continueRow, separated && styles.divider, pressed && styles.pressed]}
+    >
+      <View style={styles.continueIcon}>
+        <Icon name="clock" size={18} color={colors.textSecondary} />
+      </View>
+      <View style={styles.continueText}>
+        <Text style={[type.calloutStrong, { color: colors.text }]}>{route}</Text>
+        {/* Nøyaktige flyplasskoder med ikke-brytende bindestrek (aldri «OSL–» / «BCN»), så datoene. */}
+        <Text style={[type.footnote, { color: colors.text }]}>{`${r.origin.iata}\u2011${r.destination.iata} · ${when}`}</Text>
+        <Text style={[type.footnote, { color: colors.textSecondary }]}>{people}</Text>
+      </View>
+      <Icon name="chevronRight" size={18} color={colors.textSecondary} />
+    </Pressable>
+  );
+}
+
+/**
+ * Modulene under oversikten, bare med det som finnes på telefonen: de tre nyeste søkene som fortsatt kan kjøres, og de
+ * lagrede reisemålene som fotokort (et trykk søker dit, som på Hjem). Uten noe av det: et kort som forklarer hva som
+ * havner her, med veien videre. Søk med passerte datoer står bare i Lagret (der de får nye datoer).
+ */
+function Hub({ onContinue, onSearchTo }: { onContinue: (r: RecentSearch) => void; onSearchTo: (d: Destination) => void }) {
+  const router = useRouter();
+  const { recent, saved } = useApp();
+  const { t } = useI18n();
+  const a = t.account;
+  const today = new Date();
+  const upcoming = recent.filter((r) => !recentIsPast(r, today)).slice(0, 3);
+  const destinations = savedDestinations(saved);
+
+  if (!upcoming.length && !destinations.length) {
+    return (
+      <View style={styles.startCard} testID="hub-start">
+        <Text style={[type.section, { color: colors.text }]} accessibilityRole="header">
+          {a.startTitle}
+        </Text>
+        <Text style={[type.callout, { color: colors.textSecondary }]}>{a.startBody}</Text>
+        <View style={styles.startLinks}>
+          <LinkButton label={a.startSearch} onPress={() => router.navigate("/")} testID="hub-start-search" />
+          <LinkButton label={a.startExplore} onPress={() => router.navigate("/utforsk")} testID="hub-start-explore" />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      {upcoming.length ? (
+        <View style={styles.module} testID="hub-continue">
+          <SectionHead title={a.continueTitle} linkLabel={a.continueAllLabel} onPress={() => router.navigate("/lagret")} testID="hub-continue-all" />
+          {/* Én hvit gruppe med tynne skiller – ikke et stort kort per rad. */}
+          <View style={styles.list}>
+            {upcoming.map((r, i) => (
+              <ContinueRow key={recentKey(r)} search={r} separated={i > 0} onPress={() => onContinue(r)} />
+            ))}
+          </View>
+        </View>
+      ) : null}
+      {destinations.length ? (
+        <View style={styles.module} testID="hub-saved-destinations">
+          <SectionHead title={a.hubSaved} linkLabel={a.savedAllLabel} onPress={() => router.navigate("/lagret")} testID="hub-saved-all" />
+          {/* Raden går ut til skjermkantene og ruller under dem; første og siste kort står på sidemargen. */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rail} contentContainerStyle={styles.railContent} testID="hub-saved-rail">
+            {destinations.map((d) => (
+              <DestinationCard key={d.id} destination={d} onPress={() => onSearchTo(d)} testID={`hub-saved-${d.id}`} />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Min side: kundens egen side i appen. Øverst en grafittøy helt opp under statuslinjen med hilsenen – eller
+ * innloggingen for gjester – og en oversikt over det som ligger på telefonen. Under, på den lyse grunnen: søk å
+ * fortsette og lagrede reisemål (eller «Kom i gang»), reisevaner, kontoen og sidene på hellosky.no (innlogget),
+ * innstillinger, hjelp og versjonen. Vanlig kundeinnlogging; ingen andre roller finnes i appen.
+ */
+export default function AccountScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { auth, logout, requestSocialProviders, form, setForm, runSearch } = useApp();
+  const i18n = useI18n();
+  const { t, locale } = i18n;
+  const a = t.account;
+  // Innloggingsskjemaet står i et eget ark (iOS' sidekort) som åpnes fra toppen, i innlogging eller ny konto.
   const [authOpen, setAuthOpen] = useState<SignInMode | null>(null);
   const [busy, setBusy] = useState(false);
   const [sheet, setSheet] = useState<null | "edit" | "delete">(null);
-  const [saved, setSaved] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  // Et søk fra siden som ikke kan kjøres (f.eks. samme flyplass begge veier). Feilen gjelder søket slik det var da
+  // kunden trykket; endres skjemaet siden (på Hjem, i Utforsk), er den borte – som i Utforsk.
+  const [problem, setProblem] = useState<{ code: FormErrorCode; key: string } | null>(null);
+  const [heroHeight, setHeroHeight] = useState(0);
+  const [pastHero, setPastHero] = useState(false);
 
   // Et ark eller en «lagret»-melding hører til kontoen som var logget inn da:
   // etter utlogging, sletting eller utløpt økt skal ingenting dukke opp igjen.
+  // Den nye siden starter øverst (egen rulleflate), under grafitten og uten en gammel søkefeil.
   // (Innloggingsarket rydder sitt eget skjema, også passordet – se components/SignInSheet.tsx.)
   const [shownFor, setShownFor] = useState(auth.status);
   if (shownFor !== auth.status) {
     setShownFor(auth.status);
     setSheet(null);
-    setSaved(false);
+    setProfileSaved(false);
     setAuthOpen(null);
+    setProblem(null);
+    setPastHero(false);
   }
 
   // Innloggingsmåtene (Google/Apple) hentes bare når innloggingen faktisk kan vises.
@@ -310,8 +582,6 @@ export default function AccountScreen() {
     if (signedOut) requestSocialProviders();
   }, [signedOut, requestSocialProviders]);
 
-  const top = { paddingTop: insets.top + space.lg };
-
   // Innloggingsarket står i alle tilstander med samme nøkkel, så det beholder skjemaet (e-postadressen står til neste
   // gang, også etter innlogging og utlogging). Det vises bare for gjester.
   const signIn = <SignInSheet key="sign-in-sheet" visible={authOpen !== null} initialMode={authOpen ?? "login"} onClose={() => setAuthOpen(null)} />;
@@ -319,72 +589,130 @@ export default function AccountScreen() {
   if (auth.status === "loading") {
     return (
       <View style={[styles.screen, styles.center]}>
-        <ActivityIndicator color={colors.onDark} />
+        <FocusStatusBar style="dark" />
+        <ActivityIndicator color={colors.text} />
         {signIn}
       </View>
     );
   }
 
-  if (auth.status === "signedIn") {
-    const p = auth.profile;
-    const initials = p ? `${p.firstName.slice(0, 1)}${p.lastName.slice(0, 1)}`.toUpperCase() : "";
-    return (
-      <View style={styles.screen}>
-        <StatusBar style="light" />
-        {/* Egen nøkkel: etter innlogging starter listen øverst, ikke der gjestelisten var rullet. */}
-        <ScrollView key="signed-in" style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-in">
-          <View style={styles.hello}>
-            <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
-            <Text style={[type.title, { color: colors.onDark, flex: 1 }]} accessibilityRole="header">
-              {p ? a.hello(p.firstName) : a.signedIn}
-            </Text>
-          </View>
-          {saved ? (
-            <Banner tone="info" dark testID="profile-saved">
-              {a.saved}
+  const searchFailed = (code: FormErrorCode, tried: SearchForm) => {
+    setProblem({ code, key: recentKey(tried) });
+    // Feilen står over modulene, kanskje utenfor bildet der kunden trykket: VoiceOver leser den opp med én gang.
+    AccessibilityInfo.announceForAccessibility(formErrorText(code, i18n));
+  };
+  const continueSearch = (r: RecentSearch) => {
+    // Datoene kan ha passert siden raden ble tegnet (appen sto åpen over midnatt): da får skjemaet på Hjem ruten med
+    // nye datoer å se på – som «Velg nye datoer» i Lagret – i stedet for et søk som ikke kan kjøres.
+    if (recentIsPast(r)) {
+      setForm(() => withFreshDates(r));
+      setProblem(null);
+      router.navigate("/");
+      return;
+    }
+    const err = runSearch(r);
+    if (err) return searchFailed(err, r);
+    setProblem(null);
+    router.push("/resultater");
+  };
+  const searchTo = (d: Destination) => {
+    const destination = destinationChoice(d, locale);
+    const err = runSearch({ destination });
+    if (err) return searchFailed(err, { ...form, destination });
+    setProblem(null);
+    router.push("/resultater");
+  };
+  const shownProblem = problem && problem.key === recentKey(form) ? problem.code : null;
+
+  const signedIn = auth.status === "signedIn";
+  const p = auth.status === "signedIn" ? auth.profile : null;
+  const notice = auth.status === "signedOut" ? auth.notice : undefined;
+
+  return (
+    <View style={styles.screen}>
+      {/* Lys tekst mens grafitten ligger under statuslinjen; rullet forbi øya: mørk tekst på en lys skjerm. */}
+      <FocusStatusBar style={pastHero ? "dark" : "light"} animated />
+      {/* Egen nøkkel per tilstand: etter innlogging, utlogging, sletting eller utløpt økt starter siden øverst. */}
+      <ScrollView
+        key={signedIn ? "signed-in" : "signed-out"}
+        testID={signedIn ? "account-signed-in" : "account-signed-out"}
+        style={styles.screen}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const past = heroHeight > 0 && e.nativeEvent.contentOffset.y > heroHeight - insets.top;
+          if (past !== pastHero) setPastHero(past);
+        }}
+      >
+        <View style={[styles.hero, { paddingTop: insets.top + space.lg }]} testID="account-hero" onLayout={(e) => setHeroHeight(e.nativeEvent.layout.height)}>
+          {/* Grafitten fortsetter over toppen, så et drag nedover (iOS' sprett) aldri viser lys grunn bak statuslinjen. */}
+          <View style={styles.heroBleed} pointerEvents="none" />
+          {signedIn ? <Identity profile={p} /> : <GuestIntro onLogin={() => setAuthOpen("login")} onRegister={() => setAuthOpen("register")} />}
+          <Overview />
+        </View>
+
+        <View style={styles.content}>
+          {notice ? (
+            <Banner tone={notice === "expired" ? "warning" : "info"} testID={`auth-notice-${notice}`}>
+              {notice === "expired" ? a.sessionExpired : a.deleted}
             </Banner>
           ) : null}
-          {p ? (
-            <Group title={a.accountSection} testID="account-card">
-              {/* Verdien øverst og hva den er under, så lange navn og e-poster får hele bredden. */}
-              <Row icon="user" title={`${p.firstName} ${p.lastName}`.trim()} subtitle={a.nameLabel} accessibilityLabel={`${a.nameLabel}: ${`${p.firstName} ${p.lastName}`.trim()}`} />
-              {p.email ? <Row icon="mail" title={p.email} subtitle={a.emailLabel} accessibilityLabel={`${a.emailLabel}: ${p.email}`} separated /> : null}
-              {p.phone ? <Row icon="phone" title={p.phone} subtitle={a.phoneLabel} accessibilityLabel={`${a.phoneLabel}: ${p.phone}`} separated /> : null}
-              <Row
-                icon="pencil"
-                title={a.editProfile}
-                separated
-                onPress={() => {
-                  setSaved(false);
-                  setSheet("edit");
-                }}
-                testID="open-edit-profile"
-              />
-            </Group>
-          ) : (
-            <Banner tone="warning" dark>
-              {a.profileUnavailable}
+          {shownProblem ? (
+            <Banner tone="error" testID="hub-error">
+              {formErrorText(shownProblem, i18n)}
             </Banner>
-          )}
+          ) : null}
+          <Hub onContinue={continueSearch} onSearchTo={searchTo} />
+          <PreferencesGroup />
+          {signedIn ? (
+            <>
+              {/* Meldingen står ved kontoen, der kunden er når arket lukkes. */}
+              {profileSaved ? (
+                <Banner tone="info" testID="profile-saved">
+                  {a.saved}
+                </Banner>
+              ) : null}
+              {p ? (
+                <Group title={a.accountSection} testID="account-card">
+                  {/* Verdien øverst og hva den er under, så lange navn og e-poster får hele bredden. */}
+                  <Row icon="user" title={`${p.firstName} ${p.lastName}`.trim()} subtitle={a.nameLabel} accessibilityLabel={`${a.nameLabel}: ${`${p.firstName} ${p.lastName}`.trim()}`} />
+                  {p.email ? <Row icon="mail" title={p.email} subtitle={a.emailLabel} accessibilityLabel={`${a.emailLabel}: ${p.email}`} separated /> : null}
+                  {p.phone ? <Row icon="phone" title={p.phone} subtitle={a.phoneLabel} accessibilityLabel={`${a.phoneLabel}: ${p.phone}`} separated /> : null}
+                  <Row
+                    icon="pencil"
+                    title={a.editProfile}
+                    separated
+                    onPress={() => {
+                      setProfileSaved(false);
+                      setSheet("edit");
+                    }}
+                    testID="open-edit-profile"
+                  />
+                </Group>
+              ) : (
+                <Banner tone="warning">{a.profileUnavailable}</Banner>
+              )}
+              <WebAccountGroup />
+            </>
+          ) : null}
           <SettingsGroup />
           <HelpGroup />
-          <Group>
-            <Row
-              icon="logout"
-              title={busy ? a.loggingOut : a.logout}
-              action
-              testID="logout-button"
-              onPress={async () => {
-                if (busy) return;
-                setBusy(true);
-                await logout();
-                setBusy(false);
-              }}
-            />
-            {p ? <Row icon="close" title={a.deleteRow} danger action separated onPress={() => setSheet("delete")} testID="open-delete-account" /> : null}
-          </Group>
+          {signedIn ? (
+            <Group>
+              <Row
+                icon="logout"
+                title={busy ? a.loggingOut : a.logout}
+                action
+                testID="logout-button"
+                onPress={async () => {
+                  if (busy) return;
+                  setBusy(true);
+                  await logout();
+                  setBusy(false);
+                }}
+              />
+              {p ? <Row icon="close" title={a.deleteRow} danger action separated onPress={() => setSheet("delete")} testID="open-delete-account" /> : null}
+            </Group>
+          ) : null}
           <VersionLine />
           {p ? (
             <>
@@ -395,49 +723,59 @@ export default function AccountScreen() {
                 onClose={() => setSheet(null)}
                 onSaved={() => {
                   setSheet(null);
-                  setSaved(true);
+                  setProfileSaved(true);
                 }}
               />
               <DeleteAccountSheet key={`delete-${sheet === "delete"}`} profile={p} visible={sheet === "delete"} onClose={() => setSheet(null)} />
             </>
           ) : null}
-        </ScrollView>
-        <StatusBarShield />
-        {signIn}
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.screen}>
-      <StatusBar style="light" />
-      {/* Egen nøkkel: etter utlogging, sletting eller utløpt økt starter listen øverst, så meldingen og kortet synes. */}
-      <ScrollView key="signed-out" style={styles.screen} contentContainerStyle={[styles.content, top]} testID="account-signed-out">
-        <Text style={[type.hero, { color: colors.onDark }]} accessibilityRole="header">
-          {a.profileTitle}
-        </Text>
-        {auth.notice ? (
-          <Banner tone={auth.notice === "expired" ? "warning" : "info"} dark testID={`auth-notice-${auth.notice}`}>
-            {auth.notice === "expired" ? a.sessionExpired : a.deleted}
-          </Banner>
-        ) : null}
-        <SignInCard onLogin={() => setAuthOpen("login")} onRegister={() => setAuthOpen("register")} />
-        <SettingsGroup />
-        <HelpGroup />
-        <VersionLine />
+        </View>
       </ScrollView>
-      <StatusBarShield />
+      <StatusBarShield visible={pastHero} tone="light" />
       {signIn}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  // «Cloud + Graphite»: lys grunn; grafitt bare i øya øverst. Overskrifter i `text`, hjelpetekst i `textSecondary`.
+  screen: { flex: 1, backgroundColor: colors.canvas },
   center: { alignItems: "center", justifyContent: "center" },
-  content: { paddingHorizontal: space.lg, gap: space.xl, paddingBottom: space.xxxl },
-  // Innstillingslisten: overskrift på kull, hvitt kort med rader og hårfine streker mellom dem.
+  // Grafittøya går helt ut til kantene og opp under statuslinjen, med runde hjørner nederst.
+  hero: { backgroundColor: colors.raised, borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, paddingHorizontal: space.lg, paddingBottom: space.xl, gap: space.lg },
+  heroBleed: { position: "absolute", left: 0, right: 0, bottom: "100%", height: 1000, backgroundColor: colors.raised },
+  identity: { flexDirection: "row", alignItems: "center", gap: space.md },
+  identityText: { flex: 1, gap: 2 },
+  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
+  avatarText: { fontSize: 20, lineHeight: 24, fontWeight: "700", color: colors.white },
+  guest: { gap: space.sm },
+  // Side om side når begge etikettene får plass på én linje; ellers brytes raden, og hver knapp får hele bredden.
+  signInActions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.sm },
+  signInAction: { flexGrow: 1, minWidth: 140 },
+  pairButton: { minHeight: TOUCH },
+  tiles: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
+  tile: { flexGrow: 1, flexShrink: 1, minHeight: 72, padding: space.md, gap: 2, borderRadius: radius.input, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.darkBorder },
+  content: { paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.xxxl, gap: space.xl },
+  module: { gap: 0 },
+  sectionHead: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: TOUCH },
+  sectionTitle: { ...type.footnoteStrong, flex: 1, color: colors.text, textTransform: "uppercase", letterSpacing: 0.6 },
+  // Én hvit gruppe med tynne skiller, som i Lagret.
+  list: { borderRadius: radius.input, backgroundColor: colors.white, overflow: "hidden" },
+  continueRow: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 64, paddingVertical: space.sm, paddingHorizontal: space.md },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lightBorder },
+  pressed: { backgroundColor: colors.inset },
+  continueIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.inset, alignItems: "center", justifyContent: "center" },
+  continueText: { flex: 1, gap: 1 },
+  // Fotokortene: raden oppheves ut over sidemargen (kant til kant), og innholdet legges tilbake på margen.
+  rail: { flexGrow: 0, marginHorizontal: -space.lg },
+  railContent: { paddingHorizontal: space.lg, gap: space.md },
+  // «Kom i gang»: samme hvite flate som gruppene; lenkene er selv 44 pt høye og trenger ingen ekstra luft under seg.
+  startCard: { backgroundColor: colors.white, borderRadius: radius.input, paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.xs, gap: space.xs },
+  startLinks: { flexDirection: "row", flexWrap: "wrap", columnGap: space.xl },
+  // Innstillingslisten: overskrift på grunnen, hvitt kort med rader og hårfine streker mellom dem.
   group: { gap: space.sm },
+  // Like langt fra overskriften til kortet som i modulene (der «Se alle» gjør overskriftsraden 44 pt høy).
+  groupTitle: { ...type.footnoteStrong, color: colors.text, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: space.xs },
   groupCard: { backgroundColor: colors.white, borderRadius: radius.input, overflow: "hidden" },
   row: { minHeight: TOUCH + 8, flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.sm },
   rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lightBorder },
@@ -446,11 +784,5 @@ const styles = StyleSheet.create({
   rowValue: { color: colors.textSecondary, flexShrink: 1, maxWidth: "55%", textAlign: "right" },
   block: { paddingHorizontal: space.lg, paddingVertical: space.md, gap: space.md },
   blockHead: { flexDirection: "row", alignItems: "center", gap: space.md },
-  version: { color: colors.onDarkDim, textAlign: "center" },
-  signInCard: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.xl, gap: space.sm },
-  signInIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.blueSoft, alignItems: "center", justifyContent: "center", marginBottom: space.xs },
-  signInActions: { gap: space.sm, marginTop: space.md },
-  hello: { flexDirection: "row", alignItems: "center", gap: space.md },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 18, fontWeight: "700", color: colors.white },
+  version: { color: colors.textSecondary, textAlign: "center" },
 });

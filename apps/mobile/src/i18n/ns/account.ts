@@ -1,11 +1,10 @@
-/** Profil, innlogging og språk. */
+/** Min side: innlogging, kontoen, reisevaner, innstillinger og språk. */
 const en = {
   language: "Language",
   languageHint: "Changes the app's language right away.",
-  /** Profil som en innstillingsliste. */
+  /** Hovedtittelen på Min side for gjester (fanen heter det samme). */
   profileTitle: "Profile",
-  signInTitle: "Log in or create an account",
-  signInBody: "One account for the app and hellosky.no. You don't need an account to search and compare flights.",
+  signInBody: "Log in to use the same account as on hellosky.no. You don't need an account to search and compare flights.",
   signInHint: "Opens the login form",
   registerHint: "Opens the form for a new account",
   settingsTitle: "Settings",
@@ -83,14 +82,42 @@ const en = {
   about: "About HelloSky",
   webNorwegian: "Opens hellosky.no (in Norwegian)",
   webOpens: "Opens hellosky.no",
+  // Oversikten øverst på Min side: bare det som faktisk ligger på telefonen.
+  hubRecent: "Recent searches",
+  hubRecentLabel: (n: number) => (n === 0 ? "No recent searches" : n === 1 ? "1 recent search" : `${n} recent searches`),
+  hubSaved: "Saved destinations",
+  hubSavedLabel: (n: number) => (n === 0 ? "No saved destinations" : n === 1 ? "1 saved destination" : `${n} saved destinations`),
+  hubOpensSaved: "Opens Saved",
+  hubHomeAirport: "Usual departure",
+  // Den vanlige avreiseflyplassen (flisen, raden i «Reisevaner» og flyplassøket åpnet derfra).
+  homeAirport: "Usual departure airport",
+  homeAirportLabel: (airport: string | null) => `Usual departure airport: ${airport ?? "not chosen"}`,
+  homeAirportHint: "Choose airport",
+  notChosen: "Not chosen",
+  habitsTitle: "Travel preferences",
+  // Modulene under oversikten.
+  seeAll: "See all",
+  continueTitle: "Continue your search",
+  continueAllLabel: "See all recent searches in Saved",
+  savedAllLabel: "See all saved destinations in Saved",
+  startTitle: "Get started",
+  startBody: "Your searches and the destinations you save are gathered here – only on this phone.",
+  startSearch: "Search for flights",
+  startExplore: "Explore destinations",
+  // Kundens sider på nettet (innlogget), åpnet i Safari-visning.
+  webAccountTitle: "On hellosky.no",
+  webAccountNote: "These pages open on hellosky.no and are in Norwegian. The first time, you log in there with the same account.",
+  trips: "My trips",
+  travellers: "Travellers",
+  priceAlerts: "Price alerts",
+  security: "Security and login",
 };
 
 const nb: typeof en = {
   language: "Språk",
   languageHint: "Endrer appens språk med én gang.",
-  profileTitle: "Profil",
-  signInTitle: "Logg inn eller opprett en konto",
-  signInBody: "Én konto for appen og hellosky.no. Du trenger ikke konto for å søke og sammenligne fly.",
+  profileTitle: "Min side",
+  signInBody: "Logg inn for å bruke samme konto som på hellosky.no. Du trenger ikke konto for å søke og sammenligne fly.",
   signInHint: "Åpner innloggingen",
   registerHint: "Åpner skjemaet for ny konto",
   settingsTitle: "Innstillinger",
@@ -168,6 +195,31 @@ const nb: typeof en = {
   about: "Om HelloSky",
   webNorwegian: "Åpner hellosky.no (på norsk)",
   webOpens: "Åpner hellosky.no",
+  hubRecent: "Nylige søk",
+  hubRecentLabel: (n) => (n === 0 ? "Ingen nylige søk" : n === 1 ? "1 nylig søk" : `${n} nylige søk`),
+  hubSaved: "Lagrede reisemål",
+  hubSavedLabel: (n) => (n === 0 ? "Ingen lagrede reisemål" : n === 1 ? "1 lagret reisemål" : `${n} lagrede reisemål`),
+  hubOpensSaved: "Åpner Lagret",
+  hubHomeAirport: "Vanlig avreise",
+  homeAirport: "Vanlig avreiseflyplass",
+  homeAirportLabel: (airport) => `Vanlig avreiseflyplass: ${airport ?? "ikke valgt"}`,
+  homeAirportHint: "Velg flyplass",
+  notChosen: "Ikke valgt",
+  habitsTitle: "Reisevaner",
+  seeAll: "Se alle",
+  continueTitle: "Fortsett søket",
+  continueAllLabel: "Se alle nylige søk i Lagret",
+  savedAllLabel: "Se alle lagrede reisemål i Lagret",
+  startTitle: "Kom i gang",
+  startBody: "Søkene dine og reisemålene du lagrer, samles her – bare på denne telefonen.",
+  startSearch: "Søk etter fly",
+  startExplore: "Utforsk reisemål",
+  webAccountTitle: "På hellosky.no",
+  webAccountNote: "Sidene åpnes på hellosky.no. Første gang logger du inn der med samme konto.",
+  trips: "Mine reiser",
+  travellers: "Reisende",
+  priceAlerts: "Prisvarsler",
+  security: "Sikkerhet og innlogging",
 };
 
 export const account = { en, nb };

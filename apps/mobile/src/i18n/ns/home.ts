@@ -3,7 +3,7 @@ const en = {
   /** Tittelen på forsiden for gjester; innlogget står hilsenen med navn. */
   title: "Where to next?",
   greetingName: (greeting: string, name: string) => `${greeting}, ${name}`,
-  profileButton: "Your profile",
+  profileButton: "Profile",
   noLoginNeeded: "You don't need to log in to search.",
   howItWorks: "HelloSky compares prices from airlines and travel agencies. You book and pay on the provider's own website.",
   recentTitle: "Recent searches",
@@ -55,7 +55,7 @@ const en = {
 const nb: typeof en = {
   title: "Hvor vil du reise?",
   greetingName: (greeting, name) => `${greeting}, ${name}`,
-  profileButton: "Din profil",
+  profileButton: "Min side",
   noLoginNeeded: "Du trenger ikke logge inn for å søke.",
   howItWorks: "HelloSky sammenligner priser fra flyselskaper og reisebyråer. Du bestiller og betaler på tilbyderens egen nettside.",
   recentTitle: "Nylige søk",

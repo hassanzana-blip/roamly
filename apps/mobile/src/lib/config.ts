@@ -25,6 +25,10 @@ export const API_BASE: ApiBase = resolveApiBase(process.env.EXPO_PUBLIC_API_BASE
  * HelloSkys offentlige nettsider (hjelp og kontakt, personvern, vilkår, om
  * oss). Faste, offentlige adresser – ikke konfigurasjon. Kontaktkanalene står
  * på hjelpesiden, så appen dikter aldri opp et nummer eller en adresse.
+ *
+ * Kundens egne sider på nettet (reiser, lagrede reisende, prisvarsler og
+ * sikkerhet) finnes bare der; Min side lenker til dem i stedet for å vise
+ * noe appen ikke har. Nettet ber om innlogging første gang.
  */
 export const WEB_BASE = "https://hellosky.no";
 export const WEB_PAGES = {
@@ -32,4 +36,8 @@ export const WEB_PAGES = {
   privacy: `${WEB_BASE}/personvern`,
   terms: `${WEB_BASE}/vilkar`,
   about: `${WEB_BASE}/om-oss`,
+  trips: `${WEB_BASE}/reiser`,
+  travellers: `${WEB_BASE}/profil/reisende`,
+  priceAlerts: `${WEB_BASE}/profil/prisvarsler`,
+  security: `${WEB_BASE}/profil/sikkerhet`,
 } as const;

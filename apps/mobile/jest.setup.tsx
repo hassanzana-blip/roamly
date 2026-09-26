@@ -140,18 +140,24 @@ jest.mock("react-native-svg", () => {
   return { __esModule: true, default: Stub, Svg: Stub, Path: Stub, Circle: Stub, Rect: Stub, Defs: Stub, LinearGradient: Stub, Stop: Stub };
 });
 
-// expo-router: navigasjonen registreres, skjermene rendres direkte.
+// expo-router: navigasjonen registreres, skjermene rendres direkte. En skjerm i en test er skjermen som vises
+// (useIsFocused → true), med mindre testen sier noe annet (__setFocused).
 const mockRouter = { push: jest.fn(), back: jest.fn(), replace: jest.fn(), navigate: jest.fn() };
 let mockParams: Record<string, string> = {};
+let mockFocused = true;
 jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   router: mockRouter,
   useLocalSearchParams: () => mockParams,
+  useIsFocused: () => mockFocused,
 }));
 
 (globalThis as unknown as { __router: typeof mockRouter; __setParams: (p: Record<string, string>) => void }).__router = mockRouter;
 (globalThis as unknown as { __setParams: (p: Record<string, string>) => void }).__setParams = (p) => {
   mockParams = p;
+};
+(globalThis as unknown as { __setFocused: (f: boolean) => void }).__setFocused = (f) => {
+  mockFocused = f;
 };
 
 beforeEach(() => {
@@ -160,6 +166,7 @@ beforeEach(() => {
   mockRouter.replace.mockClear();
   mockRouter.navigate.mockClear();
   mockParams = {};
+  mockFocused = true;
 });
 
 // Første skjermtest i en kald kjøring (tom Babel-cache, treg disk, Windows)

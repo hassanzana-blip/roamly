@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { FocusStatusBar } from "../../components/FocusStatusBar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
 import { FEATURED, destinationChoice, type Destination } from "../../lib/destinations";
@@ -112,7 +112,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
+      <FocusStatusBar style="dark" />
       <ScrollView
         testID="home-scroll"
         style={styles.screen}
@@ -131,7 +131,7 @@ export default function HomeScreen() {
               {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
             </Pressable>
           ) : (
-            // Gjest: knappen går til Profil (innloggingskortet står øverst der), så den heter det den åpner.
+            // Gjest: knappen går til Min side (innloggingen står øverst der), så den heter det den åpner.
             <IconButton icon="user" label={t.home.profileButton} variant="light" size={TOUCH} onPress={() => router.push("/profil")} testID="account-button" />
           )}
         </View>

@@ -107,14 +107,18 @@ function Suggestions({ field, choose }: { field: "origin" | "destination"; choos
  * Flyplassøk for både «Fra» og «Til». Registerets flyplasser (også på engelsk) vises med én gang; serverens
  * verdensregister (flights.airports) fyller på under når det svarer. Hver rad er én flyplass, og søket bruker
  * nøyaktig den som velges – aldri andre flyplasser i samme by.
+ *
+ * `hjem=1` (sammen med `felt=fra`): åpnet fra Min side for å velge den vanlige avreiseflyplassen. Da er valget
+ * den – det huskes og blir «Fra» i skjemaet – så bryteren «Husk …» står ikke, bare hva det betyr.
  */
 export default function AirportPicker() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { felt } = useLocalSearchParams<{ felt?: string }>();
+  const { felt, hjem } = useLocalSearchParams<{ felt?: string; hjem?: string }>();
   const field = felt === "til" ? "destination" : "origin";
+  const homeMode = felt === "fra" && hjem === "1";
   const { api, setForm, homeAirport, setHomeAirport } = useApp();
-  // Bare når kunden selv slår det på, huskes «Fra» som vanlig avreiseflyplass.
+  // Bare når kunden selv slår det på (eller velger den fra Min side), huskes «Fra» som vanlig avreiseflyplass.
   const [remember, setRemember] = useState(false);
   const i18n = useI18n();
   const { locale } = i18n;
@@ -158,20 +162,20 @@ export default function AirportPicker() {
   const choose = (a: AirportChoice) => {
     const choice = { iata: a.iata, name: a.name, city: a.city, country: a.country };
     setForm((f) => ({ ...f, [field]: choice }));
-    if (field === "origin" && remember) setHomeAirport(choice);
+    if (field === "origin" && (remember || homeMode)) setHomeAirport(choice);
     router.back();
   };
   // Raden viser – og skjemaet får – navnene på appens språk.
   const choiceFor = (row: Row): AirportChoice => ({ iata: row.airport.iata, ...airportNames(row.airport, locale) });
 
-  const question = field === "origin" ? a.from : a.to;
+  const question = homeMode ? a.homeQuestion : field === "origin" ? a.from : a.to;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, space.lg) }]}>
       <View style={styles.head}>
         <IconButton icon="close" label={a.close} variant="light" onPress={() => router.back()} testID="header-back" />
         <Text style={[type.headline, styles.title]} accessibilityRole="header">
-          {a.title}
+          {homeMode ? a.homeTitle : a.title}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -216,13 +220,19 @@ export default function AirportPicker() {
                       <LinkButton label={a.forget} onPress={() => setHomeAirport(null)} testID="forget-home-airport" />
                     </View>
                   ) : null}
-                  <View style={styles.homeRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[type.footnote, { color: colors.text }]}>{a.remember}</Text>
-                      <Text style={[type.caption, { color: colors.textSecondary }]}>{a.rememberHint}</Text>
+                  {homeMode ? (
+                    <Text style={[type.footnote, { color: colors.textSecondary }]} testID="home-airport-note">
+                      {a.rememberHint}
+                    </Text>
+                  ) : (
+                    <View style={styles.homeRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[type.footnote, { color: colors.text }]}>{a.remember}</Text>
+                        <Text style={[type.caption, { color: colors.textSecondary }]}>{a.rememberHint}</Text>
+                      </View>
+                      <Switch testID="remember-home-airport" accessibilityLabel={a.remember} value={remember} onValueChange={setRemember} trackColor={{ true: colors.blue, false: colors.lightBorder }} />
                     </View>
-                    <Switch testID="remember-home-airport" accessibilityLabel={a.remember} value={remember} onValueChange={setRemember} trackColor={{ true: colors.blue, false: colors.lightBorder }} />
-                  </View>
+                  )}
                 </View>
               ) : null}
               {shownError && rows.length === 0 ? (

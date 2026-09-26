@@ -64,7 +64,7 @@ function ForgotPasswordSheet({ visible, onClose, initialEmail }: { visible: bool
 }
 
 /**
- * Innlogging og ny konto i iOS' sidekort (dras ned for å lukke), brukt fra Profil og fra velkomsten. Tastaturet:
+ * Innlogging og ny konto i iOS' sidekort (dras ned for å lukke), brukt fra Min side og fra velkomsten. Tastaturet:
  * listen slutter der det begynner.
  *
  * Arket eier skjemaet og reglene: det åpnes i `initialMode` uten gamle meldinger, og e-postadressen står til neste

@@ -8,9 +8,9 @@ import { AUTH_RESULT, PROFILE, TOKEN } from "../test/fixtures";
 import { colors } from "../lib/theme";
 import AccountScreen from "../app/(tabs)/profil";
 
-// Profil som en innstillingsliste, som hos de store søketjenestene: for gjester et innloggingskort øverst (skjemaet
-// åpnes i et eget ark), så innstillinger og hjelp som grupper med rader. Innlogget: konto, innstillinger, hjelp og
-// til slutt «Logg ut» og «Slett konto».
+// Min side: for gjester innloggingen øverst i grafittøya (skjemaet åpnes i et eget ark), så innstillinger og hjelp som
+// grupper med rader. Innlogget: konto, sidene på hellosky.no, innstillinger, hjelp og til slutt «Logg ut» og «Slett
+// konto». Oversikten og modulene (nylige søk, lagrede reisemål, reisevaner) prøves i minSide.test.tsx.
 
 const keychain = (SecureStore as unknown as { __store: Map<string, { value: string; options: unknown }> }).__store;
 
@@ -60,19 +60,18 @@ const inOrder = (ids: string[]) => {
 
 beforeEach(() => keychain.clear());
 
-describe("Profil for gjester", () => {
-  it("en innstillingsliste med innloggingskortet øverst – ikke et skjema med én gang", async () => {
+describe("Min side for gjester", () => {
+  it("innloggingen øverst og innstillingene under – ikke et skjema med én gang", async () => {
     await renderProfile();
-    expect(screen.getByText("Profil")).toHaveProp("accessibilityRole", "header");
     const card = screen.getByTestId("sign-in-card");
-    expect(within(card).getByText("Logg inn eller opprett en konto")).toHaveProp("accessibilityRole", "header");
-    expect(card).toHaveTextContent(/Én konto for appen og hellosky\.no\. Du trenger ikke konto for å søke og sammenligne fly\./);
+    expect(within(card).getByText("Min side")).toHaveProp("accessibilityRole", "header");
+    expect(card).toHaveTextContent(/Logg inn for å bruke samme konto som på hellosky\.no\. Du trenger ikke konto for å søke og sammenligne fly\./);
     expect(screen.getByTestId("open-login")).toHaveProp("accessibilityHint", "Åpner innloggingen");
     expect(screen.getByTestId("open-register")).toHaveProp("accessibilityHint", "Åpner skjemaet for ny konto");
     expect(screen.queryByTestId("email")).toBeNull();
     expect(screen.queryByTestId("auth-modal")).toBeNull();
-    // Rekkefølgen: kortet, innstillingene, hjelpen – og appens versjon nederst (fra app.json).
-    inOrder(["sign-in-card", "settings-group", "help-card", "app-version"]);
+    // Rekkefølgen: innloggingen og oversikten, reisevaner, innstillingene, hjelpen – og appens versjon nederst (fra app.json).
+    inOrder(["sign-in-card", "hub-overview", "preferences-group", "settings-group", "help-card", "app-version"]);
     expect(screen.getByTestId("app-version")).toHaveTextContent("HelloSky 1.0.0");
   });
 
@@ -129,7 +128,7 @@ describe("Profil for gjester", () => {
     expect(screen.getByTestId("auth-submit")).toHaveProp("accessibilityLabel", "Opprett konto");
   });
 
-  it("vellykket innlogging: arket lukkes, og Profil viser kontoen", async () => {
+  it("vellykket innlogging: arket lukkes, og Min side viser kontoen", async () => {
     await renderProfile({ routes: { "mobileAuth.login": () => ({ data: AUTH_RESULT }) } });
     await fireEvent.press(screen.getByTestId("open-login"));
     await fireEvent.changeText(screen.getByTestId("email"), "kari@example.no");
@@ -165,7 +164,7 @@ describe("Profil for gjester", () => {
   });
 });
 
-describe("Profil innlogget", () => {
+describe("Min side innlogget", () => {
   it("konto som rader (navn og e-post), så innstillinger og hjelp; «Logg ut» og «Slett konto» nederst", async () => {
     await renderProfile({ signedIn: true });
     const account = within(screen.getByTestId("account-card"));
@@ -178,11 +177,11 @@ describe("Profil innlogget", () => {
     // «Slett konto» er rød – med tekst, ikke bare farge.
     const del = within(screen.getByTestId("open-delete-account")).getByText("Slett konto");
     expect(StyleSheet.flatten(del.props.style).color).toBe(colors.danger);
-    inOrder(["account-card", "settings-group", "help-card", "logout-button", "open-delete-account"]);
+    inOrder(["account-card", "web-account-group", "settings-group", "help-card", "logout-button", "open-delete-account"]);
   });
 });
 
-describe("Profil: tilstand mellom innlogging og utlogging", () => {
+describe("Min side: tilstand mellom innlogging og utlogging", () => {
   it("listen starter øverst etter innlogging og etter utlogging (egen rulleflate per tilstand)", async () => {
     await renderProfile({ routes: { "mobileAuth.login": () => ({ data: AUTH_RESULT }), "mobileAuth.logout": () => ({ data: { ok: true } }) } });
     const guest = screen.getByTestId("account-signed-out");

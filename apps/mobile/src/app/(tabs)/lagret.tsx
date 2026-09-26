@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { FocusStatusBar } from "../../components/FocusStatusBar";
 import { StatusBarShield } from "../../components/StatusBarShield";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
@@ -71,7 +71,7 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="dark" />
+      <FocusStatusBar style="dark" />
       <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + space.md, paddingBottom: space.xxxl, paddingHorizontal: space.lg, gap: space.md }} testID="saved-screen">
       <View style={{ gap: 2 }}>
         <View style={styles.titleRow}>
