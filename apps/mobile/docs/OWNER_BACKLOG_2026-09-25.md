@@ -123,6 +123,23 @@ interaction patterns, not their colours, copy, prices or features we do not have
 | 4.9 | VoiceOver: in-page tab groups (Flights/Hotels, the sort tabs, the details tabs) use the roles tablist/tab, which give no trait on iOS; only the tab bar has «tabbar» now | open: check on a device whether «tabbar» or buttons with a selected state read best, then change all three together |
 | 4.10 | Tests no longer expire: six suites searched fixed October dates with the real clock and would have failed from 24 October | done: the clock is pinned (`src/test/clock.ts`); the suite passes with the clock at 24 Oct 2026 and 1 Jun 2027 |
 
+## Owner brief, 25–26 September: «Cloud + Graphite», Min side, search transformation
+
+The master brief (58 sections). Priority order from the brief; each item names its commit and MANIFEST section.
+
+| # | Item | Status |
+|---|---|---|
+| 5.1 | Cloud + Graphite design system: light canvas, white surfaces, graphite islands, blue only for actions | done: `a264f54`, `82472a0`, `a6ed8db` (MANIFEST «Cloud + Graphite») |
+| 5.2 | Sign in with Apple/Google on first launch (and «I want to see how it looks») | done: `af7ed8a` (MANIFEST «First-launch welcome»); shown in the preview only; live once Apple's capability, Clerk and Google's logo asset are in place (Ali). Replaces 4.5 |
+| 5.3 | Min side must be rich: greeting, overview, recent searches, saved destinations, preferences, account, help, language/currency – real data only | done: `e7629b6`, review fixes `d62cac3` (MANIFEST «Min side»). Server data (next trip, saved flights, travellers, alerts) is P1 through the mobile API |
+| 5.4 | Search transformation: Home search → compact results header with tappable route, dates and passengers | done: `09404b2`, review fixes `deb7898` (MANIFEST «Search transformation») |
+| 5.5 | Motion with Reduce Motion: swap position exchange, header open/close, arrival | done (same commits). Haptics wait for `expo-haptics` (a dependency: Ali) |
+| 5.6 | «Senest avreise» sort | done: «Senest avgang» in «Sorter» (`09404b2`) |
+| 5.7 | Figma as the design source of truth: variables and key screens | done for this round: frame P7 «Cloud + Graphite» (Home, results compact/open, Min side, guest, welcome) and new components (`docs/evidence/figma-p7-cloud-graphite.jpg`) |
+| 5.8 | The status bar follows the tab that is showing | done: `FocusStatusBar` (`e7629b6`); light over page sheets (`d62cac3`) |
+| 5.9 | Next: saved flights and routes, traveller profiles and price alerts through the mobile API (server routes exist for the web) | open P1, needs the API work to be approved before deploy |
+| 5.10 | Next: destination themes in Explore (curated facts, no prices); Norway holiday dates (verified per municipality) | open P1/P2 |
+
 ## Blocked outside the app
 
 - **Server/web airport search misses English names** (found in stage 6; owner or Codex, `api/lib/airportMeta.ts`).

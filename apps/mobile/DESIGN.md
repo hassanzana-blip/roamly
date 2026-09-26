@@ -3,20 +3,25 @@
 Overlevering av appens uttrykk i repoet. Tokenverdiene (farger, typografi, mål) er hentet fra koden
 (`src/lib/theme.ts`), ikke skrevet av fra en skisse. Seksjonen «Tre skjermer» har i tillegg målte verdier.
 
-Den redigerbare Figma-filen er bygget fra koden: https://www.figma.com/design/YE2XDmrOTFY8dRFiarPxSz. Per 25.09
-har den 17 komponentfamilier (63 varianter), 16 ikoner og rammen P6 med seks skjermer fra `6935d1d` (resultater,
-datoer, flyplass, filtre og tomt svar); se `docs/FIGMA_SPECIFICATION.md`. Figma-filen bruker Inter fordi SF Pro ga
-tekst uten bredde i koblingen; appen bruker iOS' systemskrift. Er de uenige, er koden og denne filen kilden.
+Den redigerbare Figma-filen er bygget fra koden: https://www.figma.com/design/YE2XDmrOTFY8dRFiarPxSz. Per 26.09
+har den rammen **P7 · Cloud + Graphite** (Core Flow) med seks skjermer fra `09404b2`: Hjem, resultater med kompakt
+topp, søket åpent i toppen, Min side innlogget (hele siden), Min side for en ny gjest og velkomsten. Nye komponenter:
+`HubTile`, `SummaryChip`, `ContinueRow`, `SectionHead`, `ListRow` og `TabBar` (kapselen, fire varianter), 20 nye
+ikoner, fargene `canvas`, `surfaceSoft` og `blueOnDarkTint`, og skyggene `HelloSky/island` og `HelloSky/capsule`.
+P6 (fra `6935d1d`) viser den mørke utgaven; se `docs/FIGMA_SPECIFICATION.md`. Figma-filen bruker Inter fordi SF Pro
+ga tekst uten bredde i koblingen; appen bruker iOS' systemskrift. Er de uenige, er koden og denne filen kilden.
 
-**Språk og marked:** norsk bokmål ved første oppstart; engelsk er et valg i Profil som lagres og beholdes. Priser
+**Språk og marked:** norsk bokmål ved første oppstart; engelsk er et valg på Min side som lagres og beholdes. Priser
 alltid i NOK. Fly fra Norge til hele verden er kjernen, og søk krever ikke innlogging. Det finnes også
 hotellskjermer i utviklingsgrenen; de er ikke bekreftet med ekte bookbare leverandørtilbud.
 
 ## Prinsipper
 
-- **Svart og hvitt bærer identiteten, blått er handling.** Kull/svart grunn, hvite søke- og kortflater.
-  HelloSky-blått (`#0754F8`) brukes bare på det man kan trykke på: primærknapper, valgt fane/brikke,
-  lenker og ikoner i handlinger.
+- **«Cloud + Graphite» (25.09.2026): omtrent 70 % lyst, 20 % grafitt, 10 % blått.** Lys grunn (`canvas`) med hvite
+  kort og lister; grafitt bare i «øyene» – søket på Hjem, ruteoverskriften i resultatene, helten på Min side,
+  prislinjen i detaljene og fanemenyen. HelloSky-blått (`#0754F8`) brukes bare på det man kan trykke på:
+  primærknapper, valgt brikke, lenker og ikoner i handlinger (`blueOnDark` på grafitt). Til 25.09 var hele appen
+  mørk (kull).
 - **Systemskrift.** SF Pro via iOS' systemskrift; ingen fontfiler lastes eller følger med. Tekststørrelsen følger
   telefonens innstilling. Klokkeslett og priser har tabellsifre (`fontVariant: tabular-nums`).
 - **Ekte data eller tydelig demo.** Testdata merkes «DEMO» i toppen og med en egen linje; ingenting vises som
@@ -29,8 +34,10 @@ hotellskjermer i utviklingsgrenen; de er ikke bekreftet med ekte bookbare levera
 
 | Token | Verdi | Bruk |
 |---|---|---|
-| `bg` | `#0C0D0F` | Grunnflate (mørk) |
-| `raised` | `#191B1F` | Hevede mørke flater: knapper, faner, meldinger |
+| `canvas` | `#F3F4F6` | Appens lyse grunn bak kort og lister |
+| `surfaceSoft` | `#F7F8FA` | Myk flate på grunnen |
+| `bg` | `#0C0D0F` | Dypeste grafitt: flater inni øyene (brikker, fliser, verktøyknapper) |
+| `raised` | `#191B1F` | Grafittøyene: søket, ruteoverskriften, helten på Min side, prislinjen, fanemenyen |
 | `darkBorder` | `#2B2D32` | Kanter på mørke flater |
 | `onDark` | `#F8F9FA` | Tekst på mørkt |
 | `onDarkMuted` | `#B2B5BC` | Sekundærtekst på mørkt |
@@ -43,7 +50,8 @@ hotellskjermer i utviklingsgrenen; de er ikke bekreftet med ekte bookbare levera
 | `textDisabled` | `#B4B7BE` | Det som ikke kan velges (passerte dager i kalenderen); unntatt kontrastkravet |
 | `blue` | `#0754F8` | Handling (på lyst og som knappeflate) |
 | `bluePressed` | `#0544CC` | Trykket primærknapp |
-| `blueOnDark` | `#4C8DFF` | Blå tekst/ikon på mørkt (valgt fane i menyen, +1-døgn) |
+| `blueOnDark` | `#4C8DFF` | Blå tekst/ikon på mørkt (valgt fane i menyen, «Lukk» i øya, +1-døgn) |
+| `blueOnDarkTint` | `rgba(76,141,255,.18)` | Pillen bak ikonet i den valgte fanen |
 | `blueSoft` | `#EAF0FF` | Valgt rad på lyst |
 | `success` / `successSoft` | `#0A7A3F` / `#E8F5EE` | «Inkludert» |
 | `warning` / `warningSoft` / `warningOnDark` | `#8A5000` / `#FFF6E5` / `#FFD27A` | Demo, bytte, utløpt pris |
@@ -56,9 +64,9 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 
 | Par | Forhold |
 |---|---|
-| `text` på `white` / `inset` | 18,7 / 17,2 |
-| `textSecondary` på `white` / `inset` | 5,8 / 5,4 |
-| `blue` på `white`, `white` på `blue` | 5,8 |
+| `text` på `white` / `inset` / `canvas` | 18,7 / 17,2 / 17,0 |
+| `textSecondary` på `white` / `inset` / `canvas` | 5,8 / 5,4 / 5,3 |
+| `blue` på `white` / `canvas`, `white` på `blue` | 5,8 / 5,3 / 5,8 |
 | `blue` på `blueSoft` / `inset` | 5,1 / 5,3 |
 | `onDark` på `bg` / `raised` | 18,4 / 16,4 |
 | `onDarkMuted` på `bg` / `raised` | 9,5 / 8,4 |
@@ -73,7 +81,7 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 
 | Token | Str./linje | Vekt | Bruk |
 |---|---|---|---|
-| `hero` | 28/34 | 600 | Overskriften på forsiden («Hvor vil du reise?») og i Profil |
+| `hero` | 28/34 | 600 | Overskriften på forsiden («Hvor vil du reise?») og «Min side» for gjester |
 | `title` | 22/28 | 600 | Skjermtitler |
 | `section` | 18/24 | 600 | Seksjoner, korttitler |
 | `headline` | 17/22 | 600 | Toppfelt |
@@ -90,7 +98,10 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 - **Avstand** (4-punktsrytme): `xxs 2 · xs 4 · sm 8 · md 12 · lg 16 · xl 20 · xxl 24 · xxxl 32`. Sidemarg 16.
 - **Hjørner**: `sm 10 · input 14 · card 20 · sheet 28 · pill 999`.
 - **Trykkflater**: minst 44 × 44 pt (`TOUCH`).
-- **Skygger**: bare diskrete (`0 1 2 rgba(0,0,0,.06)` på kort); ingen glød.
+- **Skygger**: bare diskrete – kort `0 1 2 rgba(0,0,0,.06)`, søkeøya på Hjem `0 10 30 rgba(16,17,20,.18)`,
+  fanemenyens kapsel `0 6 20 rgba(0,0,0,.35)`; ingen glød.
+- **Bevegelse**: 260 ms, rask start og rolig landing (`MOTION_MS`, `src/lib/motion.ts`). Med «Reduser bevegelse»:
+  ingen bevegelse eller størrelsesendring, bare en kort toning. Ingen haptikk ennå (`expo-haptics` er ikke med).
 
 ## Komponenter
 
@@ -101,56 +112,76 @@ Tilstandsfarger står alltid sammen med tekst eller ikon, aldri alene.
 | `InformationCard`, `InfoRow` | `ui.tsx` | Hvite kort med rader (ikon, tittel, verdi) |
 | `Notices`, `Banner`, `DemoBadge` | `ui.tsx` | Korte meldinger på mørkt (kan åpnes), meldinger på lyst, «DEMO»-merke |
 | `Field`, `Stepper`, `BottomSheet`, `StateView` | `ui.tsx` | Tekstfelt, antall reisende, ark nedenfra, tomme/feil-tilstander |
-| `SearchPanel` | `SearchPanel.tsx` | Søket på forsiden, på mørk grunn: turtype som tekstfaner (valgt lys med blå strek), fra og til under hverandre i ett hvitt felt (avgang- og landingsikon, bytt-knappen på skillelinjen), avreise ▸ retur i ett felt, reisende og klasse som brikker (40 pt + hitSlop = 44), «Søk fly» |
+| `SearchPanel` | `SearchPanel.tsx` | Søket i en grafittøy – på forsiden og åpnet i ruteoverskriften i resultatene (`onSearched`: søker der, ingen ny resultatside): turtype som tekstfaner (valgt lys med blå strek), fra og til under hverandre i ett hvitt felt (avgang- og landingsikon, bytt-knappen på skillelinjen; ved bytte glir verdiene synlig til hverandres rad), avreise ▸ retur i ett felt, reisende og klasse som brikker (40 pt + hitSlop = 44), «Søk fly» |
 | `FormTile`, `DateField` | `DateField.tsx` | Celle med ikon, etikett og verdi, og datofelt med iOS' kalender (hotellsøket) |
-| `ServiceSwitch` | `ServiceSwitch.tsx` | Fly eller hotell: to like brede ruter på forsiden (valgt med svak blå flate og blå kant, som den valgte fanen), brikker i hotellsøket |
+| `ServiceSwitch` | `ServiceSwitch.tsx` | Fly eller hotell: et kompakt todelt valg inni søkeøya (valgt hvit med mørk tekst) – bare når serveren sier at hotellsøket er på; brikker i hotellsøket |
 | `OfferCard`, `RouteLine`, `BaggageSummary` | `OfferCard.tsx` | Resultatkortet (215 pt tur-retur ved 390): hver strekning på to linjer («UT · 9. OKT.» og «3 t 16 min · 1 mellomlanding · CPH», så tider, koder og rutelinje), risiko (natt, flyplassbytte, 6 t+) med ikon og ord, bagasje ved prisen, hele kortet er knappen |
-| `SortTabs` | `SortTabs.tsx` | Best / Billigst / Raskest over resultatlisten med ekte toppris og reisetid; valgt fane hvit på kull; under hverandre når et beløp ville brytes |
+| `SortTabs` | `SortTabs.tsx` | Best / Billigst / Raskest i ruteoverskriften med ekte toppris og reisetid; valgt fane hvit på grafitt; under hverandre når et beløp ville brytes. «Tidligst» og «Senest avgang» står i «Sorter» |
+| `FocusStatusBar`, `StatusBarShield` | `src/components/` | Statuslinjen for fanen som vises (fanene står montert; bare den synlige har sin StatusBar), og en skjerm bak statuslinjen når innholdet ruller under den (`tone` lys eller mørk) |
+| `WelcomeGate`, `SignInSheet`, `SocialButtons` | `src/components/` | Velkomsten ved første oppstart (Apple, Google, e-post, «Opprett konto», «Hopp over»), innloggingsarket (iOS' sidekort, delt av velkomsten og Min side) og Apple/Google-knappene – bare når serveren sier at de er satt opp |
+| `LightNotices` | `LightNotices.tsx` | Meldinger på den lyse grunnen i resultatene (demo, «Om «ca.»-priser») |
 | `DateRangeSheet` | `RangeCalendar.tsx` | Avreise og retur i ett ark: månedsliste (mandag først), bånd mellom datoene, antall netter, passerte dager sperret, 47 × 46 pt dager |
 | `TravellersSheet` | `TravellersSheet.tsx` | Reisende, reiseklasse og «Bare direktefly» i ett ark; brukes på forsiden og i Utforsk |
 | `MarkedText` | `MarkedText.tsx` | Tekst der det kunden skrev er uthevet (600); samme regel som søket (starten av hvert ord, aksenter og æ/ø/å likegyldig). Bare visuelt – VoiceOver leser raden som før |
 | `PriceTag` | `PriceTag.tsx` | Kronepris, «ca.»-pris med kurs, eller «Ingen pris i kroner» |
 | `PhotoBackdrop`, `BottomFade` | `Photo.tsx` | Foto med nøytralt overlegg; kildemetadata beholdes uten synlig kreditering over bildet |
-| `DestinationCard`, `DestinationRailCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort (fotokort i Utforsk; hvitt kort med foto, by, land og kode og «Se flyreiser» – uten pris – i raden på forsiden), fanemeny som flytende kapsel (valgt fane: blå pille bak ikonet og blå etikett; 48 pt faner), selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
+| `DestinationCard`, `DestinationRailCard`, `BottomNavigation`, `AirlineLogo`, `Icon` | `src/components/` | Reisemålskort (fotokort i Utforsk og på Min side, som vokser med tekststørrelsen og aldri kutter navnet; hvitt kort med foto, by, land og kode og «Se flyreiser» – uten pris – i raden på forsiden), fanemeny som flytende grafittkapsel på en lys stripe (Hjem, Utforsk, Lagret, Min side; valgt fane: blå pille bak ikonet og blå etikett; 48 pt faner), selskapslogo (eller kode), SVG-ikoner i Lucide-stil |
 
 ## Skjermene
 
-1. **Hjem** (`src/app/(tabs)/index.tsx`), bygget etter de store søketjenestenes oppsett: et litt lysere mørkt panel
-   med runde hjørner nederst. Øverst spørsmålet «Hvor vil du reise?» (innlogget: «God kveld, Kari») og en rund
-   profilknapp (initialene når innlogget). Så Fly og Hotell som to like brede ruter, `Tur-retur  Én vei` som
-   tekstfaner, fra og til under hverandre i ett hvitt felt med bytt-knappen på skillelinjen («Oslo (OSL)», tomt
-   felt: «Til hvor?»), avreise ▸ retur i ett hvitt felt (én vei: «+ Legg til retur»), reisende og klasse som brikker,
-   «Søk fly» og én linje om at man ikke må logge inn. Helblått brukes bare på «Søk fly». Under panelet: reisemål som
-   hvite kort uten pris (et trykk søker dit med skjemaets datoer), og til slutt hvordan HelloSky virker.
-2. **Resultater** (`src/app/resultater.tsx`): mørk grunn, rute og søk i toppen (+ «DEMO»), brikker (Alle, Direkte,
-   Maks 1 mellomlanding, Bagasje inkludert), korte meldinger (demo, «Om «ca.»-priser» som en rad på 44 pt), fanene
-   Best / Billigst / Raskest (standard «Best», nettets vekter), antall reiser/tilbud og hva sorteringen gjør. Ett hvitt
-   kompakt kort per reise; samme reise hos flere tilbydere vises én gang med billigste pris og «N tilbydere». Flytende
-   verktøylinje: Filtrer / Sorter / Datoer (samme kalender som på forsiden). Samme søk på nytt (dra ned, «Oppdater
-   prisene») lar listen stå med «Oppdaterer prisene …» over fanene; feiler det, står de forrige prisene med grunnen og
-   klokkeslettet de er fra. Et nytt søk viser plassholderkort.
-3. **Flydetaljer** (`src/app/tilbud/[id].tsx`): fotokort med selskap, utreisen i store tall og hjemreisen under;
-   så én rulleflate uten faner: selgerne (når flere selger samme reise), reiseplanen for hver strekning (hvert fly,
-   bytter, flyplassbytte, +1 døgn), bagasjen og vilkårene til valgt selger (vilkår bare når tilbyderen oppga dem) og
-   prisen. Fast bunnlinje: pris og grunnlag til venstre, «Gå til tilbud» til høyre,
-   og under «[tilbyder] · Bestillingen fullføres hos tilbyderen.». Handlingen åpner leverandørens egen lenke i
-   Safari-visning, målt med nettets `flights.trackProviderClick`. VoiceOver hører «Gå til tilbud hos [tilbyder]».
+1. **Hjem** (`src/app/(tabs)/index.tsx`): lys grunn. Øverst spørsmålet «Hvor vil du reise?» (innlogget: «God kveld,
+   Kari» – aldri med serverens plassholder «Reisende») og en rund profilknapp (initialene når innlogget; «Min side»
+   for VoiceOver). Så søket i en grafittøy med runde hjørner og myk skygge: Fly/Hotell som et todelt valg (bare når
+   hotellsøket er på), `Tur-retur  Én vei` som tekstfaner, fra og til i ett hvitt felt med bytt-knappen på
+   skillelinjen («Oslo (OSL)», tomt felt: «Til hvor?»), avreise ▸ retur i ett hvitt felt, reisende og klasse som
+   brikker og «Søk fly» – det eneste helblå. Under øya: andre nylige søk som hvite brikker, eller linjen om at man ikke
+   må logge inn. Så reisemål som hvite kort uten pris (et trykk søker dit med skjemaets datoer), og hvordan HelloSky
+   virker. «Fra» starter på den vanlige avreiseflyplassen når den er valgt, med mindre kunden er midt i å planlegge
+   en reise.
+2. **Resultater** (`src/app/resultater.tsx`): ruteoverskriften er en grafittøy helt ut til kantene og opp under
+   statuslinjen, med runde hjørner nederst. Den er et kompakt sammendrag av søket som vises: tilbake, ruten
+   («Oslo → Barcelona», VoiceOver-overskrift; et trykk åpner søket), «DEMO» på samme linje, «Endre søk», og to brikker
+   på 44 pt – datoene («10.–17. okt.», «Én vei · 10. okt.») og reisende og klasse – som åpner kalenderen eller
+   reisende-arket med «Søk på nytt». Ruten eller «Endre søk» åpner øya til det samme søket som på Hjem, med «Lukk»;
+   «Søk fly» søker der (ingen ny resultatside), og øya lukker seg til overskriften med den nye ruten. Mens den står
+   åpen, er alt under den inaktivt. I øya står også Best / Billigst / Raskest (standard «Best», nettets vekter). På
+   den lyse grunnen: brikkene (Alle, Direkte, Maks 1 mellomlanding, Bagasje inkludert), meldinger (demo, «Om
+   «ca.»-priser»), antall reiser/tilbud, og ett hvitt kompakt kort per reise (samme reise hos flere tilbydere én gang,
+   med billigste pris og «N tilbydere»). Flytende grafittlinje: Filtrer / Sorter / Datoer. Alle tilstander (tom,
+   lasting, feil, liste) er samme liste, så et åpent ark eller søk står når svaret kommer. Samme søk på nytt (dra
+   ned, «Oppdater prisene») lar listen stå; feiler det, står de forrige prisene med grunnen og klokkeslettet.
+3. **Flydetaljer** (`src/app/tilbud/[id].tsx`): lys grunn med tittellinje; fotokort med selskap, utreisen i store
+   tall og hjemreisen under; så én rulleflate uten faner: selgerne, reiseplanen for hver strekning (hvert fly, bytter,
+   flyplassbytte, +1 døgn), bagasjen og vilkårene til valgt selger (vilkår bare når tilbyderen oppga dem) og prisen.
+   Fast grafittlinje nederst: pris og grunnlag til venstre, «Gå til tilbud» til høyre, og under «[tilbyder] ·
+   Bestillingen fullføres hos tilbyderen.». Handlingen åpner leverandørens egen lenke i Safari-visning, målt med
+   nettets `flights.trackProviderClick`. VoiceOver hører «Gå til tilbud hos [tilbyder]».
 
-I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark), Utforsk (`(tabs)/utforsk.tsx`; øverst fra-flyplass, datoer og
-reisende som knapper som endrer søket der, i én rad som ruller sideveis) og Profil (`(tabs)/profil.tsx`).
+I tillegg: flyplassøk (`flyplass.tsx`, hvitt modalark med lys statuslinje over sidekortet; med `hjem=1` velges den
+vanlige avreiseflyplassen), Utforsk (`(tabs)/utforsk.tsx`; fra-flyplass, datoer og reisende som knapper øverst, liste
+og kart), Lagret (hvite grupper med reisemål og nylige søk) og Min side (`(tabs)/profil.tsx`).
 
-**Profil** er en innstillingsliste, som hos de store søketjenestene: tittelen «Profil», og for gjester et hvitt
-innloggingskort øverst («Logg inn eller opprett en konto», én konto for appen og hellosky.no, søket krever ingen
-konto) med «Logg inn» og «Opprett konto». Skjemaet står i et eget ark (iOS' sidekort, kan dras ned), med «Glemt
-passordet?» lagt over i samme ark. Under: grupper med overskrift på kull og hvite kort med rader – Innstillinger
-(språket som valg, valutaen NOK som informasjon uten pil) og Hjelp og juridisk (lenker til hellosky.no) – og appens
-versjon nederst. Innlogget: «Hei, Kari», Konto (navn, e-post, telefon, «Endre profil»), de samme gruppene, og til
-slutt «Logg ut» og «Slett konto» (handlinger uten pil; slett er rød, med tekst).
+**Min side** er kundens egen side, ikke bare innstillinger. Øverst en grafittøy opp under statuslinjen: innlogget
+«Hei, Kari» med initialer og e-post (uten ekte fornavn: «Du er logget inn»); for gjester «Min side», én setning om
+kontoen (samme som på hellosky.no, trengs ikke for å søke), «Logg inn» og «Opprett konto». I øya tre fliser med det som
+faktisk ligger på telefonen: nylige søk, lagrede reisemål og vanlig avreise (koden eller «–»). Under, på den lyse
+grunnen: «Fortsett søket» (de tre nyeste søkene som ikke har passert; ett trykk søker igjen), lagrede reisemål som
+fotokort (ett trykk søker dit), eller «Kom i gang» når det ikke finnes noe; Reisevaner (vanlig avreiseflyplass);
+innlogget Konto og «På hellosky.no» (Mine reiser – bestillinger gjort på hellosky.no –, Reisende, Prisvarsler,
+Sikkerhet og innlogging, åpnet i Safari-visning, der nettet ber om innlogging første gang); Innstillinger (språk,
+NOK), Hjelp og juridisk, «Logg ut» og «Slett konto», og versjonen. Seksjonsoverskriftene er små versaler, som i
+Lagret. Med stor tekst står en rads verdi under tittelen. Innloggingsskjemaet står i et eget ark (iOS' sidekort),
+med «Glemt passordet?» i samme ark.
 
-Forsiden: etter søk står de andre nylige søkene (ikke passerte, ikke det som står i skjemaet) som små mørke brikker
-under «Søk fly» – «OSL‑LHR 9.–16. okt.», ett trykk søker igjen – der linjen om innlogging står for nye kunder.
-Bytt-knappen snur en halv runde (ikke med «Reduser bevegelse») og VoiceOver hører den nye ruten. I reisende-arket
-står et sammendrag øverst, og en regel som stopper en knapp (spedbarn per voksen, ni reisende) står rett under den.
+**Velkomsten** (`WelcomeGate`) står over appen ved første oppstart: foto med mørk toning og HelloSky-merket, én setning
+om hva appen gjør, «Fortsett med Apple», «Fortsett med Google» (begge bare når serveren sier at de er satt opp),
+«Fortsett med e-post», «Opprett konto» og «Hopp over». Søk krever aldri konto.
+
+Forsiden: etter søk står de andre nylige søkene (ikke passerte, ikke det som står i skjemaet) som små hvite brikker
+under øya – «OSL‑LHR 9.–16. okt.», ett trykk søker igjen – der linjen om innlogging står for nye kunder.
+Bytt-knappen snur en halv runde og verdiene glir til hverandres rad (ikke med «Reduser bevegelse»); VoiceOver hører
+den nye ruten. I reisende-arket står et sammendrag øverst, og en regel som stopper en knapp (spedbarn per voksen, ni
+reisende) står rett under den.
 
 Flyplassøket viser registerets treff med én gang, på begge språk («København (Copenhagen)» når bare det engelske
 navnet passet), og serverens treff under når de kommer – radene over flytter seg ikke. Det kunden skrev er uthevet;
@@ -163,12 +194,17 @@ en nøyaktig kode står invertert (kull med hvit tekst). Søk på byen Oslo gir 
   kopiert inn av `scripts/make-photos.mjs` (1080 px brede). De følger med appen: ingen bildesøk ved visning,
   ingen Unsplash-nøkkel i appen.
 - Opphavet beholdes i nettets register `src/content/photos.ts` og appens `src/lib/destinations.ts`.
-  De lokalt medfølgende bildene dekker ikke appens skjermflater med kildeetiketter eller en kredittliste i Profil.
+  De lokalt medfølgende bildene dekker ikke appens skjermflater med kildeetiketter eller en kredittliste på Min side.
   Nye API-leverte bilder krever en egen kontroll av leverandørens attribusjonsvilkår før visning.
 - Nye bilder legges først inn i nettets register med kilde (og helst fotograf), deretter i
   `src/lib/destinations.ts`.
 
 ## Tre skjermer – målbar spesifikasjon
+
+**Status 26.09.2026:** tallene under er målt på den mørke utgaven (`dad15c4`, H2–H5 på nytt 25.09). «Cloud +
+Graphite» (`a264f54`–`deb7898`) er ikke målt på nytt her: ruteoverskriften er omtrent 36 pt høyere (brikkene med
+datoer og reisende erstatter én bildetekstlinje), så R3 og R4 må måles igjen. Nettleserbildene av den nye utgaven
+står i `docs/evidence/MANIFEST.md` (`cg-*`, `minside-*`, `transform-*`).
 
 **Referanse.** Eierens bilde med tre HelloSky-skjermer (Hjem, Resultater, Flydetaljer), vedlagt i Claude-økten
 23.09.2026 kl. 16:37 UTC: JPEG, 305 928 byte, SHA-256 `a7b86c85100d486f8f02def97570a47beb488c961aa2e955b4e1da7821f02817`.
@@ -192,14 +228,15 @@ Profil (to bilder) og Utforsk-kart. De ligger ikke i repoet (tredjeparts merkeva
 3. *Søket krymper til en fast «Finn fly»-linje når man ruller*, så innholdet under blir tilgjengelig.
 4. *Reisemålskort med beslutningsinfo* (reisetid, direkte, datoer, pris). Hos oss: bare det serveren faktisk kan
    gi for kortet; ingen «deals under …» og ingen pris uten et gyldig tilbud.
-5. *Bunnmenyen er rolig:* fire valg, ett markert. Hos oss: fire (Hjem, Utforsk, Lagret, Profil). *25.09.2026:*
+5. *Bunnmenyen er rolig:* fire valg, ett markert. Hos oss: fire (Hjem, Utforsk, Lagret, Min side). *25.09.2026:*
    en flytende kapsel som deres (hevet mørk flate, rund, 16 pt marg på sidene, over hjemindikatoren), uten glass:
    en uskarp bakgrunn krever en ny avhengighet, og en halvgjennomsiktig flate uten uskarphet blir uryddig.
 6. *Profil som en ryddig innstillingsliste:* ett innloggingskort øverst, så grupper med rader som viser verdien
    til høyre («Currency £ (GBP)», «Region»). Hos oss: «Språk – Norsk (bokmål)», «Valuta – NOK» (bare
    informasjon), Hjelp, Personvern, Vilkår, Om oss. De juridiske radene samlet nederst; «Software licenses»
    (lisenser for åpen kildekode) er en rad vi mangler. *Bygget 25.09.2026* (se Skjermene); språket er fortsatt et valg
-   rett i raden (to trykk færre enn en egen side), og lisensraden mangler fortsatt.
+   rett i raden (to trykk færre enn en egen side), og lisensraden mangler fortsatt. *26.09.2026:* Profil er blitt Min side
+   med en grafitthelt og moduler over innstillingene (se Skjermene).
 7. *Utforsk sier hva et prisanslag er* («Estimated cheapest price per person in economy class»), står fast på
    avreisestedet («From OSL · Anytime») og har alltid en listevisning. Hos oss: liste, ikke kart (et kart uten
    ekte priser ville vært dødt), og ingen prisanslag før serveren har dem.
@@ -252,8 +289,9 @@ og 430 × 932, pluss Resultater ved 320 × 568.
 - Totalpris for alle reisende bare når leverandørens prismodus er bekreftet; ellers merkes beløpet som ubekreftet.
 - «Utforsk reisemål», ikke «Populære destinasjoner» (vi har ingen popularitetsdata).
 - Utforsk har nå et kart over kuraterte flyplasser, men ingen prisnåler. Kartets brukbarhet på iPhone er under aktiv retting.
-- Ingen bjelle, hjerte, «Mine reiser», bagasjeendring, setevalg eller «Fra … kr» på reisemål uten fungerende funksjon
-  og verifisert data.
+- Ingen bjelle, hjerte, bagasjeendring, setevalg eller «Fra … kr» på reisemål uten fungerende funksjon og verifisert
+  data. Min side lenker til kundens egne sider på hellosky.no (Mine reiser, Prisvarsler …), tydelig som nettsider;
+  appen viser ingen tall eller lister derfra.
 - Flyselskapets kode i en sirkel til verifiserte logoer finnes; ingen halegrafikk.
 - Knappen er «Gå til tilbud» med valgt tilbyder rett under, ikke «Velg denne flyreisen».
 

@@ -34,8 +34,12 @@ last sections of `docs/evidence/MANIFEST.md`.
 - Before that: dark «charcoal» app (until `b5c5172`), momondo-pattern Home, Profile as settings list, floating tab
   capsule.
 - **Figma** (source of truth for components): file `YE2XDmrOTFY8dRFiarPxSz`, pages Components `3:5` and Core Flow
-  `3:7`, variables collection «HelloSky» (semantic colours `VariableID:2:42…`). Ledger:
-  `scratchpad/figma-state.json` in the session.
+  `3:7`, variables collections «HelloSky / Primitives» and «HelloSky / Semantic» (semantic colours `VariableID:2:42…`;
+  `color/canvas` `VariableID:77:402`, `color/surfaceSoft` `77:404`, `color/blueOnDarkTint` `80:414`). Frame **P7 ·
+  Cloud + Graphite** `81:653` mirrors `09404b2`: Home, results compact and open, Min side (signed in, full page), Min
+  side for a new guest, welcome. New components: HubTile `79:401`, SummaryChip `79:404`, ContinueRow `79:1049`,
+  SectionHead `79:1060`, ListRow `79:1063`, TabBar `80:512`. Ledger: `scratchpad/figma-state.json` in the session;
+  picture: `docs/evidence/figma-p7-cloud-graphite.jpg`.
 
 ## Real-data state
 
@@ -46,11 +50,13 @@ last sections of `docs/evidence/MANIFEST.md`.
 - Hotels: behind `hotels.status`; the app shows hotels only when the server says they are on.
 - Apple/Google sign-in: built and gated off until Apple's entitlement and Clerk are configured (Ali).
 - On the phone only: recent searches (max 6), saved destinations, usual departure airport, draft form, language.
+  Min side shows only these (and the account); the customer's web pages (trips, travellers, price alerts, security)
+  are links to hellosky.no, with no numbers or lists in the app.
 
 ## Test state
 
-- Jest: 586 passed, 3 skipped at `b5c5172` (UTC and Oslo, also with the clock at 24 Oct 2026 and 1 Jun 2027).
-  Typecheck and lint clean; iOS export and bundle check OK.
+- Jest: 740 passed, 3 skipped at `deb7898` (UTC and Oslo, also with the clock at 24 Oct 2026 and 1 Jun 2027).
+  Typecheck and lint clean; iOS export 4 996 695 bytes and bundle check OK (tree of `09404b2`).
 - Browser preview harness (session only): `/home/claude/preview` (`harness/sync.sh`, `harness/metro-restart.sh`,
   mock API on :3999, Playwright scripts). NOT a simulator.
 - Never tested on a simulator or an iPhone.
@@ -59,6 +65,13 @@ last sections of `docs/evidence/MANIFEST.md`.
 
 | Commit | What |
 |---|---|
+| `deb7898` | Review fixes: search transformation (one stable results tree, inert list under the open editor, «Prøv igjen», heading) |
+| `d62cac3` | Review fixes: Min side (usual-airport rule, status bar over sheets, name placeholder, cards grow with text) |
+| `09404b2` | Search transformation: compact results header with route, date and traveller chips; editor in place; motion |
+| `e7629b6` | Min side as a travel hub; status bar follows the focused tab |
+| `815d35e` | Evidence for the Cloud + Graphite and welcome stages |
+| `af7ed8a` | First-launch welcome with Apple, Google, e-mail and skip |
+| `a264f54` … `a6ed8db` | Cloud + Graphite: Home, results and details, Explore, Saved and hotels |
 | `b5c5172` | Review fixes: Profile scroll reset, account rows, password cleared, keyboard over sheets, pinned test clock |
 | `70b08e6` | Proposal: deals rail and price alerts (needs Ali) |
 | `21d3498` | Tab bar as a floating capsule |
@@ -77,12 +90,12 @@ Status: **done** (on this branch), **partial**, **open** (buildable now), **bloc
 | 2 | City/airport distinction | done | – | Every airport its own row; never merged |
 | 3 | Nearby airports | partial | P2 | Torp under Oslo; no distances (no verified coordinates per airport pair) |
 | 4 | Recent airports | done | – | Before typing |
-| 5 | Airport swap animation | partial | P1 | Half turn + spoken route; add position exchange and haptics |
+| 5 | Airport swap animation | done | – | Half turn, position exchange, spoken route; haptics wait for `expo-haptics` (Ali) |
 | 6 | Flexible dates | open | P2 | ±1/±3 as extra searches costs provider calls: decide with Ali |
 | 7 | Nearby-date strip | blocked | P3 | Needs daily prices |
 | 8 | Fare calendar | blocked | P3 | Needs daily prices |
 | 9 | Cheapest-day indicators | blocked | P3 | Needs daily prices |
-| 10 | Best/Cheapest/Fastest | done | P1 | Add «Senest avreise» |
+| 10 | Best/Cheapest/Fastest | done | – | Plus «Tidligst» and «Senest avgang» in «Sorter» |
 | 11–17 | Direct, stops, airlines, airport, time, duration, baggage filters | done | – | Only data the offers carry |
 | 18 | Itinerary grouping | done | – | |
 | 19 | Seller comparison | done | – | |
@@ -102,9 +115,9 @@ Status: **done** (on this branch), **partial**, **open** (buildable now), **bloc
 | 35 | Norway holiday discovery | open | P2 | Needs verified school-holiday dates per municipality |
 | 36–37 | Price history, good-price intelligence | blocked | P3 | Needs history |
 | 38 | Shareable travel cards | partial | P2 | Share text exists; card image later |
-| 39 | Personal travel dashboard (Min side) | open | **P0** | Real local data now; server data next |
+| 39 | Personal travel dashboard (Min side) | done | P1 | Local data and web links now; server data (next trip, saved flights) next |
 | 40 | Traveler profiles | open | P1 | Server `saved_travelers` exists; mobile route needed; no ID data |
-| 41 | Travel preferences | partial | P1 | Home airport only |
+| 41 | Travel preferences | partial | P1 | Usual departure airport (starts new searches); more later |
 | 42 | Home airport | done | – | |
 | 43 | Preferred airlines | open | P2 | With 41 |
 | 44 | Notification center | open | P2 | Server `customer_notifications` exists |
@@ -114,11 +127,15 @@ Status: **done** (on this branch), **partial**, **open** (buildable now), **bloc
 | 49 | Comparison explanation | partial | P2 | «Best» explained; per-card «why» later |
 | 50 | Personal travel graph | later | P3 | |
 
-**P0 right now (25.09):** Cloud + Graphite design system across the app → Home with a graphite search island →
-first-launch welcome with Apple/Google (visible in the preview) → Min side as a travel hub → search
-transformation into the results header → Figma in step.
+**P0 of 25.09 is done (26.09):** Cloud + Graphite across the app, Home's graphite search island, the first-launch
+welcome with Apple/Google (visible in the preview), Min side as a travel hub, the search transformation into the
+results header with motion, and Figma P7 in step. Independent reviews of Min side and the transformation are fixed.
 
 ## Next priority
 
-See the task list in the session and the P0 line above. After P0: saved flights/routes and traveler profiles
-through the mobile API (server routes exist for the web), «Senest avreise», destination themes in Explore.
+1. The mobile API hub for Min side (reuse the web's `account.hub`: next trip, saved count, watches) and saved
+   flights/routes and traveller profiles through the mobile API – server routes exist for the web; deploy needs Ali.
+2. Destination themes in Explore (curated facts, no prices).
+3. VoiceOver tab roles (backlog 4.9) and a device pass (simulator/iPhone) for status bars, sheets and motion.
+4. Owner items: Google's logo asset, Apple capability + Clerk, push access (or push the bundle), `expo-haptics`,
+   the deals/alerts proposal.

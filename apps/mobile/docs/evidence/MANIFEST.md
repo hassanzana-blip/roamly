@@ -2126,3 +2126,48 @@ feel of the motion).
 | `transform-after-430-editor.jpg` | `fc7893a5874b9fe7…` | 860×1974 |
 | `transform-after-390-large.jpg` | `52f6a4ebf73cd41e…` | 780×1798 |
 | `transform-after-390-en.jpg` | `789fc9e79c305db1…` | 780×1798 |
+
+## Review fixes for Min side and the search transformation (independent review), and Figma P7
+
+**Found by two independent reviewers** (Min side: 1 medium, 8 low; transformation: 1 high, 3 medium, 5 low), all
+fixed in `d62cac3` (Min side) and `deb7898` (transformation):
+- **High – results rebuilt mid-edit.** Idle, loading and error used a scroll view and results a list, so an answer
+  arriving rebuilt the header island, an open editor and the date/traveller sheets: a range pick restarted (the
+  intended return date became the departure) and a shown form error vanished. Every state now renders through the
+  same list; «Stopp søket» and the toolbar are overlays; the sheets have one fixed place.
+- **Medium – the open editor.** Everything under it is inert and hidden from VoiceOver (pull-to-refresh off); «Prøv
+  igjen» retries the search that failed, not an edited form; the route title is a VoiceOver heading again, with
+  «Endre søk» as the action; focus moves after the size animation ends.
+- **Medium – the usual departure airport.** «Nye søk starter derfra» was only true on a fresh install. At app start
+  «Fra» now begins there when there is no draft, the draft's departure has passed, or it has no destination yet; a
+  trip being planned is kept. The copy says exactly that.
+- **Low:** light status bar over the airport picker and the sign-in sheet (page sheets over a black backdrop) and
+  through the welcome's exit; a saved destination that cannot be searched leaves the form alone; photo tiles wrap
+  and grow with the text; «Mine reiser» says it lists bookings made on hellosky.no; the picker names the usual
+  airport in the app's language; no greeting with the server's «Reisende» placeholder; a second swap continues from
+  where the values are; opened from a link with nothing searched, closing restores the form and the sheet says «Søk».
+- **Found while checking:** with large text a row's value now stands under its title (a long word such as
+  «avreiseflyplass» was split); one test depended on real-time animation frames and failed under load – it now
+  holds the animation and uses the pinned clock.
+
+**Figma:** frame P7 «Cloud + Graphite» on Core Flow mirrors `09404b2`: Home, results with the compact header, the
+header opened into the search island, Min side signed in (whole page), Min side for a new guest, and the welcome.
+New components HubTile, SummaryChip, ContinueRow, SectionHead, ListRow and TabBar (capsule, four variants), 20
+icons, the colours canvas, surfaceSoft and blueOnDarkTint, and the island and capsule shadows. QA: 919 nodes, 154
+instances; the only unbound paints are Apple's black button and the «Hopp over» glass pill (documented).
+
+**Tests:** `searchTransformation.test.tsx` (36), `minSide.test.tsx` (44, +14), `focusStatusBar.test.tsx`,
+`welcome.test.tsx`, `exploreSavedHotelsLook.test.tsx`, `profileList.test.tsx`, `resultsEmpty.test.tsx`.
+
+**Checks:** Jest 740 passed, 3 skipped (UTC ×3 and Oslo; also with the clock at 24 Oct 2026 and 1 Jun 2027).
+`d62cac3` alone: 729 passed. Typecheck and lint clean.
+
+**Not verified:** a real iPhone (status bars over page sheets, LayoutAnimation and VoiceOver focus on device).
+
+| File | SHA-256 (prefix) | Size (px) |
+|---|---|---|
+| `review2-after-390-large-row-value.jpg` | `f2fcd82f24668a21…` | 780×1860 |
+| `review2-after-390-web-links.jpg` | `242dfe1a8a7a1e19…` | 780×1860 |
+| `review2-after-390-results.jpg` | `453062615d5a3992…` | 780×1860 |
+| `review2-after-390-editor.jpg` | `180bc2af9e02f86d…` | 780×1860 |
+| `figma-p7-cloud-graphite.jpg` | `469dbedd255ae67e…` | 2400×2286 |
