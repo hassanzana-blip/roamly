@@ -169,6 +169,18 @@ beforeEach(() => {
   mockFocused = true;
 });
 
+beforeEach(() => {
+  // «Reduser bevegelse»: appen husker det iOS sist svarte (lib/motion.ts). Hver test starter uten et svar, så ingen
+  // test arver et svar fra testen før.
+  require("./src/lib/motion").__setReducedMotionForTests(null);
+  // Animasjoner med native driver: forhåndsoppsettets utgave av iOS' animasjonsmodul melder bare «ferdig». På en
+  // iPhone følger sluttverdien med, og JS-siden får den – så det som tegnes etterpå står der animasjonen endte.
+  const animated = require("react-native").NativeModules.NativeAnimatedModule as { startAnimatingNode: jest.Mock };
+  animated.startAnimatingNode.mockImplementation((_id: number, _tag: number, config: { toValue?: number } | undefined, end: (r: { finished: boolean; value?: number }) => void) => {
+    setTimeout(() => end({ finished: true, value: config?.toValue }), 16);
+  });
+});
+
 // Første skjermtest i en kald kjøring (tom Babel-cache, treg disk, Windows)
 // bruker flere sekunder bare på å laste React Native. Jests standard på 5 s
 // feiler da testen, og den halvferdige renderingen river med seg neste test.

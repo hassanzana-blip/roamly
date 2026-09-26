@@ -18,6 +18,15 @@ import { colors, radius, space, TOUCH, type } from "../lib/theme";
 type RowMotion = { key: number; style: { opacity: Animated.AnimatedInterpolation<number>; transform: { translateY: Animated.AnimatedInterpolation<number> }[] } };
 
 /**
+ * Ett bytte som glir: `from` er hvor langt verdiene står fra plassen sin når glidningen starter (1 = en hel rad unna),
+ * `at` når den startet, `distance` avstanden mellom de to verdiene i punkter.
+ */
+type Exchange = { key: number; progress: Animated.Value; distance: number; from: number; at: number };
+
+/** Kurven for pilene og glidningen: rask start, rolig landing. Samme funksjon regner ut hvor langt en glidning er kommet. */
+const SWAP_EASING = Easing.out(Easing.cubic);
+
+/**
  * Én ende av ruten, som en rad i det hvite rutefeltet: avgang- eller landingsikon og «Oslo (OSL)», eller et spørsmål
  * når ingenting er valgt. Ikonet sier hvilken ende det er uten en egen etikett. Plass til høyre for bytt-knappen, som
  * står på skillelinjen. `motion`: verdien glir inn fra den andre raden etter et bytte (ikonet står stille).
@@ -139,7 +148,7 @@ export function SearchPanel({ onSearched }: { onSearched?: () => void }) {
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"], extrapolate: "extend" });
   // Ett bytte: 1 = verdiene står der de var før byttet, 0 = på plass. Avstanden måles når kunden trykker, så en
   // rad som endrer høyde under glidningen (ny tekst brytes annerledes) ikke flytter målet midt i bevegelsen.
-  const [exchange, setExchange] = useState<{ key: number; progress: Animated.Value; distance: number } | null>(null);
+  const [exchange, setExchange] = useState<Exchange | null>(null);
   const rowMotion = useMemo(() => {
     if (!exchange) return null;
     const { key, progress, distance } = exchange;
@@ -151,7 +160,7 @@ export function SearchPanel({ onSearched }: { onSearched?: () => void }) {
   }, [exchange]);
   useEffect(() => {
     if (!exchange) return;
-    const anim = Animated.timing(exchange.progress, { toValue: 0, duration: MOTION_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+    const anim = Animated.timing(exchange.progress, { toValue: 0, duration: MOTION_MS, easing: SWAP_EASING, useNativeDriver: true });
     anim.start();
     return () => anim.stop();
   }, [exchange]);
@@ -161,9 +170,15 @@ export function SearchPanel({ onSearched }: { onSearched?: () => void }) {
     setForm((f) => ({ ...f, origin: f.destination, destination: f.origin }));
     if (!reduced) {
       turns.current += 1;
-      Animated.timing(spin, { toValue: turns.current, duration: MOTION_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      Animated.timing(spin, { toValue: turns.current, duration: MOTION_MS, easing: SWAP_EASING, useNativeDriver: true }).start();
+      // Et nytt trykk midt i en glidning: verdiene byttes tilbake der de faktisk står nå – den som var på vei ned, går
+      // opp igjen fra akkurat det stedet – i stedet for å hoppe til en hel rad unna. Hvor langt glidningen er kommet,
+      // regnes fra klokken med samme kurve som animasjonen (animasjonen går på iOS' egen tråd).
+      const now = Date.now();
+      const left = exchange ? exchange.from * (1 - SWAP_EASING(Math.min(1, (now - exchange.at) / MOTION_MS))) : 0;
+      const start = 1 - left;
       // Fra midten av den ene teksten til midten av den andre: halve radene og skillelinjen mellom dem.
-      setExchange({ key: turns.current, progress: new Animated.Value(1), distance: originHeight / 2 + StyleSheet.hairlineWidth + destinationHeight / 2 });
+      setExchange({ key: turns.current, progress: new Animated.Value(start), distance: originHeight / 2 + StyleSheet.hairlineWidth + destinationHeight / 2, from: start, at: now });
     }
     AccessibilityInfo.announceForAccessibility(h.swapped(from?.city ?? h.notChosen, to?.city ?? h.notChosen));
   };

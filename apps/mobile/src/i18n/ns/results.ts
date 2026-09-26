@@ -51,13 +51,11 @@ const en = {
     back: "Back",
     editSearch: "Edit search",
     /**
-     * Søket i toppen: ruten (et trykk åpner hele søket i øya) og to brikker – datoer og reisende – som endrer søket
-     * direkte. VoiceOver hører hele datoene og hele teksten, og hva et trykk gjør.
+     * Søket i toppen: ruten (skjermens overskrift; et trykk åpner hele søket i øya) og to brikker – datoer og reisende –
+     * som endrer søket direkte. VoiceOver hører ruten med ord, hele datoene og hele teksten, og hva et trykk gjør.
      */
     header: {
-      routeLabel: (route: string) => `Edit search: ${route}`,
       routeSpoken: (from: string, to: string) => `${from} to ${to}`,
-      editHint: "Opens the search here so you can change it",
       datesOneWay: (date: string) => `One way · ${date}`,
       datesOneWaySpoken: (summary: string) => `${summary}, one way`,
       datesHint: "Choose new dates and search again",
@@ -122,6 +120,8 @@ const en = {
     departDate: (day: string) => `Departure · ${day}`,
     returnDate: (day: string) => `Return · ${day}`,
     searchAgain: "Search again",
+    /** Arkets knapp når ingenting er søkt ennå (skjermen er åpnet fra en lenke): det første søket, ikke «på nytt». */
+    firstSearch: "Search",
     chips: { all: "All", direct: "Direct", max1: "Max 1 stop", bags: "Bags included" },
     /** Aktive filtre fra arket, som brikker over listen; et trykk fjerner filteret. */
     active: {
@@ -212,9 +212,7 @@ const nb: typeof en = {
     back: "Tilbake",
     editSearch: "Endre søk",
     header: {
-      routeLabel: (route) => `Endre søk: ${route}`,
       routeSpoken: (from, to) => `${from} til ${to}`,
-      editHint: "Åpner søket her, så du kan endre det",
       datesOneWay: (date) => `Én vei · ${date}`,
       datesOneWaySpoken: (summary) => `${summary}, én vei`,
       datesHint: "Velg nye datoer og søk på nytt",
@@ -278,6 +276,7 @@ const nb: typeof en = {
     departDate: (day) => `Avreise · ${day}`,
     returnDate: (day) => `Retur · ${day}`,
     searchAgain: "Søk på nytt",
+    firstSearch: "Søk",
     chips: { all: "Alle", direct: "Direkte", max1: "Maks 1 mellomlanding", bags: "Bagasje inkludert" },
     active: {
       what: { departBands: "Avgang ut", arriveBands: "Ankomst ut", returnBands: "Avgang hjem", returnArriveBands: "Ankomst hjem", depart: "Avgang", arrive: "Ankomst" },

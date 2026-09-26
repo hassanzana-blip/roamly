@@ -69,7 +69,10 @@ const CROSSFADE: LayoutAnimationConfig = {
  * Neste tegning animeres av iOS selv (LayoutAnimation): øya som vokser eller krymper, og listen under som flytter
  * seg med, beveger seg i samme tempo – uten at hver del må vite om de andre. Kalles rett før tilstanden endres.
  * Med «Reduser bevegelse»: ingen bevegelse og ingen størrelsesanimasjon, bare en toning.
+ *
+ * `onEnd`: når animasjonen (eller toningen) er ferdig – f.eks. for å flytte VoiceOver dit det nye står, først når det
+ * står der. React Native kaller den også om iOS ikke melder fra (etter varigheten og ett bilde).
  */
-export function animateNextLayout(reduced: boolean): void {
-  LayoutAnimation.configureNext(reduced ? CROSSFADE : GLIDE);
+export function animateNextLayout(reduced: boolean, onEnd?: () => void): void {
+  LayoutAnimation.configureNext(reduced ? CROSSFADE : GLIDE, onEnd);
 }

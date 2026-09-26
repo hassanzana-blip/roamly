@@ -102,12 +102,14 @@ describe("ingen reiser", () => {
 });
 
 describe("søket i toppen", () => {
-  it("et trykk på ruten åpner søkeskjemaet der det står – ingen tur til forsiden; ruten er en knapp som sier at den endrer søket", async () => {
+  it("et trykk på ruten åpner søkeskjemaet der det står – ingen tur til forsiden; for VoiceOver er ruten en overskrift, og «Endre søk» er knappen", async () => {
     await show(SEARCH_RESULT, { departDate: "2026-10-23", returnDate: "2026-10-30" });
     const route = screen.getByTestId("header-route");
-    expect(route).toHaveProp("accessibilityRole", "button");
-    expect(route).toHaveProp("accessibilityLabel", "Endre søk: Oslo til Barcelona");
-    expect(within(route).getByRole("header")).toHaveTextContent("Oslo → Barcelona");
+    expect(route).toHaveProp("accessible", false);
+    const heading = within(route).getByRole("header");
+    expect(heading).toHaveTextContent("Oslo → Barcelona");
+    expect(heading).toHaveProp("accessibilityLabel", "Oslo til Barcelona");
+    expect(screen.getByRole("button", { name: "Endre søk" })).toBeOnTheScreen();
     await fireEvent.press(route);
     expect(screen.getByTestId("results-header-editor")).toBeOnTheScreen();
     expect(router.navigate).not.toHaveBeenCalled();

@@ -13,6 +13,7 @@ import {
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ViewProps,
 } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useRouter } from "expo-router";
@@ -405,6 +406,8 @@ export default function ResultsScreen() {
   const r = t.results.screen;
   const reiser = t.results.journeys;
   const reduced = useReducedMotion();
+  // Søket som vises – null før noe er søkt (skjermen er åpnet fra en lenke, etter en omstart eller et avbrutt søk).
+  const shownQuery = search.status === "idle" ? null : search.query;
   // Stabil, så kortene (memo) ikke tegnes på nytt ved hver endring i listen.
   const openOffer = useCallback((id: string) => router.push({ pathname: "/tilbud/[id]", params: { id } }), [router]);
   const onDates = useCallback((d: { departDate: string; returnDate: string }) => setForm((f) => ({ ...f, ...d })), [setForm]);
@@ -428,8 +431,7 @@ export default function ResultsScreen() {
     if (!arrival.moving) return;
     let active = true;
     const anim = Animated.timing(arrival.progress, { toValue: 1, duration: MOTION_MS, delay: 80, easing: Easing.out(Easing.cubic), useNativeDriver: true });
-    // Avbrutt mens skjermen står: rett på plass, aldri halvveis gjennomsiktig. (Når lastingen blir til en liste midt i
-    // ankomsten, bygges øya på nytt i samme tegning; React Native kobler da verdien over uten å stoppe animasjonen.)
+    // Avbrutt mens skjermen står: rett på plass, aldri halvveis gjennomsiktig.
     anim.start(({ finished }) => {
       if (!finished && active) arrival.progress.setValue(1);
     });
@@ -444,56 +446,67 @@ export default function ResultsScreen() {
   // «Endre søk» (ruten, søkeknappen, knappene i tomme tilstander) åpner søket der det står – ruteoverskriften vokser til
   // den samme søkeøya som på forsiden, og krymper tilbake når kunden søker eller lukker. Ingen tur til forsiden.
   const [editing, setEditing] = useState(false);
-  // Endringer herfra starter alltid fra søket som vises (overskriften) – ikke fra et skjema som er endret uten å søke –
-  // så «Søk fly» og «Søk på nytt» aldri tar med noe kunden ikke ser. Uten et søk (åpnet fra en lenke) er skjemaet det
-  // som vises.
-  const fromShown = () => {
-    if (search.status !== "idle") setForm(() => search.query);
+  // Uten et søk viser overskriften skjemaet selv. Mens det endres (i øya eller i et ark), står overskriften på skjemaet
+  // slik det var, og lukkes det uten et søk, settes det tilbake – overskriften beskriver aldri noe som ikke er søkt.
+  const [unsearched, setUnsearched] = useState<SearchForm | null>(null);
+  // Endringer herfra starter alltid fra det overskriften viser: søket som vises, eller skjemaet slik det sto. Så tar
+  // «Søk» og «Søk på nytt» aldri med noe kunden ikke ser.
+  const beginEdit = () => {
+    if (shownQuery) setForm(() => shownQuery);
+    else setUnsearched(form);
   };
-  // VoiceOver følger forvandlingen: til overskriften i skjemaet når det åpnes, tilbake til ruten når det lukkes.
-  const focusAfter = useRef<"editor" | "route" | null>(null);
+  // Lukket uten å søke («Lukk», «Ferdig», et trykk utenfor arket): skjemaet blir igjen det overskriften viser.
+  const endEditWithoutSearch = () => {
+    if (shownQuery) setForm(() => shownQuery);
+    else if (unsearched) setForm(() => unsearched);
+    setUnsearched(null);
+  };
+  // VoiceOver følger forvandlingen når den er ferdig – ikke midt i den: til skjemaets overskrift når det åpnes, til
+  // skjermens overskrift (ruten) når det lukkes. Med «Reduser bevegelse»: når toningen er ferdig.
   const editorTitle = useRef<ComponentRef<typeof RNText>>(null);
-  const routeButton = useRef<ComponentRef<typeof RNPressable>>(null);
-  useEffect(() => {
-    const target = focusAfter.current;
-    if (!target) return;
-    focusAfter.current = null;
-    const node = target === "editor" ? editorTitle.current : routeButton.current;
+  const routeTitle = useRef<ComponentRef<typeof RNText>>(null);
+  const focusWhenDone = (target: typeof editorTitle) => () => {
+    const node = target.current;
     if (node) AccessibilityInfo.sendAccessibilityEvent?.(node, "focus");
-  }, [editing]);
+  };
   const openEditor = () => {
-    fromShown();
+    beginEdit();
     // Ruten og brikkene forsvinner nå; kommer de tilbake, skal de stå helt på plass – også om kunden var raskere enn
     // ankomsten.
     if (arrival.moving) arrival.progress.setValue(1);
     // Øya vokser der den står; er listen rullet ned, går den først til toppen, så hele skjemaet synes.
     listRef.current?.scrollToOffset({ offset: 0, animated: !reduced });
-    animateNextLayout(reduced);
-    focusAfter.current = "editor";
+    animateNextLayout(reduced, focusWhenDone(editorTitle));
     setEditing(true);
   };
   const collapse = () => {
-    animateNextLayout(reduced);
-    focusAfter.current = "route";
+    animateNextLayout(reduced, focusWhenDone(routeTitle));
     setEditing(false);
   };
-  // «Lukk» uten å søke: skjemaet blir igjen søket som vises, og listen står som før.
+  // «Lukk» uten å søke: skjemaet blir igjen det overskriften viser, og listen står som før.
   const closeEditor = () => {
-    fromShown();
+    endEditWithoutSearch();
     collapse();
   };
   // Et gyldig søk fra skjemaet i øya er allerede startet (SearchPanel); øya krymper til ruten og brikkene, som nå
   // viser det nye søket, og listen under viser at det lastes – samme flyt som et søk fra forsiden.
-  const searched = collapse;
+  const searched = () => {
+    setUnsearched(null);
+    collapse();
+  };
 
   // Datoer og reisende rett fra brikkene (og «Datoer» i verktøylinjen): arket endrer skjemaet, og «Søk på nytt» søker
   // med én gang. «Ferdig» lukker uten å søke. En feil i skjemaet (f.eks. en dato som har passert mens appen sto åpen)
   // står i arket, over knappen, til skjemaet endres.
   const [sheetProblem, setSheetProblem] = useState<{ code: FormErrorCode; form: SearchForm } | null>(null);
   const quickEdit = (which: "dates" | "travellers") => {
-    fromShown();
+    beginEdit();
     setSheetProblem(null);
     setSheet(which);
+  };
+  const closeQuickSheet = () => {
+    endEditWithoutSearch();
+    setSheet(null);
   };
   const searchFromSheet = () => {
     const err = runSearch();
@@ -501,6 +514,7 @@ export default function ResultsScreen() {
       setSheetProblem({ code: err, form });
       return;
     }
+    setUnsearched(null);
     setSheet(null);
   };
 
@@ -523,6 +537,11 @@ export default function ResultsScreen() {
     return () => clearTimeout(t);
   }, [search]);
   const slow = search.status === "loading" && slowSearch === search;
+  // Et nytt søk (ikke en oppdatering av det samme): innholdet starter øverst, med øya under statuslinjen – som da
+  // lastingen var en egen skjerm.
+  useEffect(() => {
+    if (search.status === "loading" && !search.previous) listRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [search]);
 
   // Svaret som vises: det ferdige, eller det forrige mens samme søk oppdateres (dra ned, «Oppdater prisene»).
   const answer = useMemo(() => shownAnswer(search), [search]);
@@ -588,9 +607,11 @@ export default function ResultsScreen() {
   }, [search]);
   const filters = activeFilterCount(view);
 
-  // Overskriften beskriver søket som vises – ikke et skjema som er endret etterpå uten å søke.
-  const q = search.status === "idle" ? form : search.query;
+  // Overskriften beskriver søket som vises – ikke et skjema som er endret etterpå uten å søke. Uten et søk: skjemaet,
+  // slik det sto før kunden begynte å endre det.
+  const q = shownQuery ?? unsearched ?? form;
   const title = q.origin && q.destination ? `${q.origin.city} → ${q.destination.city}` : r.fallbackTitle;
+  // For VoiceOver: «Oslo til Barcelona», ikke «Oslo pil høyre Barcelona».
   const routeSpoken = q.origin && q.destination ? r.header.routeSpoken(q.origin.city, q.destination.city) : r.fallbackTitle;
   // Datoene: kort på brikken («23.–30. okt.»; én vei sier det), hele datoene og antall netter for VoiceOver.
   const roundTrip = q.tripType === "roundtrip";
@@ -604,29 +625,19 @@ export default function ResultsScreen() {
   const kind = answer ? resultKind(answer.result) : null;
   const demo = kind === "demo" || kind === "sandbox";
 
-  // Kompakt: tilbake, ruten (en knapp som åpner søket her; teksten er skjermens overskrift) og søkeknappen, og under
-  // dem datoene og de reisende som brikker. «DEMO» står ved ruten, som eget element for VoiceOver. Ingen linjegrense:
-  // stor tekst og lange bynavn brytes i stedet for å kuttes.
+  // Kompakt: tilbake, ruten og søkeknappen, og under dem datoene og de reisende som brikker. For VoiceOver er ruten
+  // skjermens overskrift (iOS gir ett element én rolle, så trykkflaten rundt den er ikke et eget element), og «Endre
+  // søk» til høyre er knappen som åpner søket; et trykk på ruten gjør det samme for den som ser. «DEMO» står ved ruten,
+  // som eget element. Ingen linjegrense: stor tekst og lange bynavn brytes i stedet for å kuttes.
   const compact = (
     <>
       <View style={styles.headerRow}>
         <IconButton icon="chevronLeft" label={r.back} variant="plain" onPress={() => router.back()} testID="header-back" />
         <Animated.View style={[styles.routeWrap, settle]}>
-          {/* iOS gir ett element én rolle: for VoiceOver er ruten knappen «Endre søk: Oslo til Barcelona». Teksten inni
-              er skjermens overskrift i treet; «Endre søk» til høyre gjør det samme. */}
-          <RNPressable
-            ref={routeButton}
-            testID="header-route"
-            onPress={openEditor}
-            accessibilityRole="button"
-            accessibilityLabel={r.header.routeLabel(routeSpoken)}
-            accessibilityHint={r.header.editHint}
-            accessibilityLanguage={lang}
-            style={({ pressed }) => [styles.route, pressed && { opacity: 0.7 }]}
-          >
-            <Text style={[type.headline, styles.title]} accessibilityRole="header">
+          <RNPressable testID="header-route" onPress={openEditor} accessible={false} style={({ pressed }) => [styles.route, pressed && { opacity: 0.7 }]}>
+            <RNText ref={routeTitle} style={[type.headline, styles.title]} accessibilityRole="header" accessibilityLabel={routeSpoken} accessibilityLanguage={lang} testID="header-title">
               {title}
-            </Text>
+            </RNText>
             <Icon name="chevronDown" size={16} color={colors.onDarkMuted} />
           </RNPressable>
           {/* Merket er laget for å stå øverst i en kolonne (alignSelf: flex-start); her står det midt på linjen med ruten. */}
@@ -651,7 +662,7 @@ export default function ResultsScreen() {
   const editor = (
     <View style={styles.editor} testID="results-header-editor" onAccessibilityEscape={closeEditor}>
       <View style={styles.editorHead}>
-        <RNText ref={editorTitle} style={[type.headline, styles.editorTitle]} accessibilityRole="header" accessibilityLanguage={lang}>
+        <RNText ref={editorTitle} style={[type.headline, styles.editorTitle]} accessibilityRole="header" accessibilityLanguage={lang} testID="header-editor-title">
           {r.editSearch}
         </RNText>
         <Pressable testID="header-editor-close" onPress={closeEditor} accessibilityRole="button" accessibilityLabel={r.header.close} accessibilityHint={r.header.closeHint} style={({ pressed }) => [styles.editorClose, pressed && { opacity: 0.7 }]}>
@@ -679,14 +690,17 @@ export default function ResultsScreen() {
     </View>
   );
 
-  // En feil i skjemaet fra et av arkene under, over «Søk på nytt» (hvit flate: lys melding).
+  // En feil i skjemaet fra et av arkene under, over knappen (hvit flate: lys melding).
   const sheetError =
     sheetProblem && sheetProblem.form === form ? (
       <Banner tone="error" testID="sheet-error">
         {formErrorText(sheetProblem.code, i18n)}
       </Banner>
     ) : null;
-  // Datoer og reisende kan endres i alle tilstandene (også mens et søk lastes eller etter en feil), så arkene står her.
+  // «Søk på nytt» endrer søket som vises; uten et søk er det det første: «Søk».
+  const sheetSearchLabel = shownQuery ? r.searchAgain : r.firstSearch;
+  // Datoer og reisende kan endres i alle tilstandene (også mens et søk lastes eller etter en feil). Arkene står på én
+  // fast plass, så et ark som er åpent når et svar kommer, står åpent – med valget kunden var midt i.
   const quickSheets = (
     <>
       <DateRangeSheet
@@ -695,127 +709,67 @@ export default function ResultsScreen() {
         roundTrip={form.tripType === "roundtrip"}
         dates={{ departDate: form.departDate, returnDate: form.returnDate }}
         onChange={onDates}
-        onClose={() => setSheet(null)}
+        onClose={closeQuickSheet}
         footer={
           <View style={{ gap: space.sm }}>
             {sheetError}
-            <PrimaryButton testID="dates-search" label={r.searchAgain} icon="search" onPress={searchFromSheet} />
+            <PrimaryButton testID="dates-search" label={sheetSearchLabel} icon="search" onPress={searchFromSheet} />
           </View>
         }
       />
       <TravellersSheet
         visible={sheet === "travellers"}
-        onClose={() => setSheet(null)}
+        onClose={closeQuickSheet}
         footer={
           <View style={{ gap: space.sm }}>
             {sheetError}
-            <PrimaryButton testID="travellers-search" label={r.searchAgain} icon="search" onPress={searchFromSheet} />
+            <PrimaryButton testID="travellers-search" label={sheetSearchLabel} icon="search" onPress={searchFromSheet} />
           </View>
         }
       />
     </>
   );
 
-  // Uten liste står øya fast øverst, og ingenting ruller inn under statuslinjen: lys tekst, ingen skjerm. Innholdet
-  // kan likevel rulles når søket står åpent i øya og ikke får plass (liten skjerm, stor tekst), så «Søk fly» alltid nås.
-  const shell = (children: ReactNode) => (
-    <View style={styles.screen} testID="results-screen">
-      <StatusBar style="light" />
-      <ScrollView style={styles.fill} contentContainerStyle={styles.shellContent} alwaysBounceVertical={false} testID="results-shell">
-        {headerIsland()}
-        {children}
-      </ScrollView>
-      {quickSheets}
-    </View>
-  );
-
-  if (search.status === "idle") {
-    // Åpnet uten et søk (lenke, omstart eller tilbakestilt tilstand): ingen evig spinner.
-    return shell(
-      <StateView icon="search" title={r.idleTitle} body={r.idleBody} testID="results-empty" dark={false}>
-        <PrimaryButton testID="start-search" label={r.startSearch} onPress={() => router.replace("/")} />
-      </StateView>,
-    );
-  }
-
-  if (search.status === "loading" && !answer) {
-    // Søket står i toppen; under: hva som skjer og plassholderkort i samme form som svaret. «Stopp søket» står der
-    // verktøylinjen kommer, innen rekkevidde for tommelen – og i grafitt, som den.
-    return shell(
-      <View style={styles.loading}>
-        <ResultsSkeleton title={r.loadingTitle} body={slow ? r.loadingSlow : r.loadingBody} testID="results-loading" />
-        <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
-          <SecondaryButton
-            dark
-            icon="close"
-            testID="cancel-search"
-            label={r.cancelSearch}
-            onPress={() => {
-              cancelSearch();
-              router.back();
-            }}
-          />
-        </View>
-      </View>,
-    );
-  }
-
-  if (search.status === "error") {
-    return shell(
-      <View style={styles.errorBox} testID="results-error">
-        <Banner tone="error">{errorText(search.error, i18n)}</Banner>
-        {/* «Prøv igjen» bare når et nytt forsøk kan hjelpe; ellers er «Endre søk» hovedvalget. «Endre søk» åpner søket
-            i øya rett over, som ruten og søkeknappen. */}
-        {canRetry(search.error) ? (
-          <>
-            <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch()} testID="retry-search" />
-            <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
-          </>
-        ) : (
-          <PrimaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
-        )}
-      </View>,
-    );
-  }
-
-  // Her er det et svar: det ferdige, eller det forrige mens samme søk oppdateres.
-  if (!answer) return null;
-  const { result, at } = answer;
+  // ─── Svaret og tilstandene under øya ─────────────────────────────────────────────────────────────────────────────
+  const result = answer ? answer.result : null;
+  const all = offers ?? [];
+  const at = answer ? answer.at : 0;
   const refreshError = search.status === "done" ? search.refreshError : undefined;
   // «Oppdater prisene» og «dra ned»: søket som vises – ikke datoer som er valgt i arket uten å søke.
   const refreshShown = () => {
-    runSearch(search.query);
+    if (shownQuery) runSearch(shownQuery);
   };
-  const all = result.offers;
-  const notice = fxNotice(result, i18n);
+  const notice = result ? fxNotice(result, i18n) : null;
   // Tilbud som ikke gjaldt søket (annen flyplass eller dato, manglende retur): sagt rett ut, aldri erstattet.
-  const excluded = exclusionSummary(result, i18n);
+  const excluded = result ? exclusionSummary(result, i18n) : null;
   // Er totalen for alle reisende ikke bekreftet, sies det rett ut, og prisfilteret («Opptil …») vises ikke.
-  const confirmed = totalConfirmed(result);
+  const confirmed = result ? totalConfirmed(result) : true;
   const checkedAt = formatClock(new Date(at));
-  const stale = pricesStale(at, now);
+  const stale = answer ? pricesStale(at, now) : false;
   // Korte linjer, så første reise står høyt oppe; valutaforklaringen kan åpnes.
   // Demo og testmiljø sies rett ut; ekte priser merkes med når de ble sjekket.
-  const notices: NoticeItem[] = [
-    // En oppdatering som feilet: sagt først; prisene under er de forrige, med tidspunktet de ble sjekket.
-    ...(refreshError
-      ? [{ key: "refresh", tone: "warning" as const, text: all.length ? r.status.refreshFailed(errorText(refreshError, i18n), checkedAt) : r.status.refreshFailedEmpty(errorText(refreshError, i18n)), testID: "refresh-error" }]
-      : []),
-    ...(kind === "demo" ? [{ key: "demo", tone: "warning" as const, text: r.status.demo, testID: "sandbox-banner" }] : []),
-    ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
-    ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
-    ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: r.status.partial, testID: "partial-banner" }] : []),
-    ...(!confirmed && all.length ? [{ key: "basis", tone: "warning" as const, text: t.offer.priceUnverifiedExplained, testID: "price-basis-notice" }] : []),
-    ...(excluded && all.length ? [{ key: "excluded", tone: "info" as const, text: r.status.excluded(excluded.count, excluded.why), testID: "excluded-notice" }] : []),
-    // Alt omregnet (bare en opplysning): lukket bak «Om «ca.»-priser»; kortene har «ca.» og kilden.
-    // Mangler kronepriser (en advarsel): alltid åpen.
-    // Uten tilbud er det ingen priser å forklare.
-    ...(notice && all.length
-      ? notice.tone === "info"
-        ? [{ key: "fx", tone: notice.tone, text: notice.text, label: t.price.fx.about, testID: "fx-notice" }]
-        : [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }]
-      : []),
-  ];
+  const notices: NoticeItem[] = result
+    ? [
+        // En oppdatering som feilet: sagt først; prisene under er de forrige, med tidspunktet de ble sjekket.
+        ...(refreshError
+          ? [{ key: "refresh", tone: "warning" as const, text: all.length ? r.status.refreshFailed(errorText(refreshError, i18n), checkedAt) : r.status.refreshFailedEmpty(errorText(refreshError, i18n)), testID: "refresh-error" }]
+          : []),
+        ...(kind === "demo" ? [{ key: "demo", tone: "warning" as const, text: r.status.demo, testID: "sandbox-banner" }] : []),
+        ...(kind === "sandbox" ? [{ key: "sandbox", tone: "warning" as const, text: r.status.sandbox(providerDisplayName(result.provider)), testID: "sandbox-banner" }] : []),
+        ...(kind === "unverified" ? [{ key: "unverified", tone: "warning" as const, text: r.status.unverified, testID: "unverified-banner" }] : []),
+        ...(result.partial ? [{ key: "partial", tone: "warning" as const, text: r.status.partial, testID: "partial-banner" }] : []),
+        ...(!confirmed && all.length ? [{ key: "basis", tone: "warning" as const, text: t.offer.priceUnverifiedExplained, testID: "price-basis-notice" }] : []),
+        ...(excluded && all.length ? [{ key: "excluded", tone: "info" as const, text: r.status.excluded(excluded.count, excluded.why), testID: "excluded-notice" }] : []),
+        // Alt omregnet (bare en opplysning): lukket bak «Om «ca.»-priser»; kortene har «ca.» og kilden.
+        // Mangler kronepriser (en advarsel): alltid åpen.
+        // Uten tilbud er det ingen priser å forklare.
+        ...(notice && all.length
+          ? notice.tone === "info"
+            ? [{ key: "fx", tone: notice.tone, text: notice.text, label: t.price.fx.about, testID: "fx-notice" }]
+            : [{ key: "fx", tone: notice.tone, text: notice.short, detail: notice.text !== notice.short ? notice.text : undefined, testID: "fx-notice" }]
+          : []),
+      ]
+    : [];
   const sortLabel = view.sort === "price" && !confirmed ? r.sortPriceUnconfirmed : t.results.sorts[view.sort].summary;
   const hasReturn = all.some((o) => o.offer.slices.length > 1);
   const clearFilters = () => setView(clearedFilters);
@@ -836,100 +790,210 @@ export default function ResultsScreen() {
     { key: "bags", label: r.chips.bags, selected: view.bags, count: countWith(all, view, { bags: true }), onPress: () => setView((v) => ({ ...v, bags: !v.bags })) },
   ];
 
+  // Mens søket står åpent i øya, er alt under den stille: ingen trykk, og VoiceOver hopper over det – skjemaet er det
+  // eneste som gjelder. (Øya selv, «Stopp søket» og arkene står ikke under den.)
+  const inert: ViewProps = editing ? { pointerEvents: "none", accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" } : {};
+
   // Ingen reiser: samme reise noen dager før eller etter, som nye søk – uten priser (dem har vi ikke før det er søkt).
-  const nearby = all.length ? [] : nearbyDates(search.query);
-  const nearbyRow = nearby.length ? (
-    <View style={styles.nearby} testID="nearby-dates">
-      <Text style={[type.footnoteStrong, { color: colors.text, textAlign: "center" }]}>{r.nearbyTitle}</Text>
-      <View style={styles.nearbyRow}>
-        {nearby.map((d) => {
-          const back = search.query.tripType === "roundtrip" ? d.returnDate : null;
-          return (
-            <Chip
-              key={d.days}
-              testID={`nearby-${d.days}`}
-              label={back ? f.dateSpan(d.departDate, back) : f.day(d.departDate)}
-              accessibilityLabel={r.nearbySpoken(f.day(d.departDate), back ? f.day(back) : null)}
-              selected={false}
-              dark={false}
-              // Søket som vises, med nye datoer – ikke et skjema som kan være endret etterpå.
-              onPress={() => runSearch({ ...search.query, departDate: d.departDate, returnDate: d.returnDate })}
-            />
-          );
-        })}
+  const nearby = result && !all.length && shownQuery ? nearbyDates(shownQuery) : [];
+  const nearbyRow =
+    nearby.length && shownQuery ? (
+      <View style={styles.nearby} testID="nearby-dates">
+        <Text style={[type.footnoteStrong, { color: colors.text, textAlign: "center" }]}>{r.nearbyTitle}</Text>
+        <View style={styles.nearbyRow}>
+          {nearby.map((d) => {
+            const back = shownQuery.tripType === "roundtrip" ? d.returnDate : null;
+            return (
+              <Chip
+                key={d.days}
+                testID={`nearby-${d.days}`}
+                label={back ? f.dateSpan(d.departDate, back) : f.day(d.departDate)}
+                accessibilityLabel={r.nearbySpoken(f.day(d.departDate), back ? f.day(back) : null)}
+                selected={false}
+                dark={false}
+                // Søket som vises, med nye datoer – ikke et skjema som kan være endret etterpå.
+                onPress={() => runSearch({ ...shownQuery, departDate: d.departDate, returnDate: d.returnDate })}
+              />
+            );
+          })}
+        </View>
       </View>
+    ) : null;
+
+  // I øya, med et svar: prisstatusen og fanene Best / Billigst / Raskest.
+  const extra = answer ? (
+    <>
+      {refreshing ? (
+        // Samme søk kjøres på nytt: listen står, og linjen sier hva som skjer og hvor gamle prisene som vises er.
+        <View style={styles.statusRow} testID="price-refreshing">
+          <ActivityIndicator size="small" color={colors.onDarkMuted} />
+          <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.refreshing(checkedAt)}</Text>
+        </View>
+      ) : (kind === "live" || kind === "unverified") && all.length ? (
+        <View style={styles.statusRow} testID="price-status">
+          {stale ? (
+            <>
+              <Icon name="clock" size={14} color={colors.warningOnDark} />
+              <Text style={[type.footnote, { color: colors.warningOnDark, flex: 1 }]}>{r.status.stale(checkedAt)}</Text>
+              {/* Lenken er selv 44 pt høy; luften til sidene når ikke naboene (søkeknappen over, fanene under). */}
+              <Pressable onPress={refreshShown} accessibilityRole="button" hitSlop={{ left: 10, right: 10 }} style={styles.sortLink} testID="refresh-prices">
+                <Text style={[type.footnoteStrong, { color: colors.blueOnDark }]}>{r.status.refresh}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              {kind === "live" ? <View style={styles.liveDot} /> : null}
+              <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{kind === "live" ? r.status.live(checkedAt) : r.status.checked(checkedAt)}</Text>
+            </>
+          )}
+        </View>
+      ) : null}
+      {journeys.length > 1 ? <SortTabs tabs={sortTabs} value={view.sort} label={t.results.tabs.label} note={hasReturn ? t.results.tabs.averageNote : null} onChange={(sort) => setView((v) => ({ ...v, sort }))} /> : null}
+    </>
+  ) : null;
+
+  // Under øya, på den lyse grunnen, med et svar: filterbrikkene, meldingene og antallet – så de hvite kortene.
+  const below = answer ? (
+    <View style={styles.belowHeader} {...inert} testID="results-below-header">
+      {all.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} testID="results-chips">
+          {chips
+            .filter((c) => c.key === "all" || c.selected || c.count > 0)
+            .flatMap((c) => {
+              const chip = <Chip key={c.key} testID={`chip-${c.key}`} label={c.label} selected={c.selected} dark={false} onPress={c.onPress} />;
+              // De aktive filtrene fra arket rett etter «Alle», så de synes uten å rulle.
+              return c.key === "all"
+                ? [chip, ...activeChips.map((a) => <Chip key={`active-${a.key}`} testID={`active-${a.key}`} label={a.label} accessibilityLabel={a.spoken} selected removable dark={false} onPress={() => removeFilter(a)} />)]
+                : [chip];
+            })}
+        </ScrollView>
+      ) : null}
+      {notices.length ? (
+        <View style={styles.notices}>
+          <LightNotices items={notices} testID="results-notices" />
+        </View>
+      ) : null}
+      {journeys.length ? (
+        <View style={styles.countRow}>
+          <Text style={[type.footnote, { color: colors.textSecondary, flexShrink: 1 }]} testID="result-count">
+            {`${reiser(journeys.length)} · ${t.results.offers(shown.length)}`}
+            {all.length - shown.length > 0 ? ` · ${t.results.hiddenByFilters(all.length - shown.length)}` : ""}
+          </Text>
+          {/* Gjeldende sortering som tekst; den endres med «Sorter» i den flytende linjen (én kontroll, 44 pt). */}
+          <Text style={[type.footnote, styles.sortSummary]} testID="sort-summary">
+            {sortLabel}
+          </Text>
+        </View>
+      ) : null}
     </View>
   ) : null;
 
   const listHeader = (
     <View>
-      {headerIsland(
-        <>
-          {refreshing ? (
-            // Samme søk kjøres på nytt: listen står, og linjen sier hva som skjer og hvor gamle prisene som vises er.
-            <View style={styles.statusRow} testID="price-refreshing">
-              <ActivityIndicator size="small" color={colors.onDarkMuted} />
-              <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{r.status.refreshing(checkedAt)}</Text>
-            </View>
-          ) : (kind === "live" || kind === "unverified") && all.length ? (
-            <View style={styles.statusRow} testID="price-status">
-              {stale ? (
-                <>
-                  <Icon name="clock" size={14} color={colors.warningOnDark} />
-                  <Text style={[type.footnote, { color: colors.warningOnDark, flex: 1 }]}>{r.status.stale(checkedAt)}</Text>
-                  {/* Lenken er selv 44 pt høy; luften til sidene når ikke naboene (søkeknappen over, fanene under). */}
-                  <Pressable onPress={refreshShown} accessibilityRole="button" hitSlop={{ left: 10, right: 10 }} style={styles.sortLink} testID="refresh-prices">
-                    <Text style={[type.footnoteStrong, { color: colors.blueOnDark }]}>{r.status.refresh}</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  {kind === "live" ? <View style={styles.liveDot} /> : null}
-                  <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{kind === "live" ? r.status.live(checkedAt) : r.status.checked(checkedAt)}</Text>
-                </>
-              )}
-            </View>
-          ) : null}
-          {journeys.length > 1 ? (
-            <SortTabs tabs={sortTabs} value={view.sort} label={t.results.tabs.label} note={hasReturn ? t.results.tabs.averageNote : null} onChange={(sort) => setView((v) => ({ ...v, sort }))} />
-          ) : null}
-        </>,
-      )}
-      {/* Under øya, på den lyse grunnen: filterbrikkene, meldingene og antallet – så de hvite kortene. */}
-      <View style={styles.belowHeader}>
-        {all.length > 1 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} testID="results-chips">
-            {chips
-              .filter((c) => c.key === "all" || c.selected || c.count > 0)
-              .flatMap((c) => {
-                const chip = <Chip key={c.key} testID={`chip-${c.key}`} label={c.label} selected={c.selected} dark={false} onPress={c.onPress} />;
-                // De aktive filtrene fra arket rett etter «Alle», så de synes uten å rulle.
-                return c.key === "all"
-                  ? [chip, ...activeChips.map((a) => <Chip key={`active-${a.key}`} testID={`active-${a.key}`} label={a.label} accessibilityLabel={a.spoken} selected removable dark={false} onPress={() => removeFilter(a)} />)]
-                  : [chip];
-              })}
-          </ScrollView>
-        ) : null}
-        {notices.length ? (
-          <View style={styles.notices}>
-            <LightNotices items={notices} testID="results-notices" />
-          </View>
-        ) : null}
-        {journeys.length ? (
-          <View style={styles.countRow}>
-            <Text style={[type.footnote, { color: colors.textSecondary, flexShrink: 1 }]} testID="result-count">
-              {`${reiser(journeys.length)} · ${t.results.offers(shown.length)}`}
-              {all.length - shown.length > 0 ? ` · ${t.results.hiddenByFilters(all.length - shown.length)}` : ""}
-            </Text>
-            {/* Gjeldende sortering som tekst; den endres med «Sorter» i den flytende linjen (én kontroll, 44 pt). */}
-            <Text style={[type.footnote, styles.sortSummary]} testID="sort-summary">
-              {sortLabel}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+      {headerIsland(extra)}
+      {below}
     </View>
   );
+
+  // Når listen er tom: ingen søk ennå, lasting, feil – eller et svar uten reiser. Alt står i én og samme liste, med øya
+  // øverst i alle tilstandene: når et svar kommer eller et nytt søk starter, bygges verken øya, skjemaet i den eller
+  // arkene på nytt (et åpent ark, et valg midt i kalenderen, en feil i skjemaet og VoiceOvers plass står).
+  let empty: ReactNode;
+  if (search.status === "idle") {
+    // Åpnet uten et søk (lenke, omstart eller tilbakestilt tilstand): ingen evig spinner.
+    empty = (
+      <View {...inert}>
+        <StateView icon="search" title={r.idleTitle} body={r.idleBody} testID="results-empty" dark={false}>
+          <PrimaryButton testID="start-search" label={r.startSearch} onPress={() => router.replace("/")} />
+        </StateView>
+      </View>
+    );
+  } else if (search.status === "loading" && !answer) {
+    // Hva som skjer, og plassholderkort i samme form som svaret. Står søket åpent i øya og er høyere enn skjermen, har
+    // plassholderne fortsatt en høyde under den (de klippes nederst, i stedet for å forsvinne).
+    empty = (
+      <View style={styles.loading} {...inert} testID="results-loading-block">
+        <ResultsSkeleton title={r.loadingTitle} body={slow ? r.loadingSlow : r.loadingBody} testID="results-loading" />
+      </View>
+    );
+  } else if (search.status === "error") {
+    empty = (
+      <View style={styles.errorBox} {...inert} testID="results-error">
+        <Banner tone="error">{errorText(search.error, i18n)}</Banner>
+        {/* «Prøv igjen» bare når et nytt forsøk kan hjelpe, og da med søket som feilet – ikke datoer som er valgt i arket
+            etterpå uten å søke. Ellers er «Endre søk» hovedvalget; det åpner søket i øya rett over. */}
+        {canRetry(search.error) ? (
+          <>
+            <PrimaryButton label={r.retry} icon="refresh" onPress={() => runSearch(search.query)} testID="retry-search" />
+            <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
+          </>
+        ) : (
+          <PrimaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
+        )}
+      </View>
+    );
+  } else if (all.length) {
+    empty = (
+      <View {...inert}>
+        <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(doneCount ?? all.length))} dark={false}>
+          <PrimaryButton label={r.clearFilters} testID="reset-filters" onPress={clearFilters} />
+        </StateView>
+      </View>
+    );
+  } else if (excluded) {
+    empty = (
+      <View {...inert}>
+        <StateView icon="plane" title={r.status.excludedEmptyTitle} body={r.status.excludedEmptyBody(excluded.count, excluded.why)} testID="results-excluded-empty" dark={false}>
+          {nearbyRow}
+          <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
+        </StateView>
+      </View>
+    );
+  } else {
+    empty = (
+      <View {...inert}>
+        <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody} testID="results-none" dark={false}>
+          {nearbyRow}
+          <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
+        </StateView>
+      </View>
+    );
+  }
+
+  // Nederst, over listen og utenfor den (så den alltid nås, også når skjemaet i øya er høyere enn skjermen): «Stopp
+  // søket» mens et nytt søk lastes, ellers verktøylinjen når det er reiser – men ikke mens søket står åpent i øya (den
+  // gjelder listen, og skjemaet har sine egne datoer).
+  const bottomBar =
+    search.status === "loading" && !answer ? (
+      // «Stopp søket» står der verktøylinjen kommer, innen rekkevidde for tommelen – og i grafitt, som den.
+      <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
+        <SecondaryButton
+          dark
+          icon="close"
+          testID="cancel-search"
+          label={r.cancelSearch}
+          onPress={() => {
+            cancelSearch();
+            router.back();
+          }}
+        />
+      </View>
+    ) : all.length && !editing ? (
+      <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
+        <View style={styles.toolbar} onLayout={(e) => setToolbarHeight(e.nativeEvent.layout.height)} testID="results-toolbar">
+          <ToolButton icon="filter" label={r.filter} primary badge={filters} onPress={() => setSheet("filter")} testID="open-filters" />
+          <View style={styles.toolDivider} />
+          <ToolButton icon="swap" label={r.sort} onPress={() => setSheet("sort")} testID="open-sort-toolbar" />
+          <View style={styles.toolDivider} />
+          <ToolButton icon="calendar" label={r.dates} onPress={() => quickEdit("dates")} testID="open-dates" />
+        </View>
+      </View>
+    ) : null;
+
+  // «Dra ned» oppdaterer bare en liste som vises, og ikke mens søket står åpent i øya. Kontrollen står likevel alltid i
+  // treet: på iOS er den et barn av rullefeltet, og å fjerne den ville bygget alt innhold i listen på nytt. Er den av,
+  // gjør et drag ingenting (og spinneren er usynlig); `enabled` gjelder Android.
+  const refreshable = !!answer && !editing;
 
   return (
     <View style={styles.screen} testID="results-screen">
@@ -939,68 +1003,45 @@ export default function ResultsScreen() {
       <View style={styles.backdrop} pointerEvents="none" />
       <FlatList
         ref={listRef}
-        testID="results-list"
+        // «results-list» når det er et svar å vise; uten (ingen søk, lasting, feil) er det samme liste med bare øya og
+        // tilstanden.
+        testID={answer ? "results-list" : "results-shell"}
         style={styles.list}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + space.sm + (toolbarHeight || 60) + space.lg }]}
         onScroll={onListScroll}
         scrollEventThrottle={16}
         data={journeys}
+        extraData={editing}
         keyExtractor={(j) => j.key}
-        // Dra ned: samme søk på nytt, som «Oppdater prisene». Listen står til de nye prisene er her.
         refreshControl={
           <RefreshControl
             refreshing={pulled && refreshing}
+            enabled={refreshable}
             onRefresh={() => {
+              if (!refreshable) return;
               setPulled(true);
               refreshShown();
             }}
-            tintColor={colors.onDarkMuted}
+            tintColor={refreshable ? colors.onDarkMuted : "transparent"}
             // Spinneren under statuslinjen, ikke bak skjermkanten øverst.
             progressViewOffset={insets.top}
             testID="results-refresh"
           />
         }
         ListHeaderComponent={listHeader}
-        ListEmptyComponent={
-          all.length ? (
-            <StateView icon="filter" title={r.noMatchTitle} body={r.noMatchBody(reiser(doneCount ?? all.length))} dark={false}>
-              <PrimaryButton label={r.clearFilters} testID="reset-filters" onPress={clearFilters} />
-            </StateView>
-          ) : excluded ? (
-            <StateView icon="plane" title={r.status.excludedEmptyTitle} body={r.status.excludedEmptyBody(excluded.count, excluded.why)} testID="results-excluded-empty" dark={false}>
-              {nearbyRow}
-              <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
-            </StateView>
-          ) : (
-            <StateView icon="plane" title={r.noFlightsTitle} body={r.noFlightsBody} testID="results-none" dark={false}>
-              {nearbyRow}
-              <SecondaryButton label={r.editSearch} onPress={openEditor} testID="edit-search-state" />
-            </StateView>
-          )
-        }
+        ListEmptyComponent={empty}
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
         renderItem={({ item }) => (
-          <View style={styles.item}>
-            <OfferCard journey={item} totalConfirmed={confirmed} searchedCabin={search.query.cabinClass} onOpen={openOffer} />
+          <View style={styles.item} {...inert}>
+            <OfferCard journey={item} totalConfirmed={confirmed} searchedCabin={(shownQuery ?? form).cabinClass} onOpen={openOffer} />
           </View>
         )}
       />
 
-      {/* Mens søket står åpent i øya, er verktøylinjen borte: den gjelder listen, og skjemaet har sine egne datoer. */}
-      {all.length && !editing ? (
-        <View style={[styles.toolbarWrap, { bottom: insets.bottom + space.sm }]} pointerEvents="box-none">
-          <View style={styles.toolbar} onLayout={(e) => setToolbarHeight(e.nativeEvent.layout.height)} testID="results-toolbar">
-            <ToolButton icon="filter" label={r.filter} primary badge={filters} onPress={() => setSheet("filter")} testID="open-filters" />
-            <View style={styles.toolDivider} />
-            <ToolButton icon="swap" label={r.sort} onPress={() => setSheet("sort")} testID="open-sort-toolbar" />
-            <View style={styles.toolDivider} />
-            <ToolButton icon="calendar" label={r.dates} onPress={() => quickEdit("dates")} testID="open-dates" />
-          </View>
-        </View>
-      ) : null}
+      {bottomBar}
 
       <BottomSheet
-        visible={sheet === "filter"}
+        visible={sheet === "filter" && !!answer}
         title={r.filter}
         onClose={() => setSheet(null)}
         testID="filter-sheet"
@@ -1014,7 +1055,7 @@ export default function ResultsScreen() {
         <FilterSheetBody visible={sheet === "filter"} all={all} view={view} setView={setView} confirmed={confirmed} hasReturn={hasReturn} />
       </BottomSheet>
 
-      <BottomSheet visible={sheet === "sort"} title={r.sort} onClose={() => setSheet(null)} testID="sort-sheet">
+      <BottomSheet visible={sheet === "sort" && !!answer} title={r.sort} onClose={() => setSheet(null)} testID="sort-sheet">
         <View accessibilityLanguage={lang} style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={r.sortingLabel}>
           {SORTS.map((value) => (
             <OptionRow
@@ -1067,9 +1108,6 @@ const styles = StyleSheet.create({
   editorTitle: { color: colors.onDark, flex: 1 },
   // «Lukk» er en lenke på grafitt (blueOnDark 5,4:1), selv minst 44 × 44 pt.
   editorClose: { minHeight: TOUCH, minWidth: TOUCH, alignItems: "center", justifyContent: "center", paddingHorizontal: space.xs },
-  fill: { flex: 1 },
-  // Innholdet uten liste fyller skjermen (lasting og feil under øya), men kan bli høyere enn den.
-  shellContent: { flexGrow: 1 },
   // Grafitt bak listens øvre del (synlig bare når listen dras ned forbi toppen); lenger ned er skjermen lys.
   backdrop: { position: "absolute", top: 0, left: 0, right: 0, height: "50%", backgroundColor: colors.raised },
   list: { flex: 1 },
@@ -1090,7 +1128,9 @@ const styles = StyleSheet.create({
   sortLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: TOUCH },
   item: { paddingHorizontal: space.lg },
   errorBox: { padding: space.lg, gap: space.md },
-  loading: { flex: 1, overflow: "hidden" },
+  // Lastingen fyller resten av skjermen under øya; står søket åpent i øya og er høyere enn skjermen, har den likevel en
+  // høyde (statuslinjen og det første plassholderkortet), i stedet for å bli borte.
+  loading: { flex: 1, overflow: "hidden", minHeight: 280 },
   toolbarWrap: { position: "absolute", left: 0, right: 0, alignItems: "center" },
   toolbar: { flexDirection: "row", alignItems: "center", backgroundColor: colors.raised, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.darkBorder, paddingHorizontal: space.sm, paddingVertical: 6 },
   tool: { flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: TOUCH, paddingHorizontal: space.md },
