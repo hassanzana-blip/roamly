@@ -26,6 +26,9 @@ export type DestinationMapProps = {
  * kartbibliotek og ingen kartfliser lastes her: den sier rett ut at kartet
  * vises i iPhone-appen, og lar kunden velge det samme reisemålet fra en
  * liste. iOS bruker DestinationMap.ios.tsx.
+ *
+ * På den lyse grunnen: hvite rader med flyplasskoden i en innfelt pille; den valgte raden har svak blå flate og blå
+ * kant (som valgte rader ellers på lyst), og koden blir blå med hvit tekst.
  */
 export function DestinationMap({ points, selectedId, onSelect, area }: DestinationMapProps) {
   const { t, locale } = useI18n();
@@ -34,8 +37,8 @@ export function DestinationMap({ points, selectedId, onSelect, area }: Destinati
   return (
     <View style={styles.root} testID="destination-map-fallback">
       <View style={styles.note}>
-        <Icon name="info" size={16} color={colors.onDarkMuted} />
-        <Text style={[type.footnote, { color: colors.onDarkMuted, flex: 1 }]}>{t.explore.webOnly}</Text>
+        <Icon name="info" size={16} color={colors.textSecondary} />
+        <Text style={[type.footnote, { color: colors.textSecondary, flex: 1 }]}>{t.explore.webOnly}</Text>
       </View>
       {shown.map((p) => {
         const n = p.destination.names[locale];
@@ -54,7 +57,7 @@ export function DestinationMap({ points, selectedId, onSelect, area }: Destinati
             <View style={[styles.code, selected && styles.codeSelected]}>
               <Text style={[type.footnoteStrong, { color: selected ? colors.white : colors.text }]}>{p.destination.iata}</Text>
             </View>
-            <Text style={[type.callout, { color: colors.onDark, flex: 1 }]}>{`${n.city}, ${n.country}`}</Text>
+            <Text style={[type.callout, { color: colors.text, flex: 1 }]}>{`${n.city}, ${n.country}`}</Text>
           </Pressable>
         );
       })}
@@ -65,8 +68,9 @@ export function DestinationMap({ points, selectedId, onSelect, area }: Destinati
 const styles = StyleSheet.create({
   root: { gap: space.xs },
   note: { flexDirection: "row", gap: space.sm, alignItems: "flex-start", paddingVertical: space.sm },
-  row: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingHorizontal: space.sm, borderRadius: radius.input },
-  rowSelected: { backgroundColor: colors.raised },
-  code: { minWidth: 48, alignItems: "center", paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.white },
+  // Kanten er alltid der (hvit når raden ikke er valgt), så raden ikke hopper når den velges.
+  row: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.white },
+  rowSelected: { backgroundColor: colors.blueSoft, borderColor: colors.blue },
+  code: { minWidth: 48, alignItems: "center", paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.inset },
   codeSelected: { backgroundColor: colors.blue },
 });

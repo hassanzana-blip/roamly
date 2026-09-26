@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { Pressable, Text } from "../../components/a11y";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { HotelPlace } from "@contracts/hotels";
@@ -58,6 +59,8 @@ function usePlaces(query: string, enabled: boolean) {
  * Hotellsøket: sted, datoer, gjester og rom. Skjemaet vises bare når serveren
  * har svart at hotellsøk er slått på; ellers forklares det, og kunden får
  * nettets hotellforespørsel i stedet. Ingen priser eller hotell uten svar fra leverandøren.
+ *
+ * «Cloud + Graphite»: lys grunn med tittellinjen øverst, skjemaet i et hvitt kort og lyse tilstander.
  */
 export default function HotelSearchScreen() {
   const router = useRouter();
@@ -123,84 +126,89 @@ export default function HotelSearchScreen() {
             {h.sandboxNotice}
           </Banner>
         ) : null}
-        <Field
-          label={h.where}
-          icon="search"
-          placeholder={h.wherePlaceholder}
-          value={query}
-          onChangeText={(v) => {
-            setQuery(v);
-            if (place) setPlace(null);
-          }}
-          autoCorrect={false}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-          testID="hotel-place-query"
-        />
-        {place ? (
-          <View style={styles.chosen} testID="hotel-place-chosen">
-            <Icon name="mapPin" size={16} color={colors.blue} />
-            <Text style={[type.footnote, { color: colors.text, flex: 1 }]}>{h.placeChosen(place.fullName ?? place.name)}</Text>
-          </View>
-        ) : null}
-        {places.loading ? (
-          <View style={styles.row}>
-            <ActivityIndicator color={colors.text} />
-            <Text style={[type.footnote, { color: colors.textSecondary }]}>{h.placeSearching}</Text>
-          </View>
-        ) : null}
-        {places.error ? (
-          <Banner tone="error" testID="hotel-place-error">
-            {h.placeError}
-          </Banner>
-        ) : null}
-        {places.active && !places.loading && !places.error && places.results.length === 0 ? (
-          <Text style={[type.footnote, { color: colors.textSecondary }]} testID="hotel-place-none">
-            {h.placeNone}
-          </Text>
-        ) : null}
-        {places.results.length ? (
-          <View style={styles.suggestions} testID="hotel-place-results">
-            {places.results.slice(0, 8).map((p, i) => (
-              <Pressable
-                key={p.key}
-                onPress={() => choosePlace(p)}
-                accessibilityRole="button"
-                accessibilityLabel={p.fullName ?? p.name}
-                testID={`hotel-place-${p.key}`}
-                style={({ pressed }) => [styles.suggestion, i > 0 && styles.suggestionBorder, pressed && { backgroundColor: colors.inset }]}
-              >
-                <Icon name={p.type === "hotel" ? "bed" : "mapPin"} size={18} color={colors.textSecondary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[type.bodyStrong, { color: colors.text }]}>{p.name}</Text>
-                  {p.fullName && p.fullName !== p.name ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{p.fullName}</Text> : null}
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-
-        <View style={styles.dates}>
-          <DateField
-            label={h.checkin}
-            value={dates.checkin}
-            minimum={today}
-            testID="hotel-checkin"
-            onChange={(checkin) => setDates((d) => ({ checkin, checkout: d.checkout > checkin ? d.checkout : addDays(checkin, 1) }))}
+        {/* Skjemaet i ett hvitt kort på grunnen: feltene (hvite med lys kant) og «Søk hotell». */}
+        <View style={styles.formCard} testID="hotel-form-card">
+          <Field
+            label={h.where}
+            icon="search"
+            placeholder={h.wherePlaceholder}
+            value={query}
+            onChangeText={(v) => {
+              setQuery(v);
+              if (place) setPlace(null);
+            }}
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            testID="hotel-place-query"
           />
-          <DateField label={h.checkout} value={dates.checkout} minimum={addDays(dates.checkin, 1)} testID="hotel-checkout" onChange={(checkout) => setDates((d) => ({ ...d, checkout }))} />
+          {place ? (
+            <View style={styles.chosen} testID="hotel-place-chosen">
+              <Icon name="mapPin" size={16} color={colors.blue} />
+              <Text style={[type.footnote, { color: colors.text, flex: 1 }]}>{h.placeChosen(place.fullName ?? place.name)}</Text>
+            </View>
+          ) : null}
+          {places.loading ? (
+            <View style={styles.row}>
+              <ActivityIndicator color={colors.text} />
+              <Text style={[type.footnote, { color: colors.textSecondary }]}>{h.placeSearching}</Text>
+            </View>
+          ) : null}
+          {places.error ? (
+            <Banner tone="error" testID="hotel-place-error">
+              {h.placeError}
+            </Banner>
+          ) : null}
+          {places.active && !places.loading && !places.error && places.results.length === 0 ? (
+            <Text style={[type.footnote, { color: colors.textSecondary }]} testID="hotel-place-none">
+              {h.placeNone}
+            </Text>
+          ) : null}
+          {places.results.length ? (
+            <View style={styles.suggestions} testID="hotel-place-results">
+              {places.results.slice(0, 8).map((p, i) => (
+                <Pressable
+                  key={p.key}
+                  onPress={() => choosePlace(p)}
+                  accessibilityRole="button"
+                  accessibilityLabel={p.fullName ?? p.name}
+                  testID={`hotel-place-${p.key}`}
+                  style={({ pressed }) => [styles.suggestion, i > 0 && styles.suggestionBorder, pressed && { backgroundColor: colors.inset }]}
+                >
+                  <Icon name={p.type === "hotel" ? "bed" : "mapPin"} size={18} color={colors.textSecondary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[type.bodyStrong, { color: colors.text }]}>{p.name}</Text>
+                    {p.fullName && p.fullName !== p.name ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{p.fullName}</Text> : null}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          <View style={styles.dates}>
+            <DateField
+              label={h.checkin}
+              value={dates.checkin}
+              minimum={today}
+              testID="hotel-checkin"
+              onChange={(checkin) => setDates((d) => ({ checkin, checkout: d.checkout > checkin ? d.checkout : addDays(checkin, 1) }))}
+            />
+            <DateField label={h.checkout} value={dates.checkout} minimum={addDays(dates.checkin, 1)} testID="hotel-checkout" onChange={(checkout) => setDates((d) => ({ ...d, checkout }))} />
+          </View>
+          <Text style={[type.caption, { color: colors.textSecondary }]} testID="hotel-nights">
+            {h.nights(nights)}
+          </Text>
+          <FormTile icon="users" label={h.guests} value={guestsValue} onPress={() => setGuestsOpen(true)} accessibilityHint={h.guestsHint} testID="hotel-guests" />
+          {problem ? (
+            <Banner tone="error" testID="hotel-form-error">
+              {h.stayErrors[problem]}
+            </Banner>
+          ) : null}
+          <PrimaryButton label={h.searchButton} icon="arrowRight" onPress={submit} testID="hotel-search-button" />
         </View>
-        <Text style={[type.caption, { color: colors.textSecondary }]} testID="hotel-nights">
-          {h.nights(nights)}
+        <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]} testID="hotel-search-disclosure">
+          {h.disclosure}
         </Text>
-        <FormTile icon="users" label={h.guests} value={guestsValue} onPress={() => setGuestsOpen(true)} accessibilityHint={h.guestsHint} testID="hotel-guests" />
-        {problem ? (
-          <Banner tone="error" testID="hotel-form-error">
-            {h.stayErrors[problem]}
-          </Banner>
-        ) : null}
-        <PrimaryButton label={h.searchButton} icon="arrowRight" onPress={submit} testID="hotel-search-button" />
-        <Text style={[type.footnote, { color: colors.textSecondary, textAlign: "center" }]}>{h.disclosure}</Text>
 
         <BottomSheet visible={guestsOpen} title={h.guestsSheet} onClose={() => setGuestsOpen(false)} testID="hotel-guests-sheet">
           <ScrollView contentContainerStyle={{ gap: space.xs, paddingBottom: space.md }}>
@@ -227,15 +235,17 @@ export default function HotelSearchScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} testID="hotel-search-screen">
+      {/* Toppen er den lyse grunnen: mørk tekst i statuslinjen. Tittellinjen står fast; bare innholdet under ruller. */}
+      <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
-        <IconButton icon="chevronLeft" label={h.back} variant="plain" onPress={back} testID="header-back" />
+        <IconButton icon="chevronLeft" label={h.back} variant="light" onPress={back} testID="header-back" />
         <Text style={[type.headline, styles.headerTitle]} accessibilityRole="header">
           {h.title}
         </Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView style={styles.sheetScroll} contentContainerStyle={[styles.sheet, { paddingBottom: insets.bottom + space.xxxl }]} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxxl }]} keyboardShouldPersistTaps="handled">
         <ServiceSwitch active="hotels" onSelect={back} />
         <Text style={[type.title, { color: colors.text }]} accessibilityRole="header">
           {h.heading}
@@ -247,14 +257,16 @@ export default function HotelSearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  // «Cloud + Graphite»: lys grunn; tittelen i `text`, hjelpetekst i `textSecondary` (5,3:1 på grunnen).
+  screen: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.md },
-  headerTitle: { flex: 1, textAlign: "center", color: colors.onDark },
-  sheetScroll: { flex: 1, backgroundColor: colors.white, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet },
-  sheet: { paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.md },
+  headerTitle: { flex: 1, textAlign: "center", color: colors.text },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: space.lg, paddingTop: space.xs, gap: space.md },
+  formCard: { backgroundColor: colors.white, borderRadius: radius.card, padding: space.lg, gap: space.md },
   row: { flexDirection: "row", alignItems: "center", gap: space.sm },
   chosen: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.input, backgroundColor: colors.blueSoft },
-  suggestions: { borderWidth: 1, borderColor: colors.lightBorder, borderRadius: radius.input, overflow: "hidden" },
+  suggestions: { borderWidth: 1, borderColor: colors.lightBorder, borderRadius: radius.input, overflow: "hidden", backgroundColor: colors.white },
   suggestion: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 52, paddingHorizontal: space.md, paddingVertical: space.sm },
   suggestionBorder: { borderTopWidth: 1, borderTopColor: colors.lightBorder },
   dates: { flexDirection: "row", gap: space.sm },

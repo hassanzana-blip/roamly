@@ -8,9 +8,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../../lib/appState";
 import { DESTINATIONS, destinationChoice, type Destination } from "../../lib/destinations";
 import { cabinLabel, formErrorText, passengerSummary } from "../../lib/searchForm";
-import { useI18n } from "../../i18n";
+import { useA11yLanguage, useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
-import { Banner, DarkTabs, PrimaryButton, SecondaryButton } from "../../components/ui";
+import { Banner, PrimaryButton, SecondaryButton } from "../../components/ui";
 import { Icon, type IconName } from "../../components/Icon";
 import { DateRangeSheet } from "../../components/RangeCalendar";
 import { TravellersSheet } from "../../components/TravellersSheet";
@@ -28,7 +28,7 @@ import { colors, radius, space, TOUCH, type } from "../../lib/theme";
 
 type ExploreView = "list" | "map";
 
-/** Søket Utforsk bruker (fra-flyplass, datoer), som en knapp som endrer det på stedet. */
+/** Søket Utforsk bruker (fra-flyplass, datoer), som en hvit pille på grunnen som endrer det på stedet. */
 function ContextButton({ icon, label, onPress, testID, accessibilityLabel, accessibilityHint }: { icon: IconName; label: string; onPress: () => void; testID: string; accessibilityLabel: string; accessibilityHint: string }) {
   return (
     <Pressable
@@ -41,10 +41,44 @@ function ContextButton({ icon, label, onPress, testID, accessibilityLabel, acces
       style={({ pressed }) => [styles.context, pressed && { opacity: 0.7 }]}
       testID={testID}
     >
-      <Icon name={icon} size={15} color={colors.onDarkMuted} />
-      <Text style={[type.footnoteStrong, { color: colors.onDark, flexShrink: 1 }]}>{label}</Text>
-      <Icon name="chevronDown" size={14} color={colors.onDarkMuted} />
+      <Icon name={icon} size={15} color={colors.textSecondary} />
+      <Text style={[type.footnoteStrong, { color: colors.text, flexShrink: 1 }]}>{label}</Text>
+      <Icon name="chevronDown" size={14} color={colors.textSecondary} />
     </Pressable>
+  );
+}
+
+/**
+ * Liste eller kart: to faner i et hvitt spor med lys kant på grunnen; den valgte er blå med hvit tekst (som `Segmented`).
+ * For VoiceOver er det fortsatt faner («fane, valgt»). Hver fane er selv 44 pt høy, og etiketten brytes heller enn å
+ * kuttes. Et trykk – også på den valgte – melder valget, som før.
+ */
+function ViewTabs({ value, onChange }: { value: ExploreView; onChange: (v: ExploreView) => void }) {
+  const lang = useA11yLanguage();
+  const { t } = useI18n();
+  const tabs: { value: ExploreView; label: string }[] = [
+    { value: "list", label: t.explore.viewList },
+    { value: "map", label: t.explore.viewMap },
+  ];
+  return (
+    <View accessibilityLanguage={lang} style={styles.viewTabs} accessibilityRole="tablist" testID="explore-view-tabs">
+      {tabs.map((tab) => {
+        const selected = tab.value === value;
+        return (
+          <Pressable
+            key={tab.value}
+            testID={`tab-${tab.value}`}
+            onPress={() => onChange(tab.value)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            accessibilityLabel={tab.label}
+            style={({ pressed }) => [styles.viewTab, selected && styles.viewTabOn, pressed && !selected && { opacity: 0.7 }]}
+          >
+            <Text style={[type.calloutStrong, { color: selected ? colors.white : colors.text, textAlign: "center" }]}>{tab.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -54,6 +88,9 @@ function ContextButton({ icon, label, onPress, testID, accessibilityLabel, acces
  * Et trykk (kort i listen, «Se flyreiser» på kartet) søker til reisemålets
  * flyplass med skjemaets fra-flyplass, datoer og reisende. Kartets nåler er
  * reisemål – aldri priser eller ledige plasser. Listen er alltid tilgjengelig.
+ *
+ * «Cloud + Graphite»: en lys skjerm uten grafittøy øverst, som forsiden – tittel, søket (hvite piller), søkefeltet og
+ * Liste | Kart står på den lyse grunnen. Fotokortene beholder fotoet og overlegget; kartet selv er som før.
  */
 export default function ExploreScreen() {
   const router = useRouter();
@@ -151,30 +188,26 @@ export default function ExploreScreen() {
 
   const head = (
     <View style={[styles.head, view === "map" && { marginBottom: space.md }]}>
-      <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
+      <Text style={[type.title, { color: colors.text }]} accessibilityRole="header">
         {t.explore.title}
       </Text>
       {context}
       <DestinationSearch value={query} onChange={changeQuery} />
       {searching ? (
-        <Text style={[type.footnoteStrong, { color: colors.onDarkMuted }]} accessibilityLiveRegion="polite" testID="explore-count">
+        <Text style={[type.footnoteStrong, { color: colors.textSecondary }]} accessibilityLiveRegion="polite" testID="explore-count">
           {t.explore.searchCount(matches.length, DESTINATIONS.length)}
         </Text>
       ) : null}
-      <DarkTabs
+      <ViewTabs
         value={view}
         onChange={(v) => {
           setView(v);
           setProblem(null);
           if (v === "map" && !area) setArea(initialArea(selectedId));
         }}
-        tabs={[
-          { value: "list", label: t.explore.viewList },
-          { value: "map", label: t.explore.viewMap },
-        ]}
       />
       {problem && problem.key === recentKey(form) ? (
-        <Banner tone="error" dark testID="explore-error">
+        <Banner tone="error" testID="explore-error">
           {formErrorText(problem.code, i18n)}
         </Banner>
       ) : null}
@@ -184,9 +217,9 @@ export default function ExploreScreen() {
   // Ingen treff: si det, og gi én knapp for å tømme søket (samme i liste og kart).
   const empty = searching && !matches.length ? (
     <View style={styles.empty} testID="explore-empty">
-      <Text style={[type.calloutStrong, { color: colors.onDark }]}>{t.explore.searchEmpty(query.trim(), DESTINATIONS.length)}</Text>
-      <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{t.explore.searchEmptyHint}</Text>
-      <SecondaryButton dark label={t.explore.searchClear} icon="close" onPress={() => changeQuery("")} testID="explore-empty-clear" />
+      <Text style={[type.calloutStrong, { color: colors.text }]}>{t.explore.searchEmpty(query.trim(), DESTINATIONS.length)}</Text>
+      <Text style={[type.footnote, { color: colors.textSecondary }]}>{t.explore.searchEmptyHint}</Text>
+      <SecondaryButton label={t.explore.searchClear} icon="close" onPress={() => changeQuery("")} testID="explore-empty-clear" />
     </View>
   ) : null;
 
@@ -201,8 +234,8 @@ export default function ExploreScreen() {
     const mapProps = { points: shownPoints, selectedId: selected ? selectedId : null, onSelect: setSelectedId, bottomInset: selected ? cardHeight : 0, area: searching ? null : area, areaRequest, onLeaveArea: () => setArea(null), fitToPoints: searching };
     return (
       <View style={[styles.screen, { paddingTop: insets.top + space.lg }]} testID="explore-screen">
-        <StatusBar style="light" />
-        <StatusBarShield />
+        <StatusBar style="dark" />
+        <StatusBarShield tone="light" />
         {head}
         <Text style={[type.caption, styles.mapNote]} testID="map-note">
           {t.explore.mapNote}
@@ -222,7 +255,7 @@ export default function ExploreScreen() {
                 testID={`map-area-${a}`}
                 style={({ pressed }) => [styles.area, on && styles.areaOn, pressed && { opacity: 0.7 }]}
               >
-                <Text style={[type.footnoteStrong, { color: on ? colors.text : colors.onDark }]}>{name}</Text>
+                <Text style={[type.footnoteStrong, { color: on ? colors.white : colors.text }]}>{name}</Text>
               </Pressable>
             );
           })}
@@ -232,7 +265,7 @@ export default function ExploreScreen() {
         {empty ? (
           <View style={styles.mapArea}>{empty}</View>
         ) : (
-        <View style={styles.mapArea}>
+        <View style={[styles.mapArea, native && styles.mapNative]} testID="explore-map-area">
           {native ? (
             <DestinationMap {...mapProps} />
           ) : (
@@ -268,7 +301,7 @@ export default function ExploreScreen() {
       automaticallyAdjustKeyboardInsets
       testID="explore-screen"
     >
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       {head}
       {empty}
       <View style={styles.grid}>
@@ -281,10 +314,13 @@ export default function ExploreScreen() {
                 <SaveButton destination={d} />
               </View>
             </View>
-            <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>{t.explore.countryCode(d.names[locale].country, d.iata)}</Text>
+            {/* På grunnen, under fotoet: sekundærtekst (5,3:1). Ingen linjegrense – stor tekst bryter linjen. */}
+            <Text style={[type.caption, { color: colors.textSecondary }]} testID={`explore-country-${d.id}`}>
+              {t.explore.countryCode(d.names[locale].country, d.iata)}
+            </Text>
             {/* Under et søk: den nøyaktige flyplassen søket bruker, så det er tydelig hvilken flyplass kortet gjelder. */}
             {searching ? (
-              <Text style={[type.caption, { color: colors.onDarkMuted }]} testID={`explore-airport-${d.id}`}>
+              <Text style={[type.caption, { color: colors.textSecondary }]} testID={`explore-airport-${d.id}`}>
                 {t.explore.airportLine(d.names[locale].airport, d.iata)}
               </Text>
             ) : null}
@@ -292,25 +328,34 @@ export default function ExploreScreen() {
         ))}
       </View>
     </ScrollView>
-    <StatusBarShield />
+    <StatusBarShield tone="light" />
     {sheets}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  // «Cloud + Graphite»: lys grunn; tekst på den er `text` (tittel) og `textSecondary` (5,3:1).
+  screen: { flex: 1, backgroundColor: colors.canvas },
   head: { paddingHorizontal: space.lg, gap: space.sm, marginBottom: space.xl },
   contextScroll: { flexGrow: 0, marginHorizontal: -space.lg },
   contextRow: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.lg, paddingVertical: 4 },
-  context: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, maxWidth: "100%", paddingHorizontal: space.md, borderRadius: radius.pill, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.darkBorder },
-  mapNote: { color: colors.onDarkMuted, paddingHorizontal: space.lg, marginBottom: space.sm },
+  // Hvite piller med lys kant og mørk tekst, som de nylige søkene på forsiden.
+  context: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, maxWidth: "100%", paddingHorizontal: space.md, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lightBorder },
+  // Liste | Kart: hvitt spor med lys kant, så valget synes på grunnen; fanene deler sporet likt.
+  viewTabs: { flexDirection: "row", gap: space.xs, padding: 3, borderRadius: radius.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.lightBorder },
+  viewTab: { flex: 1, minHeight: TOUCH, alignItems: "center", justifyContent: "center", paddingHorizontal: space.md, borderRadius: radius.pill },
+  viewTabOn: { backgroundColor: colors.blue },
+  mapNote: { color: colors.textSecondary, paddingHorizontal: space.lg, marginBottom: space.sm },
   areas: { flexGrow: 0, flexShrink: 0 },
   areasContent: { paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.sm },
-  area: { minHeight: 44, justifyContent: "center", paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.onDarkMuted },
-  areaOn: { backgroundColor: colors.white, borderColor: colors.white },
+  // Lyse brikker som filterbrikkene i resultatene (innfelt med lys kant, valgt blå); hele 44 pt synlig, uten hitSlop.
+  area: { minHeight: 44, justifyContent: "center", paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lightBorder, backgroundColor: colors.inset },
+  areaOn: { backgroundColor: colors.blue, borderColor: colors.blue },
   // Kartet (eller reservelisten) fyller resten av skjermen; kortet ligger over bunnen, høyst 55 % høyt, og ruller.
-  mapArea: { flex: 1, minHeight: 200, backgroundColor: colors.bg },
+  mapArea: { flex: 1, minHeight: 200, backgroundColor: colors.canvas },
+  // Bak Apple-kartet (mørk, dempet stil, som før): samme mørke flate til kartet er tegnet, så det ikke blinker lyst.
+  mapNative: { backgroundColor: colors.bg },
   cardWrap: { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "55%" },
   cardContent: { paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.md },
   save: { position: "absolute", top: space.xs, right: space.xs },

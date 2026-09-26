@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { Text } from "../../components/a11y";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { HotelSearchResult, HotelSummary } from "@contracts/hotels";
@@ -10,7 +11,8 @@ import { hotelInquiryUrl, nightsOf, splitRooms, stayFromParams, stayParams } fro
 import { sortHotels, stayLine, type HotelSort } from "../../lib/hotelResults";
 import { errorText } from "../../lib/errorText";
 import { useI18n } from "../../i18n";
-import { Chip, IconButton, Notices, PrimaryButton, SecondaryButton, StateView, type NoticeItem } from "../../components/ui";
+import { Chip, IconButton, PrimaryButton, SecondaryButton, StateView, type NoticeItem } from "../../components/ui";
+import { LightNotices } from "../../components/LightNotices";
 import { HotelCard } from "../../components/HotelCard";
 import { colors, space, type } from "../../lib/theme";
 
@@ -20,6 +22,9 @@ type SearchState = { kind: "loading" } | { kind: "done"; result: HotelSearchResu
  * Hotellresultatene: KAYAKs rekkefølge som «Anbefalt», eller sortert på
  * totalpris eller gjestevurdering. Alt som vises er fra leverandørens svar;
  * testdata (sandbox), et ufullstendig søk og flere rom står tydelig over listen.
+ *
+ * «Cloud + Graphite»: alt på den lyse grunnen – tittellinjen med stedet og oppholdet, meldingene i én hvit flate,
+ * lyse sorteringsbrikker og de hvite hotellkortene. Ingen grafittøy: her er det ingen faner eller prisstatus å samle.
  */
 export default function HotelResultsScreen() {
   const router = useRouter();
@@ -71,42 +76,42 @@ export default function HotelResultsScreen() {
   const title = stay?.placeName || h.resultsTitle;
 
   const header = (
-    <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
-      <IconButton icon="chevronLeft" label={h.back} variant="plain" onPress={back} testID="header-back" />
+    <View style={[styles.header, { paddingTop: insets.top + space.sm }]} testID="hotel-results-header">
+      <IconButton icon="chevronLeft" label={h.back} variant="light" onPress={back} testID="header-back" />
       <View style={styles.headerText}>
-        <Text style={[type.headline, { color: colors.onDark, textAlign: "center" }]} accessibilityRole="header" numberOfLines={2}>
+        {/* Ingen linjegrense: lange stedsnavn og stor tekst brytes i stedet for å kuttes. */}
+        <Text style={[type.headline, { color: colors.text, textAlign: "center" }]} accessibilityRole="header">
           {title}
         </Text>
         {stay ? (
-          <Text style={[type.caption, { color: colors.onDarkMuted, textAlign: "center" }]} testID="hotel-stay-line">
+          <Text style={[type.caption, { color: colors.textSecondary, textAlign: "center" }]} testID="hotel-stay-line">
             {stayLine(stay, i18n, nights)}
           </Text>
         ) : null}
       </View>
-      <IconButton icon="search" label={h.editSearch} onPress={back} testID="hotel-edit-search" />
+      <IconButton icon="search" label={h.editSearch} variant="light" onPress={back} testID="hotel-edit-search" />
     </View>
   );
 
   let content;
   if (!stay) {
     content = (
-      <StateView icon="search" title={h.emptyTitle} body={h.stayErrors.place} testID="hotel-results-invalid">
+      <StateView icon="search" title={h.emptyTitle} body={h.stayErrors.place} testID="hotel-results-invalid" dark={false}>
         <PrimaryButton label={h.editSearch} onPress={back} />
       </StateView>
     );
   } else if (state.kind === "loading") {
     content = (
-      <StateView busy icon="bed" title={h.searchingTitle} body={h.searchingBody} testID="hotel-results-loading">
-        <SecondaryButton dark label={h.cancel} onPress={cancel} testID="hotel-search-cancel" />
+      <StateView busy icon="bed" title={h.searchingTitle} body={h.searchingBody} testID="hotel-results-loading" dark={false}>
+        <SecondaryButton label={h.cancel} onPress={cancel} testID="hotel-search-cancel" />
       </StateView>
     );
   } else if (state.kind === "error") {
     const message = errorText(state.error, i18n, { SUPPLIER_UNAVAILABLE: h.supplierError, SUPPLIER_TIMEOUT: h.supplierError });
     content = (
-      <StateView icon="alert" title={h.errorTitle} body={message} testID="hotel-results-error">
+      <StateView icon="alert" title={h.errorTitle} body={message} testID="hotel-results-error" dark={false}>
         <PrimaryButton label={h.retry} icon="refresh" onPress={() => setAttempt((n) => n + 1)} testID="hotel-results-retry" />
         <SecondaryButton
-          dark
           label={h.disabledButton}
           icon="external"
           accessibilityHint={h.disabledHint}
@@ -130,10 +135,10 @@ export default function HotelResultsScreen() {
         ItemSeparatorComponent={() => <View style={{ height: space.md }} />}
         ListHeaderComponent={
           <View style={{ gap: space.md, marginBottom: space.md }}>
-            <Notices items={notices} />
+            <LightNotices items={notices} testID="hotel-notices" />
             {list.length ? (
               <>
-                <Text style={[type.calloutStrong, { color: colors.onDark }]} testID="hotel-results-count">
+                <Text style={[type.calloutStrong, { color: colors.text }]} testID="hotel-results-count">
                   {h.resultsCount(list.length)}
                 </Text>
                 <View style={styles.sortRow} accessibilityRole="radiogroup" accessibilityLabel={h.sort}>
@@ -144,7 +149,7 @@ export default function HotelResultsScreen() {
                       ["rating", h.sortRating],
                     ] as const
                   ).map(([value, label]) => (
-                    <Chip key={value} label={label} selected={sort === value} onPress={() => setSort(value)} testID={`hotel-sort-${value}`} />
+                    <Chip key={value} label={label} selected={sort === value} dark={false} onPress={() => setSort(value)} testID={`hotel-sort-${value}`} />
                   ))}
                 </View>
               </>
@@ -152,15 +157,15 @@ export default function HotelResultsScreen() {
           </View>
         }
         ListEmptyComponent={
-          <StateView icon="bed" title={h.emptyTitle} body={h.emptyBody} testID="hotel-results-empty">
+          <StateView icon="bed" title={h.emptyTitle} body={h.emptyBody} testID="hotel-results-empty" dark={false}>
             <PrimaryButton label={h.editSearch} onPress={back} />
           </StateView>
         }
         ListFooterComponent={
           list.length ? (
             <View style={{ gap: space.xs, marginTop: space.lg }}>
-              <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{h.localFees}</Text>
-              <Text style={[type.footnote, { color: colors.onDarkMuted }]} testID="hotel-disclosure">
+              <Text style={[type.footnote, { color: colors.textSecondary }]}>{h.localFees}</Text>
+              <Text style={[type.footnote, { color: colors.textSecondary }]} testID="hotel-disclosure">
                 {h.disclosure}
               </Text>
             </View>
@@ -172,7 +177,9 @@ export default function HotelResultsScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} testID="hotel-results-screen">
+      {/* Toppen er den lyse grunnen: mørk tekst i statuslinjen. Tittellinjen står fast; listen ruller under den. */}
+      <StatusBar style="dark" />
       {header}
       {content}
     </View>
@@ -180,7 +187,8 @@ export default function HotelResultsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  // «Cloud + Graphite»: lys grunn bak tittellinjen, meldingene, brikkene og de hvite kortene.
+  screen: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.md },
   headerText: { flex: 1, alignItems: "center", gap: 2 },
   list: { paddingHorizontal: space.lg, paddingTop: space.sm },

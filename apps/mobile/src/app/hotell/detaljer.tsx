@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "../../components/a11y";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { HotelDetailResult, HotelRateOffer } from "@contracts/hotels";
@@ -80,6 +81,10 @@ function RateRow({ rate, nights, block, testID }: { rate: HotelRateOffer; nights
  * Ett hotell: leverandørens bilder, fakta og beskrivelse, og rom og priser
  * fra hver leverandør. «Gå til …» finnes bare når serveren sier at hotellsøk
  * er på i produksjon og svaret ikke er testdata; ellers står det hvorfor ikke.
+ *
+ * «Cloud + Graphite»: lys grunn med tittellinjen øverst; bildet og fakta i ett hvitt kort (som hotellkortet i listen),
+ * lyse meldinger og hvite seksjoner. Ingen grafittlinje nederst: hvert rom har sin egen handling hos sin leverandør,
+ * og det finnes ingen ene pris å samle der.
  */
 export default function HotelDetailScreen() {
   const router = useRouter();
@@ -118,7 +123,7 @@ export default function HotelDetailScreen() {
 
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
-      <IconButton icon="chevronLeft" label={h.back} variant="plain" onPress={back} testID="header-back" />
+      <IconButton icon="chevronLeft" label={h.back} variant="light" onPress={back} testID="header-back" />
       <Text style={[type.headline, styles.headerTitle]} accessibilityRole="header">
         {h.detailTitle}
       </Text>
@@ -128,14 +133,14 @@ export default function HotelDetailScreen() {
 
   let content;
   if (!stay || !hotelKey) {
-    content = <StateView icon="bed" title={h.detailErrorTitle} body={h.stayErrors.place} testID="hotel-detail-invalid" />;
+    content = <StateView icon="bed" title={h.detailErrorTitle} body={h.stayErrors.place} testID="hotel-detail-invalid" dark={false} />;
   } else if (state.kind === "loading" || status.kind === "loading") {
-    content = <StateView busy icon="bed" title={h.loadingDetail} testID="hotel-detail-loading" />;
+    content = <StateView busy icon="bed" title={h.loadingDetail} testID="hotel-detail-loading" dark={false} />;
   } else if (state.kind === "error") {
     content = (
-      <StateView icon="alert" title={h.detailErrorTitle} body={errorText(state.error, i18n, { SUPPLIER_UNAVAILABLE: h.supplierError, SUPPLIER_TIMEOUT: h.supplierError })} testID="hotel-detail-error">
+      <StateView icon="alert" title={h.detailErrorTitle} body={errorText(state.error, i18n, { SUPPLIER_UNAVAILABLE: h.supplierError, SUPPLIER_TIMEOUT: h.supplierError })} testID="hotel-detail-error" dark={false}>
         <PrimaryButton label={h.retry} icon="refresh" onPress={() => setAttempt((n) => n + 1)} testID="hotel-detail-retry" />
-        <SecondaryButton dark label={h.disabledButton} icon="external" accessibilityHint={h.disabledHint} onPress={() => openUrl(hotelInquiryUrl(stay.placeName))} testID="hotel-detail-inquiry" />
+        <SecondaryButton label={h.disabledButton} icon="external" accessibilityHint={h.disabledHint} onPress={() => openUrl(hotelInquiryUrl(stay.placeName))} testID="hotel-detail-inquiry" />
       </StateView>
     );
   } else {
@@ -149,35 +154,41 @@ export default function HotelDetailScreen() {
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hasCoords ? `${hotel.lat},${hotel.lng}` : [hotel.name, hotel.address].filter(Boolean).join(", "))}`;
     content = (
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }} testID="hotel-detail">
-        <HotelPhoto image={hotel.images[0]} height={200} testID="hotel-detail-photo" />
         <View style={styles.body}>
-          <View style={{ gap: space.xs }}>
-            <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
-              {hotel.name}
-            </Text>
-            {facts ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{facts}</Text> : null}
-            {hotel.address ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{hotel.address}</Text> : null}
-            {rating ? <Text style={[type.footnoteStrong, { color: colors.onDark }]}>{rating}</Text> : null}
-            <Text style={[type.caption, { color: colors.onDarkMuted }]} testID="hotel-detail-stay">
-              {stayLine(stay, i18n, hotel.nights)}
-            </Text>
-            <View style={{ alignSelf: "flex-start" }}>
-              <LinkButton dark label={h.map} accessibilityLabel={`${h.map}. ${h.mapHint}`} onPress={() => openUrl(mapUrl)} testID="hotel-map" />
+          {/* Bildet og fakta i ett hvitt kort, som hotellkortet i listen; bildet har runde hjørner øverst. */}
+          <View style={styles.summary} testID="hotel-detail-summary">
+            <View style={styles.photo}>
+              <HotelPhoto image={hotel.images[0]} height={200} testID="hotel-detail-photo" />
+            </View>
+            <View style={styles.summaryText}>
+              <Text style={[type.title, { color: colors.text }]} accessibilityRole="header">
+                {hotel.name}
+              </Text>
+              {facts ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{facts}</Text> : null}
+              {hotel.address ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{hotel.address}</Text> : null}
+              {rating ? <Text style={[type.footnoteStrong, { color: colors.text }]}>{rating}</Text> : null}
+              <Text style={[type.caption, { color: colors.textSecondary }]} testID="hotel-detail-stay">
+                {stayLine(stay, i18n, hotel.nights)}
+              </Text>
+              {/* Lenken er selv 44 pt høy; luften rundt den (hitSlop) ligger inne i kortets marg. */}
+              <View style={{ alignSelf: "flex-start" }}>
+                <LinkButton label={h.map} accessibilityLabel={`${h.map}. ${h.mapHint}`} onPress={() => openUrl(mapUrl)} testID="hotel-map" />
+              </View>
             </View>
           </View>
 
           {result.sandbox || statusValue?.mode === "sandbox" ? (
-            <Banner tone="warning" dark testID="hotel-detail-sandbox">
+            <Banner tone="warning" testID="hotel-detail-sandbox">
               {h.sandboxNotice}
             </Banner>
           ) : null}
           {status.kind === "error" ? (
-            <Banner tone="error" dark testID="hotel-detail-status-error">
+            <Banner tone="error" testID="hotel-detail-status-error">
               {h.statusErrorTitle}
             </Banner>
           ) : null}
           {stay.rooms > 1 ? (
-            <Banner tone="info" dark testID="hotel-detail-rooms">
+            <Banner tone="info" testID="hotel-detail-rooms">
               {h.multiRoom(stay.rooms)}
             </Banner>
           ) : null}
@@ -197,7 +208,7 @@ export default function HotelDetailScreen() {
               </Text>
             )}
           </InformationCard>
-          {status.kind === "error" ? <SecondaryButton dark label={h.retry} icon="refresh" onPress={retryStatus} testID="hotel-detail-status-retry" /> : null}
+          {status.kind === "error" ? <SecondaryButton label={h.retry} icon="refresh" onPress={retryStatus} testID="hotel-detail-status-retry" /> : null}
 
           {hotel.description ? (
             <InformationCard title={h.about}>
@@ -228,7 +239,7 @@ export default function HotelDetailScreen() {
               </View>
             </InformationCard>
           ) : null}
-          <Text style={[type.footnote, { color: colors.onDarkMuted }]} testID="hotel-detail-disclosure">
+          <Text style={[type.footnote, { color: colors.textSecondary }]} testID="hotel-detail-disclosure">
             {h.disclosure}
           </Text>
         </View>
@@ -237,7 +248,9 @@ export default function HotelDetailScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} testID="hotel-detail-screen">
+      {/* Toppen er den lyse grunnen: mørk tekst i statuslinjen. Tittellinjen står fast; innholdet ruller under den. */}
+      <StatusBar style="dark" />
       {header}
       {content}
     </View>
@@ -245,10 +258,15 @@ export default function HotelDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
+  // «Cloud + Graphite»: lys grunn bak tittellinjen og de hvite kortene; tekst på grunnen i `text`/`textSecondary`.
+  screen: { flex: 1, backgroundColor: colors.canvas },
   header: { flexDirection: "row", alignItems: "center", gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.md },
-  headerTitle: { flex: 1, textAlign: "center", color: colors.onDark },
-  body: { paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.lg },
+  headerTitle: { flex: 1, textAlign: "center", color: colors.text },
+  body: { paddingHorizontal: space.lg, paddingTop: space.xs, gap: space.lg },
+  summary: { backgroundColor: colors.white, borderRadius: radius.card },
+  // Bare bildet klippes (runde hjørner øverst); kortet selv klipper ikke, så lenkens luft ikke kuttes.
+  photo: { borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, overflow: "hidden" },
+  summaryText: { padding: space.lg, gap: space.xs },
   rate: { gap: space.sm, paddingBottom: space.md, borderBottomWidth: 1, borderBottomColor: colors.lightBorder },
   rateHead: { flexDirection: "row", gap: space.md },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, alignItems: "center" },
