@@ -1,0 +1,76 @@
+import { StyleSheet, View } from "react-native";
+import { Pressable, Text } from "./a11y";
+import { AREA_OF_AIRPORT, type MapArea, type MapPoint } from "../lib/destinationMap";
+import { useI18n } from "../i18n";
+import { Icon } from "./Icon";
+import { colors, radius, space, type } from "../lib/theme";
+
+export type DestinationMapProps = {
+  points: MapPoint[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  /** Hvor mange pt nederst på kartet kortet for det valgte reisemålet dekker. */
+  bottomInset: number;
+  /** Sist valgte område; `null` når kunden har flyttet kartet bort fra det. */
+  area: MapArea | null;
+  /** Øker for hvert trykk på en områdeknapp, så også samme område flytter kartet tilbake. */
+  areaRequest: number;
+  /** Kartet har forlatt området (kunden dro eller zoomet, eller trykket på en gruppe). */
+  onLeaveArea: () => void;
+  /** Et søk er aktivt: kartet viser bare treffene (`points`) og tilpasses dem. */
+  fitToPoints?: boolean;
+};
+
+/**
+ * Reserve der Apple Maps ikke finnes (nettleser-forhåndsvisning). Ingen
+ * kartbibliotek og ingen kartfliser lastes her: den sier rett ut at kartet
+ * vises i iPhone-appen, og lar kunden velge det samme reisemålet fra en
+ * liste. iOS bruker DestinationMap.ios.tsx.
+ *
+ * På den lyse grunnen: hvite rader med flyplasskoden i en innfelt pille; den valgte raden har svak blå flate og blå
+ * kant (som valgte rader ellers på lyst), og koden blir blå med hvit tekst.
+ */
+export function DestinationMap({ points, selectedId, onSelect, area }: DestinationMapProps) {
+  const { t, locale } = useI18n();
+  // Samme områdeknapper som på iPhone: her viser de områdets reisemål i listen.
+  const shown = !area || area === "world" ? points : points.filter((p) => AREA_OF_AIRPORT[p.destination.iata] === area);
+  return (
+    <View style={styles.root} testID="destination-map-fallback">
+      <View style={styles.note}>
+        <Icon name="info" size={16} color={colors.textSecondary} />
+        <Text style={[type.footnote, { color: colors.textSecondary, flex: 1 }]}>{t.explore.webOnly}</Text>
+      </View>
+      {shown.map((p) => {
+        const n = p.destination.names[locale];
+        const selected = p.destination.id === selectedId;
+        return (
+          <Pressable
+            key={p.destination.id}
+            onPress={() => onSelect(p.destination.id)}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={t.explore.pinLabel(n.city, p.destination.iata)}
+            accessibilityHint={t.explore.pinHint}
+            testID={`map-pin-${p.destination.id}`}
+            style={({ pressed }) => [styles.row, selected && styles.rowSelected, pressed && { opacity: 0.7 }]}
+          >
+            <View style={[styles.code, selected && styles.codeSelected]}>
+              <Text style={[type.footnoteStrong, { color: selected ? colors.white : colors.text }]}>{p.destination.iata}</Text>
+            </View>
+            <Text style={[type.callout, { color: colors.text, flex: 1 }]}>{`${n.city}, ${n.country}`}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { gap: space.xs },
+  note: { flexDirection: "row", gap: space.sm, alignItems: "flex-start", paddingVertical: space.sm },
+  // Kanten er alltid der (hvit når raden ikke er valgt), så raden ikke hopper når den velges.
+  row: { flexDirection: "row", alignItems: "center", gap: space.md, minHeight: 44, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.input, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.white },
+  rowSelected: { backgroundColor: colors.blueSoft, borderColor: colors.blue },
+  code: { minWidth: 48, alignItems: "center", paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.inset },
+  codeSelected: { backgroundColor: colors.blue },
+});

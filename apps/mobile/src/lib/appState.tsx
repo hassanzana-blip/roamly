@@ -1,0 +1,497 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AppState } from "react-native";
+import * as Crypto from "expo-crypto";
+import type { CustomerProfile, MobileAuthProviders, MobileDeleteAccountInput, MobileSocialProvider, MobileUpdateProfileInput } from "@contracts/mobileAuth";
+import type { MobileSearchResult } from "@contracts/mobileSearch";
+import { ApiError, createApiClient, type ApiClient, type RegisterRequest } from "./api";
+import { API_BASE } from "./config";
+import { clearSession, loadSession, saveSession } from "./tokenStore";
+import { visibleSocialProviders, type NativeSocialSignIn } from "./socialAuth";
+import { nativeSocialSignIn } from "./nativeSocial";
+import { initialForm, toSearchRequest, validateForm, type AirportChoice, type SearchForm } from "./searchForm";
+import { DEFAULT_VIEW, type ResultsView } from "./resultsView";
+import { parseDraft } from "./draft";
+import { readPref, writePref } from "./localStore";
+import { addRecent, parseHomeAirport, parseRecent, recentIsPast, recentKey, type RecentSearch } from "./recent";
+import { parseSaved, toggleSaved as toggleSavedList, type SavedDestination } from "./saved";
+import type { Destination } from "./destinations";
+import { isEmptyPrefs, parsePrefs, withPrefDefaults, type TravelPrefs } from "./preferences";
+import { parseTravellers, removeTraveller as removeTravellerFrom, upsertTraveller, type Traveller } from "./travellers";
+import { parseSavedFlights, parseSavedRoutes, toggleFlight as toggleFlightList, toggleRoute as toggleRouteList, type SavedFlight, type SavedRoute } from "./savedTrips";
+import { AccountDataProvider } from "./accountData";
+import { I18nProvider } from "../i18n";
+import type { Locale } from "../i18n/types";
+import type { FormErrorCode } from "../i18n/ns/search";
+
+// ─── Tjenester for hele appen: API-klient, kundesesjon og søk ───────────────
+
+type AuthState =
+  | { status: "loading" }
+  /** `notice`: hvorfor brukeren ble logget ut – utløpt økt eller slettet konto (vises én gang i profilen). */
+  | { status: "signedOut"; notice?: "expired" | "deleted" }
+  /** profile er null når vi har en gyldig lagret sesjon, men ikke fikk hentet kontoen (f.eks. uten nett). */
+  | { status: "signedIn"; profile: CustomerProfile | null };
+
+/** Et svar og da det kom (telefonens klokke) – for «sjekket kl. …» og utdaterte priser. */
+type Answer = { result: MobileSearchResult; at: number };
+
+/** `query`: skjemaet søket faktisk ble kjørt med – overskriften viser dette, ikke et skjema som er endret etterpå. */
+export type SearchState =
+  | { status: "idle" }
+  /**
+   * `previous`: samme søk kjøres på nytt (oppdater prisene): svaret som står til det nye kommer, så listen blir stående
+   * i stedet for å byttes mot plassholdere. Et annet søk har aldri `previous`.
+   */
+  | { status: "loading"; query: SearchForm; previous?: Answer }
+  /** `refreshError`: en oppdatering feilet; `result` er da det forrige svaret, som fortsatt vises. */
+  | ({ status: "done"; query: SearchForm; refreshError?: unknown } & Answer)
+  /** Feilen selv (ikke tekst), så meldingen alltid vises på gjeldende språk. */
+  | { status: "error"; error: unknown; query: SearchForm };
+
+/** Svaret som vises nå: det ferdige, eller det forrige mens samme søk oppdateres. */
+export function shownAnswer(search: SearchState): Answer | null {
+  if (search.status === "done") return { result: search.result, at: search.at };
+  if (search.status === "loading") return search.previous ?? null;
+  return null;
+}
+
+type AppContextValue = {
+  api: ApiClient;
+  auth: AuthState;
+  login: (email: string, password: string) => Promise<void>;
+  register: (r: RegisterRequest) => Promise<void>;
+  logout: () => Promise<void>;
+  /**
+   * Google/Apple som Profil kan vise: bare når serveren (mobileAuth.providers)
+   * sier at leverandøren er klar OG denne builden har en native flyt. Tom liste
+   * ellers – også mens svaret hentes eller når det feiler.
+   */
+  socialProviders: MobileSocialProvider[];
+  /** Profil ber om innloggingsmåtene når den viser innloggingen – aldri ellers (et gjestesøk gjør ingen innloggingskall). */
+  requestSocialProviders: () => void;
+  /**
+   * Native innlogging → Clerk-token → exchangeSocialToken → HelloSky-sesjon i
+   * nøkkelringen. «cancelled» når kunden avbrøt; kaster ved feil (ApiError fra serveren).
+   */
+  socialLogin: (provider: MobileSocialProvider, locale: Locale) => Promise<"signedIn" | "cancelled">;
+  /** Lagrer profilen (samme konto som nettet) og viser den nye med én gang. */
+  updateProfile: (input: MobileUpdateProfileInput) => Promise<void>;
+  /**
+   * Sletter kontoen på serveren. Feil passord gir ApiError UNAUTHORIZED og
+   * brukeren forblir innlogget; utløpt økt logger ut. Etter sletting er tokenet borte.
+   */
+  deleteAccount: (input: MobileDeleteAccountInput) => Promise<void>;
+  form: SearchForm;
+  setForm: (update: (f: SearchForm) => SearchForm) => void;
+  search: SearchState;
+  /**
+   * Starter søket for skjemaet (med ev. endringer, f.eks. et reisemål valgt fra
+   * et kort). Returnerer feilmelding hvis skjemaet ikke er gyldig.
+   */
+  runSearch: (patch?: Partial<SearchForm>) => FormErrorCode | null;
+  /** Avbryter et pågående søk (forespørselen avbrytes, svaret ignoreres). Skjemaet beholdes. */
+  cancelSearch: () => void;
+  /** Sortering og filtre på resultatlisten. Nullstilles ved hvert nytt søk. */
+  view: ResultsView;
+  setView: (update: (v: ResultsView) => ResultsView) => void;
+  /** Måler klikket ut (nettets flights.trackProviderClick). Venter aldri, feiler aldri synlig. */
+  trackClick: (offerId: string) => void;
+  /** Nylige søk på denne telefonen (nyeste først). Lagres når et gyldig søk kjøres. */
+  recent: RecentSearch[];
+  removeRecent: (key: string) => void;
+  clearRecent: () => void;
+  /** Lagrede reisemål, bare på denne telefonen. */
+  saved: SavedDestination[];
+  toggleSaved: (d: Destination) => void;
+  /** Foretrukket avreiseflyplass – bare når kunden selv har valgt det. Brukes som «Fra» i et nytt skjema. */
+  homeAirport: AirportChoice | null;
+  setHomeAirport: (a: AirportChoice | null) => void;
+  /** Anonym UUID for denne app-økten (KAYAKs userTrackId), delt av fly- og hotellsøk. Aldri knyttet til konto. */
+  sessionId: string;
+  /** Reisepreferansene (lib/preferences.ts), bare på denne telefonen. */
+  prefs: TravelPrefs;
+  setPrefs: (update: (p: TravelPrefs) => TravelPrefs) => void;
+  /** Lagrede reisende (navn, type, klasse – aldri ID-data), bare på denne telefonen. */
+  travellers: Traveller[];
+  saveTraveller: (t: Traveller) => void;
+  removeTraveller: (id: string) => void;
+  /** Lagrede fly (et bilde av reisen og prisen da den ble lagret), bare på denne telefonen. */
+  savedFlights: SavedFlight[];
+  toggleFlight: (f: SavedFlight) => void;
+  /** Lagrede ruter (to flyplasser), bare på denne telefonen. */
+  savedRoutes: SavedRoute[];
+  toggleRoute: (origin: AirportChoice, destination: AirportChoice) => void;
+};
+
+const AppContext = createContext<AppContextValue | null>(null);
+
+export type ApiFactory = (getToken: () => string | null) => ApiClient;
+
+/** For tester og forhåndsvisninger: et annet native adapter enn buildens (se lib/nativeSocial.ts). */
+export type { NativeSocialSignIn } from "./socialAuth";
+
+/** Tokenet i minnet. Et eget objekt (ikke React-state), så det aldri havner i render eller i devtools. */
+function createTokenHolder() {
+  let token: string | null = null;
+  return {
+    get: () => token,
+    set: (t: string | null) => {
+      token = t;
+    },
+  };
+}
+
+const defaultFactory: ApiFactory = (getToken) => {
+  if (!API_BASE.ok) throw new Error(API_BASE.message);
+  return createApiClient({ baseUrl: API_BASE.url, getToken });
+};
+
+/**
+ * Skjemaet ved oppstart: søkeutkastet fra forrige gang (`raw`, slik det ligger på telefonen), ellers standardskjemaet.
+ * Med en vanlig avreiseflyplass starter «Fra» der – uten utkast, når utkastets avreise har passert (et gammelt søk) og
+ * når utkastet ikke har noe reisemål ennå. Et utkast med reisemål og datoer som ikke har passert, er en reise kunden
+ * holder på å planlegge: det står som det var. Om avreisen har passert, sjekkes på datoene slik de ble lagret –
+ * parseDraft flytter passerte datoer fram, så etter den ville et gammelt utkast aldri se gammelt ut.
+ */
+function startForm(raw: unknown, home: AirportChoice | null, prefs: TravelPrefs, today: Date = new Date()): SearchForm {
+  const draft = parseDraft(raw, today);
+  // Uten utkast starter skjemaet med preferansenes reiseklasse; et utkast beholder sin egen.
+  const fresh = withPrefDefaults(initialForm(today), prefs);
+  if (!home) return draft ?? fresh;
+  const asStored = parseDraft(raw, today, { keepPastDates: true });
+  const planning = Boolean(draft?.destination) && asStored !== null && !recentIsPast(asStored, today);
+  if (draft && planning) return draft;
+  const base = draft ?? fresh;
+  // Reisemålet fra et gammelt utkast kan stå – men aldri det samme som «Fra».
+  return { ...base, origin: home, destination: base.destination?.iata === home.iata ? null : base.destination };
+}
+
+/**
+ * Hele appens tilstand, pakket i språkvalget. `initialLocale` er for tester og
+ * forhåndsvisninger; ellers leses det lagrede valget (norsk bokmål ved ny installasjon).
+ */
+export function AppProvider({ children, initialLocale, ...rest }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm>; initialLocale?: Locale; nativeSocial?: NativeSocialSignIn }) {
+  return (
+    <I18nProvider initialLocale={initialLocale}>
+      <AppStateProvider {...rest}>{children}</AppStateProvider>
+    </I18nProvider>
+  );
+}
+
+function AppStateProvider({ children, apiFactory = defaultFactory, initial, nativeSocial = nativeSocialSignIn }: { children: ReactNode; apiFactory?: ApiFactory; initial?: Partial<SearchForm>; nativeSocial?: NativeSocialSignIn }) {
+  // Tokenet ligger i minnet (for kall) og i nøkkelringen (mellom oppstarter). Ingen andre steder.
+  const [tokens] = useState(createTokenHolder);
+  const api = useMemo(() => apiFactory(tokens.get), [apiFactory, tokens]);
+  // Anonym søke-økt per oppstart (KAYAK krever unik userTrackId per sluttbruker og økt).
+  const [sessionId] = useState(() => Crypto.randomUUID());
+
+  const [auth, setAuth] = useState<AuthState>({ status: "loading" });
+  // Søkeutkastet fra forrige gang (bare skjemaet), ellers standardskjemaet – med den vanlige avreiseflyplassen i «Fra»
+  // når det ikke er en reise under planlegging (se startForm).
+  const [homeAirport, setHomeAirportState] = useState<AirportChoice | null>(() => readPref("homeAirport", parseHomeAirport));
+  const [prefs, setPrefsState] = useState<TravelPrefs>(() => readPref("travelPrefs", parsePrefs) ?? parsePrefs(null));
+  const [form, setFormState] = useState<SearchForm>(() => ({ ...startForm(readPref("draft", (v) => v), homeAirport, prefs), ...initial }));
+  const setPrefs = useCallback((update: (p: TravelPrefs) => TravelPrefs) => {
+    setPrefsState((p) => {
+      const next = parsePrefs(update(p));
+      writePref("travelPrefs", isEmptyPrefs(next) ? null : next);
+      return next;
+    });
+  }, []);
+  const [travellers, setTravellers] = useState<Traveller[]>(() => readPref("travellers", parseTravellers) ?? []);
+  const saveTravellers = useCallback((update: (l: Traveller[]) => Traveller[]) => {
+    setTravellers((l) => {
+      const next = update(l);
+      writePref("travellers", next.length ? next : null);
+      return next;
+    });
+  }, []);
+  const saveTraveller = useCallback((t: Traveller) => saveTravellers((l) => upsertTraveller(l, t)), [saveTravellers]);
+  const removeTraveller = useCallback((id: string) => saveTravellers((l) => removeTravellerFrom(l, id)), [saveTravellers]);
+  const [savedFlights, setSavedFlights] = useState<SavedFlight[]>(() => readPref("savedFlights", (v) => parseSavedFlights(v)) ?? []);
+  const toggleFlight = useCallback((f: SavedFlight) => {
+    setSavedFlights((l) => {
+      const next = toggleFlightList(l, f);
+      writePref("savedFlights", next.length ? next : null);
+      return next;
+    });
+  }, []);
+  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>(() => readPref("savedRoutes", parseSavedRoutes) ?? []);
+  const toggleRoute = useCallback((origin: AirportChoice, destination: AirportChoice) => {
+    setSavedRoutes((l) => {
+      const next = toggleRouteList(l, origin, destination);
+      writePref("savedRoutes", next.length ? next : null);
+      return next;
+    });
+  }, []);
+  const [recent, setRecent] = useState<RecentSearch[]>(() => readPref("recent", (v) => parseRecent(v)) ?? []);
+  const saveRecent = useCallback((next: RecentSearch[]) => {
+    setRecent(next);
+    writePref("recent", next.length ? next : null);
+  }, []);
+  const removeRecent = useCallback((key: string) => saveRecent(recent.filter((r) => recentKey(r) !== key)), [recent, saveRecent]);
+  const clearRecent = useCallback(() => saveRecent([]), [saveRecent]);
+  const [saved, setSaved] = useState<SavedDestination[]>(() => readPref("saved", parseSaved) ?? []);
+  const toggleSaved = useCallback((d: Destination) => {
+    setSaved((list) => {
+      const next = toggleSavedList(list, d);
+      writePref("saved", next.length ? next : null);
+      return next;
+    });
+  }, []);
+  const setHomeAirport = useCallback((a: AirportChoice | null) => {
+    setHomeAirportState(a);
+    writePref("homeAirport", a);
+  }, []);
+  useEffect(() => {
+    const id = setTimeout(() => writePref("draft", form), 400);
+    return () => clearTimeout(id);
+  }, [form]);
+  const [search, setSearch] = useState<SearchState>({ status: "idle" });
+  const searchSeq = useRef(0);
+  const searchAbort = useRef<AbortController | null>(null);
+  const lastSearchKey = useRef<string | null>(null);
+  const [view, setViewState] = useState<ResultsView>(DEFAULT_VIEW);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const stored = await loadSession();
+      if (!stored) {
+        if (!cancelled) setAuth({ status: "signedOut" });
+        return;
+      }
+      tokens.set(stored.token);
+      try {
+        const me = await api.me();
+        if (cancelled) return;
+        if (me) {
+          setAuth({ status: "signedIn", profile: me });
+        } else {
+          // Utløpt eller tilbakekalt på serveren (f.eks. «logg ut alle enheter»).
+          tokens.set(null);
+          await clearSession();
+          setAuth({ status: "signedOut", notice: "expired" });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.code === "UNAUTHORIZED") {
+          tokens.set(null);
+          await clearSession();
+          setAuth({ status: "signedOut", notice: "expired" });
+        } else {
+          setAuth({ status: "signedIn", profile: null });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [api, tokens]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const res = await api.login(email, password);
+      await saveSession(res.session);
+      tokens.set(res.session.token);
+      setAuth({ status: "signedIn", profile: res.profile });
+    },
+    [api, tokens],
+  );
+
+  const register = useCallback(
+    async (r: RegisterRequest) => {
+      const res = await api.register(r);
+      await saveSession(res.session);
+      tokens.set(res.session.token);
+      setAuth({ status: "signedIn", profile: res.profile });
+    },
+    [api, tokens],
+  );
+
+  /** Økten er utløpt eller tilbakekalt: glem tokenet, behold skjema og søk. */
+  const sessionEnded = useCallback(async () => {
+    tokens.set(null);
+    await clearSession();
+    setAuth({ status: "signedOut", notice: "expired" });
+  }, [tokens]);
+
+  const updateProfile = useCallback(
+    async (input: MobileUpdateProfileInput) => {
+      try {
+        const profile = await api.updateProfile(input);
+        setAuth({ status: "signedIn", profile });
+      } catch (err) {
+        if (err instanceof ApiError && err.code === "UNAUTHORIZED") await sessionEnded();
+        throw err;
+      }
+    },
+    [api, sessionEnded],
+  );
+
+  const deleteAccount = useCallback(
+    async (input: MobileDeleteAccountInput) => {
+      try {
+        await api.deleteAccount(input);
+      } catch (err) {
+        // Feil passord (field: password) lar økten leve; UNAUTHORIZED uten felt er et dødt token.
+        if (err instanceof ApiError && err.code === "UNAUTHORIZED" && err.field !== "password") await sessionEnded();
+        throw err;
+      }
+      tokens.set(null);
+      await clearSession();
+      setAuth({ status: "signedOut", notice: "deleted" });
+    },
+    [api, tokens, sessionEnded],
+  );
+
+  // Uten nett ved oppstart: prøv å hente kontoen igjen når appen kommer i forgrunnen.
+  useEffect(() => {
+    if (auth.status !== "signedIn" || auth.profile) return;
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      api
+        .me()
+        .then((me) => (me ? setAuth({ status: "signedIn", profile: me }) : sessionEnded()))
+        .catch(() => undefined);
+    });
+    return () => sub.remove();
+  }, [api, auth, sessionEnded]);
+
+  const logout = useCallback(async () => {
+    try {
+      // Tilbakekall sesjonen på serveren mens tokenet ennå sendes med.
+      await api.logout();
+    } catch {
+      // Uten nett: tokenet slettes likevel lokalt, og utløper på serveren.
+    } finally {
+      tokens.set(null);
+      await clearSession();
+      setAuth({ status: "signedOut" });
+    }
+  }, [api, tokens]);
+
+  // Innloggingsmåtene hentes når Profil viser innloggingen (der knappene er). Feil = ingen sosiale knapper.
+  const [authCaps, setAuthCaps] = useState<MobileAuthProviders | null>(null);
+  const [capsWanted, setCapsWanted] = useState(false);
+  const requestSocialProviders = useCallback(() => setCapsWanted(true), []);
+  const signedOut = auth.status === "signedOut";
+  useEffect(() => {
+    if (!signedOut || !capsWanted) return;
+    let cancelled = false;
+    // Promise.resolve().then: også et kall som kaster med én gang ender i catch (= ingen sosiale knapper).
+    Promise.resolve()
+      .then(() => api.authProviders())
+      .then((caps) => {
+        if (!cancelled) setAuthCaps(caps);
+      })
+      .catch(() => {
+        if (!cancelled) setAuthCaps(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, signedOut, capsWanted]);
+  const socialProviders = useMemo(() => visibleSocialProviders(authCaps, nativeSocial), [authCaps, nativeSocial]);
+
+  // Én sosial innlogging om gangen, uansett hvor mange trykk.
+  const socialInFlight = useRef<Promise<"signedIn" | "cancelled"> | null>(null);
+  const socialLogin = useCallback(
+    (provider: MobileSocialProvider, locale: Locale): Promise<"signedIn" | "cancelled"> => {
+      if (socialInFlight.current) return socialInFlight.current;
+      const run = async (): Promise<"signedIn" | "cancelled"> => {
+        const key = authCaps?.clerkPublishableKey;
+        if (!key || !socialProviders.includes(provider)) throw new Error(`social provider ${provider} is not available`);
+        const native = await nativeSocial.signIn(provider, key);
+        if (native.kind === "cancelled") return "cancelled";
+        try {
+          const res = await api.exchangeSocialToken(native.token, locale);
+          await saveSession(res.session);
+          tokens.set(res.session.token);
+          setAuth({ status: "signedIn", profile: res.profile });
+          return "signedIn";
+        } finally {
+          // Clerk-økten trengs ikke lenger – verken etter en HelloSky-sesjon eller et avvist bytte.
+          await native.release?.().catch(() => undefined);
+        }
+      };
+      const p = run().finally(() => {
+        socialInFlight.current = null;
+      });
+      socialInFlight.current = p;
+      return p;
+    },
+    [api, tokens, authCaps, socialProviders, nativeSocial],
+  );
+  const SocialHost = nativeSocial.Host;
+  const hostKey = socialProviders.length ? authCaps?.clerkPublishableKey : null;
+
+  const setForm = useCallback((update: (f: SearchForm) => SearchForm) => setFormState((f) => update(f)), []);
+
+  const runSearch = useCallback((patch?: Partial<SearchForm>): FormErrorCode | null => {
+    const next = patch ? { ...form, ...patch } : form;
+    if (patch) setFormState(next);
+    const problem = validateForm(next);
+    if (problem) return problem;
+    saveRecent(addRecent(recent, next));
+    const seq = ++searchSeq.current;
+    searchAbort.current?.abort();
+    const abort = new AbortController();
+    searchAbort.current = abort;
+    // Samme søk på nytt (oppdater priser, prøv igjen): filtrene står, og svaret som vises blir stående til det nye
+    // kommer. Et annet søk: filtrene nullstilles, og plassholderne står til svaret er her.
+    const key = recentKey(next);
+    const same = key === lastSearchKey.current;
+    if (!same) setViewState(DEFAULT_VIEW);
+    lastSearchKey.current = key;
+    setSearch((s) => ({ status: "loading", query: next, previous: same ? (shownAnswer(s) ?? undefined) : undefined }));
+    api
+      .search(toSearchRequest(next, sessionId), abort.signal)
+      .then((result) => {
+        if (seq === searchSeq.current) setSearch({ status: "done", result, at: Date.now(), query: next });
+      })
+      .catch((err: unknown) => {
+        if (seq !== searchSeq.current) return;
+        // Feilet en oppdatering, står det forrige svaret (med tidspunktet det ble sjekket) og feilen sies over listen.
+        setSearch((s) => (s.status === "loading" && s.previous ? { status: "done", ...s.previous, query: next, refreshError: err } : { status: "error", error: err, query: next }));
+      });
+    return null;
+  }, [api, form, sessionId, recent, saveRecent]);
+
+  const cancelSearch = useCallback(() => {
+    searchSeq.current++;
+    searchAbort.current?.abort();
+    searchAbort.current = null;
+    setSearch({ status: "idle" });
+  }, []);
+
+  const setView = useCallback((update: (v: ResultsView) => ResultsView) => setViewState((v) => update(v)), []);
+
+  const trackClick = useCallback(
+    (offerId: string) => {
+      // «Fire and forget», som på nettet: lenken åpnes uansett hva målingen svarer.
+      api.trackProviderClick(offerId, sessionId).catch(() => undefined);
+    },
+    [api, sessionId],
+  );
+
+  const value = useMemo<AppContextValue>(
+    () => ({ api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId, prefs, setPrefs, travellers, saveTraveller, removeTraveller, savedFlights, toggleFlight, savedRoutes, toggleRoute }),
+    [api, auth, login, register, logout, socialProviders, requestSocialProviders, socialLogin, updateProfile, deleteAccount, form, setForm, search, runSearch, cancelSearch, view, setView, trackClick, recent, removeRecent, clearRecent, saved, toggleSaved, homeAirport, setHomeAirport, sessionId, prefs, setPrefs, travellers, saveTraveller, removeTraveller, savedFlights, toggleFlight, savedRoutes, toggleRoute],
+  );
+  return (
+    <AppContext.Provider value={value}>
+      <AccountDataProvider api={api} signedIn={auth.status === "signedIn"} onSessionEnded={sessionEnded}>
+        {children}
+      </AccountDataProvider>
+      {/* Clerk monteres bare når en leverandør faktisk kan vises (se lib/nativeSocial.ios.tsx). */}
+      {SocialHost && hostKey ? <SocialHost publishableKey={hostKey} /> : null}
+    </AppContext.Provider>
+  );
+}
+
+export function useApp(): AppContextValue {
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error("useApp må brukes inne i AppProvider");
+  return ctx;
+}

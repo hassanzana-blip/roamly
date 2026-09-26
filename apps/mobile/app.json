@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "HelloSky",
+    "slug": "zana",
+    "owner": "helloskytravels-team",
+    "scheme": "hellosky",
+    "version": "1.0.0",
+    "platforms": [
+      "ios"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "no.hellosky.app",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "nb",
+        "CFBundleLocalizations": [
+          "en",
+          "nb"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6e199f8d-4cb3-4729-a8a6-ba32c63a8253"
+      }
+    },
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

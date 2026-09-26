@@ -27,8 +27,9 @@ import {
 import { AppError } from "./errors";
 
 /**
- * Fixturen er KAYAKs eget dokumenterte PollResponse-eksempel (developers.kayak.com,
- * Flights Search API → /poll → Response), ikke et gjettet skjema. Feltnavnene
+ * Fixturen bygger på KAYAKs dokumenterte PollResponse-eksempel (developers.kayak.com,
+ * Flights Search API → /poll → Response), men er ikke en nøyaktig kopi av dagens eksempel:
+ * dagens eksempel har priceMode «perPerson», her er det «total» (det vi ber om). Feltnavnene
  * her er dermed de API-et faktisk sender.
  */
 const POLL_COMPLETE = {
@@ -245,6 +246,30 @@ describe("KAYAK: kartlegging", () => {
     expect(kiwi.booking?.disclosure).toBe("Non-refundable ticket.");
     expect(kiwi.refundable).toBe(false);
     expect(kiwi.conditions).toBeUndefined();
+  });
+
+  it("refusjon/endring: «fee» er tillatt mot gebyr, ukjente verdier gir ingen påstand", () => {
+    const body = structuredClone(POLL_COMPLETE) as unknown as { results: { bookingOptions: { fareFamilies: { amenities: { code: string; restriction: string }[] }[] }[] }[] };
+    const amenities = body.results[0]!.bookingOptions[0]!.fareFamilies[0]!.amenities;
+    amenities.find((a) => a.code === "change")!.restriction = "fee";
+    amenities.find((a) => a.code === "refundable")!.restriction = "somethingNew";
+    const [offer] = mapPollResponse(parsePollResponse(body), input, ctx);
+    expect(offer.conditions).toEqual({ changeBeforeDeparture: { allowed: true, feeApplies: true } });
+    expect(offer.changeable).toBe(false);
+  });
+
+  it("bagasje: en ukjent begrensning er «ukjent», ikke «ikke inkludert»", () => {
+    const body = structuredClone(POLL_COMPLETE) as unknown as { results: { bookingOptions: { fees?: { checkedBag?: { restriction: string }[] }; fareFamilies: { amenities: { code: string; restriction: string }[] }[] }[] }[] };
+    const bo = body.results[0]!.bookingOptions[0]!;
+    for (const b of bo.fees?.checkedBag ?? []) b.restriction = "somethingNew";
+    bo.fareFamilies[0]!.amenities.find((a) => a.code === "checkedBag")!.restriction = "somethingNew";
+    const [offer] = mapPollResponse(parsePollResponse(body), input, ctx);
+    expect(offer.baggage).toEqual({ carryOnBags: 1, checkedBags: 0, checkedUnknown: true });
+  });
+
+  it("refusjon/endring fra fasilitetene: inkludert = tillatt, «unavailable» = ikke tillatt", () => {
+    const [offer] = mapPollResponse(parsePollResponse(POLL_COMPLETE), input, ctx);
+    expect(offer.conditions).toEqual({ changeBeforeDeparture: { allowed: true }, refundBeforeDeparture: { allowed: false } });
   });
 
   it("«operert av» vises bare når operatøren er en annen enn det markedsførende selskapet", () => {

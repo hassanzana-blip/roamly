@@ -8,7 +8,7 @@ const EMAIL = `e2e-${Date.now()}@hellosky.test`;
 
 async function pickAirport(page: Page, label: "Fra" | "Til", query: string, iata: string) {
   await page.getByRole("button", { name: new RegExp(`^${label}\\b`) }).first().click();
-  const input = page.getByPlaceholder("Søk by eller flyplass …");
+  const input = page.getByRole("combobox", { name: "Søk by, land eller flyplass", exact: true });
   await input.fill(query);
   await page.getByRole("option", { name: new RegExp(`\\b${iata}\\b`) }).first().click();
   await expect(page.getByRole("button", { name: new RegExp(`^${label}\\b`) }).first()).toContainText(iata);
@@ -36,7 +36,7 @@ test.describe("booking (demo)", () => {
 
     // Søk: "Fra" er forhåndsvalgt (OSL), velg "Til"
     await pickAirport(page, "Til", "Bergen", "BGO");
-    await page.getByRole("button", { name: /^Søk flyreiser$/ }).first().click();
+    await page.getByRole("button", { name: "Finn reisen", exact: true }).click();
     await expect(page).toHaveURL(/\/sok\?.*from=OSL.*to=BGO/);
 
     // Resultater (demo): velg første tilbud

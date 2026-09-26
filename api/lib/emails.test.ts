@@ -93,6 +93,7 @@ describe("renderEmail", () => {
       verify_email: { firstName: "Ola", url: "https://hellosky.no/v" },
       password_reset: { firstName: "Ola", url: "https://hellosky.no/r" },
       login_alert: { firstName: "Ola", ip: "1.2.3.4", userAgent: "UA", at: "2026-09-01T10:00:00Z" },
+      phone_changed: { firstName: "Ola", phone: "+47*****567", at: "2026-09-01T10:00:00Z" },
       price_alert: { route: "OSL → CPH", price: 500, targetPrice: 600, url: "https://hellosky.no/s" },
       quote_checkout: { customerName: "Ola", reference: "Q-1", route: "OSL → CPH", totalAmount: "100.00", serviceFeeAmount: "10.00", currency: "NOK", url: "https://hellosky.no/q", expiresAt: "2026-09-02T10:00:00Z" },
       ops_alert: { subject: "Test", body: "<script>" },

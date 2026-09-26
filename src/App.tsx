@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router'
 import ErrorBoundary from './components/app/ErrorBoundary'
 import RouteFallback from './components/app/RouteFallback'
 import BottomNav from './components/app/BottomNav'
+import RouteScroll from './components/app/RouteScroll'
 
 /**
  * Ruting (OTA-192): hver side lastes lat per rute. Hele admin-treet ligger i
@@ -124,6 +125,7 @@ export default function App() {
     <>
       <ErrorBoundary>
         <Suspense fallback={<RouteFallback admin={isAdmin} />}>
+          <RouteScroll />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/utforsk" element={<Explore />} />

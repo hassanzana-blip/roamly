@@ -4,9 +4,10 @@ import { Camera, KeyRound, LogOut, Trash2, TriangleAlert, UserRound } from "luci
 import AppShell from "@/components/app/AppShell";
 import { AppHeader } from "@/components/app/TopBar";
 import Icon from "@/components/app/Icon";
+import PhoneChangeForm from "@/components/account/PhoneChangeForm";
 import { useCustomer } from "@/lib/useCustomer";
 import { trpc } from "@/providers/trpc";
-import { humanMessage } from "@/lib/apiError";
+import { detailsOf, humanMessage } from "@/lib/apiError";
 import { PAGE_META, usePageMeta } from "@/lib/seo";
 
 const inputCls =
@@ -44,7 +45,6 @@ export default function EditProfile() {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
   const [saved, setSaved] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
 
@@ -56,7 +56,9 @@ export default function EditProfile() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !customer) navigate("/logg-inn");
+    if (!isLoading && !customer) {
+      navigate("/logg-inn?next=%2Fprofil%2Frediger", { replace: true });
+    }
   }, [customer, isLoading, navigate]);
 
   // Fyll skjemaet fra kontoen første gang den er lastet (render-tids-synk, ikke effekt)
@@ -65,7 +67,6 @@ export default function EditProfile() {
     setSeededFor(customer.id);
     setFirstName(customer.firstName);
     setLastName(customer.lastName);
-    setPhone(customer.phone ?? "");
   }
 
   const update = trpc.customerAuth.updateProfile.useMutation({
@@ -103,6 +104,16 @@ export default function EditProfile() {
       navigate("/");
     },
   });
+  const requestPhone = trpc.customerAuth.requestPhoneChange.useMutation();
+  const confirmPhone = trpc.customerAuth.confirmPhoneChange.useMutation({
+    onSuccess: () => { void utils.customerAuth.me.invalidate(); },
+  });
+  const reauthenticate = trpc.customerAuth.logout.useMutation({
+    onSuccess: () => {
+      utils.customerAuth.me.setData(undefined, null);
+      navigate("/logg-inn?next=%2Fprofil%2Frediger");
+    },
+  });
 
   const onPickFile = async (f: File | undefined) => {
     if (!f) return;
@@ -123,7 +134,7 @@ export default function EditProfile() {
   return (
     <div className="min-h-[100dvh] bg-background">
       <AppShell>
-        <AppHeader title="Rediger profil" back />
+        <AppHeader title="Rediger profil" back as="h1" />
 
         {/* Profilbilde */}
         <section className="mb-6 flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-soft">
@@ -189,15 +200,19 @@ export default function EditProfile() {
             className="space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
-              update.mutate({ firstName, lastName, phone: phone || undefined });
+              update.mutate({ firstName, lastName });
             }}
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Fornavn" required className={inputCls} />
-              <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Etternavn" required className={inputCls} />
+              <label className="space-y-1.5 text-sm font-medium">Fornavn
+                <input autoComplete="given-name" value={firstName} onChange={(e) => { setFirstName(e.target.value); setSaved(false); }} maxLength={60} required className={inputCls} />
+              </label>
+              <label className="space-y-1.5 text-sm font-medium">Etternavn
+                <input autoComplete="family-name" value={lastName} onChange={(e) => { setLastName(e.target.value); setSaved(false); }} maxLength={60} required className={inputCls} />
+              </label>
             </div>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefon (+47 …)" type="tel" className={inputCls} />
-            {update.isError && <p className="text-[12px] font-medium text-destructive">{humanMessage(update.error)}</p>}
+            {update.isError && <p role="alert" className="text-[12px] font-medium text-destructive">{humanMessage(update.error)}</p>}
+            {saved && <p role="status" className="text-sm text-success">Navnet er lagret.</p>}
             <button
               type="submit"
               disabled={update.isPending}
@@ -213,6 +228,16 @@ export default function EditProfile() {
             </p>
           )}
         </section>
+
+        <PhoneChangeForm
+          key={customer.id}
+          currentPhone={customer.phone}
+          hasPassword={customer.hasPassword}
+          requestCode={(input) => requestPhone.mutateAsync(input)}
+          confirmCode={(input) => confirmPhone.mutateAsync(input)}
+          onReauthenticate={() => reauthenticate.mutate()}
+        />
+        {reauthenticate.isError && <p role="alert" className="mb-6 text-sm text-destructive">Kunne ikke starte ny innlogging. Prøv igjen.</p>}
 
         {/* Passord */}
         <section className="mb-6 rounded-xl border border-border bg-card p-5 shadow-soft">
@@ -230,7 +255,7 @@ export default function EditProfile() {
                   leverandøren.
                 </>
               ) : (
-                <>Legg inn en e-postadresse over først, så kan du lage et passord via «Glemt passord».</>
+                <>Du kan fortsatt logge inn med SMS-kode. <Link to="/hjelp" className="font-semibold underline underline-offset-4">Kontakt oss</Link> hvis du trenger hjelp med innloggingen.</>
               )}
             </p>
           ) : (
@@ -305,7 +330,16 @@ export default function EditProfile() {
                 required
                 className={inputCls}
               />
-              {del.isError && <p className="text-[12px] font-medium text-destructive">{humanMessage(del.error)}</p>}
+              {del.isError && (
+                <div role="alert" className="text-sm font-medium text-destructive">
+                  {detailsOf(del.error).reason === "reauth_required" ? (
+                    <>
+                      <p>Logg inn på nytt for å bekrefte at det er deg. Gå deretter tilbake hit for å slette kontoen.</p>
+                      <button type="button" disabled={reauthenticate.isPending} onClick={() => reauthenticate.mutate()} className="mt-2 min-h-11 underline underline-offset-4">Logg inn på nytt</button>
+                    </>
+                  ) : humanMessage(del.error)}
+                </div>
+              )}
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -317,7 +351,7 @@ export default function EditProfile() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setConfirmDelete(false)}
+                  onClick={() => { setConfirmDelete(false); setDelPw(""); del.reset(); }}
                   className="min-h-11 rounded-lg border border-border px-5 text-[14px] font-semibold"
                 >
                   Avbryt

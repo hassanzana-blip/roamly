@@ -61,12 +61,27 @@ test("en sti som ikke finnes svarer 404 og noindex", async ({ request }) => {
 });
 
 test("sitemapet har ingen ankerlenker og dekker reisemålssidene", async ({ request }) => {
-  const res = await request.get("/sitemap.xml");
+  // Address the local test server using the public Host; never fetch production.
+  const res = await request.get("/sitemap.xml", { headers: { Host: "hellosky.no" } });
   expect(res.status()).toBe(200);
+  expect(res.headers()["x-robots-tag"]).toBeUndefined();
   const xml = await res.text();
   const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1]!);
   expect(locs.filter((l) => l.includes("#"))).toHaveLength(0);
   expect(new Set(locs).size).toBe(locs.length);
   expect(locs.some((l) => l.endsWith("/reisemal/erbil"))).toBe(true);
   expect(locs.some((l) => l.endsWith("/journal/istanbul-to-flyplasser"))).toBe(true);
+});
+
+test("preview-verten er noindex og annonserer ikke et sitemap", async ({ request }) => {
+  const headers = { Host: "preview.example.invalid", "X-Forwarded-Host": "hellosky.no" };
+  const page = await request.get("/reisemal/erbil", { headers });
+  expect(page.status()).toBe(200);
+  expect(page.headers()["x-robots-tag"]).toBe("noindex");
+  const robots = await request.get("/robots.txt", { headers });
+  expect(robots.status()).toBe(200);
+  expect(await robots.text()).toBe("User-agent: *\nAllow: /\n");
+  const sitemap = await request.get("/sitemap.xml", { headers });
+  expect(sitemap.status()).toBe(404);
+  expect(sitemap.headers()["x-robots-tag"]).toBe("noindex");
 });

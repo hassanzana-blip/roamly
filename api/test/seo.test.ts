@@ -34,9 +34,18 @@ describe("canonical per rute", () => {
     expect(headFor(`/journal/${a.slug}`).description).toBe(a.deck);
   });
 
-  it("gir ukjente ruter forsidens tekst, men sin egen canonical", () => {
+  it("gir ukjente ruter en 404-tittel og noindex med sin egen canonical", () => {
     const h = headFor("/finnes-ikke-12345");
     expect(h.canonical).toBe("https://hellosky.no/finnes-ikke-12345");
+    expect(h.title).toBe("Siden finnes ikke | HelloSky");
+    expect(h.robots).toBe("noindex,nofollow");
+  });
+
+  it("setter noindex for ukjente innholdssluger, selv om rutemønsteret finnes", () => {
+    for (const p of ["/reisemal/ikke-et-reisemal", "/journal/ikke-en-artikkel", "/fly/ikke-en-rute"]) {
+      expect(headFor(p).robots).toBe("noindex,nofollow");
+      expect(headFor(p).title).toBe("Siden finnes ikke | HelloSky");
+    }
   });
 });
 

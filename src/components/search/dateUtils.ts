@@ -1,17 +1,12 @@
 import { currentLang } from "@/lib/format";
+import { localDateString, parseCalendarDate } from "./searchDates";
 
 export function toDate(iso: string): Date | undefined {
-  if (!iso) return undefined;
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return undefined;
-  return new Date(y, m - 1, d);
+  return parseCalendarDate(iso);
 }
 
 export function toIso(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return localDateString(date);
 }
 
 export function localeTag(): string {

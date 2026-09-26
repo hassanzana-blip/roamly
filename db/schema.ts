@@ -253,6 +253,10 @@ export const savedTravelers = mysqlTable(
     lastName: varchar("last_name", { length: 60 }).notNull(),
     bornOn: varchar("born_on", { length: 10 }),
     gender: varchar("gender", { length: 1 }),
+    // Appens reisende (mobileAccount.saveTraveller): voksen, barn eller spedbarn, og ev. foretrukket reiseklasse.
+    // Aldri pass, ID-nummer eller personnummer – det finnes bare i passenger_documents, knyttet til en bestilling.
+    travelerKind: varchar("traveler_kind", { length: 8 }), // adult | child | infant; null = ikke oppgitt (nettets rader)
+    cabin: varchar("cabin", { length: 16 }), // economy | premium_economy | business | first; null = ingen
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [index("idx_travelers_customer").on(t.customerId)],

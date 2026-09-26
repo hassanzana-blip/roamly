@@ -131,7 +131,9 @@ export function headFor(rawPath: string): ResolvedHead {
   // noindex i selve HTML-en: X-Robots-Tag alene leses ikke av alle crawlere,
   // og en 404-side som sier «index,follow» er nettopp den soft 404-en vi
   // prøver å bli kvitt.
-  if (!isKnownRoute(path)) {
+  // These patterns are valid client routes, but an unknown slug is still a
+  // missing page. Match the server's 404 decision in the HTML robots tag too.
+  if (!isKnownRoute(path) || destinationId || articleSlug) {
     return {
       title: `Siden finnes ikke | ${SITE_NAME}`,
       description: "Siden du leter etter finnes ikke.",

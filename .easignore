@@ -1,0 +1,101 @@
+# EAS uploads this monorepo from the Git root. Keep both gitignore files in sync.
+# Existing root exclusions (including environment files and credentials).
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Environment variables – alle varianter (kun *.example er versjonert)
+.env
+.env.*
+!.env.example
+!.env.it.example
+credentials/
+*.pem
+*.key
+# Database
+*.db
+*.sqlite
+*.sqlite3
+# TypeScript cache
+*.tsbuildinfo
+# Build outputs
+dist/
+build/
+# Test coverage
+coverage/
+.nyc_output/
+.env.it
+test-results/
+playwright-report/
+.migrations-check/
+travelport-response.json
+artifacts/
+
+# Lokale QA-stubber og engangsskript – aldri i repoet.
+*.tmp.mjs
+
+# Mobile exclusions; native CNG folders remain scoped to the mobile app.
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/apps/mobile/ios
+/apps/mobile/android
+
+# Review screenshots are versioned evidence, not build inputs.
+/apps/mobile/docs/evidence/

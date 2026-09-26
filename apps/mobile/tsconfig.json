@@ -1,0 +1,27 @@
+{
+  // Samme innstillinger som expo/tsconfig.base (SDK 57), skrevet ut her i stedet
+  // for "extends": nettets CI leser denne filen når den kjører appens API-klient
+  // i kontrakttesten (api/test/mobileClient.it.ts), uten å installere Expo.
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ESNext"],
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "customConditions": ["react-native"],
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "types": ["jest", "node"],
+    "paths": {
+      "@contracts/*": ["../../contracts/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "expo-env.d.ts"],
+  "exclude": ["node_modules", "dist", "babel.config.js", "metro.config.js", "ios", "android"]
+}

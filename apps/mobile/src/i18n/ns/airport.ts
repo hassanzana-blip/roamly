@@ -1,0 +1,71 @@
+/** Flyplassøket. Vi søker bare fra og til den valgte flyplassen. */
+const en = {
+  title: "Choose airport",
+  close: "Close",
+  from: "Where are you flying from?",
+  to: "Where are you going?",
+  placeholder: "City, airport or code",
+  exactOnly: "We only search from and to the airport you choose – never other airports in the same city.",
+  searching: "Searching …",
+  searchingMore: "Looking for more airports …",
+  moreFailed: "Couldn't load more airports.",
+  near: (city: string) => `Also serves the ${city} area`,
+  error: "Couldn't search for airports.",
+  emptyTitle: "Find the airport",
+  emptyBody: "Type at least two letters: a city, airport or code, for example Barcelona or BCN.",
+  noneTitle: "No airport found",
+  noneBody: "No matches. Try another name or an airport code.",
+  rowLabel: (city: string, name: string, country: string, iata: string) => `${city}, ${name}, ${country}, code ${iata}`,
+  recentTitle: "Recent",
+  suggestDestinations: "Destinations to explore",
+  suggestOrigins: "Airports in Norway",
+  remember: "Remember as my usual departure airport",
+  /**
+   * Står under bryteren her og under «Reisevaner» på Min side. Sier regelen i lib/appState.tsx (startForm): søket
+   * starter derfra når appen åpnes, men en reise med reisemål og datoer som ikke har passert, står som den var.
+   */
+  rememberHint: "Saved only on this phone. Your search starts from it when you open the app, unless you're in the middle of planning a trip.",
+  usual: (city: string, iata: string) => `Usual departure airport: ${city} (${iata})`,
+  forget: "Forget",
+  clearQuery: "Clear the search",
+  /** Åpnet fra Min side for å velge den vanlige avreiseflyplassen: valget er den, så bryteren over trengs ikke. */
+  homeTitle: "Usual departure airport",
+  homeQuestion: "Where do you usually fly from?",
+  altTitle: "Other airport",
+  altQuestion: "Which airport do you also fly from?",
+  altHint: "Saved in your travel preferences on this phone. Your search and usual departure airport stay as they are.",
+};
+
+const nb: typeof en = {
+  title: "Velg flyplass",
+  close: "Lukk",
+  from: "Hvor reiser du fra?",
+  to: "Hvor skal du?",
+  placeholder: "By, flyplass eller kode",
+  exactOnly: "Vi søker bare fra og til flyplassen du velger – aldri andre flyplasser i samme by.",
+  searching: "Søker …",
+  searchingMore: "Ser etter flere flyplasser …",
+  moreFailed: "Fikk ikke hentet flere flyplasser.",
+  near: (city) => `Brukes også for ${city}-området`,
+  error: "Kunne ikke søke etter flyplasser.",
+  emptyTitle: "Finn flyplassen",
+  emptyBody: "Skriv minst to bokstaver: by, flyplass eller kode, for eksempel Barcelona eller BCN.",
+  noneTitle: "Fant ingen flyplass",
+  noneBody: "Ingen treff. Prøv et annet navn eller en flyplasskode.",
+  recentTitle: "Nylige",
+  suggestDestinations: "Reisemål å utforske",
+  suggestOrigins: "Flyplasser i Norge",
+  remember: "Husk som min vanlige avreiseflyplass",
+  rememberHint: "Lagres bare på denne telefonen. Søket starter derfra når du åpner appen, med mindre du er midt i å planlegge en reise.",
+  usual: (city, iata) => `Vanlig avreiseflyplass: ${city} (${iata})`,
+  forget: "Glem",
+  clearQuery: "Tøm søket",
+  rowLabel: (city, name, country, iata) => `${city}, ${name}, ${country}, kode ${iata}`,
+  homeTitle: "Vanlig avreiseflyplass",
+  homeQuestion: "Hvor reiser du vanligvis fra?",
+  altTitle: "Annen flyplass",
+  altQuestion: "Hvilken flyplass reiser du også fra?",
+  altHint: "Lagres i reisepreferansene på denne telefonen. Søket og den vanlige avreiseflyplassen står som de er.",
+};
+
+export const airport = { en, nb };

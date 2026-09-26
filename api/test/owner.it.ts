@@ -67,7 +67,9 @@ async function conversion(status: "estimated" | "confirmed" | "paid" | "reversed
       bookingValueMinor: 250_000,
       commissionMinor,
       currency: "NOK",
-      reportedAt: new Date(),
+      // Test aggregation inside the period, not MySQL TIMESTAMP(0) rounding
+      // against the exclusive upper bound captured milliseconds later.
+      reportedAt: new Date(Date.now() - 1_000),
     });
 }
 

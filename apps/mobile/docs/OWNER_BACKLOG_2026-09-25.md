@@ -1,0 +1,174 @@
+# HelloSky iPhone: owner backlog (ranked)
+
+25 September 2026. Written after a full read of the app source, the mobile API (`api/mobileFlights.ts`,
+`api/flights.ts`), the shared contracts, the earlier backlogs (`BACKLOG.md`,
+`docs/PRODUCT_QUALITY_BACKLOG_2026-09-24.md`), `DESIGN.md`, `docs/evidence/MANIFEST.md`, and a fresh
+NON-NATIVE browser walk-through of every screen with labelled fixture data (Chromium, 390×844).
+
+It merges the open items from the 60-item plan with new findings. Numbers in brackets refer to that plan.
+Status is kept in this file as work lands; each shipped item names its commit and evidence in `MANIFEST.md`.
+
+**Ranking**
+- **P0**: broken, blocks a purchase decision, or a trust problem.
+- **P1**: major customer value on the search → compare → provider path.
+- **P2**: strong improvement.
+- **P3**: polish.
+
+**Constraints that shape every item.** No invented prices, availability, alerts, reviews or discounts. Filters
+and rankings only on data the offer carries. Prices always in NOK. No new dependencies unless nothing in the
+stack solves it. App source, tests and mobile docs only (config, CI and release belong to others).
+
+## What the walk-through found
+
+The foundations are strong: honest price states (exact / «ca.» / none), grouped sellers, expiry re-checks,
+request-mismatch exclusion, 44 pt targets, typed i18n, VoiceOver language tags. The weakest parts are
+**comparison speed** and **date entry**:
+
+- A round-trip result card is ~290 pt tall at 390 pt width: 1.3 cards fit in the first view.
+- There is no «Best» ranking. The default is «Cheapest», so a 13-hour overnight connection that costs
+  30 kr less than a 3-hour direct flight is the second thing a customer sees.
+- Sorting is behind a toolbar button; the trade-off between cheapest and fastest is invisible.
+- Cards do not say where you change planes, and an overnight layover or airport change is only visible
+  after opening the details.
+- Dates are two separate sheets with the native wheel/calendar; picking a trip takes 6+ taps.
+- Loading is a spinner in an empty dark screen for up to 20 s.
+
+## P0
+
+| # | Item | Status |
+|---|---|---|
+| 0.1 | Material itinerary risks (overnight layover, airport change, long layover) visible on the result card, not only in details [32] | done (stage «compact card») |
+| 0.2 | A «Best» ranking so a long overnight connection is not presented as the top choice just because it is marginally cheaper; explained in plain words | done (stage «Best / Cheapest / Fastest») |
+| 0.3 | Default ranking honest about what it optimises: the sort in effect is always visible on the list | done (same stage) |
+
+## P1: compare flights with confidence
+
+| # | Item | Status |
+|---|---|---|
+| 1.1 | Sort tabs above the list: Best / Cheapest / Fastest with each tab's top price and travel time (real data only) [28] | done (same stage) |
+| 1.2 | Add «Earliest departure» sort; stable tie-breaks everywhere [28] | done (same stage) |
+| 1.3 | Compact result card (target ≤ 215 pt round trip at 390 pt): whole card is the button, bags beside the price, cabin shown only when it differs from the search [22] | done (215 pt) |
+| 1.4 | Layover airports on the card («1 mellomlanding · CPH») | done |
+| 1.5 | One range calendar for departure + return in one sheet; one-way picks one date; month list, today/past disabled, 44 pt days, VoiceOver dates [23] | done (stage «range calendar») |
+| 1.6 | The same calendar in the results «Datoer» sheet (replaces two compact pickers) | done |
+| 1.7 | Loading: skeleton cards under the real header (search stays visible), stable layout, Reduce Motion respected, cancel kept [17][45] | done (stage «loading») |
+| 1.8 | Details: the full journey (both legs, every segment, layovers) visible without hunting through tabs [39] | done (stage «details one scroll») |
+| 1.9 | Details: baggage and fare conditions per seller visible before the handoff button without tab switching [33][34] | done |
+| 1.10 | Airport picker: other airports in the same city/area offered next to the chosen one (e.g. TRF next to OSL, LGW next to LHR), never merged [14] | done: Torp as its own row under a search for Oslo; same-city airports already list together (MANIFEST «Airport picker») |
+| 1.11 | Airport picker: matched text emphasised; Norwegian city names and IATA both match (server already does the search) | done: emphasis, instant registry matches, English names («Helsingfors (Helsinki)») (MANIFEST «Airport picker») |
+| 1.12 | Filters: connection airports (from the offers), arrival-time bands both ways [29][31] | done: «Mellomlanding i» and «Avgang \| Ankomst» per leg (MANIFEST «Filters») |
+| 1.13 | Filter state visible after the sheet closes: active filters as removable chips [29] | done: chips after «Alle», a tap removes (MANIFEST «Filters») |
+| 1.14 | Price basis wording shorter on cards; full basis kept for VoiceOver and details [24] | done |
+| 1.15 | Results: «N reiser» count and sort label never contradict the list after filtering | verified: count follows the filtered list (filters tests); active filters now visible as chips |
+| 1.16 | Error recovery specific to the code, with the search kept (already largely true; verify copy) [18] | verified (retry only for retryable codes, «Endre søk» otherwise; screens/edge-case tests) |
+| 1.17 | Home: search form first view unchanged or tighter after the calendar change [45] | verified: same tiles; destinations 122 pt visible at 390 (MANIFEST «Home»). Later replaced by 4.1 |
+| 1.18 | Travellers sheet: summary line at the top, infant rule explained where it bites [24] | done (MANIFEST «Home») |
+| 1.19 | Swap airports: animated icon and VoiceOver announcement of the new route [13] | done (MANIFEST «Home») |
+| 1.20 | Recent searches reachable from Home in one tap without pushing destinations out of the first view [43] | done: chips under «Søk fly» (−26 pt, destinations stay in view) (MANIFEST «Home») |
+
+## P1: trust and handoff
+
+| # | Item | Status |
+|---|---|---|
+| 1.21 | Handoff bar names the seller and says the booking is completed with them (exists; keep) [40] | verified earlier |
+| 1.22 | Seller comparison: airline-direct marked as such, agency marked as agency (exists) [32] | verified earlier |
+| 1.23 | Expired offer: no handoff without explicit «continue anyway» (exists) [27] | verified earlier |
+| 1.24 | Demo/sandbox/unverified never mistaken for live (exists) [36] | verified earlier |
+
+## P2
+
+| # | Item | Status |
+|---|---|---|
+| 2.1 | «Best» explanation sheet: what goes into it, including the stated airline-direct nudge | done (in «Sorter») |
+| 2.2 | Result card: seller count tappable context («3 tilbydere – fra 1 570 kr») | not doing: the whole card is one button (1.3), a second target inside it would break VoiceOver; the card already shows the cheapest seller's price and the details compare sellers |
+| 2.3 | Details: segment list shows aircraft and operating carrier compactly | verified: flight number, «operated by» and aircraft on one line per segment (stage «details one scroll») |
+| 2.4 | Details: «Del» shares route/dates, never a price guarantee (exists) [37] | verified earlier |
+| 2.5 | Filters sheet: sticky section headers, counts per option stay (exists) | done: headings stay at the top and are VoiceOver headings (MANIFEST «Filter sheet: headings stay at the top») |
+| 2.6 | Results header: tapping the route opens the search form (not only the search icon) [25] | done (MANIFEST «Results: nothing found») |
+| 2.7 | Results: pull-to-refresh as an alias for «Oppdater priser» | done: pull down, «Oppdater prisene» and «Søk på nytt» keep the list while updating; a failed update keeps the previous prices (MANIFEST «Results: updating the prices keeps the list») |
+| 2.8 | Loading copy: what we are doing, not a promise about time | done (same stage) |
+| 2.9 | Explore: route context editable in place [9] | done: from-airport, dates and travellers as buttons in Explore (MANIFEST «Explore: from-airport, dates and travellers changed in place») |
+| 2.10 | Explore/Lagret: consistent row density with Results | done: Saved rows one line shorter with the Home date span (same stage) |
+| 2.11 | Empty results: suggest ±1–3 days only as a new search, never with invented prices [35] | done: «Prøv datoene rundt» (MANIFEST «Results: nothing found») |
+| 2.12 | Performance: memoised cards, stable keys, no per-render regrouping in the filter sheet | done: the sheet counts only while open (MANIFEST «Review fixes for the airport picker …») |
+| 2.13 | Performance: measure search-to-first-card on device (needs a device build) [58] | blocked (device) |
+| 2.14 | Profile: guest state explains what an account adds, truthfully [48] | done with 4.3: «Én konto for appen og hellosky.no», and that search needs none |
+| 2.15 | Copy review nb/en for every new string (native-sounding, no clipped labels) [52] | ongoing |
+| 2.16 | Figma: new card, sort tabs and calendar components mirrored in the existing file | done: six components and eight icons, frame P6 with six screens from `6935d1d` (`docs/FIGMA_SPECIFICATION.md`) |
+
+## P3
+
+| # | Item | Status |
+|---|---|---|
+| 3.1 | Pressed states and icon weights consistent across new components [54] | ongoing |
+| 3.2 | Reduce Motion for every new transition [57] | ongoing |
+| 3.3 | Card entrance without layout shift | planned |
+| 3.4 | Tabular numerals everywhere a time or price is compared [53] | ongoing |
+
+## Owner feedback, 25 September: «build it like momondo, and better»
+
+Five momondo screenshots (onboarding, Home, the collapsed search bar, «Popular tools», Profile). We take the
+interaction patterns, not their colours, copy, prices or features we do not have.
+
+| # | Item | Status |
+|---|---|---|
+| 4.1 | Home in the big search services' pattern: dark panel, question (or greeting) and profile button, Flights/Hotels as two tiles, trip type as text tabs, from and to stacked in one field with the swap button on the divider, departure ▸ return in one field, travellers and cabin as chips; destinations as white cards without prices | done (MANIFEST «Home in the big search services' pattern») |
+| 4.2 | The form collapses into a «Finn fly» bar when it scrolls away | not now: Home is ~1.3 screens (1020 pt at 390 × 844), so the form never leaves the view at normal text sizes. Comes with a longer Home (4.6) |
+| 4.3 | Profile as a settings list with a sign-in card at the top (truthful: what an account adds today), then language, currency, help and legal as rows (also 2.14) | done (MANIFEST «Profile as a settings list») |
+| 4.4 | Floating tab bar (capsule, 44 pt targets, content padded above it) | done: a capsule with margins above the home indicator; the screens end above it, so nothing hides under it (MANIFEST «Tab bar as a floating capsule») |
+| 4.5 | A sign-in screen before the app (their onboarding) | not doing: search needs no account, and the Apple/Google buttons stay hidden until approved |
+| 4.6 | A deals rail with real prices | proposal for Ali (`docs/PROPOSAL_DEALS_AND_ALERTS_2026-09-25.md`): recommended, low prices from recent live searches (`search_events`) with the dates and the time found, no provider cost; or a nightly check that spends quota. Never invented prices |
+| 4.7 | Price alerts in the app | proposal for Ali (same file): the web's `watch.*` on the mobile API; first the worker, a live Duffel key and e-mail must be verified, and account deletion must switch alerts off (today they are kept) |
+| 4.8 | Multi-city and a bags chip in the form | not now: search takes neither (bags are a results filter) |
+| 4.9 | VoiceOver: in-page tab groups (Flights/Hotels, the sort tabs, the details tabs) use the roles tablist/tab, which give no trait on iOS; only the tab bar has «tabbar» now | open: check on a device whether «tabbar» or buttons with a selected state read best, then change all three together |
+| 4.10 | Tests no longer expire: six suites searched fixed October dates with the real clock and would have failed from 24 October | done: the clock is pinned (`src/test/clock.ts`); the suite passes with the clock at 24 Oct 2026 and 1 Jun 2027 |
+
+## Owner brief, 25–26 September: «Cloud + Graphite», Min side, search transformation
+
+The master brief (58 sections). Priority order from the brief; each item names its commit and MANIFEST section.
+
+| # | Item | Status |
+|---|---|---|
+| 5.1 | Cloud + Graphite design system: light canvas, white surfaces, graphite islands, blue only for actions | done: `a264f54`, `82472a0`, `a6ed8db` (MANIFEST «Cloud + Graphite») |
+| 5.2 | Sign in with Apple/Google on first launch (and «I want to see how it looks») | done: `af7ed8a` (MANIFEST «First-launch welcome»); shown in the preview only; live once Apple's capability, Clerk and Google's logo asset are in place (Ali). Replaces 4.5 |
+| 5.3 | Min side must be rich: greeting, overview, recent searches, saved destinations, preferences, account, help, language/currency – real data only | done: `e7629b6`, review fixes `d62cac3` (MANIFEST «Min side»). Server data (next trip, saved flights, travellers, alerts) is P1 through the mobile API |
+| 5.4 | Search transformation: Home search → compact results header with tappable route, dates and passengers | done: `09404b2`, review fixes `deb7898` (MANIFEST «Search transformation») |
+| 5.5 | Motion with Reduce Motion: swap position exchange, header open/close, arrival | done (same commits). Haptics wait for `expo-haptics` (a dependency: Ali) |
+| 5.6 | «Senest avreise» sort | done: «Senest avgang» in «Sorter» (`09404b2`) |
+| 5.7 | Figma as the design source of truth: variables and key screens | done for this round: frame P7 «Cloud + Graphite» (Home, results compact/open, Min side, guest, welcome) and new components (`docs/evidence/figma-p7-cloud-graphite.jpg`) |
+| 5.8 | The status bar follows the tab that is showing | done: `FocusStatusBar` (`e7629b6`); light over page sheets (`d62cac3`) |
+| 5.9 | Next: saved flights and routes, traveller profiles and price alerts through the mobile API (server routes exist for the web) | built: `mobileAccount.*` routes and migration 0009 in `b9a3853` (**not deployed**, Ali); the app uses them when present (section 6). Price alerts stay a proposal |
+| 5.10 | Next: destination themes in Explore (curated facts, no prices); Norway holiday dates (verified per municipality) | open P1/P2 |
+
+## Owner brief, 26 September: «Min side + Saved»
+
+Min side as the customer's travel hub and Lagret as a product area, with real data only. Each item names its commit and
+MANIFEST section («Min side as a travel hub, traveller profiles, travel preferences and Lagret»).
+
+| # | Item | Status |
+|---|---|---|
+| 6.1 | Mobile API for the account: hub (next booking, counts), travellers, saved items – reusing the web's tables | done `b9a3853`, **not deployed** (`docs/SERVER_MOBILE_ACCOUNT_2026-09-26.md`); migration 0009 additive |
+| 6.2 | Min side shows the account's real data when the server has it (next trip, travellers, active price alerts, unread messages, upcoming trips) and only phone data otherwise | done (app commit); verified against a mock and in Jest, not against staging |
+| 6.3 | Traveller profiles: name, adult/child/infant, preferred cabin; never passport, ID, personnummer or scans | done: phone for guests, account when signed in, «Flytt til kontoen» |
+| 6.4 | Travel preferences: home + other airports, stops, cabin, baggage, departure/arrival time, preferred and avoided airlines – improve defaults, never hide results | done: cabin as the new search's default; «Mine preferanser» in results sets visible filters; avoided airlines marked, not hidden. On the phone only (account mapping later) |
+| 6.5 | Lagret: saved flights, saved routes, recent searches, price alerts, favourite destinations, with search again / open / remove / share / follow price and good empty states | done: filters, flight snapshot with the price seen and its date, routes, route bookmark on recent searches, alerts section honest about the app |
+| 6.6 | Save a flight from the offer details | done: bookmark next to «Del» |
+| 6.7 | Sync saved flights/routes/destinations with the account | open P1: routes exist; needs deploy, then a union on sign-in like travellers |
+| 6.8 | Preferences on the account (`customer_travel_profiles`) | open P2: needs a field mapping or two JSON fields (Ali) |
+| 6.9 | Use saved travellers in the travellers sheet (counts by type) | open P2: ages for children are not stored (by design); needs a choice of how to ask |
+| 6.10 | Price alerts in the app | blocked: proposal waits for Ali |
+
+## Blocked outside the app
+
+- **Server/web airport search misses English names** (found in stage 6; owner or Codex, `api/lib/airportMeta.ts`).
+  `searchAirportsWorldwide` skips curated airports in the world index (`CURATED.has(e.r.i)`), so their English names
+  from OurAirports are never searched: «helsinki», «munich», «vienna», «prague» and others find nothing, and
+  «copenhagen» finds only Roskilde. Proposed fix, about five lines: do not skip curated codes when matching the world
+  index; when a curated code matches, return the curated `Airport` (Norwegian names, time zone) with a small score
+  bonus. The app now works around it with its own English names; the web is still affected.
+
+- Real device, simulator, VoiceOver and Dynamic Type verification (no Mac or iPhone in this environment).
+- Live KAYAK inventory (affiliate access); staging answers with demo data.
+- Price alerts in the app (proposal). Synced saved items and account travellers: the mobile routes are built but not
+  deployed (Ali).
+- Social sign-in (owner configuration; see `social-login-handoff.md`).

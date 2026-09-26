@@ -206,6 +206,11 @@ export function sendLoginAlertEmail(input: { email: string; firstName: string; i
   });
 }
 
+/** Sikkerhetsvarsel når telefonnummeret (innlogging med SMS-kode) er endret. `phone` sendes maskert. */
+export function sendPhoneChangedEmail(input: { email: string; firstName: string; phone: string; at?: string; locale?: string }): Promise<MailResult> {
+  return sendTemplatedEmail("phone_changed", input.email, input.locale ?? "nb", { firstName: input.firstName, phone: input.phone, at: input.at ?? new Date().toISOString() });
+}
+
 export function sendPasswordResetEmail(input: { email: string; firstName: string; url: string; locale?: string }): Promise<MailResult> {
   return sendTemplatedEmail("password_reset", input.email, input.locale ?? "nb", { firstName: input.firstName, url: input.url });
 }

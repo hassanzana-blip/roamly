@@ -12,9 +12,11 @@ import type {
   CabinClass,
   Carrier,
   ExternalBooking,
+  FareCondition,
   Offer,
   OfferConditions,
   OfferSlice,
+  ProviderPriceBasis,
   SearchPassengerInput,
   SearchResult,
   SearchSliceInput,
@@ -386,6 +388,8 @@ export const pollResponseSchema = z.object({
   totalCount: z.number().optional(),
   currency: z.string().optional(),
   priceMode: z.string().optional(),
+  // Tolerant: et uleselig antall skal ikke velte søket, bare gjøre prisgrunnlaget ubekreftet (se priceBasisOf).
+  passengers: z.unknown().optional(),
   results: z.array(resultItemSchema).default([]),
   legs: z.record(z.string(), legSchema).default({}),
   segments: z.record(z.string(), segmentSchema).default({}),
@@ -402,6 +406,20 @@ export function parsePollResponse(json: unknown): KayakPollResponse {
     throw new KayakError("Søkemotoren ga et svar vi ikke kunne lese.", { retryable: true });
   }
   return parsed.data;
+}
+
+/**
+ * Prisgrunnlaget slik KAYAK oppga det: `priceMode` og antall reisende per type, uendret. Et antall som ikke er et
+ * ikke-negativt heltall (eller et felt som ikke er et objekt) gir `passengers: null` – vi gjetter ikke.
+ */
+export function priceBasisOf(body: Pick<KayakPollResponse, "priceMode" | "passengers">): ProviderPriceBasis {
+  const raw = body.passengers;
+  let passengers: Record<string, number> | null = null;
+  if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+    const entries = Object.entries(raw as Record<string, unknown>);
+    if (entries.every(([, v]) => typeof v === "number" && Number.isInteger(v) && v >= 0)) passengers = Object.fromEntries(entries) as Record<string, number>;
+  }
+  return { mode: typeof body.priceMode === "string" ? body.priceMode : null, passengers };
 }
 
 // ─── Kartlegging til HelloSkys Offer ─────────────────────────────────────────
@@ -449,19 +467,40 @@ function carrierOf(code: string, airlines: KayakPollResponse["airlines"]): Carri
 
 type BookingOption = z.infer<typeof bookingOptionSchema>;
 
-/** «included»/«flexible» = 1 kolli inkludert; «fee»/«unavailable» = 0; mangler = ukjent (vi påstår ikke). */
+/**
+ * «included»/«flexible» = 1 kolli inkludert; «fee»/«unavailable» = 0 (ikke
+ * inkludert); manglende eller ukjent verdi = ukjent (vi påstår ikke).
+ */
+function bagCount(restriction: string | undefined): number | null {
+  if (restriction === "included" || restriction === "flexible") return 1;
+  if (restriction === "fee" || restriction === "unavailable") return 0;
+  return null;
+}
+
 function bagsFrom(fees: BookingOption["fees"], families: BookingOption["fareFamilies"], kind: "carryOn" | "checked"): { count: number; unknown: boolean; fee?: string } {
   const list = kind === "carryOn" ? fees?.carryOnBag : fees?.checkedBag;
   const first = list?.find((b) => b.bagNumber === "first") ?? list?.[0];
-  if (first?.restriction) {
-    const included = first.restriction === "included" || first.restriction === "flexible";
-    const fee = first.restriction === "fee" ? first.displayPrice?.displayPrice : undefined;
-    return { count: included ? 1 : 0, unknown: false, ...(fee ? { fee } : {}) };
+  const fromFees = bagCount(first?.restriction);
+  if (fromFees !== null) {
+    const fee = first?.restriction === "fee" ? first.displayPrice?.displayPrice : undefined;
+    return { count: fromFees, unknown: false, ...(fee ? { fee } : {}) };
   }
   const code = kind === "carryOn" ? "carryOnBag" : "checkedBag";
-  const amenity = families?.flatMap((f) => f.amenities ?? []).find((a) => a.code === code);
-  if (amenity) return { count: amenity.restriction === "included" || amenity.restriction === "flexible" ? 1 : 0, unknown: false };
+  const fromAmenity = bagCount(families?.flatMap((f) => f.amenities ?? []).find((a) => a.code === code)?.restriction);
+  if (fromAmenity !== null) return { count: fromAmenity, unknown: false };
   return { count: 0, unknown: true };
+}
+
+/**
+ * Refusjon/endring fra KAYAKs fare-family-fasiliteter: «included»/«flexible» =
+ * tillatt, «fee» = tillatt mot et gebyr uten oppgitt beløp, «unavailable» =
+ * ikke tillatt. Andre eller manglende verdier gir ingen påstand.
+ */
+function fareCondition(restriction: string | undefined): FareCondition | undefined {
+  if (restriction === "included" || restriction === "flexible") return { allowed: true };
+  if (restriction === "fee") return { allowed: true, feeApplies: true };
+  if (restriction === "unavailable") return { allowed: false };
+  return undefined;
 }
 
 function amenity(families: BookingOption["fareFamilies"], code: string): string | undefined {
@@ -572,11 +611,13 @@ export function mapPollResponse(body: KayakPollResponse, input: KayakSearchInput
       const badges = (bo.badges ?? []).map((b) => b.code);
       const refundable = refundAmenity === "included" || refundAmenity === "flexible" || badges.includes("freeCancellation");
       const changeable = changeAmenity === "included" || changeAmenity === "flexible";
+      const refundCondition = fareCondition(refundAmenity);
+      const changeCondition = fareCondition(changeAmenity);
       const conditions: OfferConditions | undefined =
-        refundAmenity || changeAmenity
+        refundCondition || changeCondition
           ? {
-              ...(refundAmenity ? { refundBeforeDeparture: { allowed: refundable } } : {}),
-              ...(changeAmenity ? { changeBeforeDeparture: { allowed: changeable } } : {}),
+              ...(refundCondition ? { refundBeforeDeparture: refundCondition } : {}),
+              ...(changeCondition ? { changeBeforeDeparture: changeCondition } : {}),
             }
           : undefined;
 
@@ -729,6 +770,8 @@ export async function kayakSearch(input: KayakSearchInput, opts: KayakSearchOpti
     sandbox: kayakConfig.sandbox,
     bookingMode: "external",
     ...(partial ? { partial: true } : {}),
+    // Ren metadata: hva KAYAK sa at prisene gjelder. Beløpene over er urørt.
+    priceBasis: priceBasisOf(snapshot),
   };
 }
 

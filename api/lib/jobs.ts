@@ -44,7 +44,10 @@ export async function enqueueJob(
     const result = await db.insert(jobs).values({
       type,
       payload: JSON.stringify(payload),
-      runAt: opts.runAt ?? new Date(),
+      // run_at has second precision. MySQL rounds fractional JS timestamps up,
+      // which can put an immediate job in the future. Use the database clock
+      // for immediate work; preserve explicitly scheduled dates and backoff.
+      runAt: opts.runAt ?? sql`CURRENT_TIMESTAMP`,
       maxAttempts: opts.maxAttempts ?? 5,
       dedupeKey: opts.dedupeKey ?? null,
       activeDedupeKey: opts.dedupeKey ?? null,
@@ -91,7 +94,7 @@ export async function claimNextJob(workerId: string): Promise<ClaimedJob | null>
     .where(
       and(
         or(eq(jobs.status, "pending"), eq(jobs.status, "failed")),
-        lte(jobs.runAt, new Date()),
+        lte(jobs.runAt, sql`CURRENT_TIMESTAMP`),
         or(isNull(jobs.lockedBy), lt(jobs.lockedAt, lockCutoff)),
       ),
     )
@@ -181,7 +184,7 @@ export async function failJob(id: number, attempts: number, maxAttempts: number,
 export async function retryJob(id: number): Promise<void> {
   const db = getDb();
   const [row] = await db.select({ dedupeKey: jobs.dedupeKey }).from(jobs).where(eq(jobs.id, id)).limit(1);
-  const base = { status: "pending" as const, runAt: new Date(), lastError: null, lockedBy: null, lockedAt: null, completedAt: null };
+  const base = { status: "pending" as const, runAt: sql`CURRENT_TIMESTAMP`, lastError: null, lockedBy: null, lockedAt: null, completedAt: null };
   try {
     await db.update(jobs).set({ ...base, activeDedupeKey: row?.dedupeKey ?? null }).where(eq(jobs.id, id));
   } catch (err) {

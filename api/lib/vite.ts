@@ -6,7 +6,7 @@ import path from "path";
 
 import { createHash } from "node:crypto";
 
-import { isKnownRoute, normalizePath } from "../../contracts/seoRoutes";
+import { isKnownRoute, normalizePath, SITE_ORIGIN } from "../../contracts/seoRoutes";
 import { withSeoHead } from "./seoHead";
 import { dynamicContentExists, prerenderBody } from "./prerender";
 import { sitemapXml } from "./sitemap";
@@ -53,6 +53,27 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
   const indexPath = path.resolve(distPath, "index.html");
   let indexCache: string | null = null;
 
+  // Preview/staging hosts must never become another indexed HelloSky site.
+  // Use the addressed URL host, not an optional forwarded header that could
+  // make a Railway preview look like the canonical public domain.
+  const publicHost = new URL(SITE_ORIGIN).hostname;
+  const isPublicSite = (url: string) => {
+    const host = new URL(url).hostname;
+    return host === publicHost || host === `www.${publicHost}`;
+  };
+  app.use("*", async (c, next) => {
+    await next();
+    if (!isPublicSite(c.req.url)) c.header("X-Robots-Tag", "noindex");
+  });
+
+  app.get("/robots.txt", async (c, next) => {
+    if (isPublicSite(c.req.url)) return next();
+    // Crawlers must be allowed to fetch pages to see their noindex header.
+    // Do not advertise the production sitemap from a test environment.
+    c.header("Cache-Control", "no-cache");
+    return c.text("User-agent: *\nAllow: /\n");
+  });
+
   app.use("/assets/*", async (c, next) => {
     await next();
     if (c.res.status === 200) c.header("Cache-Control", "public, max-age=31536000, immutable");
@@ -77,6 +98,7 @@ export function serveStaticFiles(app: App, distPathOverride?: string) {
    * vinner selv om en gammel public/sitemap.xml skulle ligge igjen i et bygg.
    */
   app.get("/sitemap.xml", (c) => {
+    if (!isPublicSite(c.req.url)) return c.text("Not Found", 404);
     c.header("Content-Type", "application/xml; charset=utf-8");
     c.header("Cache-Control", "public, max-age=300");
     return c.body(sitemapXml());

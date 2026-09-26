@@ -7,7 +7,7 @@ import { env } from "./lib/env";
 import { AppError, toTRPCError } from "./lib/errors";
 import { duffelConfig, duffelGetOffer } from "./lib/duffel";
 import { demoFlightStatus, demoGetOffer } from "./lib/demo";
-import { assertRateLimit, clientIp } from "./lib/ratelimit";
+import { assertRateLimit, checkRateLimit, clientIp } from "./lib/ratelimit";
 import { enqueueJob } from "./lib/jobs";
 import { issueBookingAccessToken } from "./lib/bookingAccess";
 import { deviceFrom, marketFrom, recordProviderClick, recordSearchEvent } from "./lib/metaTracking";
@@ -18,6 +18,7 @@ import { isKayakOffer, kayakAutocomplete, kayakConfig } from "./lib/kayak";
 import { flightProvidersStatus, getFlightProvider, type FlightProviderId } from "./lib/flightProviders";
 import { fetchFlightStatus, flightStatusConfig } from "./lib/flightStatus";
 import type { FlightStatus, Offer, Order, PriceHint, SearchResult, ServiceStatus } from "../contracts/types";
+import type { TrpcContext } from "./context";
 
 // ─── Søk, tilbud og offentlige oppslag ─────────────────────────────────────
 // Booking skjer KUN via checkout.* (OTA-020). Ordre hentes via orders.get.
@@ -35,7 +36,7 @@ const sliceSchema = z.object({
 
 const providerSchema = z.enum(["duffel", "travelport", "kayak", "demo"]);
 
-const searchSchema = z.object({
+export const searchSchema = z.object({
   slices: z.array(sliceSchema).min(1).max(3),
   passengers: z.array(passengerSearchSchema).min(1).max(9),
   cabinClass: z.enum(["economy", "premium_economy", "business", "first"]),
@@ -49,7 +50,7 @@ const searchSchema = z.object({
   sessionId: z.string().uuid().optional(),
 });
 
-type SearchInput = z.infer<typeof searchSchema>;
+export type SearchInput = z.infer<typeof searchSchema>;
 
 /**
  * Tidligste «i dag» i noen tidssone (UTC−12). Datoen fra klienten er en lokal
@@ -127,7 +128,293 @@ export async function resolveOffer(offerId: string): Promise<Offer> {
   return offer;
 }
 
+// ─── Klikkfakta for KAYAK-tilbud ─────────────────────────────────────────────
+// KAYAK-tilbud kan ikke slås opp hos leverandøren i etterkant, og resolveOffer
+// avviser dem med vilje (de bestilles aldri i vår checkout). Uten dette fikk
+// hvert klikk på et KAYAK-tilbud clickRef null og ingen rad i provider_clicks –
+// altså nettopp klikkene metasøket lever av. Når serveren selv har returnert
+// tilbudet i et søk, huskes de få feltene klikkmålingen trenger, så klienten
+// fortsatt bare sender tilbuds-id-en og aldri kan diktere rute eller pris.
+
+type ClickFacts = {
+  source: Offer["source"];
+  sellerName: string;
+  originIata: string;
+  destinationIata: string;
+  departDate: string;
+  returnDate: string | null;
+  adults: number;
+  children: number;
+  infants: number;
+  cabin: string;
+  carrierIata: string;
+  stops: number;
+  shownPriceMinor: number | null;
+  currency: string;
+};
+
+function clickFactsOf(offer: Offer): ClickFacts {
+  const first = offer.slices[0]!;
+  const last = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : undefined;
+  const paxOf = (type: string) => offer.passengers.filter((p) => p.type === type).length;
+  const amount = Math.round(Number(offer.totalAmount) * 100);
+  return {
+    source: offer.source,
+    sellerName: offer.booking?.provider?.name ?? offer.owner.name,
+    originIata: first.origin.iata,
+    destinationIata: first.destination.iata,
+    departDate: first.departingAt.slice(0, 10),
+    returnDate: last && last.destination.iata === first.origin.iata ? last.departingAt.slice(0, 10) : null,
+    adults: Math.max(1, paxOf("adult")),
+    children: paxOf("child"),
+    infants: paxOf("infant_without_seat"),
+    cabin: first.segments[0]?.cabinClass ?? "economy",
+    carrierIata: offer.owner.iata,
+    stops: first.stops,
+    shownPriceMinor: Number.isFinite(amount) && amount > 0 ? amount : null,
+    currency: offer.totalCurrency,
+  };
+}
+
+/** Lenge nok til at et resultat som fortsatt vises (KAYAK_RESULT_TTL_MS) kan klikkes, med margin. */
+const CLICK_FACTS_TTL_MS = 60 * 60_000;
+/** Små poster (ingen tilbudsobjekter), så taket holder minnet lavt også ved mange søk. */
+const CLICK_FACTS_MAX = 20_000;
+const kayakClickFacts = new Map<string, { expires: number; facts: ClickFacts }>();
+
+function rememberKayakClickFacts(result: SearchResult): void {
+  const expires = Date.now() + CLICK_FACTS_TTL_MS;
+  for (const offer of result.offers) {
+    if (!isKayakOffer(offer.id)) continue;
+    try {
+      kayakClickFacts.delete(offer.id); // ny innsettingsrekkefølge = nyest sist
+      kayakClickFacts.set(offer.id, { expires, facts: clickFactsOf(offer) });
+    } catch {
+      // Et tilbud uten strekninger kan ikke måles; det skal ikke velte søket.
+    }
+  }
+  for (const key of kayakClickFacts.keys()) {
+    if (kayakClickFacts.size <= CLICK_FACTS_MAX) break;
+    kayakClickFacts.delete(key); // eldste først
+  }
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of kayakClickFacts) if (v.expires < now) kayakClickFacts.delete(k);
+}, 60_000).unref();
+
+async function clickFactsFor(offerId: string): Promise<ClickFacts> {
+  if (isKayakOffer(offerId)) {
+    const hit = kayakClickFacts.get(offerId);
+    if (!hit || hit.expires < Date.now()) throw new AppError("OFFER_NOT_FOUND");
+    return hit.facts;
+  }
+  return clickFactsOf(await resolveOffer(offerId));
+}
+
+/**
+ * Selve søket: rategrense, validering, leverandørvalg, cache og måling. Delt
+ * mellom nettets flights.search og appens NOK-søk (api/mobileFlights.ts), så
+ * begge går gjennom nøyaktig samme dør inn til leverandørene.
+ */
+export async function runFlightSearch(input: SearchInput, ctx: TrpcContext): Promise<SearchResult> {
+  assertRateLimit("search", clientIp(ctx.req), 20, 60_000);
+  const today = todayIso();
+  for (const s of input.slices) {
+    if (s.origin.toUpperCase() === s.destination.toUpperCase()) {
+      throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass.", data: { field: "slices" } });
+    }
+    if (s.departureDate < today) {
+      throw new AppError("VALIDATION", { message: "Avreisedatoen er passert. Velg en dato fra og med i dag.", data: { field: "departureDate" } });
+    }
+  }
+  const provider = getFlightProvider(input.provider);
+  const request = {
+    slices: input.slices,
+    passengers: input.passengers,
+    cabinClass: input.cabinClass,
+    currency: input.currency,
+    directOnly: input.directOnly,
+    userTrackId: input.sessionId,
+    userAgent: ctx.req.headers.get("user-agent") ?? undefined,
+    clientIp: clientIp(ctx.req),
+  };
+  /**
+   * Målingen ligger utenfor svaret, med vilje.
+   *
+   * Den logger søket etter at resultatet er klart, uten `await` i veien
+   * for kunden, og en feil i loggingen kan ikke velte søket. Uten denne
+   * raden fins ingen tall på hva folk faktisk leter etter – bare på hva
+   * de innloggede leter etter, som er en liten og skjev andel.
+   *
+   * Et cachetreff logges også: kunden gjorde et søk, og det er søket vi
+   * teller, ikke leverandørkallet.
+   */
+  const startedAt = Date.now();
+  const first = input.slices[0]!;
+  const last = input.slices.length > 1 ? input.slices[input.slices.length - 1] : undefined;
+  const paxOf = (type: string) => input.passengers.filter((p) => p.type === type).length;
+  const track = (result: SearchResult | null, errorCode: string | null) => {
+    if (result) rememberKayakClickFacts(result);
+    // «totalAmount» er en desimalstreng fra leverandøren. Vi regner den om
+    // til minste enhet her og aldri til flyttall i databasen.
+    const amounts = (result?.offers ?? [])
+      .map((o) => Math.round(Number(o.totalAmount) * 100))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const lowest = amounts.length ? Math.min(...amounts) : null;
+    void recordSearchEvent({
+      sessionRef: input.sessionId ?? null,
+      originIata: first.origin,
+      destinationIata: first.destination,
+      departDate: first.departureDate,
+      returnDate: last && last.destination === first.origin ? last.departureDate : null,
+      adults: Math.max(1, paxOf("adult")),
+      children: paxOf("child"),
+      infants: paxOf("infant_without_seat"),
+      cabin: input.cabinClass,
+      provider: provider.id,
+      resultCount: result?.offers?.length ?? 0,
+      lowestPriceMinor: lowest,
+      currency: result?.offers?.[0]?.totalCurrency ?? input.currency ?? null,
+      durationMs: Date.now() - startedAt,
+      errorCode,
+      device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
+      market: marketFrom(ctx.req.headers),
+      sandbox: result?.sandbox === true || provider.sandbox,
+    });
+  };
+
+  try {
+    if (!provider.cacheable) {
+      const fresh = await provider.search(request);
+      track(fresh, null);
+      return fresh;
+    }
+    const key = searchCacheKey(input, provider.id);
+    const hit = searchCache.get(key);
+    if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) {
+      track(hit.result, null);
+      return hit.result;
+    }
+    const result = await provider.search(request);
+    // Delvise svar (leverandøren rakk ikke å bli ferdig) caches ikke – neste søk får en ny sjanse.
+    if (!result.partial) searchCache.set(key, { at: Date.now(), result });
+    track(result, null);
+    return result;
+  } catch (searchErr) {
+    // Et feilet søk er det mest interessante søket: det er der dekningen
+    // mangler. Det skal måles, ikke forsvinne.
+    track(null, searchErr instanceof AppError ? searchErr.code : "UNKNOWN");
+    throw searchErr;
+  }
+}
+
 export type FlightStatusResult = (FlightStatus & { fetchedAt: string; demo: boolean }) | { unavailable: true; reason: string };
+
+/**
+ * Flyplassøk over hele verden. Registeret ligger på serveren fordi det er
+ * 454 kB; nettleseren har det kuraterte settet for øyeblikkelige forslag og
+ * spør hit for alt annet. Brukes også av appen (api/mobileFlights.ts).
+ */
+export const airportsProcedure = publicQuery
+  .input(z.object({ query: z.string().max(60), limit: z.number().int().min(1).max(20).optional() }))
+  .query(async ({ input, ctx }) => {
+    const limit = input.limit ?? 12;
+    const local = searchAirportsWorldwide(input.query, limit);
+    // KAYAKs Autocomplete API fyller på først når registeret vårt kommer til
+    // kort – sandkassen tillater bare 100 kall i timen, så den spørres ikke
+    // for hvert tastetrykk.
+    if (!kayakConfig.enabled || local.length >= 3 || input.query.trim().length < 3) return local;
+    const extra = await kayakAutocomplete(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
+    const seen = new Set(local.map((a) => a.iata));
+    return [...local, ...extra.filter((a) => !seen.has(a.iata))].slice(0, limit);
+  });
+
+/**
+ * Samme tilbud klikket fra samme IP innen CLICK_DEDUPE_MS er ett klikk: svaret
+ * er den første referansen, og ingen ny rad skrives. Hindrer at én søkerunde
+ * og en løkke blåser opp klikk og formidlet verdi i eierpanelet.
+ */
+const CLICK_DEDUPE_MS = 10 * 60_000;
+const CLICK_DEDUPE_MAX = 50_000;
+/** Klikk som skrives per IP (og per innlogget kunde) per minutt. Over taket: ingen rad, lenken åpnes likevel. */
+export const CLICKS_PER_MINUTE = 20;
+/**
+ * Klikk som skrives per tilbud per 10 minutter, fra alle IP-er til sammen. Et
+ * tilbud kommer fra ett søk (eller søkecachen i 5 min); langt flere ekte klikk
+ * enn dette på samme tilbud er ikke trolig, men en gjentakelse fra mange
+ * adresser ville ellers telt hver gang.
+ */
+export const CLICKS_PER_OFFER = 30;
+const recentClicks = new Map<string, { expires: number; clickRef: string }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of recentClicks) if (v.expires < now) recentClicks.delete(k);
+}, 60_000).unref();
+
+/**
+ * Klikket ut av HelloSky.
+ *
+ * Kalles i det kunden går videre til leverandøren. Den er bevisst mager:
+ * klienten sender bare tilbuds-id-en og søkeøkten, og serveren slår opp
+ * resten selv. Alternativet – å la nettleseren sende rute, pris og
+ * leverandør – ville gjort forretningstallene til noe hvem som helst kan
+ * skrive inn. Av samme grunn kan ett tilbud ikke telles om og om igjen: samme
+ * tilbud fra samme IP i 10 minutter er ett klikk, hver IP (og innlogget
+ * kunde) kan skrive høyst CLICKS_PER_MINUTE klikk i minuttet, og ett tilbud
+ * høyst CLICKS_PER_OFFER klikk per 10 minutter fra alle adresser til sammen.
+ *
+ * Svaret er en referanse leverandøren senere kan matche en konvertering
+ * mot. Feiler alt, svarer vi likevel: lenken skal åpne uansett.
+ *
+ * Delt med appens API (api/mobileFlights.ts): samme dør ut fra nett og app.
+ */
+export const trackProviderClickProcedure = publicQuery
+  .input(z.object({ offerId: z.string().min(1).max(128), sessionId: z.string().max(64).optional() }))
+  .mutation(async ({ input, ctx }): Promise<{ clickRef: string | null }> => {
+    try {
+      const ip = clientIp(ctx.req);
+      const dedupeKey = `${ip}|${input.offerId}`;
+      const seen = recentClicks.get(dedupeKey);
+      if (seen && seen.expires > Date.now()) return { clickRef: seen.clickRef };
+      if (!checkRateLimit("provider-click", ip, CLICKS_PER_MINUTE, 60_000)) return { clickRef: null };
+      if (ctx.customer && !checkRateLimit("provider-click-customer", String(ctx.customer.customerId), CLICKS_PER_MINUTE, 60_000)) return { clickRef: null };
+      if (!checkRateLimit("provider-click-offer", input.offerId, CLICKS_PER_OFFER, CLICK_DEDUPE_MS)) return { clickRef: null };
+
+      const { source: offerSource, ...facts } = await clickFactsFor(input.offerId);
+      // Sandkassestatus hører til leverandøren, ikke til tilbudet. Et klikk
+      // på et testtilbud skal aldri telle som forretning.
+      const source = offerSource ?? "unknown";
+      let sandbox = false;
+      try {
+        sandbox = getFlightProvider(offerSource).sandbox;
+      } catch {
+        sandbox = true; // ukjent opphav teller ikke som ekte
+      }
+      const clickRef = await recordProviderClick({
+        customerId: ctx.customer?.customerId ?? null,
+        sessionRef: input.sessionId ?? null,
+        provider: source,
+        ...facts,
+        device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
+        market: marketFrom(ctx.req.headers),
+        sandbox,
+      });
+      if (clickRef) {
+        recentClicks.set(dedupeKey, { expires: Date.now() + CLICK_DEDUPE_MS, clickRef });
+        for (const key of recentClicks.keys()) {
+          if (recentClicks.size <= CLICK_DEDUPE_MAX) break;
+          recentClicks.delete(key); // eldste først
+        }
+      }
+      return { clickRef };
+    } catch {
+      // Måling er aldri viktigere enn at kunden kommer videre.
+      return { clickRef: null };
+    }
+  });
 
 export const flightsRouter = createRouter({
   status: publicQuery.query((): Promise<ServiceStatusWithFees> => serviceStatus()),
@@ -137,172 +424,17 @@ export const flightsRouter = createRouter({
    * 454 kB; nettleseren har det kuraterte settet for øyeblikkelige forslag og
    * spør hit for alt annet.
    */
-  airports: publicQuery
-    .input(z.object({ query: z.string().max(60), limit: z.number().int().min(1).max(20).optional() }))
-    .query(async ({ input, ctx }) => {
-      const limit = input.limit ?? 12;
-      const local = searchAirportsWorldwide(input.query, limit);
-      // KAYAKs Autocomplete API fyller på først når registeret vårt kommer til
-      // kort – sandkassen tillater bare 100 kall i timen, så den spørres ikke
-      // for hvert tastetrykk.
-      if (!kayakConfig.enabled || local.length >= 3 || input.query.trim().length < 3) return local;
-      const extra = await kayakAutocomplete(input.query, { userAgent: ctx.req.headers.get("user-agent") ?? undefined, clientIp: clientIp(ctx.req) });
-      const seen = new Set(local.map((a) => a.iata));
-      return [...local, ...extra.filter((a) => !seen.has(a.iata))].slice(0, limit);
-    }),
+  airports: airportsProcedure,
 
   search: publicQuery.input(searchSchema).mutation(async ({ input, ctx }): Promise<SearchResult> => {
     try {
-      assertRateLimit("search", clientIp(ctx.req), 20, 60_000);
-      const today = todayIso();
-      for (const s of input.slices) {
-        if (s.origin.toUpperCase() === s.destination.toUpperCase()) {
-          throw new AppError("VALIDATION", { message: "Avreise og destinasjon kan ikke være samme flyplass.", data: { field: "slices" } });
-        }
-        if (s.departureDate < today) {
-          throw new AppError("VALIDATION", { message: "Avreisedatoen er passert. Velg en dato fra og med i dag.", data: { field: "departureDate" } });
-        }
-      }
-      const provider = getFlightProvider(input.provider);
-      const request = {
-        slices: input.slices,
-        passengers: input.passengers,
-        cabinClass: input.cabinClass,
-        currency: input.currency,
-        directOnly: input.directOnly,
-        userTrackId: input.sessionId,
-        userAgent: ctx.req.headers.get("user-agent") ?? undefined,
-        clientIp: clientIp(ctx.req),
-      };
-      /**
-       * Målingen ligger utenfor svaret, med vilje.
-       *
-       * Den logger søket etter at resultatet er klart, uten `await` i veien
-       * for kunden, og en feil i loggingen kan ikke velte søket. Uten denne
-       * raden fins ingen tall på hva folk faktisk leter etter – bare på hva
-       * de innloggede leter etter, som er en liten og skjev andel.
-       *
-       * Et cachetreff logges også: kunden gjorde et søk, og det er søket vi
-       * teller, ikke leverandørkallet.
-       */
-      const startedAt = Date.now();
-      const first = input.slices[0]!;
-      const last = input.slices.length > 1 ? input.slices[input.slices.length - 1] : undefined;
-      const paxOf = (type: string) => input.passengers.filter((p) => p.type === type).length;
-      const track = (result: SearchResult | null, errorCode: string | null) => {
-        // «totalAmount» er en desimalstreng fra leverandøren. Vi regner den om
-        // til minste enhet her og aldri til flyttall i databasen.
-        const amounts = (result?.offers ?? [])
-          .map((o) => Math.round(Number(o.totalAmount) * 100))
-          .filter((n) => Number.isFinite(n) && n > 0);
-        const lowest = amounts.length ? Math.min(...amounts) : null;
-        void recordSearchEvent({
-          sessionRef: input.sessionId ?? null,
-          originIata: first.origin,
-          destinationIata: first.destination,
-          departDate: first.departureDate,
-          returnDate: last && last.destination === first.origin ? last.departureDate : null,
-          adults: Math.max(1, paxOf("adult")),
-          children: paxOf("child"),
-          infants: paxOf("infant_without_seat"),
-          cabin: input.cabinClass,
-          provider: provider.id,
-          resultCount: result?.offers?.length ?? 0,
-          lowestPriceMinor: lowest,
-          currency: result?.offers?.[0]?.totalCurrency ?? input.currency ?? null,
-          durationMs: Date.now() - startedAt,
-          errorCode,
-          device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
-          market: marketFrom(ctx.req.headers),
-          sandbox: result?.sandbox === true || provider.sandbox,
-        });
-      };
-
-      try {
-        if (!provider.cacheable) {
-          const fresh = await provider.search(request);
-          track(fresh, null);
-          return fresh;
-        }
-        const key = searchCacheKey(input, provider.id);
-        const hit = searchCache.get(key);
-        if (hit && Date.now() - hit.at < SEARCH_CACHE_TTL_MS) {
-          track(hit.result, null);
-          return hit.result;
-        }
-        const result = await provider.search(request);
-        // Delvise svar (leverandøren rakk ikke å bli ferdig) caches ikke – neste søk får en ny sjanse.
-        if (!result.partial) searchCache.set(key, { at: Date.now(), result });
-        track(result, null);
-        return result;
-      } catch (searchErr) {
-        // Et feilet søk er det mest interessante søket: det er der dekningen
-        // mangler. Det skal måles, ikke forsvinne.
-        track(null, searchErr instanceof AppError ? searchErr.code : "UNKNOWN");
-        throw searchErr;
-      }
+      return await runFlightSearch(input, ctx);
     } catch (err) {
       throw toTRPCError(err);
     }
   }),
 
-  /**
-   * Klikket ut av HelloSky.
-   *
-   * Kalles i det kunden går videre til leverandøren. Den er bevisst mager:
-   * klienten sender bare tilbuds-id-en og søkeøkten, og serveren slår opp
-   * resten selv. Alternativet – å la nettleseren sende rute, pris og
-   * leverandør – ville gjort forretningstallene til noe hvem som helst kan
-   * skrive inn.
-   *
-   * Svaret er en referanse leverandøren senere kan matche en konvertering
-   * mot. Feiler alt, svarer vi likevel: lenken skal åpne uansett.
-   */
-  trackProviderClick: publicQuery
-    .input(z.object({ offerId: z.string().min(1).max(128), sessionId: z.string().max(64).optional() }))
-    .mutation(async ({ input, ctx }): Promise<{ clickRef: string | null }> => {
-      try {
-        const offer = await resolveOffer(input.offerId);
-        const first = offer.slices[0]!;
-        const last = offer.slices.length > 1 ? offer.slices[offer.slices.length - 1] : undefined;
-        const paxOf = (type: string) => offer.passengers.filter((p) => p.type === type).length;
-        const amount = Math.round(Number(offer.totalAmount) * 100);
-        // Sandkassestatus hører til leverandøren, ikke til tilbudet. Et klikk
-        // på et testtilbud skal aldri telle som forretning.
-        const source = offer.source ?? "unknown";
-        let sandbox = false;
-        try {
-          sandbox = getFlightProvider(offer.source).sandbox;
-        } catch {
-          sandbox = true; // ukjent opphav teller ikke som ekte
-        }
-        const clickRef = await recordProviderClick({
-          customerId: ctx.customer?.customerId ?? null,
-          sessionRef: input.sessionId ?? null,
-          provider: source,
-          sellerName: offer.booking?.provider?.name ?? offer.owner.name,
-          originIata: first.origin.iata,
-          destinationIata: first.destination.iata,
-          departDate: first.departingAt.slice(0, 10),
-          returnDate: last && last.destination.iata === first.origin.iata ? last.departingAt.slice(0, 10) : null,
-          adults: Math.max(1, paxOf("adult")),
-          children: paxOf("child"),
-          infants: paxOf("infant_without_seat"),
-          cabin: first.segments[0]?.cabinClass ?? "economy",
-          carrierIata: offer.owner.iata,
-          stops: first.stops,
-          shownPriceMinor: Number.isFinite(amount) && amount > 0 ? amount : null,
-          currency: offer.totalCurrency,
-          device: deviceFrom(ctx.req.headers.get("user-agent") ?? undefined),
-          market: marketFrom(ctx.req.headers),
-          sandbox,
-        });
-        return { clickRef };
-      } catch {
-        // Måling er aldri viktigere enn at kunden kommer videre.
-        return { clickRef: null };
-      }
-    }),
+  trackProviderClick: trackProviderClickProcedure,
 
   getOffer: publicQuery.input(z.object({ offerId: z.string().min(1).max(128) })).query(async ({ input }) => {
     try {

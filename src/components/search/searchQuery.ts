@@ -3,6 +3,7 @@ import type { CabinClass } from "@contracts/types";
 import type { Preference } from "@/lib/offers";
 import type { SearchPassengerInput } from "@contracts/types";
 import type { PaxAges, PaxCount } from "./paxUtils";
+import { calendarDayOffset } from "./searchDates";
 
 export interface TripLeg {
   from: Airport | null;
@@ -32,7 +33,7 @@ export interface SearchParamsState {
 }
 
 export function todayPlus(days: number): string {
-  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+  return calendarDayOffset(days);
 }
 
 export function defaultState(): SearchParamsState {
