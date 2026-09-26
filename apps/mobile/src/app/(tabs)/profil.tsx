@@ -20,7 +20,8 @@ import { savedDestinations } from "../../lib/saved";
 import { recentIsPast, recentKey, withFreshDates, type RecentSearch } from "../../lib/recent";
 import { localizedChoice } from "../../lib/airportIndex";
 import { keepDatesTogether } from "../../lib/format";
-import { cabinLabel, formErrorText, passengerSummary, type SearchForm } from "../../lib/searchForm";
+import { cabinLabel, formErrorText, passengerSummary, validateForm } from "../../lib/searchForm";
+import { greetingName } from "../../lib/customerName";
 import type { FormErrorCode } from "../../i18n/ns/search";
 import { Banner, BottomSheet, Field, LinkButton, PrimaryButton, SecondaryButton, Segmented } from "../../components/ui";
 import { a11yLanguage, useA11yLanguage, useI18n } from "../../i18n";
@@ -34,6 +35,9 @@ function openWeb(url: string) {
 
 /** Flyplassøket i «vanlig avreiseflyplass»-modus (se app/flyplass.tsx): valget huskes og blir «Fra» i skjemaet. */
 const HOME_AIRPORT_PICKER = { pathname: "/flyplass", params: { felt: "fra", hjem: "1" } };
+
+/** Fra denne tekststørrelsen (iOS' «xxxLarge» er 1,35) står en rads verdi under tittelen i stedet for til høyre. */
+const STACK_VALUE_AT = 1.3;
 
 /** Hver flis i oversikten er minst så bred (ganger tekststørrelsen), så det lengste ordet i etiketten får plass. */
 const TILE_BASIS = 88;
@@ -69,7 +73,7 @@ function Group({ title, children, testID, note }: { title?: string; children: Re
 /**
  * Én rad i en gruppe: ikon, tittel (og ev. en linje under), verdi til høyre og pil. Uten `onPress` er raden bare
  * informasjon – ingen pil, og VoiceOver leser den som én tekst. En handling (`action`: logg ut, slett) har ingen pil,
- * for den åpner ingen side. Hele raden er trykkflaten (minst 52 pt).
+ * for den åpner ingen side. Hele raden er trykkflaten (minst 52 pt); VoiceOver hører tittelen og linjen under.
  */
 function Row({
   icon,
@@ -100,8 +104,12 @@ function Row({
   accessibilityLabel?: string;
 }) {
   const lang = useA11yLanguage();
+  const { fontScale } = useWindowDimensions();
   const fg = danger ? colors.danger : colors.text;
   const muted = danger ? colors.danger : colors.textSecondary;
+  // Med stor tekst står verdien under tittelen, som i iOS' innstillinger: ved siden av fikk et langt ord i tittelen
+  // («avreiseflyplass») ikke plass og ble delt midt i ordet.
+  const stacked = !!value && fontScale >= STACK_VALUE_AT;
   const inner = (
     <>
       <Icon name={icon} size={20} color={muted} strokeWidth={1.75} />
@@ -109,8 +117,9 @@ function Row({
         {/* Ingen linjegrense: lange titler og stor tekst bryter linjen. */}
         <Text style={[type.body, { color: fg }]}>{title}</Text>
         {subtitle ? <Text style={[type.footnote, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
+        {stacked ? <Text style={[type.callout, { color: colors.textSecondary }]}>{value}</Text> : null}
       </View>
-      {value ? <Text style={[type.callout, styles.rowValue]}>{value}</Text> : null}
+      {value && !stacked ? <Text style={[type.callout, styles.rowValue]}>{value}</Text> : null}
       {onPress && !action ? <Icon name={external ? "external" : "chevronRight"} size={18} color={muted} /> : null}
     </>
   );
@@ -125,7 +134,7 @@ function Row({
     <Pressable
       onPress={onPress}
       accessibilityRole={external ? "link" : "button"}
-      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityLabel={accessibilityLabel ?? [title, subtitle].filter(Boolean).join(", ")}
       accessibilityHint={accessibilityHint}
       testID={testID}
       style={({ pressed }) => [styles.row, separated && styles.rowBorder, pressed && { backgroundColor: colors.inset }]}
@@ -175,14 +184,15 @@ function HelpGroup() {
 /**
  * Kundens egne sider på hellosky.no – reiser, lagrede reisende, prisvarsler og sikkerhet. Appen har dem ikke selv, så
  * den viser ingen tall eller lister herfra; lenkene åpner nettets sider i Safari-visning, der kunden logger inn med
- * samme konto første gang.
+ * samme konto første gang. «Mine reiser» er bestillinger gjort på nettet – linjen under sier det, så ingen leter etter
+ * søkene fra appen der.
  */
 function WebAccountGroup() {
   const { t } = useI18n();
   const a = t.account;
   return (
     <Group title={a.webAccountTitle} testID="web-account-group" note={a.webAccountNote}>
-      <Row icon="luggage" title={a.trips} external onPress={() => openWeb(WEB_PAGES.trips)} testID="link-trips" accessibilityHint={a.webOpens} />
+      <Row icon="luggage" title={a.trips} subtitle={a.tripsNote} external onPress={() => openWeb(WEB_PAGES.trips)} testID="link-trips" accessibilityHint={a.webOpens} />
       <Row icon="users" title={a.travellers} external separated onPress={() => openWeb(WEB_PAGES.travellers)} testID="link-travellers" accessibilityHint={a.webOpens} />
       <Row icon="bell" title={a.priceAlerts} external separated onPress={() => openWeb(WEB_PAGES.priceAlerts)} testID="link-price-alerts" accessibilityHint={a.webOpens} />
       <Row icon="lock" title={a.security} external separated onPress={() => openWeb(WEB_PAGES.security)} testID="link-security" accessibilityHint={a.webOpens} />
@@ -351,11 +361,16 @@ function GuestIntro({ onLogin, onRegister }: { onLogin: () => void; onRegister: 
   );
 }
 
-/** Innlogget, øverst i grafitten: initialene (bare pynt – VoiceOver hører hilsenen), hilsenen og kontoens adresse. */
+/**
+ * Innlogget, øverst i grafitten: initialene (bare pynt – VoiceOver hører hilsenen), hilsenen og kontoens adresse. Uten
+ * et ekte fornavn (tomt, eller serverens plassholder for Google/Apple uten navn – lib/customerName.ts) står «Du er
+ * logget inn» i stedet for en hilsen, og sirkelen viser et ikon i stedet for initialer.
+ */
 function Identity({ profile }: { profile: CustomerProfile | null }) {
   const { t } = useI18n();
   const a = t.account;
-  const initials = profile ? `${profile.firstName.trim().slice(0, 1)}${profile.lastName.trim().slice(0, 1)}`.toUpperCase() : "";
+  const name = greetingName(profile);
+  const initials = `${(name ?? "").slice(0, 1)}${(profile?.lastName ?? "").trim().slice(0, 1)}`.toUpperCase();
   const address = profile ? (profile.email ?? profile.phone) : null;
   return (
     <View style={styles.identity}>
@@ -371,7 +386,7 @@ function Identity({ profile }: { profile: CustomerProfile | null }) {
       </View>
       <View style={styles.identityText}>
         <Text style={[type.title, { color: colors.onDark }]} accessibilityRole="header">
-          {profile ? a.hello(profile.firstName) : a.signedIn}
+          {name ? a.hello(name) : a.signedIn}
         </Text>
         {address ? <Text style={[type.footnote, { color: colors.onDarkMuted }]}>{address}</Text> : null}
       </View>
@@ -556,8 +571,8 @@ export default function AccountScreen() {
   const [busy, setBusy] = useState(false);
   const [sheet, setSheet] = useState<null | "edit" | "delete">(null);
   const [profileSaved, setProfileSaved] = useState(false);
-  // Et søk fra siden som ikke kan kjøres (f.eks. samme flyplass begge veier). Feilen gjelder søket slik det var da
-  // kunden trykket; endres skjemaet siden (på Hjem, i Utforsk), er den borte – som i Utforsk.
+  // Et søk fra siden som ikke kan kjøres (f.eks. samme flyplass begge veier). Feilen gjelder skjemaet slik det var da
+  // kunden trykket; endres det siden (på Hjem, i Utforsk), er den borte – som i Utforsk.
   const [problem, setProblem] = useState<{ code: FormErrorCode; key: string } | null>(null);
   const [heroHeight, setHeroHeight] = useState(0);
   const [pastHero, setPastHero] = useState(false);
@@ -596,9 +611,11 @@ export default function AccountScreen() {
     );
   }
 
-  const searchFailed = (code: FormErrorCode, tried: SearchForm) => {
-    setProblem({ code, key: recentKey(tried) });
-    // Feilen står over modulene, kanskje utenfor bildet der kunden trykket: VoiceOver leser den opp med én gang.
+  // Et søk som ikke kan kjøres, prøves før runSearch – den skriver endringen inn i skjemaet før den sjekker, og et trykk
+  // som ikke fører noe sted, skal ikke bytte ut reisen kunden holder på med. Skjemaet står urørt, og feilen står over
+  // modulene (kanskje utenfor bildet der kunden trykket), så VoiceOver leser den opp med én gang.
+  const searchFailed = (code: FormErrorCode) => {
+    setProblem({ code, key: recentKey(form) });
     AccessibilityInfo.announceForAccessibility(formErrorText(code, i18n));
   };
   const continueSearch = (r: RecentSearch) => {
@@ -610,15 +627,15 @@ export default function AccountScreen() {
       router.navigate("/");
       return;
     }
-    const err = runSearch(r);
-    if (err) return searchFailed(err, r);
+    const err = validateForm(r) ?? runSearch(r);
+    if (err) return searchFailed(err);
     setProblem(null);
     router.push("/resultater");
   };
   const searchTo = (d: Destination) => {
     const destination = destinationChoice(d, locale);
-    const err = runSearch({ destination });
-    if (err) return searchFailed(err, { ...form, destination });
+    const err = validateForm({ ...form, destination }) ?? runSearch({ destination });
+    if (err) return searchFailed(err);
     setProblem(null);
     router.push("/resultater");
   };

@@ -1,4 +1,4 @@
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
 import { Pressable, Text } from "./a11y";
 import type { Destination } from "../lib/destinations";
 import { BottomFade, PhotoBackdrop } from "./Photo";
@@ -6,31 +6,38 @@ import { Icon } from "./Icon";
 import { colors, radius, space, type } from "../lib/theme";
 import { useI18n } from "../i18n";
 
+/** Fotokortet ved vanlig tekststørrelse (raden på Min side); med større tekst vokser det i samme forhold. */
+const CARD_WIDTH = 136;
+const CARD_HEIGHT = 132;
+
 /**
  * Reisemål med foto. Ingen «fra»-pris: vi har ingen verifisert pris uten
  * datoer og reisende, så kortet lover bare det det gjør – å søke.
+ *
+ * Ingen linjegrense: med stor tekst brytes bynavnet i stedet for å kuttes, og kortet vokser med tekststørrelsen
+ * (136 × 132 ved vanlig størrelse). En høyde kortet får med `style` (Utforsk gir bredde og høyde til rutenettet), er
+ * den minste høyden: trenger teksten mer, blir kortet høyere i stedet for at navnet klippes.
  */
 export function DestinationCard({ destination, onPress, style, testID }: { destination: Destination; onPress: () => void; style?: StyleProp<ViewStyle>; testID?: string }) {
   const { t, locale } = useI18n();
+  const { fontScale } = useWindowDimensions();
+  const scale = Math.max(1, fontScale);
   const names = destination.names[locale];
+  const { height, ...given } = StyleSheet.flatten(style) ?? {};
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={t.explore.seeFlightsTo(names.city, names.airport)}
-      style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.card, { width: CARD_WIDTH * scale, minHeight: CARD_HEIGHT * scale }, given, height !== undefined && { minHeight: height }, pressed && { opacity: 0.85 }]}
     >
       <PhotoBackdrop photo={destination.photo} scrim="light" style={StyleSheet.absoluteFill}>
         <BottomFade />
       </PhotoBackdrop>
       <View style={styles.text}>
-        <Text style={[type.calloutStrong, { color: colors.onDark }]} numberOfLines={1}>
-          {names.city}
-        </Text>
-        <Text style={[type.caption, { color: colors.onDarkMuted }]} numberOfLines={1}>
-          {t.explore.seeFlights}
-        </Text>
+        <Text style={[type.calloutStrong, { color: colors.onDark }]}>{names.city}</Text>
+        <Text style={[type.caption, { color: colors.onDarkMuted }]}>{t.explore.seeFlights}</Text>
       </View>
     </Pressable>
   );
@@ -70,6 +77,6 @@ const styles = StyleSheet.create({
   railPhoto: { height: 132, borderRadius: radius.input },
   railText: { paddingHorizontal: space.sm, paddingBottom: space.sm, gap: 2 },
   railAction: { flexDirection: "row", alignItems: "center", gap: 2, marginTop: space.xs },
-  card: { width: 136, height: 132, borderRadius: radius.input, overflow: "hidden", backgroundColor: colors.raised, justifyContent: "flex-end" },
+  card: { borderRadius: radius.input, overflow: "hidden", backgroundColor: colors.raised, justifyContent: "flex-end" },
   text: { padding: space.md, gap: 1 },
 });

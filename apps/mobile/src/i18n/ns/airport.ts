@@ -20,7 +20,11 @@ const en = {
   suggestDestinations: "Destinations to explore",
   suggestOrigins: "Airports in Norway",
   remember: "Remember as my usual departure airport",
-  rememberHint: "Saved only on this phone. New searches start from it.",
+  /**
+   * Står under bryteren her og under «Reisevaner» på Min side. Sier regelen i lib/appState.tsx (startForm): søket
+   * starter derfra når appen åpnes, men en reise med reisemål og datoer som ikke har passert, står som den var.
+   */
+  rememberHint: "Saved only on this phone. Your search starts from it when you open the app, unless you're in the middle of planning a trip.",
   usual: (city: string, iata: string) => `Usual departure airport: ${city} (${iata})`,
   forget: "Forget",
   clearQuery: "Clear the search",
@@ -49,7 +53,7 @@ const nb: typeof en = {
   suggestDestinations: "Reisemål å utforske",
   suggestOrigins: "Flyplasser i Norge",
   remember: "Husk som min vanlige avreiseflyplass",
-  rememberHint: "Lagres bare på denne telefonen. Nye søk starter derfra.",
+  rememberHint: "Lagres bare på denne telefonen. Søket starter derfra når du åpner appen, med mindre du er midt i å planlegge en reise.",
   usual: (city, iata) => `Vanlig avreiseflyplass: ${city} (${iata})`,
   forget: "Glem",
   clearQuery: "Tøm søket",

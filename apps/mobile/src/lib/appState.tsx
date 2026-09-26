@@ -12,7 +12,7 @@ import { initialForm, toSearchRequest, validateForm, type AirportChoice, type Se
 import { DEFAULT_VIEW, type ResultsView } from "./resultsView";
 import { parseDraft } from "./draft";
 import { readPref, writePref } from "./localStore";
-import { addRecent, parseHomeAirport, parseRecent, recentKey, type RecentSearch } from "./recent";
+import { addRecent, parseHomeAirport, parseRecent, recentIsPast, recentKey, type RecentSearch } from "./recent";
 import { parseSaved, toggleSaved as toggleSavedList, type SavedDestination } from "./saved";
 import type { Destination } from "./destinations";
 import { I18nProvider } from "../i18n";
@@ -130,6 +130,24 @@ const defaultFactory: ApiFactory = (getToken) => {
 };
 
 /**
+ * Skjemaet ved oppstart: søkeutkastet fra forrige gang (`raw`, slik det ligger på telefonen), ellers standardskjemaet.
+ * Med en vanlig avreiseflyplass starter «Fra» der – uten utkast, når utkastets avreise har passert (et gammelt søk) og
+ * når utkastet ikke har noe reisemål ennå. Et utkast med reisemål og datoer som ikke har passert, er en reise kunden
+ * holder på å planlegge: det står som det var. Om avreisen har passert, sjekkes på datoene slik de ble lagret –
+ * parseDraft flytter passerte datoer fram, så etter den ville et gammelt utkast aldri se gammelt ut.
+ */
+function startForm(raw: unknown, home: AirportChoice | null, today: Date = new Date()): SearchForm {
+  const draft = parseDraft(raw, today);
+  if (!home) return draft ?? initialForm(today);
+  const asStored = parseDraft(raw, today, { keepPastDates: true });
+  const planning = Boolean(draft?.destination) && asStored !== null && !recentIsPast(asStored, today);
+  if (draft && planning) return draft;
+  const base = draft ?? initialForm(today);
+  // Reisemålet fra et gammelt utkast kan stå – men aldri det samme som «Fra».
+  return { ...base, origin: home, destination: base.destination?.iata === home.iata ? null : base.destination };
+}
+
+/**
  * Hele appens tilstand, pakket i språkvalget. `initialLocale` er for tester og
  * forhåndsvisninger; ellers leses det lagrede valget (norsk bokmål ved ny installasjon).
  */
@@ -149,13 +167,10 @@ function AppStateProvider({ children, apiFactory = defaultFactory, initial, nati
   const [sessionId] = useState(() => Crypto.randomUUID());
 
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
-  // Søkeutkastet fra forrige gang (bare skjemaet), ellers standardskjemaet.
+  // Søkeutkastet fra forrige gang (bare skjemaet), ellers standardskjemaet – med den vanlige avreiseflyplassen i «Fra»
+  // når det ikke er en reise under planlegging (se startForm).
   const [homeAirport, setHomeAirportState] = useState<AirportChoice | null>(() => readPref("homeAirport", parseHomeAirport));
-  const [form, setFormState] = useState<SearchForm>(() => {
-    const draft = readPref("draft", (v) => parseDraft(v));
-    const base = draft ?? { ...initialForm(), origin: homeAirport ?? initialForm().origin };
-    return { ...base, ...initial };
-  });
+  const [form, setFormState] = useState<SearchForm>(() => ({ ...startForm(readPref("draft", (v) => v), homeAirport), ...initial }));
   const [recent, setRecent] = useState<RecentSearch[]>(() => readPref("recent", (v) => parseRecent(v)) ?? []);
   const saveRecent = useCallback((next: RecentSearch[]) => {
     setRecent(next);

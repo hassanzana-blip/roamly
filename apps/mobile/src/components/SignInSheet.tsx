@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { MobileSocialProvider } from "@contracts/mobileAuth";
 import { Text } from "./a11y";
@@ -168,6 +169,12 @@ export function SignInSheet({ visible, initialMode, onClose }: { visible: boolea
   return (
     <Modal visible={open} animationType={reduced ? "fade" : "slide"} presentationStyle="pageSheet" allowSwipeDismissal onRequestClose={close}>
       <View style={styles.modal} accessibilityLanguage={lang} onAccessibilityEscape={close} testID="auth-modal">
+        {/*
+          Sidekortet ligger over iOS' svarte bakgrunn: lys tekst i statuslinjen, uansett hva skjermen under ba om (appen
+          styrer statuslinjen selv, så den står ellers mørk på svart). Den står i arkets innhold, så den monteres når
+          arket vises og blir stående mens det skyves bort – iOS beholder innholdet til arket er borte.
+        */}
+        <StatusBar style="light" />
         <View style={styles.modalHead}>
           <IconButton icon="close" label={i18n.t.common.close} variant="light" onPress={close} testID="auth-close" />
           <Text style={[type.headline, styles.modalTitle]} accessibilityRole="header">

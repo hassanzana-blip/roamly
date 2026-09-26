@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
 import { AppProvider, type ApiFactory, type NativeSocialSignIn } from "../lib/appState";
@@ -265,8 +265,16 @@ describe("Min side: tilstand mellom innlogging og utlogging", () => {
   });
 
   it("en lang verdi til høyre tar aldri mer enn litt over halve raden, så etiketten får plass", async () => {
-    await renderProfile();
-    const value = within(screen.getByTestId("currency-row")).getByText("NOK");
-    expect(StyleSheet.flatten(value.props.style)).toMatchObject({ maxWidth: "55%", flexShrink: 1 });
+    // Med vanlig tekst står verdien til høyre (Jest-oppsettets standard er fontScale 2, der den står under tittelen).
+    const base = { ...Dimensions.get("window") };
+    const baseScreen = { ...Dimensions.get("screen") };
+    try {
+      await act(async () => Dimensions.set({ window: { ...base, fontScale: 1 }, screen: { ...baseScreen, fontScale: 1 } }));
+      await renderProfile();
+      const value = within(screen.getByTestId("currency-row")).getByText("NOK");
+      expect(StyleSheet.flatten(value.props.style)).toMatchObject({ maxWidth: "55%", flexShrink: 1 });
+    } finally {
+      await act(async () => Dimensions.set({ window: base, screen: baseScreen }));
+    }
   });
 });

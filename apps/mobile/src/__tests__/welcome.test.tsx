@@ -9,6 +9,7 @@ import { AppProvider, useApp, type ApiFactory, type NativeSocialSignIn } from ".
 import { createApiClient } from "../lib/api";
 import { appleBuildReady } from "../lib/appleSupport";
 import { __resetLocalStoreForTests, readPref, writePref } from "../lib/localStore";
+import { __setReducedMotionForTests } from "../lib/motion";
 import { I18nProvider } from "../i18n";
 import { fakeServer } from "../test/fakeServer";
 import { AUTH_RESULT, PROFILE, TOKEN } from "../test/fixtures";
@@ -286,6 +287,48 @@ describe("statuslinjen", () => {
       expect(welcome().queryByTestId("status-bar-shield")).toBeNull();
     } finally {
       insets.mockImplementation(original);
+    }
+  });
+
+  // Når kunden hopper over (eller logger inn), ligger fotoet under statuslinjen en stund til: laget skyves ned på
+  // 320 ms, og starten er rolig – eller det tones ut på 200 ms. Byttet tidlig, sto mørk tekst på fotoet.
+  it.each([
+    ["skyves ned", false, 160],
+    ["tones ut («Reduser bevegelse»)", true, 159],
+  ] as const)("når velkomsten %s, står lys tekst til omtrent halvveis – så får skjermen under ordet", async (_how, reduced, handover) => {
+    // Utgangen holdes igjen, så velkomsten står midt i den så lenge testen vil; klokken styres av testen.
+    const timing = jest.spyOn(Animated, "timing").mockImplementation(() => ({ start: () => undefined, stop: () => undefined, reset: () => undefined }) as unknown as Animated.CompositeAnimation);
+    const reduceMotion = jest.spyOn(AccessibilityInfo, "isReduceMotionEnabled").mockResolvedValue(reduced);
+    __setReducedMotionForTests(reduced);
+    try {
+      await renderApp();
+      await welcomeShown();
+      await act(async () => undefined);
+      const gate = () => within(screen.getByTestId("welcome", { includeHiddenElements: true }));
+      const gateBar = () => gate().queryByTestId("status-bar", { includeHiddenElements: true });
+      expect(gateBar()?.props.statusBarStyle).toBe("light");
+
+      jest.useFakeTimers();
+      await fireEvent.press(screen.getByTestId("welcome-skip"));
+      expect(timing).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ toValue: 0, duration: reduced ? 200 : 320 }));
+      // På vei ut: fotoet ligger fortsatt under statuslinjen, og teksten er lys.
+      await act(async () => {
+        jest.advanceTimersByTime(handover - 1);
+      });
+      expect(gateBar()?.props.statusBarStyle).toBe("light");
+      await act(async () => {
+        jest.advanceTimersByTime(1);
+      });
+      expect(gateBar()).toBeNull();
+      // Midt i utgangen, ikke når den er ferdig: laget står der ennå.
+      expect(screen.getByTestId("welcome", { includeHiddenElements: true })).toBeOnTheScreen();
+      // Forsiden under har sin egen: mørk tekst på den lyse grunnen.
+      expect(screen.getAllByTestId("status-bar").map((bar) => bar.props.statusBarStyle)).toEqual(["dark"]);
+    } finally {
+      jest.useRealTimers();
+      timing.mockRestore();
+      reduceMotion.mockRestore();
+      __setReducedMotionForTests(null);
     }
   });
 });

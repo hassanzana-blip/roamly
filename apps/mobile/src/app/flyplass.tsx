@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { Pressable, Switch, Text } from "../components/a11y";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Airport } from "@contracts/airports";
 import { useApp } from "../lib/appState";
@@ -169,9 +170,17 @@ export default function AirportPicker() {
   const choiceFor = (row: Row): AirportChoice => ({ iata: row.airport.iata, ...airportNames(row.airport, locale) });
 
   const question = homeMode ? a.homeQuestion : field === "origin" ? a.from : a.to;
+  // Den vanlige avreiseflyplassen med byen på appens språk, som på Min side (lagret «København», vist «Copenhagen»).
+  const home = homeAirport ? localizedChoice(homeAirport, locale) : null;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, space.lg) }]}>
+      {/*
+        Sidekortet ligger over iOS' svarte bakgrunn, og statuslinjen står over den svarte kanten: lys tekst, som i Expos
+        mal for modaler. Appen styrer statuslinjen selv (UIViewControllerBasedStatusBarAppearance er av), så fanen under
+        ville ellers bestemt – ofte mørk tekst på svart. Den monteres sist og vinner så lenge søket er oppe.
+      */}
+      <StatusBar style="light" />
       <View style={styles.head}>
         <IconButton icon="close" label={a.close} variant="light" onPress={() => router.back()} testID="header-back" />
         <Text style={[type.headline, styles.title]} accessibilityRole="header">
@@ -214,9 +223,9 @@ export default function AirportPicker() {
               <Text style={[type.caption, { color: colors.textSecondary }]}>{a.exactOnly}</Text>
               {field === "origin" ? (
                 <View style={{ gap: space.xs }}>
-                  {homeAirport ? (
+                  {home ? (
                     <View style={styles.homeRow} testID="home-airport">
-                      <Text style={[type.footnote, { color: colors.text, flex: 1 }]}>{a.usual(homeAirport.city, homeAirport.iata)}</Text>
+                      <Text style={[type.footnote, { color: colors.text, flex: 1 }]}>{a.usual(home.city, home.iata)}</Text>
                       <LinkButton label={a.forget} onPress={() => setHomeAirport(null)} testID="forget-home-airport" />
                     </View>
                   ) : null}

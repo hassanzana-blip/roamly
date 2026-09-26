@@ -22,6 +22,19 @@ export const WELCOME_SEEN_KEY = "welcomeSeen";
 /** Paris i kveldslys (fra reisemålsregisteret): rolig himmel øverst under «Hopp over», mørk elv nederst under teksten. */
 const PHOTO = DESTINATIONS.find((d) => d.id === "paris")?.photo ?? null;
 
+/** Ut: laget skyves ned over kanten (kubisk start) – eller tones ut når «Reduser bevegelse» er på. */
+const EXIT_SLIDE_MS = 320;
+const EXIT_FADE_MS = 200;
+
+/**
+ * Når statuslinjen går over til skjermen under mens velkomsten forsvinner – til da ligger fotoet under den, og teksten
+ * må være lys. Skyvet starter rolig (t³): halvveis har laget bare flyttet seg en åttendedel av skjermhøyden, men det er
+ * nok til at fotoet er ute av statuslinjen på alle iPhoner. Toningen (1 − t³) er halvt gjennomsiktig ved t ≈ 0,79.
+ */
+function statusBarHandoverMs(reduced: boolean): number {
+  return reduced ? Math.round(EXIT_FADE_MS * Math.cbrt(0.5)) : EXIT_SLIDE_MS / 2;
+}
+
 function seenBefore(): boolean {
   return readPref(WELCOME_SEEN_KEY, (v) => (v === true ? true : null)) === true;
 }
@@ -79,6 +92,15 @@ export function WelcomeGate() {
   // På skjermen mens velkomsten er åpen, og mens den forsvinner.
   const [present, setPresent] = useState(open);
   if (open && !present) setPresent(true);
+  // Statuslinjen mens velkomsten går: lys til omtrent halvveis (fotoet ligger fortsatt under den), så får skjermen
+  // under ordet (dens FocusStatusBar). Uten dette byttet den i samme øyeblikk som kunden trykket – mørk tekst på fotoet.
+  const [handedOver, setHandedOver] = useState(false);
+  if (open && handedOver) setHandedOver(false);
+  useEffect(() => {
+    if (open || !present) return;
+    const id = setTimeout(() => setHandedOver(true), statusBarHandoverMs(reduced));
+    return () => clearTimeout(id);
+  }, [open, present, reduced]);
   const [shown] = useState(() => new Animated.Value(0));
   const title = useRef<ComponentRef<typeof RNText>>(null);
   const focused = useRef(false);
@@ -86,7 +108,7 @@ export function WelcomeGate() {
     if (!present) return;
     const anim = Animated.timing(shown, {
       toValue: open ? 1 : 0,
-      duration: open ? 220 : reduced ? 200 : 320,
+      duration: open ? 220 : reduced ? EXIT_FADE_MS : EXIT_SLIDE_MS,
       easing: open ? Easing.out(Easing.quad) : Easing.in(Easing.cubic),
       useNativeDriver: true,
     });
@@ -150,7 +172,7 @@ export function WelcomeGate() {
       onAccessibilityEscape={open ? skip : undefined}
       testID="welcome"
     >
-      {open ? <StatusBar style={pastIsland ? "dark" : "light"} animated /> : null}
+      {open || !handedOver ? <StatusBar style={pastIsland ? "dark" : "light"} animated /> : null}
       <ScrollView
         style={styles.fill}
         contentContainerStyle={styles.scroll}

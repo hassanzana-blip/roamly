@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { Dimensions, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import * as SafeArea from "react-native-safe-area-context";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { AppProvider, type ApiFactory } from "../lib/appState";
@@ -15,6 +15,8 @@ import { SEARCH_RESULT } from "../test/fixtures";
 import { CHECKIN, CHECKOUT, HOTEL_A, HOTEL_DETAIL, HOTEL_RESULT, LONDON, STATUS_LIVE, STATUS_OFF, STATUS_SANDBOX } from "../test/hotelFixtures";
 import { pinClock } from "../test/clock";
 import type { DestinationMapProps } from "../components/DestinationMap";
+import { DestinationCard } from "../components/DestinationCard";
+import { I18nProvider } from "../i18n";
 import ExploreScreen from "../app/(tabs)/utforsk";
 import SavedScreen from "../app/(tabs)/lagret";
 import HotelSearchScreen from "../app/hotell/index";
@@ -199,6 +201,12 @@ describe("Utforsk i «Cloud + Graphite»", () => {
     expect(caption).toHaveTextContent("Spania · BCN");
     expect(colorOf(caption)).toBe(colors.textSecondary);
     expect(caption.props.numberOfLines).toBeUndefined();
+    // På fotoet heller ingen linjegrense: med stor tekst brytes bynavnet i stedet for å kuttes med «…».
+    for (const text of within(screen.getByTestId("explore-barcelona")).getAllByText(/.+/)) expect(text.props.numberOfLines).toBeUndefined();
+    // Rutenettets høyde (0,9 × bredden) er den minste: trenger teksten mer, blir kortet høyere i stedet for å klippe den.
+    const card = flat("explore-barcelona");
+    expect(card.height).toBeUndefined();
+    expect(card.minHeight).toBeCloseTo((card.width as number) * 0.9);
   });
 
   it("kartvisningen: lys grunn, lyse områdeknapper (valgt blå), merknaden sekundærfarget; Apple-kartet på sin mørke flate, kortet hvitt", async () => {
@@ -249,6 +257,36 @@ describe("Utforsk i «Cloud + Graphite»", () => {
     expect(screen.getByTestId("map-pin-dubai")).toBeSelected();
     expect(colorOf(within(screen.getByTestId("map-pin-dubai")).getByText("DXB"))).toBe(colors.white);
     expect(darkTexts()).toEqual([]);
+  });
+});
+
+describe("fotokortet for et reisemål (raden på Min side)", () => {
+  /** Kortet alene, med telefonens tekststørrelse satt av testen (Jest står ellers på 2×). */
+  async function renderCard(fontScale: number) {
+    jest.spyOn(Dimensions, "get").mockReturnValue({ width: 390, height: 844, scale: 3, fontScale });
+    const sulaymaniyah = DESTINATIONS.find((d) => d.id === "sulaymaniyah")!;
+    await render(
+      <I18nProvider initialLocale="nb">
+        <DestinationCard destination={sulaymaniyah} onPress={() => undefined} testID="card" />
+      </I18nProvider>,
+    );
+  }
+
+  it("136 × 132 pt ved vanlig tekststørrelse, og aldri mindre", async () => {
+    await renderCard(1);
+    expect(flat("card")).toMatchObject({ width: 136, minHeight: 132 });
+    expect(flat("card").height).toBeUndefined();
+    await screen.unmount();
+    await renderCard(0.82);
+    expect(flat("card")).toMatchObject({ width: 136, minHeight: 132 });
+  });
+
+  it("med større tekst vokser kortet i samme forhold, og navnet og linjen under brytes i stedet for å kuttes", async () => {
+    await renderCard(1.5);
+    expect(flat("card")).toMatchObject({ width: 204, minHeight: 198 });
+    const texts = within(screen.getByTestId("card")).getAllByText(/.+/);
+    expect(texts.map((t) => t.props.children)).toEqual(["Sulaymaniyah", "Se flyreiser"]);
+    for (const text of texts) expect(text.props.numberOfLines).toBeUndefined();
   });
 });
 

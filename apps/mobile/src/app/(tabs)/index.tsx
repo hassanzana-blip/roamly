@@ -9,6 +9,7 @@ import { FEATURED, destinationChoice, type Destination } from "../../lib/destina
 import { cabinLabel, formErrorText, passengerCount, passengerSummary } from "../../lib/searchForm";
 import { recentIsPast, recentKey, withFreshDates, type RecentSearch } from "../../lib/recent";
 import { localizedChoice } from "../../lib/airportIndex";
+import { greetingName } from "../../lib/customerName";
 import { useI18n } from "../../i18n";
 import type { FormErrorCode } from "../../i18n/ns/search";
 import { Banner, IconButton, LinkButton } from "../../components/ui";
@@ -86,8 +87,9 @@ export default function HomeScreen() {
   const hotelsOn = hotels.kind === "ok" && hotels.status.enabled;
 
   const profile = auth.status === "signedIn" ? auth.profile : null;
-  const name = profile?.firstName?.trim();
-  const initials = initialsOf(profile?.firstName, profile?.lastName);
+  // Uten et ekte fornavn (tomt, eller serverens plassholder for Google/Apple uten navn): spørsmålet, ingen hilsen.
+  const name = greetingName(profile);
+  const initials = initialsOf(name, profile?.lastName);
 
   const searchTo = (d: Destination) => {
     const err = runSearch({ destination: destinationChoice(d, locale) });
@@ -128,7 +130,7 @@ export default function HomeScreen() {
           </Text>
           {auth.status === "signedIn" ? (
             <Pressable onPress={() => router.push("/profil")} accessibilityRole="button" accessibilityLabel={t.home.profileButton} testID="account-button" style={({ pressed }) => [styles.avatar, pressed && { opacity: 0.8 }]}>
-              {initials ? <Text style={styles.avatarText}>{initials}</Text> : null}
+              {initials ? <Text style={styles.avatarText}>{initials}</Text> : <Icon name="user" size={20} color={colors.white} />}
             </Pressable>
           ) : (
             // Gjest: knappen går til Min side (innloggingen står øverst der), så den heter det den åpner.

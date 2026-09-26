@@ -108,6 +108,8 @@ const en = {
   webAccountTitle: "On hellosky.no",
   webAccountNote: "These pages open on hellosky.no and are in Norwegian. The first time, you log in there with the same account.",
   trips: "My trips",
+  /** Nettets «Mine reiser» viser bestillinger gjort der – ikke søkene i appen. */
+  tripsNote: "Bookings made on hellosky.no",
   travellers: "Travellers",
   priceAlerts: "Price alerts",
   security: "Security and login",
@@ -217,6 +219,7 @@ const nb: typeof en = {
   webAccountTitle: "På hellosky.no",
   webAccountNote: "Sidene åpnes på hellosky.no. Første gang logger du inn der med samme konto.",
   trips: "Mine reiser",
+  tripsNote: "Bestillinger gjort på hellosky.no",
   travellers: "Reisende",
   priceAlerts: "Prisvarsler",
   security: "Sikkerhet og innlogging",
